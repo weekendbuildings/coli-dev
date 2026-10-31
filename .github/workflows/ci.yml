@@ -436,6 +436,18 @@ jobs:
             -o "$RUNNER_TEMP/verify-chemistry-labs"
           "$RUNNER_TEMP/verify-chemistry-labs"
 
+      - name: Verify neuron training model / Проверка модели обучения нейрона
+        run: |
+          swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
+            -o "$RUNNER_TEMP/verify-neuron-training"
+          "$RUNNER_TEMP/verify-neuron-training"
+
+      - name: Verify entropy and Hardy-Weinberg lab models / Проверка моделей энтропии и Харди — Вайнберга
+        run: |
+          swiftc macOS/ColiDev/App/StatisticalLabs.swift macOS/ColiDev/scripts/verify_statistical_labs.swift \
+            -o "$RUNNER_TEMP/verify-statistical-labs"
+          "$RUNNER_TEMP/verify-statistical-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \
@@ -499,7 +511,7 @@ jobs:
           -derivedDataPath "$RUNNER_TEMP/ColiDevDerivedData"
           ARCHS=${{ matrix.arch }}
           CURRENT_PROJECT_VERSION=${{ env.COLIDEV_BUILD_VERSION }}
-          SUFeedURL=https://raw.githubusercontent.com/mirazizmamatkulov1-create/coli-dev/main/updates/${{ matrix.feed }}
+          SUFeedURL=https://raw.githubusercontent.com/weekendbuildings/coli-dev/main/updates/${{ matrix.feed }}
           SUPublicEDKey=${{ vars.SPARKLE_PUBLIC_ED_KEY }}
           CODE_SIGNING_ALLOWED=NO
           build
@@ -520,7 +532,7 @@ jobs:
           -derivedDataPath "$RUNNER_TEMP/ColiDevDerivedData"
           ARCHS=${{ matrix.arch }}
           CURRENT_PROJECT_VERSION=${{ env.COLIDEV_BUILD_VERSION }}
-          SUFeedURL=https://raw.githubusercontent.com/mirazizmamatkulov1-create/coli-dev/main/updates/${{ matrix.feed }}
+          SUFeedURL=https://raw.githubusercontent.com/weekendbuildings/coli-dev/main/updates/${{ matrix.feed }}
           SUPublicEDKey=${{ vars.SPARKLE_PUBLIC_ED_KEY }}
           CODE_SIGN_IDENTITY=-
 

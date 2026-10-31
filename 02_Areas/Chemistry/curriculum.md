@@ -19,11 +19,11 @@
 
 ## Продвинутый уровень / Advanced
 
-| Модуль / Module | Результат обучения / Learning outcome |
-|---|---|
-| Пребиотическая химия и автокатализ / Prebiotic chemistry and autocatalysis | Оценивать опыты о происхождении строительных блоков жизни, отделяя показанное в лаборатории от предположений о древней Земле. / Evaluate experiments on the origin of life's building blocks, separating what the lab showed from assumptions about the early Earth. |
-| Термодинамика живых систем / Thermodynamics of living systems | Объяснять, как клетки поддерживают порядок за счёт потока энергии, не нарушая второго начала термодинамики. / Explain how cells maintain order using an energy flow without violating the second law. |
-| Ферменты и биохимическая кинетика / Enzymes and biochemical kinetics | Читать кривые скорости ферментативных реакций и учитывать условия измерения. / Read enzyme rate curves while accounting for measurement conditions. |
+| Модуль / Module | Результат обучения / Learning outcome | Урок / Lesson |
+|---|---|---|
+| Пребиотическая химия и автокатализ / Prebiotic chemistry and autocatalysis | Оценивать опыты о происхождении строительных блоков жизни, отделяя показанное в лаборатории от предположений о древней Земле. / Evaluate experiments on the origin of life's building blocks, separating what the lab showed from assumptions about the early Earth. | lesson:prebiotic_chemistry_and_autocatalysis |
+| Термодинамика живых систем / Thermodynamics of living systems | Объяснять, как клетки поддерживают порядок за счёт потока энергии, не нарушая второго начала термодинамики. / Explain how cells maintain order using an energy flow without violating the second law. | lesson:thermodynamics_of_living_systems |
+| Ферменты и биохимическая кинетика / Enzymes and biochemical kinetics | Читать кривые скорости ферментативных реакций и учитывать условия измерения. / Read enzyme rate curves while accounting for measurement conditions. | lesson:enzyme_kinetics_michaelis_menten |
 
 ## Форматы практики / Practice formats
 

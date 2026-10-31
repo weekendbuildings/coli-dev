@@ -25,7 +25,7 @@ source_review_interval_days: 365
 
 ### Исследуй и потренируйся
 
-Выпиши все 16 последовательностей для четырёх монет и разложи их по макросостояниям: 4 орла, 3 орла, 2, 1 и 0. Сколько микросостояний у каждого? Затем объясни, почему комната сама не прибирается, а для уборки нужна работа.
+Выпиши все 16 последовательностей для четырёх монет и разложи их по макросостояниям: 4 орла, 3 орла, 2, 1 и 0. Сколько микросостояний у каждого? Затем объясни, почему комната сама не прибирается, а для уборки нужна работа. В тренажёре «Монеты и энтропия» проверь, как быстро падает вероятность «всех орлов», когда монет становится больше.
 
 ### Вопрос
 
@@ -65,7 +65,7 @@ Life looks like an exception: organisms are highly ordered. But they are open sy
 
 ### Explore and practise
 
-Write out all 16 sequences for four coins and sort them into macrostates: 4 heads, 3 heads, 2, 1, and 0. How many microstates does each have? Then explain why a room does not tidy itself and why tidying takes work.
+Write out all 16 sequences for four coins and sort them into macrostates: 4 heads, 3 heads, 2, 1, and 0. How many microstates does each have? Then explain why a room does not tidy itself and why tidying takes work. In the “Coins and entropy” lab, check how fast the chance of “all heads” falls as the number of coins grows.
 
 ### Question
 

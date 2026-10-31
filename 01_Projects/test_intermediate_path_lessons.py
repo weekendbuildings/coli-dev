@@ -202,3 +202,306 @@ def test_english_argument_lessons() -> None:
     assert "concede" in russian and "concede" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked("English", "counterclaims_and_respectful_argument")
+
+
+def _linked_advanced(subject: str, resource: str) -> bool:
+    roadmap = (AREAS / subject / "curriculum.md").read_text(encoding="utf-8")
+    advanced = roadmap.split("## Продвинутый уровень / Advanced", 1)[1].split("\n## ", 1)[0]
+    return f"lesson:{resource}" in advanced
+
+
+def test_autocatalytic_doubling_against_linear_growth() -> None:
+    assert 2 ** 10 == 1024 and 1 + 10 == 11
+    russian, english = _sections("Chemistry", "prebiotic_chemistry_and_autocatalysis")
+    assert "2¹⁰ = 1024" in russian and "2¹⁰ = 1024" in english
+    assert "никто не воспроизвёл" in russian and "no one has yet reproduced" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Chemistry", "prebiotic_chemistry_and_autocatalysis")
+
+
+def test_atp_coupling_sum() -> None:
+    assert math.isclose(20 - 30.5, -10.5) and math.ceil(45 / 30.5) == 2 and 12 - 30.5 < 0
+    russian, english = _sections("Chemistry", "thermodynamics_of_living_systems")
+    assert "−7,3 ккал/моль" in russian and "−30,5 кДж/моль" in russian
+    assert "+20 − 30.5 = −10.5 kJ/mol" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Chemistry", "thermodynamics_of_living_systems")
+
+
+def test_dna_fidelity_extends_the_error_threshold() -> None:
+    limit = math.log(10) / -math.log1p(-1e-9)
+    assert 2.30e9 < limit < 2.31e9
+    assert math.floor(math.log(10) / -math.log(0.99)) == 229
+    russian, english = _sections("Biology", "dna_replication_fidelity_and_repair")
+    assert "2,3 миллиарда" in russian and "2.3 billion" in english and "229" in russian
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "dna_replication_fidelity_and_repair")
+
+
+def test_synaptic_plasticity_lesson() -> None:
+    russian, english = _sections("Biology", "synaptic_plasticity_and_learning")
+    assert "AMPA" in russian and "NMDA" in english and "Wx + b" in english
+    assert "аналогия" in russian and "analogy" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "synaptic_plasticity_and_learning")
+
+
+def test_gradient_descent_step_in_two_variables() -> None:
+    def f(x: float, y: float) -> float:
+        return x * x + 3 * y * y
+
+    gradient = (2 * 1, 6 * 1)
+    point = (1 - 0.1 * gradient[0], 1 - 0.1 * gradient[1])
+    assert all(math.isclose(a, b) for a, b in zip(point, (0.8, 0.4)))
+    assert math.isclose(f(1, 1), 4) and math.isclose(f(*point), 1.12)
+    russian, english = _sections("Mathematics", "gradient_and_partial_derivatives")
+    assert "x′ = x − ε∇f(x)" in russian and "x′ = x − ε∇f(x)" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Mathematics", "gradient_and_partial_derivatives")
+
+
+def test_michaelis_menten_rate() -> None:
+    def rate(substrate: float) -> float:
+        return 100 * substrate / (2 + substrate)
+
+    assert math.isclose(rate(6), 75) and math.isclose(rate(2), 50) and rate(50) < 100
+    assert math.isclose(rate(18), 90)
+    russian, english = _sections("Chemistry", "enzyme_kinetics_michaelis_menten")
+    assert "v = 100 · 6 / (2 + 6) = 75" in russian and "v = 100 · 6 / (2 + 6) = 75" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Chemistry", "enzyme_kinetics_michaelis_menten")
+
+
+def test_bioethics_lesson_keeps_responsibility_questions() -> None:
+    russian, english = _sections("Biology", "biotechnology_and_bioethics")
+    for ru_question in ("Можно ли изменение отменить?", "Кто принимает решение"):
+        assert ru_question in russian
+    assert "Can the change be undone?" in english and "Who decides" in english
+    assert "пока не удалось никому" in russian and "No one has yet built a living cell" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "biotechnology_and_bioethics")
+
+
+def test_hydrogen_balmer_line_and_shell_capacity() -> None:
+    energy = 13.6 * (1 / 4 - 1 / 9)
+    assert round(energy, 2) == 1.89 and round(1240 / energy) == 656
+    assert round(1240 / 3.4) == 365 and round(1240 / 13.6) == 91
+    assert [2 * n * n for n in (1, 2, 3, 4)] == [2, 8, 18, 32]
+    russian, english = _sections("Physics", "quantum_energy_levels_and_shells")
+    assert "λ = 1240 / 1,89 ≈ 656 нм" in russian and "λ = 1240 / 1.89 ≈ 656 nm" in english
+    assert "2n²" in russian and "2n²" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "quantum_energy_levels_and_shells")
+
+
+def test_phylogeny_lesson() -> None:
+    russian, english = _sections("Biology", "phylogenetic_trees_and_domains")
+    assert "гипотеза" in russian and "hypothesis" in english
+    assert "бактерии, археи и эукариоты" in russian and "Bacteria, Archaea, and Eukarya" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "phylogenetic_trees_and_domains")
+
+
+def test_euler_steps_lag_the_exact_solution() -> None:
+    def euler(step: float, steps: int) -> float:
+        n = 100.0
+        for _ in range(steps):
+            n += step * 0.1 * n
+        return n
+
+    exact = 100 * math.exp(0.2)
+    assert math.isclose(euler(1, 2), 121) and round(exact, 2) == 122.14
+    assert abs(euler(0.5, 4) - exact) < abs(euler(1, 2) - exact)
+    russian, english = _sections("Mathematics", "euler_method_numerical_modeling")
+    assert "N₂ = 110 + 1 · 0,1 · 110 = 121" in russian and "N₂ = 110 + 1 · 0.1 · 110 = 121" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Mathematics", "euler_method_numerical_modeling")
+
+
+def test_backpropagation_program_runs_as_described() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Programming", "neural_network_backpropagation")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {})
+    lines = [line.split() for line in output.getvalue().strip().splitlines()]
+    assert [float(line[1]) for line in lines] == [1.0, 0.25, 0.0625]
+    assert lines[0][2] == "0.7" and lines[0][3] == "0.1"
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "neural_network_backpropagation")
+
+
+def test_carbon_dating_age() -> None:
+    half_life = 5730
+    assert 2 * half_life == 11_460 and 3 * half_life == 17_190
+    assert math.isclose(0.5 ** 2, 0.25) and math.isclose(math.exp(-0.693), 0.5, rel_tol=1e-3)
+    assert 3e9 / half_life > 500_000  # far too many half-lives for carbon-14 to date ancient rocks
+    russian, english = _sections("Physics", "radioactive_decay_and_dating")
+    assert "2 · 5730 = 11 460 лет" in russian and "2 · 5730 = 11,460 years" in english
+    assert "4,5 млрд лет" in russian and "4.5 billion years" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "radioactive_decay_and_dating")
+
+
+def test_hamming_program_runs_as_described() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Biology", "sequence_comparison_hamming_distance")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    namespace: dict = {}
+    with contextlib.redirect_stdout(output):
+        exec(code, namespace)
+    assert output.getvalue().split() == ["2", "75.0"]
+    assert namespace["hamming"]("ATGACGTA", "ATGCCGTA") == 1
+    try:
+        namespace["hamming"]("ATG", "AT")
+        raise AssertionError("different lengths must be rejected")
+    except ValueError:
+        pass
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "sequence_comparison_hamming_distance")
+
+
+def test_contrapositive_is_equivalent_and_converse_is_not() -> None:
+    numbers = range(-50, 51)
+
+    def implies(p: bool, q: bool) -> bool:
+        return (not p) or q
+
+    original = all(implies(n % 4 == 0, n % 2 == 0) for n in numbers)
+    contrapositive = all(implies(n % 2 != 0, n % 4 != 0) for n in numbers)
+    converse = all(implies(n % 2 == 0, n % 4 == 0) for n in numbers)
+    assert original and contrapositive and not converse
+    assert [implies(p, q) for p in (True, False) for q in (True, False)] == [True, False, True, True]
+    russian, english = _sections("Mathematics", "conditional_statements_and_contrapositive")
+    assert "контрапозиция" in russian.lower() and "contrapositive" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Mathematics", "conditional_statements_and_contrapositive")
+
+
+def test_radio_wavelength() -> None:
+    assert math.isclose(3.00e8 / 1.00e8, 3.0) and math.isclose(3.00e8 / 500e-9, 6.0e14)
+    assert math.isclose(1 / math.sqrt(4e-7 * math.pi * 8.85e-12), 3.00e8, rel_tol=2e-3)
+    russian, english = _sections("Physics", "maxwell_and_electromagnetic_waves")
+    assert "c = fλ" in russian and "c = fλ" in english and "Герц" in russian and "Hertz" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "maxwell_and_electromagnetic_waves")
+
+
+def test_time_dilation_numbers() -> None:
+    def gamma(beta: float) -> float:
+        return 1 / math.sqrt(1 - beta * beta)
+
+    assert math.isclose(gamma(0.6), 1.25) and math.isclose(gamma(0.6) * 10, 12.5)
+    assert round(gamma(0.95), 2) == 3.20 and round(3.20 * 1.52, 2) == 4.86
+    assert math.isclose(gamma(math.sqrt(3) / 2), 2)
+    russian, english = _sections("Physics", "special_relativity_time_dilation")
+    assert "Δt = 1,25 · 10 = 12,5 с" in russian and "Δt = 1.25 · 10 = 12.5 s" in english
+    assert "4,87 мкс" in russian and "4.87 µs" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "special_relativity_time_dilation")
+
+
+def test_neuron_lab_is_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "neural_network_backpropagation"' in views and "NeuronTrainingLab()" in views
+    assert "NeuronTraining.swift in Sources" in project and "scripts/verify_neuron_training.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.neurontrain\.[A-Za-z]+)"', views))
+    defined = re.findall(r'^\s*"(lab\.neurontrain\.[A-Za-z]+)":', strings, re.MULTILINE)
+    assert used and used <= set(defined) and len(defined) == len(set(defined))
+
+
+def test_l10n_dictionary_has_no_duplicate_keys() -> None:
+    # A repeated key in the Swift dictionary literal crashes the app at launch, and the build does not catch it.
+    import collections
+    import re
+
+    strings = (AREAS.parent / "macOS" / "ColiDev" / "App" / "L10n.swift").read_text(encoding="utf-8")
+    keys = re.findall(r'^\s*"([A-Za-z0-9_.]+)": \(', strings, re.MULTILINE)
+    duplicates = [key for key, count in collections.Counter(keys).items() if count > 1]
+    assert keys and duplicates == []
+
+
+def test_statistical_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "entropy_and_the_second_law"' in views and "CoinEntropyLab()" in views
+    assert 'moduleResource == "population_genetics_hardy_weinberg"' in views and "HardyWeinbergLab()" in views
+    assert "StatisticalLabs.swift in Sources" in project and "scripts/verify_statistical_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:entropy|hardy)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:entropy|hardy)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Practice task: q with ten carriers per affected individual is 2p/q = 10, so q = 1/6.
+    q = 1 / 6
+    assert math.isclose(2 * (1 - q) / q, 10)
+
+
+def test_security_lesson_code_shows_injection_and_defence() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Programming", "application_security_injection_and_secrets")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {})
+    assert output.getvalue().split() == ["2", "0", "32"]
+    root = AREAS.parent
+    assert ".env" in (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert '_KEYCHAIN_SERVICE = "ColiDev"' in (root / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+    assert "без разрешения нельзя" in russian and "without permission is not allowed" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "application_security_injection_and_secrets")
+
+
+def test_mark_recapture_estimates() -> None:
+    assert 80 * 100 / 20 == 400 and 50 * 60 / 15 == 200 and 120 * 90 / 30 == 360
+    assert 120 * 90 / 15 > 120 * 90 / 30  # trap-shy marked animals inflate the estimate
+    russian, english = _sections("Zoology", "mark_recapture_population_estimate")
+    assert "N = 80 · 100 / 20 = 400" in russian and "N = 80 · 100 / 20 = 400" in english
+    assert "благополучия" in russian and "welfare" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "mark_recapture_population_estimate")
+
+
+def test_preserve_design_lesson() -> None:
+    russian, english = _sections("Zoology", "biodiversity_threats_and_preserves")
+    for ru, en in (("потеря местообитаний", "habitat loss"), ("чрезмерный промысел", "overharvesting"), ("коридорами", "corridors")):
+        assert ru in russian and en in english
+    # One square of side 4 versus four squares of side 2, with an edge band of width 0.5.
+    core_large = (4 - 1) ** 2
+    core_small = 4 * (2 - 1) ** 2
+    assert core_large > core_small
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "biodiversity_threats_and_preserves")
+
+
+def test_surface_to_volume_scaling() -> None:
+    def sphere_ratio(r: float) -> float:
+        return (4 * math.pi * r * r) / (4 / 3 * math.pi * r ** 3)
+
+    assert math.isclose(sphere_ratio(1), 3) and math.isclose(sphere_ratio(2), 1.5)
+    assert [6 * a * a / a ** 3 for a in (1, 2, 4)] == [6, 3, 1.5]
+    russian, english = _sections("Zoology", "surface_volume_and_body_size")
+    assert "3/r" in russian and "3/r" in english and "8 / 4 = 2" in russian and "8 / 4 = 2" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "surface_volume_and_body_size")

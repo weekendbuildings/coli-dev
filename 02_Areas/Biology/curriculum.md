@@ -32,13 +32,13 @@
 
 ## Продвинутый уровень / Advanced
 
-| Модуль / Module | Результат обучения / Learning outcome |
-|---|---|
-| Молекулярная биология и геномика / Molecular biology and genomics | Интерпретировать генетические данные с учётом метода, качества измерений и ограничений вывода. / Interpret genomic data with methodological limits. |
-| Иммунология, нейробиология и эндокринология / Immunology, neuroscience, endocrinology | Объяснять регуляторные сети и обратные связи, различая уровни механизма. / Explain regulatory networks and feedback at multiple scales. |
-| Филогенетика и эволюционная биология / Phylogenetics and evolutionary biology | Читать дерево родства как гипотезу происхождения и оценивать поддержку данных. / Interpret phylogenies as testable hypotheses. |
-| Биоинформатика и количественные методы / Bioinformatics and quantitative methods | Организовывать биологические данные, выбирать статистический метод и воспроизводить анализ. / Organize data and reproduce quantitative analyses. |
-| Биотехнология, биоэтика и сохранение видов / Biotechnology, bioethics, conservation | Оценивать применение технологии, неопределённость, экологические эффекты и этические последствия. / Evaluate applications, uncertainty, ecological effects, and ethics. |
+| Модуль / Module | Результат обучения / Learning outcome | Урок / Lesson |
+|---|---|---|
+| Молекулярная биология и геномика / Molecular biology and genomics | Интерпретировать генетические данные с учётом метода, качества измерений и ограничений вывода. / Interpret genomic data with methodological limits. | lesson:dna_replication_fidelity_and_repair |
+| Иммунология, нейробиология и эндокринология / Immunology, neuroscience, endocrinology | Объяснять регуляторные сети и обратные связи, различая уровни механизма. / Explain regulatory networks and feedback at multiple scales. | lesson:synaptic_plasticity_and_learning |
+| Филогенетика и эволюционная биология / Phylogenetics and evolutionary biology | Читать дерево родства как гипотезу происхождения и оценивать поддержку данных. / Interpret phylogenies as testable hypotheses. | lesson:phylogenetic_trees_and_domains |
+| Биоинформатика и количественные методы / Bioinformatics and quantitative methods | Организовывать биологические данные, выбирать статистический метод и воспроизводить анализ. / Organize data and reproduce quantitative analyses. | lesson:sequence_comparison_hamming_distance |
+| Биотехнология, биоэтика и сохранение видов / Biotechnology, bioethics, conservation | Оценивать применение технологии, неопределённость, экологические эффекты и этические последствия. / Evaluate applications, uncertainty, ecological effects, and ethics. | lesson:biotechnology_and_bioethics |
 
 ## Форматы практики / Practice formats
 

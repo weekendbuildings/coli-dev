@@ -2793,7 +2793,7 @@ def test_openrouter_stream_emits_sse_deltas_and_uses_openrouter_budget(monkeypat
         assert request.url == orchestrator.OPENROUTER_URL
         assert request.headers["Authorization"] == "Bearer openrouter-stream-secret"
         assert request.headers["Accept"] == "text/event-stream"
-        assert request.headers["HTTP-Referer"] == "https://github.com/mirazizmamatkulov1-create/coli-dev"
+        assert request.headers["HTTP-Referer"] == "https://github.com/weekendbuildings/coli-dev"
         assert request.headers["X-Title"] == "ColiDev"
         assert payload["model"] == orchestrator.OPENROUTER_FREE_MODEL
         assert payload["stream"] is True

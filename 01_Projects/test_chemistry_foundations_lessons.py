@@ -91,10 +91,12 @@ def test_arrhenius_figures_match_the_lesson() -> None:
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
 
 
-def test_every_chemistry_lesson_cites_openstax_pages() -> None:
+def test_every_chemistry_lesson_cites_openstax_pages_or_papers() -> None:
     for lesson in sorted((CHEMISTRY / "lessons").glob("*.md")):
         sources = lesson.read_text(encoding="utf-8").split("## Sources", 1)[1]
-        assert re.search(r"\(https://openstax\.org/books/(?:chemistry|biology)-2e/pages/[0-9a-z-]+\)", sources), lesson.name
+        textbook = re.search(r"\(https://openstax\.org/books/(?:chemistry|biology)-2e/pages/[0-9a-z-]+\)", sources)
+        papers = re.findall(r"\(https://doi\.org/10\.[^)]+\)", sources)
+        assert textbook or len(papers) >= 2, lesson.name
 
 
 def test_chemistry_labs_are_wired_into_the_app_project_and_ci() -> None:

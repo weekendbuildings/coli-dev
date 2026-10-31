@@ -19,7 +19,7 @@ struct GitHubRelease: Decodable, Identifiable {
             guard let host = browserDownloadURL.host?.lowercased() else { return false }
             return browserDownloadURL.scheme == "https"
                 && host == "github.com"
-                && browserDownloadURL.path.hasPrefix("/mirazizmamatkulov1-create/coli-dev/releases/download/")
+                && browserDownloadURL.path.hasPrefix("/weekendbuildings/coli-dev/releases/download/")
         }
     }
 
@@ -61,7 +61,7 @@ struct GitHubRelease: Decodable, Identifiable {
     var trustedReleasePageURL: URL? {
         guard htmlURL.scheme == "https",
               htmlURL.host?.lowercased() == "github.com",
-              htmlURL.path.hasPrefix("/mirazizmamatkulov1-create/coli-dev/releases/") else { return nil }
+              htmlURL.path.hasPrefix("/weekendbuildings/coli-dev/releases/") else { return nil }
         return htmlURL
     }
 }
@@ -73,7 +73,7 @@ final class ReleaseCatalog: ObservableObject {
     @Published private(set) var error: Error?
     @Published private(set) var lastUpdated: Date?
 
-    private let endpoint = URL(string: "https://api.github.com/repos/mirazizmamatkulov1-create/coli-dev/releases")!
+    private let endpoint = URL(string: "https://api.github.com/repos/weekendbuildings/coli-dev/releases")!
 
     func refresh() async {
         guard !isLoading else { return }

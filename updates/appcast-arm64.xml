@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
     <title>ColiDev updates for Apple Silicon / Обновления ColiDev для Apple Silicon</title>
-    <link>https://github.com/mirazizmamatkulov1-create/coli-dev/releases</link>
+    <link>https://github.com/weekendbuildings/coli-dev/releases</link>
     <description>Signed ColiDev updates for Apple Silicon Macs.</description>
     <language>en</language>
   </channel>
