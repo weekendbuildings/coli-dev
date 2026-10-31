@@ -384,3 +384,26 @@ def test_contrapositive_is_equivalent_and_converse_is_not() -> None:
     assert "контрапозиция" in russian.lower() and "contrapositive" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Mathematics", "conditional_statements_and_contrapositive")
+
+
+def test_radio_wavelength() -> None:
+    assert math.isclose(3.00e8 / 1.00e8, 3.0) and math.isclose(3.00e8 / 500e-9, 6.0e14)
+    assert math.isclose(1 / math.sqrt(4e-7 * math.pi * 8.85e-12), 3.00e8, rel_tol=2e-3)
+    russian, english = _sections("Physics", "maxwell_and_electromagnetic_waves")
+    assert "c = fλ" in russian and "c = fλ" in english and "Герц" in russian and "Hertz" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "maxwell_and_electromagnetic_waves")
+
+
+def test_time_dilation_numbers() -> None:
+    def gamma(beta: float) -> float:
+        return 1 / math.sqrt(1 - beta * beta)
+
+    assert math.isclose(gamma(0.6), 1.25) and math.isclose(gamma(0.6) * 10, 12.5)
+    assert round(gamma(0.95), 2) == 3.20 and round(3.20 * 1.52, 2) == 4.86
+    assert math.isclose(gamma(math.sqrt(3) / 2), 2)
+    russian, english = _sections("Physics", "special_relativity_time_dilation")
+    assert "Δt = 1,25 · 10 = 12,5 с" in russian and "Δt = 1.25 · 10 = 12.5 s" in english
+    assert "4,87 мкс" in russian and "4.87 µs" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "special_relativity_time_dilation")
