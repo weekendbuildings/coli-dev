@@ -608,6 +608,8 @@ final class ManagementUITests: XCTestCase {
     func testFrictionLessonOffersSourceBackedVideoStudyCard() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"
+        // testFrictionLessonLearningCycle… runs earlier and saves an answer; this test covers a first visit.
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
         app.activate()
         let lessonScrollView = app.scrollViews["lesson.scrollView"]
@@ -676,6 +678,8 @@ final class ManagementUITests: XCTestCase {
         let app = XCUIApplication()
         defer { if app.state != .notRunning { app.terminate() } }
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"
+        // The test walks through the video steps, which a saved answer from an earlier test would skip.
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
         app.activate()
 

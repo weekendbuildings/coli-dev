@@ -630,6 +630,10 @@ struct CurriculumModuleView: View {
 
     private var lessonID: String { progressLessonID ?? "\(subject.rawValue).\(resource)" }
     private var isComplete: Bool { store.isComplete(lessonID: lessonID) }
+    // UI tests of a first visit start as a new learner even when an earlier test in the same run saved an answer.
+    private static var startsAsNewLearnerForUITest: Bool {
+        ProcessInfo.processInfo.environment["COLIDEV_UI_TEST_NEW_LEARNER"] == "1"
+    }
     private var isReviewDue: Bool { store.isReviewDue(lessonID: lessonID) }
     private var hasPendingReview: Bool { store.hasPendingReview(lessonID: lessonID) }
 
@@ -1024,7 +1028,7 @@ struct CurriculumModuleView: View {
         .task(id: lessonID) { await loadSourceInventory() }
         .onChange(of: store.language) { _ in loadDocument() }
         .onChange(of: store.studyProgress[lessonID]?.reflection) { savedReflection in
-            guard store.studyReflectionDrafts[lessonID] == nil else { return }
+            guard store.studyReflectionDrafts[lessonID] == nil, !Self.startsAsNewLearnerForUITest else { return }
             reflection = savedReflection ?? ""
             revealSavedVideoReflectionIfNeeded()
         }
@@ -1075,7 +1079,9 @@ struct CurriculumModuleView: View {
             )
         }
         learnerConfirmed = isComplete
-        reflection = store.studyReflectionDrafts[lessonID] ?? store.studyProgress[lessonID]?.reflection ?? ""
+        reflection = Self.startsAsNewLearnerForUITest
+            ? ""
+            : store.studyReflectionDrafts[lessonID] ?? store.studyProgress[lessonID]?.reflection ?? ""
         showsSavedVideoReflection = false
         revealSavedVideoReflectionIfNeeded()
     }
