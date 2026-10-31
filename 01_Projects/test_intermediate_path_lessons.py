@@ -280,3 +280,56 @@ def test_bioethics_lesson_keeps_responsibility_questions() -> None:
     assert "пока не удалось никому" in russian and "No one has yet built a living cell" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Biology", "biotechnology_and_bioethics")
+
+
+def test_hydrogen_balmer_line_and_shell_capacity() -> None:
+    energy = 13.6 * (1 / 4 - 1 / 9)
+    assert round(energy, 2) == 1.89 and round(1240 / energy) == 656
+    assert round(1240 / 3.4) == 365 and round(1240 / 13.6) == 91
+    assert [2 * n * n for n in (1, 2, 3, 4)] == [2, 8, 18, 32]
+    russian, english = _sections("Physics", "quantum_energy_levels_and_shells")
+    assert "λ = 1240 / 1,89 ≈ 656 нм" in russian and "λ = 1240 / 1.89 ≈ 656 nm" in english
+    assert "2n²" in russian and "2n²" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "quantum_energy_levels_and_shells")
+
+
+def test_phylogeny_lesson() -> None:
+    russian, english = _sections("Biology", "phylogenetic_trees_and_domains")
+    assert "гипотеза" in russian and "hypothesis" in english
+    assert "бактерии, археи и эукариоты" in russian and "Bacteria, Archaea, and Eukarya" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "phylogenetic_trees_and_domains")
+
+
+def test_euler_steps_lag_the_exact_solution() -> None:
+    def euler(step: float, steps: int) -> float:
+        n = 100.0
+        for _ in range(steps):
+            n += step * 0.1 * n
+        return n
+
+    exact = 100 * math.exp(0.2)
+    assert math.isclose(euler(1, 2), 121) and round(exact, 2) == 122.14
+    assert abs(euler(0.5, 4) - exact) < abs(euler(1, 2) - exact)
+    russian, english = _sections("Mathematics", "euler_method_numerical_modeling")
+    assert "N₂ = 110 + 1 · 0,1 · 110 = 121" in russian and "N₂ = 110 + 1 · 0.1 · 110 = 121" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Mathematics", "euler_method_numerical_modeling")
+
+
+def test_backpropagation_program_runs_as_described() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Programming", "neural_network_backpropagation")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {})
+    lines = [line.split() for line in output.getvalue().strip().splitlines()]
+    assert [float(line[1]) for line in lines] == [1.0, 0.25, 0.0625]
+    assert lines[0][2] == "0.7" and lines[0][3] == "0.1"
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "neural_network_backpropagation")
