@@ -493,3 +493,15 @@ def test_preserve_design_lesson() -> None:
     assert core_large > core_small
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Zoology", "biodiversity_threats_and_preserves")
+
+
+def test_surface_to_volume_scaling() -> None:
+    def sphere_ratio(r: float) -> float:
+        return (4 * math.pi * r * r) / (4 / 3 * math.pi * r ** 3)
+
+    assert math.isclose(sphere_ratio(1), 3) and math.isclose(sphere_ratio(2), 1.5)
+    assert [6 * a * a / a ** 3 for a in (1, 2, 4)] == [6, 3, 1.5]
+    russian, english = _sections("Zoology", "surface_volume_and_body_size")
+    assert "3/r" in russian and "3/r" in english and "8 / 4 = 2" in russian and "8 / 4 = 2" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "surface_volume_and_body_size")
