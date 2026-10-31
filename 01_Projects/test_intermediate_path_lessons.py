@@ -534,3 +534,19 @@ def test_async_lesson_program_overlaps_waits() -> None:
     assert "async def" in (AREAS.parent / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Programming", "concurrency_async_await")
+
+
+def test_idempotency_program_runs_as_described() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Programming", "retries_and_idempotency")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {})
+    assert output.getvalue().strip().splitlines() == ["2 {'pH': 'done'}", "1"]
+    assert "PUT" in russian and "DELETE" in english and "Idempotency-Key" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "retries_and_idempotency")
