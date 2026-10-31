@@ -1854,6 +1854,10 @@ private struct PracticeLab: View {
             SynapticSummationLab()
         } else if subject == .biology, moduleResource == "what_is_life_and_its_origin" {
             ReplicatorErrorThresholdLab()
+        } else if subject == .physics, moduleResource == "entropy_and_the_second_law" {
+            CoinEntropyLab()
+        } else if subject == .biology, moduleResource == "population_genetics_hardy_weinberg" {
+            HardyWeinbergLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -11558,6 +11562,132 @@ private struct NeuronTrainingLab: View {
             }
             context.stroke(path, with: .color(.accentColor), lineWidth: 2)
         }
+    }
+}
+
+private struct CoinEntropyLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var coins = 4
+
+    private typealias Model = CoinMicrostateModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private func grouped(_ value: Int) -> String { value.formatted(.number.locale(locale)) }
+    private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: value < 0.001 ? 4 : 1, store.language) }
+
+    var body: some View {
+        let mostLikely = Model.mostLikelyHeads(coins: coins)
+        let total = Model.total(coins: coins)
+        LabCard {
+            Text(L10n.text("lab.entropy.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.entropy.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Stepper(value: $coins, in: Model.coinRange) {
+                Text(String(format: L10n.text("lab.entropy.coins", store.language), String(coins), grouped(total)))
+                    .monospacedDigit()
+            }
+            .accessibilityLabel(Text(L10n.text("lab.entropy.coinsLabel", store.language)))
+            .accessibilityValue(Text(verbatim: String(coins)))
+            .accessibilityIdentifier("lab.entropy.coins")
+
+            histogram
+                .frame(height: 140)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.entropy.chart", store.language))
+                .accessibilityValue(Text(verbatim: (0...coins).map { String(Model.microstates(coins: coins, heads: $0)) }.joined(separator: ", ")))
+
+            Text(String(format: L10n.text("lab.entropy.mostLikely", store.language),
+                        String(mostLikely), grouped(Model.microstates(coins: coins, heads: mostLikely)), grouped(total),
+                        percent(Model.probability(coins: coins, heads: mostLikely))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.entropy.mostLikely")
+            Text(String(format: L10n.text("lab.entropy.allHeads", store.language), grouped(total), percent(Model.probability(coins: coins, heads: coins))))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.entropy.allHeads")
+            Text(L10n.text("lab.entropy.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // One bar per macrostate, height proportional to its number of microstates; the most likely bar is highlighted.
+    private var histogram: some View {
+        Canvas { context, size in
+            let counts = (0...coins).map { Model.microstates(coins: coins, heads: $0) }
+            let peak = Double(counts.max() ?? 1)
+            let slot = size.width / CGFloat(counts.count)
+            for (heads, count) in counts.enumerated() {
+                let height = size.height * CGFloat(Double(count) / peak)
+                let rect = CGRect(x: CGFloat(heads) * slot + slot * 0.15, y: size.height - height, width: slot * 0.7, height: height)
+                let highlighted = heads == Model.mostLikelyHeads(coins: coins) || heads == coins - Model.mostLikelyHeads(coins: coins)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(highlighted ? .accentColor : .secondary.opacity(0.45)))
+            }
+        }
+    }
+}
+
+private struct HardyWeinbergLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var recessiveAllele = 0.4
+
+    private typealias Model = HardyWeinbergModel
+
+    private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: 1, store.language) }
+
+    var body: some View {
+        let genotypes = Model.genotypes(recessiveAllele: recessiveAllele)
+        LabCard {
+            Text(L10n.text("lab.hardy.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.hardy.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.hardy.alleles", store.language),
+                            L10n.number(1 - recessiveAllele, fractionDigits: 2, store.language),
+                            L10n.number(recessiveAllele, fractionDigits: 2, store.language)))
+                    .monospacedDigit()
+                // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { recessiveAllele }, set: { recessiveAllele = ($0 * 100).rounded() / 100 }), in: Model.recessiveRange)
+                    .accessibilityLabel(L10n.text("lab.hardy.sliderLabel", store.language))
+                    .accessibilityValue(Text(verbatim: L10n.number(recessiveAllele, fractionDigits: 2, store.language)))
+                    .accessibilityIdentifier("lab.hardy.q")
+            }
+            genotypeBar(L10n.text("lab.hardy.dominant", store.language), genotypes.dominantHomozygous, .blue)
+            genotypeBar(L10n.text("lab.hardy.carrier", store.language), genotypes.heterozygous, .purple)
+            genotypeBar(L10n.text("lab.hardy.recessive", store.language), genotypes.recessiveHomozygous, .orange)
+            Text(String(format: L10n.text("lab.hardy.ratio", store.language),
+                        L10n.number(Model.carriersPerAffected(recessiveAllele: recessiveAllele), fractionDigits: 1, store.language)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.hardy.ratio")
+            Text(L10n.text("lab.hardy.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func genotypeBar(_ title: String, _ share: Double, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text("\(title): \(percent(share)) %")
+                .font(.callout.monospacedDigit())
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.12))
+                    Capsule().fill(color.gradient).frame(width: max(4, geometry.size.width * CGFloat(share)))
+                }
+            }
+            .frame(height: 12)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

@@ -25,7 +25,7 @@ source_review_interval_days: 365
 
 ### Исследуй и потренируйся
 
-В популяции 100 особей: 49 с генотипом YY, 42 — Yy и 9 — yy. Посчитай частоты аллелей p и q, прямо подсчитав аллели (у каждой особи их два), и проверь, совпадают ли доли генотипов с p², 2pq и q².
+В популяции 100 особей: 49 с генотипом YY, 42 — Yy и 9 — yy. Посчитай частоты аллелей p и q, прямо подсчитав аллели (у каждой особи их два), и проверь, совпадают ли доли генотипов с p², 2pq и q². Затем в тренажёре «Харди — Вайнберг» найди, при какой частоте q носителей в десять раз больше, чем особей с признаком.
 
 ### Вопрос
 
@@ -65,7 +65,7 @@ No real population fully meets these conditions. So the principle serves as a ba
 
 ### Explore and practise
 
-A population has 100 individuals: 49 with genotype YY, 42 Yy, and 9 yy. Work out the allele frequencies p and q by counting alleles directly (each individual carries two), and check whether the genotype shares match p², 2pq, and q².
+A population has 100 individuals: 49 with genotype YY, 42 Yy, and 9 yy. Work out the allele frequencies p and q by counting alleles directly (each individual carries two), and check whether the genotype shares match p², 2pq, and q². Then in the “Hardy–Weinberg” lab, find the frequency q at which carriers outnumber individuals with the trait tenfold.
 
 ### Question
 

@@ -442,6 +442,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-neuron-training"
           "$RUNNER_TEMP/verify-neuron-training"
 
+      - name: Verify entropy and Hardy-Weinberg lab models / Проверка моделей энтропии и Харди — Вайнберга
+        run: |
+          swiftc macOS/ColiDev/App/StatisticalLabs.swift macOS/ColiDev/scripts/verify_statistical_labs.swift \
+            -o "$RUNNER_TEMP/verify-statistical-labs"
+          "$RUNNER_TEMP/verify-statistical-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

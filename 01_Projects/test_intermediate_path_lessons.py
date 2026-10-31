@@ -433,3 +433,22 @@ def test_l10n_dictionary_has_no_duplicate_keys() -> None:
     keys = re.findall(r'^\s*"([A-Za-z0-9_.]+)": \(', strings, re.MULTILINE)
     duplicates = [key for key, count in collections.Counter(keys).items() if count > 1]
     assert keys and duplicates == []
+
+
+def test_statistical_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "entropy_and_the_second_law"' in views and "CoinEntropyLab()" in views
+    assert 'moduleResource == "population_genetics_hardy_weinberg"' in views and "HardyWeinbergLab()" in views
+    assert "StatisticalLabs.swift in Sources" in project and "scripts/verify_statistical_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:entropy|hardy)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:entropy|hardy)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Practice task: q with ten carriers per affected individual is 2p/q = 10, so q = 1/6.
+    q = 1 / 6
+    assert math.isclose(2 * (1 - q) / q, 10)
