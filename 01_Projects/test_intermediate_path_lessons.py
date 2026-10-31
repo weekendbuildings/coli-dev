@@ -471,3 +471,25 @@ def test_security_lesson_code_shows_injection_and_defence() -> None:
     assert "без разрешения нельзя" in russian and "without permission is not allowed" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Programming", "application_security_injection_and_secrets")
+
+
+def test_mark_recapture_estimates() -> None:
+    assert 80 * 100 / 20 == 400 and 50 * 60 / 15 == 200 and 120 * 90 / 30 == 360
+    assert 120 * 90 / 15 > 120 * 90 / 30  # trap-shy marked animals inflate the estimate
+    russian, english = _sections("Zoology", "mark_recapture_population_estimate")
+    assert "N = 80 · 100 / 20 = 400" in russian and "N = 80 · 100 / 20 = 400" in english
+    assert "благополучия" in russian and "welfare" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "mark_recapture_population_estimate")
+
+
+def test_preserve_design_lesson() -> None:
+    russian, english = _sections("Zoology", "biodiversity_threats_and_preserves")
+    for ru, en in (("потеря местообитаний", "habitat loss"), ("чрезмерный промысел", "overharvesting"), ("коридорами", "corridors")):
+        assert ru in russian and en in english
+    # One square of side 4 versus four squares of side 2, with an edge band of width 0.5.
+    core_large = (4 - 1) ** 2
+    core_small = 4 * (2 - 1) ** 2
+    assert core_large > core_small
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "biodiversity_threats_and_preserves")
