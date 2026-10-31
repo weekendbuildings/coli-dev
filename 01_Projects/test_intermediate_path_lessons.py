@@ -452,3 +452,22 @@ def test_statistical_labs_are_wired_into_the_app_project_and_ci() -> None:
     # Practice task: q with ten carriers per affected individual is 2p/q = 10, so q = 1/6.
     q = 1 / 6
     assert math.isclose(2 * (1 - q) / q, 10)
+
+
+def test_security_lesson_code_shows_injection_and_defence() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Programming", "application_security_injection_and_secrets")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {})
+    assert output.getvalue().split() == ["2", "0", "32"]
+    root = AREAS.parent
+    assert ".env" in (root / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert '_KEYCHAIN_SERVICE = "ColiDev"' in (root / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+    assert "без разрешения нельзя" in russian and "without permission is not allowed" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "application_security_injection_and_secrets")

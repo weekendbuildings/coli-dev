@@ -30,7 +30,7 @@
 | Модуль / Module | Результат обучения / Learning outcome | Урок / Lesson |
 |---|---|---|
 | Конкурентность, асинхронность и очереди / Concurrency, async, queues | Выявлять гонки и блокировки и выбирать модель параллелизма под задачу. / Detect races and choose an appropriate concurrency model. | |
-| Безопасность приложений / Application security | Моделировать угрозы, валидировать границы доверия и защищать секреты и данные. / Threat-model trust boundaries and protect secrets and data. | |
+| Безопасность приложений / Application security | Моделировать угрозы, валидировать границы доверия и защищать секреты и данные. / Threat-model trust boundaries and protect secrets and data. | lesson:application_security_injection_and_secrets |
 | Архитектура, наблюдаемость и производительность / Architecture, observability, performance | Измерять узкие места, строить логи и метрики и менять архитектуру только по данным. / Measure bottlenecks and instrument systems before redesign. | |
 | Распределённые системы и отказоустойчивость / Distributed systems and resilience | Анализировать повторы, таймауты, согласованность, идемпотентность и частичные сбои. / Reason about retries, timeouts, consistency, idempotency, and partial failure. | |
 | Компиляторы, протоколы и специализации / Compilers, protocols, specializations | Выбирать углублённую ветку и строить проект, где можно проверить каждый слой. / Pursue a focused specialization through a verifiable project. | |
