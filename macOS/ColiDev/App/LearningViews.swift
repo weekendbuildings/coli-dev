@@ -1848,6 +1848,8 @@ private struct PracticeLab: View {
             CirculationRouteLab()
         } else if subject == .programming, moduleResource == "gradient_descent_and_learning_rate" {
             GradientDescentLab()
+        } else if subject == .programming, moduleResource == "neural_network_backpropagation" {
+            NeuronTrainingLab()
         } else if subject == .biology, moduleResource == "synapses_and_signal_summation" {
             SynapticSummationLab()
         } else if subject == .biology, moduleResource == "what_is_life_and_its_origin" {
@@ -11459,6 +11461,102 @@ private struct ReactionEnergyLab: View {
             let productLabelY = freeEnergy - 14 > lower ? y(freeEnergy) + 10 : y(freeEnergy) - 10
             context.draw(Text(L10n.text("lab.energy.reactants", store.language)).font(.caption), at: CGPoint(x: 6, y: y(0) + 10), anchor: .leading)
             context.draw(Text(L10n.text("lab.energy.products", store.language)).font(.caption), at: CGPoint(x: size.width - 6, y: productLabelY), anchor: .trailing)
+        }
+    }
+}
+
+private struct NeuronTrainingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = NeuronTrainingModel()
+    @State private var learningRate = 0.05
+
+    private func number(_ value: Double, _ digits: Int = 3) -> String {
+        L10n.number(value, fractionDigits: digits, store.language)
+    }
+
+    private var regime: NeuronTrainingModel.Regime {
+        NeuronTrainingModel.regime(learningRate: learningRate)
+    }
+
+    private var regimeKey: String {
+        switch regime {
+        case .converging: return "lab.neurontrain.converging"
+        case .oscillating: return "lab.neurontrain.oscillating"
+        case .diverging: return "lab.neurontrain.diverging"
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.neurontrain.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.neurontrain.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.neurontrain.rate", store.language), number(learningRate, 2)))
+                    .monospacedDigit()
+                // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 100).rounded() / 100 }), in: NeuronTrainingModel.learningRateRange)
+                    .accessibilityLabel(L10n.text("lab.neurontrain.rateLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(learningRate, 2)))
+                    .accessibilityIdentifier("lab.neurontrain.rate")
+            }
+            HStack {
+                Button(L10n.text("lab.neurontrain.step", store.language)) { model.step(learningRate: learningRate) }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.lossHistory.count >= 30 || !model.loss.isFinite)
+                    .accessibilityIdentifier("lab.neurontrain.step")
+                Button(L10n.text("lab.neurontrain.reset", store.language)) { model.reset() }
+                    .accessibilityIdentifier("lab.neurontrain.reset")
+            }
+
+            Text(String(format: L10n.text("lab.neurontrain.state", store.language),
+                        String(model.lossHistory.count), number(model.weight), number(model.bias), number(model.output)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(String(format: L10n.text("lab.neurontrain.gradients", store.language),
+                        number(model.loss, 4), number(model.weightGradient), number(model.biasGradient)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.neurontrain.loss")
+            lossChart
+                .frame(height: 120)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.neurontrain.chart", store.language))
+                .accessibilityValue(Text(verbatim: (model.lossHistory + [model.loss]).map { number($0, 4) }.joined(separator: ", ")))
+            Label(String(format: L10n.text(regimeKey, store.language),
+                         number(NeuronTrainingModel.errorFactor(learningRate: learningRate), 2),
+                         number(NeuronTrainingModel.stableLearningRateLimit, 2)),
+                  systemImage: regime == .converging ? "arrow.down.right" : "exclamationmark.triangle")
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.neurontrain.regime")
+            Text(L10n.text("lab.neurontrain.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Loss after each step on a logarithmic scale, so fast convergence and divergence both stay visible.
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = (model.lossHistory + [model.loss]).map { max($0, 1e-6) }
+            guard values.count > 1 else { return }
+            let logs = values.map { log10($0) }
+            let low = min(logs.min() ?? 0, -2)
+            let high = max(logs.max() ?? 0, 1)
+            var path = Path()
+            for (index, value) in logs.enumerated() {
+                let x = size.width * CGFloat(index) / CGFloat(values.count - 1)
+                let y = size.height * CGFloat((high - value) / (high - low))
+                if index == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
+                context.fill(Path(ellipseIn: CGRect(x: x - 3, y: y - 3, width: 6, height: 6)), with: .color(.accentColor))
+            }
+            context.stroke(path, with: .color(.accentColor), lineWidth: 2)
         }
     }
 }

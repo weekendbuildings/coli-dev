@@ -436,6 +436,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-chemistry-labs"
           "$RUNNER_TEMP/verify-chemistry-labs"
 
+      - name: Verify neuron training model / Проверка модели обучения нейрона
+        run: |
+          swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
+            -o "$RUNNER_TEMP/verify-neuron-training"
+          "$RUNNER_TEMP/verify-neuron-training"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

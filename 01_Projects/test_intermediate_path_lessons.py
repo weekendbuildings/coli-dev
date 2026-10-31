@@ -407,3 +407,29 @@ def test_time_dilation_numbers() -> None:
     assert "4,87 мкс" in russian and "4.87 µs" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Physics", "special_relativity_time_dilation")
+
+
+def test_neuron_lab_is_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "neural_network_backpropagation"' in views and "NeuronTrainingLab()" in views
+    assert "NeuronTraining.swift in Sources" in project and "scripts/verify_neuron_training.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.neurontrain\.[A-Za-z]+)"', views))
+    defined = re.findall(r'^\s*"(lab\.neurontrain\.[A-Za-z]+)":', strings, re.MULTILINE)
+    assert used and used <= set(defined) and len(defined) == len(set(defined))
+
+
+def test_l10n_dictionary_has_no_duplicate_keys() -> None:
+    # A repeated key in the Swift dictionary literal crashes the app at launch, and the build does not catch it.
+    import collections
+    import re
+
+    strings = (AREAS.parent / "macOS" / "ColiDev" / "App" / "L10n.swift").read_text(encoding="utf-8")
+    keys = re.findall(r'^\s*"([A-Za-z0-9_.]+)": \(', strings, re.MULTILINE)
+    duplicates = [key for key, count in collections.Counter(keys).items() if count > 1]
+    assert keys and duplicates == []

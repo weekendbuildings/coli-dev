@@ -40,7 +40,7 @@ for step in range(3):
 
 ### Исследуй и потренируйся
 
-Запусти программу и проверь числа. Затем поставь rate = 0,3 и посмотри, что происходит с ошибкой — почему слишком большая скорость обучения мешает? Добавь второй пример (x = 1, target = 1) и считай градиент как сумму по двум примерам.
+Запусти программу и проверь числа. Затем поставь rate = 0,3 и посмотри, что происходит с ошибкой — почему слишком большая скорость обучения мешает? Добавь второй пример (x = 1, target = 1) и считай градиент как сумму по двум примерам. Проверь то же в тренажёре «Нейрон учится»: найди скорость, при которой обучение перестаёт сходиться.
 
 ### Вопрос
 
@@ -95,7 +95,7 @@ The program prints an error of 1, then 0.25, then 0.0625: with each step the neu
 
 ### Explore and practise
 
-Run the program and check the numbers. Then set rate = 0.3 and see what happens to the error: why does too high a learning rate get in the way? Add a second example (x = 1, target = 1) and compute the gradient as a sum over both examples.
+Run the program and check the numbers. Then set rate = 0.3 and see what happens to the error: why does too high a learning rate get in the way? Add a second example (x = 1, target = 1) and compute the gradient as a sum over both examples. Check the same thing in the “A neuron learns” lab: find the rate at which training stops converging.
 
 ### Question
 
