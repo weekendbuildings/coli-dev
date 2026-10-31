@@ -516,3 +516,21 @@ def test_taxonomy_lesson_lists_ranks_in_order() -> None:
     assert "Canis lupus" in russian and "Canis lupus" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Zoology", "taxonomy_ranks_and_binomial_names")
+
+
+def test_async_lesson_program_overlaps_waits() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Programming", "concurrency_async_await")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {"__name__": "lesson"})
+    printed = output.getvalue().strip()
+    assert printed.startswith("['lesson', 'progress', 'sources']")
+    assert float(printed.rsplit(" ", 1)[1]) < 0.5  # three 0.2 s waits overlap instead of adding up to 0.6 s
+    assert "async def" in (AREAS.parent / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "concurrency_async_await")
