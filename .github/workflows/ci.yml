@@ -511,7 +511,7 @@ jobs:
           -derivedDataPath "$RUNNER_TEMP/ColiDevDerivedData"
           ARCHS=${{ matrix.arch }}
           CURRENT_PROJECT_VERSION=${{ env.COLIDEV_BUILD_VERSION }}
-          SUFeedURL=https://raw.githubusercontent.com/mirazizmamatkulov1-create/coli-dev/main/updates/${{ matrix.feed }}
+          SUFeedURL=https://raw.githubusercontent.com/weekendbuildings/coli-dev/main/updates/${{ matrix.feed }}
           SUPublicEDKey=${{ vars.SPARKLE_PUBLIC_ED_KEY }}
           CODE_SIGNING_ALLOWED=NO
           build
@@ -532,7 +532,7 @@ jobs:
           -derivedDataPath "$RUNNER_TEMP/ColiDevDerivedData"
           ARCHS=${{ matrix.arch }}
           CURRENT_PROJECT_VERSION=${{ env.COLIDEV_BUILD_VERSION }}
-          SUFeedURL=https://raw.githubusercontent.com/mirazizmamatkulov1-create/coli-dev/main/updates/${{ matrix.feed }}
+          SUFeedURL=https://raw.githubusercontent.com/weekendbuildings/coli-dev/main/updates/${{ matrix.feed }}
           SUPublicEDKey=${{ vars.SPARKLE_PUBLIC_ED_KEY }}
           CODE_SIGN_IDENTITY=-
 

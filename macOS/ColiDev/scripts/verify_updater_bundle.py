@@ -33,7 +33,7 @@ def main() -> None:
 
     feed_name = "appcast-arm64.xml" if arch == "arm64" else "appcast-intel.xml"
     expected_feed = (
-        "https://raw.githubusercontent.com/mirazizmamatkulov1-create/coli-dev/main/updates/"
+        "https://raw.githubusercontent.com/weekendbuildings/coli-dev/main/updates/"
         + feed_name
     )
     if info.get("SUFeedURL") != expected_feed:

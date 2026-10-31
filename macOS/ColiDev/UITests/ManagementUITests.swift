@@ -37,23 +37,23 @@ final class ManagementUITests: XCTestCase {
         app.launchEnvironment["COLIDEV_UI_TEST_RELEASES_JSON"] = """
         [{"id": 12, "name": "ColiDev 0.1.0 Beta 12 / Бета 12", "tag_name": "v0.1.0-beta.12", "body": "",
           "published_at": "2026-10-25T15:33:03Z",
-          "html_url": "https://github.com/mirazizmamatkulov1-create/coli-dev/releases/tag/v0.1.0-beta.12",
+          "html_url": "https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.12",
           "draft": false, "prerelease": true,
           "assets": [
             {"id": 121, "name": "ColiDev-beta-AppleSilicon.zip",
-             "browser_download_url": "https://github.com/mirazizmamatkulov1-create/coli-dev/releases/download/v0.1.0-beta.12/ColiDev-beta-AppleSilicon.zip"},
+             "browser_download_url": "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.12/ColiDev-beta-AppleSilicon.zip"},
             {"id": 122, "name": "ColiDev-beta-Intel.zip",
-             "browser_download_url": "https://github.com/mirazizmamatkulov1-create/coli-dev/releases/download/v0.1.0-beta.12/ColiDev-beta-Intel.zip"}
+             "browser_download_url": "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.12/ColiDev-beta-Intel.zip"}
           ]},
          {"id": 11, "name": "ColiDev 0.1.0 Beta 11 / Бета 11", "tag_name": "v0.1.0-beta.11", "body": "",
           "published_at": "2026-10-24T12:47:15Z",
-          "html_url": "https://github.com/mirazizmamatkulov1-create/coli-dev/releases/tag/v0.1.0-beta.11",
+          "html_url": "https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.11",
           "draft": false, "prerelease": true,
           "assets": [
             {"id": 111, "name": "ColiDev-beta-AppleSilicon.zip",
-             "browser_download_url": "https://github.com/mirazizmamatkulov1-create/coli-dev/releases/download/v0.1.0-beta.11/ColiDev-beta-AppleSilicon.zip"},
+             "browser_download_url": "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.11/ColiDev-beta-AppleSilicon.zip"},
             {"id": 112, "name": "ColiDev-beta-Intel.zip",
-             "browser_download_url": "https://github.com/mirazizmamatkulov1-create/coli-dev/releases/download/v0.1.0-beta.11/ColiDev-beta-Intel.zip"}
+             "browser_download_url": "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.11/ColiDev-beta-Intel.zip"}
           ]}]
         """
         app.launch()
