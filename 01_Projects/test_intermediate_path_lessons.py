@@ -333,3 +333,54 @@ def test_backpropagation_program_runs_as_described() -> None:
     assert lines[0][2] == "0.7" and lines[0][3] == "0.1"
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Programming", "neural_network_backpropagation")
+
+
+def test_carbon_dating_age() -> None:
+    half_life = 5730
+    assert 2 * half_life == 11_460 and 3 * half_life == 17_190
+    assert math.isclose(0.5 ** 2, 0.25) and math.isclose(math.exp(-0.693), 0.5, rel_tol=1e-3)
+    assert 3e9 / half_life > 500_000  # far too many half-lives for carbon-14 to date ancient rocks
+    russian, english = _sections("Physics", "radioactive_decay_and_dating")
+    assert "2 · 5730 = 11 460 лет" in russian and "2 · 5730 = 11,460 years" in english
+    assert "4,5 млрд лет" in russian and "4.5 billion years" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "radioactive_decay_and_dating")
+
+
+def test_hamming_program_runs_as_described() -> None:
+    import contextlib
+    import io
+
+    russian, english = _sections("Biology", "sequence_comparison_hamming_distance")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    namespace: dict = {}
+    with contextlib.redirect_stdout(output):
+        exec(code, namespace)
+    assert output.getvalue().split() == ["2", "75.0"]
+    assert namespace["hamming"]("ATGACGTA", "ATGCCGTA") == 1
+    try:
+        namespace["hamming"]("ATG", "AT")
+        raise AssertionError("different lengths must be rejected")
+    except ValueError:
+        pass
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Biology", "sequence_comparison_hamming_distance")
+
+
+def test_contrapositive_is_equivalent_and_converse_is_not() -> None:
+    numbers = range(-50, 51)
+
+    def implies(p: bool, q: bool) -> bool:
+        return (not p) or q
+
+    original = all(implies(n % 4 == 0, n % 2 == 0) for n in numbers)
+    contrapositive = all(implies(n % 2 != 0, n % 4 != 0) for n in numbers)
+    converse = all(implies(n % 2 == 0, n % 4 == 0) for n in numbers)
+    assert original and contrapositive and not converse
+    assert [implies(p, q) for p in (True, False) for q in (True, False)] == [True, False, True, True]
+    russian, english = _sections("Mathematics", "conditional_statements_and_contrapositive")
+    assert "контрапозиция" in russian.lower() and "contrapositive" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Mathematics", "conditional_statements_and_contrapositive")

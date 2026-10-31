@@ -28,7 +28,7 @@
 
 | Модуль / Module | Результат обучения / Learning outcome | Урок / Lesson |
 |---|---|---|
-| Доказательства, логика и дискретная математика / Proofs, logic, discrete mathematics | Строить прямые доказательства, контрпримеры, рекуррентные и комбинаторные рассуждения. / Build proofs, counterexamples, recurrences, and counting arguments. | |
+| Доказательства, логика и дискретная математика / Proofs, logic, discrete mathematics | Строить прямые доказательства, контрпримеры, рекуррентные и комбинаторные рассуждения. / Build proofs, counterexamples, recurrences, and counting arguments. | lesson:conditional_statements_and_contrapositive |
 | Многомерный анализ и дифференциальные уравнения / Multivariable calculus and differential equations | Исследовать многопараметрические функции и модели изменения во времени. / Analyze multivariable functions and dynamic systems. | lesson:gradient_and_partial_derivatives |
 | Собственные значения, ортогональность и оптимизация / Eigenvalues, orthogonality, optimization | Понимать устойчивые направления преобразований и применять ограничения в задачах оптимизации. / Understand invariant directions and constrained optimization. | lesson:constrained_optimization_and_lagrange_multipliers |
 | Численные методы и вычислительное моделирование / Numerical methods and computational modeling | Оценивать погрешность приближений и проверять вычислительные модели на граничных случаях. / Track approximation error and validate computational models. | lesson:euler_method_numerical_modeling |
