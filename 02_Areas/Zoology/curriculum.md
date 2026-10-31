@@ -28,7 +28,7 @@
 
 | Модуль / Module | Результат обучения / Learning outcome | Урок / Lesson |
 |---|---|---|
-| Систематика, филогенетика и идентификация / Systematics, phylogenetics, identification | Использовать диагностические признаки и данные происхождения, указывая неопределённость идентификации. / Identify organisms with explicit uncertainty. | |
+| Систематика, филогенетика и идентификация / Systematics, phylogenetics, identification | Использовать диагностические признаки и данные происхождения, указывая неопределённость идентификации. / Identify organisms with explicit uncertainty. | lesson:taxonomy_ranks_and_binomial_names |
 | Сравнительная физиология и экологические ниши / Comparative physiology and ecological niches | Объяснять ограничения физиологических стратегий в конкретных условиях среды. / Explain tradeoffs of physiological strategies. | lesson:comparative_thermoregulation_and_heat_stress |
 | Размер тела, обмен веществ и масштабирование / Body size, metabolism, and scaling | Рассчитывать отношение поверхности к объёму и объяснять, как размер ограничивает клетки и обмен веществ теплокровных. / Calculate the surface-to-volume ratio and explain how size constrains cells and endotherm metabolism. | lesson:surface_volume_and_body_size |
 | Методы полевых наблюдений и благополучие животных / Field methods and animal welfare | Планировать наблюдение без лишнего вмешательства и соблюдать требования безопасности и этики. / Plan low-impact, ethical observations. | lesson:mark_recapture_population_estimate |

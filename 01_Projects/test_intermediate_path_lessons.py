@@ -505,3 +505,14 @@ def test_surface_to_volume_scaling() -> None:
     assert "3/r" in russian and "3/r" in english and "8 / 4 = 2" in russian and "8 / 4 = 2" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Zoology", "surface_volume_and_body_size")
+
+
+def test_taxonomy_lesson_lists_ranks_in_order() -> None:
+    russian, english = _sections("Zoology", "taxonomy_ranks_and_binomial_names")
+    ranks = ["kingdom", "phylum", "class", "order", "family", "genus", "species"]
+    idea = english.split("### Idea and mechanism", 1)[1]
+    positions = [idea.index(rank) for rank in ranks]
+    assert positions == sorted(positions)
+    assert "Canis lupus" in russian and "Canis lupus" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "taxonomy_ranks_and_binomial_names")
