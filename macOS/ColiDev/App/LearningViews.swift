@@ -14324,81 +14324,114 @@ private struct SurfaceVolumeLab: View {
 
 private struct PendulumLab: View {
     @EnvironmentObject private var store: LearningStore
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var length = 1.0
     @State private var mass = 0.5
     @State private var isSwinging = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private typealias Model = PendulumModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
+        let period = Model.period(length: length)
         LabCard {
-            Text(L10n.text("lab.pendulum.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.pendulum.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(alignment: .top, spacing: 20) {
-                pendulum
-                    .frame(width: 170, height: 170)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(L10n.text("lab.pendulum.diagram", store.language))
-                VStack(alignment: .leading, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(format: L10n.text("lab.pendulum.length", store.language), L10n.measurement(length, fractionDigits: 2, unit: "m", store.language)))
-                            .monospacedDigit()
-                        Slider(value: $length, in: PendulumModel.lengthRange, step: 0.25)
-                            .accessibilityLabel(L10n.text("lab.pendulum.lengthLabel", store.language))
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(format: L10n.text("lab.pendulum.mass", store.language), L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)))
-                            .monospacedDigit()
-                        Slider(value: $mass, in: PendulumModel.massRange, step: 0.1)
-                            .accessibilityLabel(L10n.text("lab.pendulum.massLabel", store.language))
-                    }
-                    Text(String(
-                        format: L10n.text("lab.pendulum.reading", store.language),
-                        L10n.measurement(PendulumModel.period(length: length, mass: mass), fractionDigits: 2, unit: "s", store.language),
-                        L10n.measurement(PendulumModel.frequency(length: length), fractionDigits: 2, unit: "Hz", store.language)
-                    ))
-                    .font(.headline.monospacedDigit())
-                    .accessibilityIdentifier("lab.pendulum.reading")
-                    if !reduceMotion {
-                        Toggle(L10n.text("lab.pendulum.swing", store.language), isOn: $isSwinging)
-                            .toggleStyle(.switch)
-                            .accessibilityLabel(Text(L10n.text("lab.pendulum.swing", store.language)))
-                    }
+            LabHeader(title: text("lab.pendulum.title"), instruction: text("lab.pendulum.subtitle"))
+            HStack(spacing: 16) {
+                // With Reduce Motion the pendulum does not swing; it shows both extreme positions instead.
+                TimelineView(.animation(paused: !isSwinging || reduceMotion)) { timeline in
+                    pendulum(time: isSwinging && !reduceMotion ? timeline.date.timeIntervalSinceReferenceDate : 0)
+                }
+                .frame(width: 260)
+                .accessibilityLabel(text("lab.pendulum.diagram"))
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: Model.lengthRange, y: 0...3)
+                    periodCurve(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            length = min(max((plot.value(at: drag.location).x * 100).rounded() / 100, Model.lengthRange.lowerBound), Model.lengthRange.upperBound)
+                        })
                 }
             }
+            .frame(height: 260)
 
-            Text(L10n.text("lab.pendulum.challenge", store.language))
-                .font(.callout)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            Text(L10n.text("lab.pendulum.limit", store.language))
-                .font(.caption)
+            HStack(spacing: 12) {
+                Button { isSwinging.toggle() } label: {
+                    Label(text(isSwinging ? "lab.descent2d.pause" : "lab.pendulum.swing"), systemImage: isSwinging ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.pendulum.swingButton")
+                Text(String(format: text("lab.pendulum.length"), L10n.measurement(length, fractionDigits: 2, unit: "m", store.language))).monospacedDigit().frame(minWidth: 180, alignment: .leading)
+                // Rounds to centimetres without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { length }, set: { length = ($0 * 100).rounded() / 100 }), in: Model.lengthRange)
+                    .accessibilityLabel(text("lab.pendulum.lengthLabel"))
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.pendulum.mass"), L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language))).monospacedDigit().frame(minWidth: 180, alignment: .leading)
+                Slider(value: Binding(get: { mass }, set: { mass = ($0 * 10).rounded() / 10 }), in: Model.massRange)
+                    .accessibilityLabel(text("lab.pendulum.massLabel"))
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.pendulum.statPeriod"), value: L10n.measurement(period, fractionDigits: 2, unit: "s", store.language), tint: .orange)
+                LabStat(label: text("lab.pendulum.statFrequency"), value: L10n.measurement(Model.frequency(length: length), fractionDigits: 2, unit: "Hz", store.language), tint: .purple)
+            }
+            Text(String(format: text("lab.pendulum.reading"), L10n.measurement(period, fractionDigits: 2, unit: "s", store.language),
+                        L10n.measurement(Model.frequency(length: length), fractionDigits: 2, unit: "Hz", store.language)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.pendulum.reading")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.pendulum.goal"), solved: abs(period - 2) < 0.01, solvedText: text("lab.pendulum.goalSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.pendulum.hint"), text("lab.pendulum.challenge"), text("lab.pendulum.limit")])
         }
     }
 
-    @ViewBuilder
-    private var pendulum: some View {
-        if isSwinging && !reduceMotion {
-            TimelineView(.animation) { context in
-                PendulumDrawing(
-                    lengthFraction: length / PendulumModel.lengthRange.upperBound,
-                    massFraction: mass / PendulumModel.massRange.upperBound,
-                    angle: PendulumModel.angle(atSeconds: context.date.timeIntervalSinceReferenceDate, length: length)
-                )
+    // The pendulum drawn to scale with the bob sized by mass; it swings with the true period when started.
+    private func pendulum(time: Double) -> some View {
+        Canvas { context, size in
+            let pivot = CGPoint(x: size.width / 2, y: 14)
+            let scale = (size.height - 50) / CGFloat(Model.lengthRange.upperBound)
+            let angle = isSwinging && !reduceMotion ? Model.angle(atSeconds: time, length: length) : Model.amplitudeDegrees * .pi / 180
+            if isSwinging && reduceMotion {
+                let ghost = CGPoint(x: pivot.x - CGFloat(sin(angle)) * CGFloat(length) * scale, y: pivot.y + CGFloat(cos(angle)) * CGFloat(length) * scale)
+                var ghostString = Path()
+                ghostString.move(to: pivot)
+                ghostString.addLine(to: ghost)
+                context.stroke(ghostString, with: .color(.secondary.opacity(0.5)), style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
+                let ghostRadius = CGFloat(8 + mass * 9)
+                context.fill(Path(ellipseIn: CGRect(x: ghost.x - ghostRadius, y: ghost.y - ghostRadius, width: 2 * ghostRadius, height: 2 * ghostRadius)), with: .color(.orange.opacity(0.35)))
             }
-        } else {
-            PendulumDrawing(
-                lengthFraction: length / PendulumModel.lengthRange.upperBound,
-                massFraction: mass / PendulumModel.massRange.upperBound,
-                angle: PendulumModel.amplitudeDegrees * Double.pi / 180
-            )
+            let bob = CGPoint(x: pivot.x + CGFloat(sin(angle)) * CGFloat(length) * scale, y: pivot.y + CGFloat(cos(angle)) * CGFloat(length) * scale)
+            context.fill(Path(CGRect(x: pivot.x - 40, y: pivot.y - 6, width: 80, height: 6)), with: .color(.secondary))
+            var string = Path()
+            string.move(to: pivot)
+            string.addLine(to: bob)
+            context.stroke(string, with: .color(.primary), lineWidth: 2)
+            let radius = CGFloat(8 + mass * 9)
+            context.fill(Path(ellipseIn: CGRect(x: bob.x - radius, y: bob.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(.orange))
+        }
+    }
+
+    // T = 2π√(L/g) against L with the chosen length marked; the L = 0.25 m and 1.00 m pair shows the doubling.
+    private func periodCurve(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text("lab.pendulum.axisLength"), yLabel: text("lab.pendulum.axisPeriod"), format: { number($0, $0 == $0.rounded() ? 0 : 1) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -8, dy: -8)))
+            var curve = Path()
+            for index in 0...100 {
+                let l = plot.x.lowerBound + (plot.x.upperBound - plot.x.lowerBound) * Double(index) / 100
+                let location = plot.point(l, Model.period(length: l))
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.accentColor), lineWidth: 2.5)
+            for l in [0.25, 1.0] {
+                let location = plot.point(l, Model.period(length: l))
+                clipped.fill(Path(ellipseIn: CGRect(x: location.x - 4, y: location.y - 4, width: 8, height: 8)), with: .color(.green))
+            }
+            let current = plot.point(length, Model.period(length: length))
+            clipped.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
         }
     }
 }
@@ -14437,96 +14470,85 @@ private struct HeatMixingLab: View {
     @State private var hotMass = 1.0
     @State private var hotTemperature = 80.0
 
-    private var finalTemperature: Double {
-        HeatMixingModel.finalTemperature(
-            coldMass: coldMass,
-            coldTemperature: coldTemperature,
-            hotMass: hotMass,
-            hotTemperature: hotTemperature
-        )
-    }
+    private typealias Model = HeatMixingModel
 
-    private var transferredHeat: Double {
-        abs(HeatMixingModel.heat(mass: coldMass, from: coldTemperature, to: finalTemperature))
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func celsius(_ value: Double, _ digits: Int = 1) -> String { L10n.measurement(value, fractionDigits: digits, unit: "°C", store.language) }
+
+    // Blue for cold water through purple to red for hot, by temperature from 0 to 100 °C.
+    private func waterColor(_ temperature: Double) -> Color {
+        let t = min(max(temperature / 100, 0), 1)
+        return Color(red: 0.15 + 0.8 * t, green: 0.35 - 0.2 * t, blue: 0.9 - 0.75 * t)
     }
 
     var body: some View {
+        let finalTemperature = Model.finalTemperature(coldMass: coldMass, coldTemperature: coldTemperature, hotMass: hotMass, hotTemperature: hotTemperature)
+        let transferredHeat = abs(Model.heat(mass: coldMass, from: coldTemperature, to: finalTemperature))
         LabCard {
-            Text(L10n.text("lab.heat.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.heat.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.heat.title"), instruction: text("lab.heat.subtitle"))
+            HStack(alignment: .bottom, spacing: 22) {
+                beaker(text("lab.heat.first"), mass: coldMass, temperature: coldTemperature)
+                Image(systemName: "plus").font(.title2.weight(.bold)).foregroundStyle(.secondary)
+                beaker(text("lab.heat.second"), mass: hotMass, temperature: hotTemperature)
+                Image(systemName: "arrow.right").font(.title2.weight(.bold)).foregroundStyle(.secondary)
+                beaker(text("lab.heat.mixture"), mass: coldMass + hotMass, temperature: finalTemperature)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.heat.scale"))
+            .accessibilityValue(Text(verbatim: celsius(finalTemperature)))
 
-            portionControls(titleKey: "lab.heat.first", mass: $coldMass, temperature: $coldTemperature)
-            portionControls(titleKey: "lab.heat.second", mass: $hotMass, temperature: $hotTemperature)
-
-            Text(String(format: L10n.text("lab.heat.result", store.language), L10n.measurement(finalTemperature, fractionDigits: 1, unit: "°C", store.language)))
-                .font(.headline.monospacedDigit())
-                .accessibilityIdentifier("lab.heat.result")
-            Text(String(format: L10n.text("lab.heat.transfer", store.language), L10n.measurement(transferredHeat / 1000, fractionDigits: 1, unit: "kJ", store.language)))
+            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
+                portion(text("lab.heat.first"), mass: $coldMass, temperature: $coldTemperature)
+                portion(text("lab.heat.second"), mass: $hotMass, temperature: $hotTemperature)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.heat.statFinal"), value: celsius(finalTemperature), tint: .purple)
+                LabStat(label: text("lab.heat.statHeat"), value: L10n.measurement(transferredHeat / 1000, fractionDigits: 1, unit: "kJ", store.language), tint: .orange)
+            }
+            Text(String(format: text("lab.heat.result"), celsius(finalTemperature)))
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-            temperatureScale
-                .frame(height: 28)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.heat.scale", store.language))
-                .accessibilityValue(String(format: L10n.text("lab.heat.result", store.language), L10n.measurement(finalTemperature, fractionDigits: 1, unit: "°C", store.language)))
-
-            Text(L10n.text("lab.heat.challenge", store.language))
-                .font(.callout)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            Text(L10n.text("lab.heat.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.heat.result")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.heat.goal"),
+                         solved: coldTemperature == 20 && hotTemperature == 80 && abs(finalTemperature - 40) < 0.05, solvedText: text("lab.heat.goalSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.heat.hint"),
+                String(format: text("lab.heat.transfer"), L10n.measurement(transferredHeat / 1000, fractionDigits: 1, unit: "kJ", store.language)),
+                text("lab.heat.challenge"),
+                text("lab.heat.limit"),
+            ])
         }
     }
 
-    private func portionControls(titleKey: String, mass: Binding<Double>, temperature: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(titleKey, store.language))
-                .font(.callout.weight(.semibold))
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(String(format: L10n.text("lab.heat.mass", store.language), L10n.measurement(mass.wrappedValue, fractionDigits: 1, unit: "kg", store.language)))
-                        .font(.caption.monospacedDigit())
-                    Slider(value: mass, in: HeatMixingModel.massRange, step: 0.5)
-                        .accessibilityLabel(L10n.text(titleKey, store.language) + ", " + L10n.text("lab.heat.massLabel", store.language))
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(String(format: L10n.text("lab.heat.temperature", store.language), temperature.wrappedValue))
-                        .font(.caption.monospacedDigit())
-                    Slider(value: temperature, in: HeatMixingModel.temperatureRange, step: 1)
-                        .accessibilityLabel(L10n.text(titleKey, store.language) + ", " + L10n.text("lab.heat.temperatureLabel", store.language))
-                }
+    private func portion(_ title: String, mass: Binding<Double>, temperature: Binding<Double>) -> some View {
+        GridRow {
+            Text(title).font(.callout.weight(.semibold))
+            Text(String(format: text("lab.heat.mass"), L10n.measurement(mass.wrappedValue, fractionDigits: 1, unit: "kg", store.language))).monospacedDigit().frame(minWidth: 90, alignment: .leading)
+            // Rounded values without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { mass.wrappedValue }, set: { mass.wrappedValue = ($0 * 10).rounded() / 10 }), in: Model.massRange)
+                .accessibilityLabel(Text(title + " · " + text("lab.heat.massLabel")))
+            Text(String(format: text("lab.heat.temperature"), temperature.wrappedValue)).monospacedDigit().frame(minWidth: 80, alignment: .leading)
+            Slider(value: Binding(get: { temperature.wrappedValue }, set: { temperature.wrappedValue = $0.rounded() }), in: Model.temperatureRange)
+                .accessibilityLabel(Text(title + " · " + text("lab.heat.temperatureLabel")))
+        }
+    }
+
+    // A beaker filled in proportion to the mass and coloured by temperature, with a thermometer reading.
+    private func beaker(_ title: String, mass: Double, temperature: Double) -> some View {
+        VStack(spacing: 6) {
+            Text(verbatim: celsius(temperature)).font(.headline.monospacedDigit()).foregroundStyle(waterColor(temperature))
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 10).stroke(Color.secondary, lineWidth: 2).frame(width: 90, height: 150)
+                RoundedRectangle(cornerRadius: 8).fill(waterColor(temperature).gradient)
+                    .frame(width: 84, height: max(6, 146 * CGFloat(mass / (2 * Model.massRange.upperBound))))
+                    .padding(.bottom, 2)
             }
+            Text(verbatim: "\(title) · " + L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)).font(.caption).foregroundStyle(.secondary)
         }
-    }
-
-    // Markers for both starting temperatures and the mixture on a 0–100 °C scale.
-    private var temperatureScale: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(LinearGradient(colors: [.blue.opacity(0.5), .red.opacity(0.5)], startPoint: .leading, endPoint: .trailing))
-                    .frame(height: 8)
-                marker(at: coldTemperature, width: geometry.size.width, color: .secondary)
-                marker(at: hotTemperature, width: geometry.size.width, color: .secondary)
-                marker(at: finalTemperature, width: geometry.size.width, color: .accentColor)
-            }
-            .frame(maxHeight: .infinity)
-        }
-    }
-
-    private func marker(at temperature: Double, width: CGFloat, color: Color) -> some View {
-        Circle()
-            .fill(color)
-            .frame(width: 12, height: 12)
-            .offset(x: width * CGFloat(temperature / HeatMixingModel.temperatureRange.upperBound) - 6)
+        .animation(.easeInOut(duration: 0.25), value: temperature)
+        .animation(.easeInOut(duration: 0.25), value: mass)
     }
 }
 
