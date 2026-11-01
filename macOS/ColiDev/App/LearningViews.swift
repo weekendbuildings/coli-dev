@@ -2352,6 +2352,8 @@ private struct AnimalGroupLab: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(selection == nil && wasCorrect != true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.animalGroupChallenge", store.language),
+                         solved: complete, solvedText: L10n.text("lab.animalGroupChallengeSolved", store.language))
         }
     }
     private static func makeOptionOrders() -> [[Int]] {
@@ -2390,9 +2392,24 @@ private struct AnimalLineageLab: View {
                     .frame(maxWidth: .infinity)
                     .padding(10)
                     .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                Rectangle().fill(Color.secondary.opacity(0.6)).frame(width: 2, height: 12)
                 Text(L10n.text("lab.lineageProtostomes", store.language))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
+                Canvas { context, size in
+                    // The split into two branches of the tree.
+                    let middle = size.width / 2, left = size.width * 0.25, right = size.width * 0.75
+                    var fork = Path()
+                    fork.move(to: CGPoint(x: middle, y: 0))
+                    fork.addLine(to: CGPoint(x: middle, y: size.height / 2))
+                    fork.move(to: CGPoint(x: left, y: size.height))
+                    fork.addLine(to: CGPoint(x: left, y: size.height / 2))
+                    fork.addLine(to: CGPoint(x: right, y: size.height / 2))
+                    fork.addLine(to: CGPoint(x: right, y: size.height))
+                    context.stroke(fork, with: .color(.secondary.opacity(0.6)), lineWidth: 2)
+                }
+                .frame(height: 18)
+                .accessibilityHidden(true)
                 HStack(alignment: .top, spacing: 12) {
                     lineageBranch(title: "lab.lineageEcdysozoa", members: "lab.lineageArthropodsNematodes")
                     lineageBranch(title: "lab.lineageLophotrochozoa", members: "lab.lineageAnnelidsMolluscs")
@@ -2479,6 +2496,8 @@ private struct AnimalLineageLab: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(selection == nil && wasCorrect != true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.lineageChallenge", store.language),
+                         solved: complete, solvedText: L10n.text("lab.lineageChallengeSolved", store.language))
         }
     }
 
@@ -7658,6 +7677,7 @@ private struct AnimalFunctionLab: View {
     @State private var selectedAnswer = -1
     @State private var didCheckAnswer = false
     @State private var prediction = AnimalFunctionPractice.makeComparisonAttempt()
+    @State private var visitedFunctions: Set<AnimalFunction> = [.feeding]
 
     private let answerOptionKeys = [
         "lab.zoology.optionA",
@@ -7674,8 +7694,12 @@ private struct AnimalFunctionLab: View {
                     Text(L10n.text(function.titleKey, store.language)).tag(function)
                 }
             }
-            .pickerStyle(.menu)
-            .onChange(of: selectedFunction) { _ in resetPrediction() }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .onChange(of: selectedFunction) { function in
+                visitedFunctions.insert(function)
+                resetPrediction()
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.text(selectedFunction.titleKey, store.language), systemImage: systemSymbol)
@@ -7733,6 +7757,9 @@ private struct AnimalFunctionLab: View {
                 }
             }
 
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.zoology.challenge", store.language),
+                         solved: visitedFunctions.count == AnimalFunction.allCases.count && prediction.isCorrect,
+                         solvedText: L10n.text("lab.zoology.challengeSolved", store.language))
             LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.zoology.limit", store.language)])
         }
     }
@@ -7798,10 +7825,7 @@ private struct ThermoregulationLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.zoology.thermo.intro", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.zoology.thermo.title", store.language), instruction: L10n.text("lab.zoology.thermo.intro", store.language))
 
             HStack(alignment: .top, spacing: 16) {
                 ThermalProxyBirdVisualization()
@@ -7935,6 +7959,8 @@ private struct ThermoregulationLab: View {
                 .foregroundStyle(correct ? .green : .orange)
                 .fixedSize(horizontal: false, vertical: true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.zoology.thermo.challenge", store.language),
+                         solved: answerSolved, solvedText: L10n.text("lab.zoology.thermo.challengeSolved", store.language))
         }
     }
 
@@ -11875,93 +11901,124 @@ private struct ThermalStrategyLab: View {
     @State private var selectedEnvironment: ThermalEnvironment = .cool
     @State private var selectedResponse: ThermoregulatoryResponse?
     @State private var didCheck = false
+    @State private var solvedCases: Set<String> = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var totalCases: Int { ThermalAnimalMode.allCases.count * ThermalEnvironment.allCases.count }
+    private var isCorrect: Bool {
+        guard let selectedResponse else { return false }
+        return ThermoregulationModel.isCorrect(selectedAnimal, environment: selectedEnvironment, response: selectedResponse)
+    }
+    /// Illustrative outside temperatures for the three conditions, in °C.
+    private var outsideTemperature: Double {
+        switch selectedEnvironment {
+        case .cool: return 10
+        case .mild: return 24
+        case .hot: return 38
+        }
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.ThermalStrategyLab", store.language), instruction: L10n.text("lab.zoology.thermal.hint", store.language))
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("lab.zoology.thermal.modeTitle", store.language))
-                    .font(.headline)
-                Picker(L10n.text("lab.zoology.thermal.modeTitle", store.language), selection: $selectedAnimal) {
+            LabHeader(title: text("labkit.title.ThermalStrategyLab"), instruction: text("lab.zoology.thermal.hint"))
+            HStack(spacing: 14) {
+                Picker(text("lab.zoology.thermal.modeTitle"), selection: $selectedAnimal) {
                     ForEach(ThermalAnimalMode.allCases) { animal in
-                        Text(L10n.text(animal.titleKey, store.language)).tag(animal)
+                        Text(text(animal.titleKey)).tag(animal)
                     }
                 }
                 .pickerStyle(.segmented)
-                Text(L10n.text(selectedAnimal.heatSourceKey, store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("lab.zoology.thermal.environmentTitle", store.language))
-                    .font(.headline)
-                Picker(L10n.text("lab.zoology.thermal.environmentTitle", store.language), selection: $selectedEnvironment) {
+                Picker(text("lab.zoology.thermal.environmentTitle"), selection: $selectedEnvironment) {
                     ForEach(ThermalEnvironment.allCases) { environment in
-                        Text(L10n.text(environment.titleKey, store.language)).tag(environment)
+                        Text(text(environment.titleKey)).tag(environment)
                     }
                 }
                 .pickerStyle(.segmented)
             }
-
-            Label(
-                L10n.text(selectedAnimal == .ectotherm ? "lab.zoology.thermal.icon.ectotherm" : "lab.zoology.thermal.icon.endotherm", store.language),
-                systemImage: selectedAnimal == .ectotherm ? "sun.max" : "thermometer.medium"
-            )
-            .font(.callout.weight(.medium))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
-            Text(L10n.text("lab.zoology.thermal.responseTitle", store.language))
-                .font(.headline)
-            Picker(L10n.text("lab.zoology.thermal.responseTitle", store.language), selection: $selectedResponse) {
-                Text(L10n.text("lab.zoology.thermal.chooseResponse", store.language)).tag(nil as ThermoregulatoryResponse?)
-                ForEach(ThermoregulatoryResponse.allCases) { response in
-                    Text(L10n.text(response.titleKey, store.language)).tag(response as ThermoregulatoryResponse?)
-                }
-            }
-            .pickerStyle(.menu)
-            .onChange(of: selectedResponse) { _ in didCheck = false }
-
-            Button(L10n.text("lab.zoology.thermal.check", store.language)) {
-                didCheck = true
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedResponse == nil)
-
-            if didCheck, let selectedResponse {
-                let correct = ThermoregulationModel.isCorrect(
-                    selectedAnimal,
-                    environment: selectedEnvironment,
-                    response: selectedResponse
-                )
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(
-                        L10n.text(correct ? "lab.zoology.thermal.correct" : "lab.zoology.thermal.review", store.language),
-                        systemImage: correct ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                    )
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(correct ? .green : .orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                    Text(L10n.text(ThermoregulationModel.recommendedResponse(for: selectedAnimal, in: selectedEnvironment).explanationKey, store.language))
-                        .font(.callout)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            Canvas { context, size in drawChart(context, size: size) }
+                .frame(height: 220)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.zoology.thermal.chart"))
+                .accessibilityValue(Text(text(selectedEnvironment.titleKey)))
+            Label(text(selectedAnimal == .ectotherm ? "lab.zoology.thermal.icon.ectotherm" : "lab.zoology.thermal.icon.endotherm"),
+                  systemImage: selectedAnimal == .ectotherm ? "sun.max" : "thermometer.medium")
+                .font(.callout.weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            }
-
-            Text(L10n.text("lab.zoology.thermal.limit", store.language))
-                .font(.caption)
+                .accessibilityElement(children: .combine)
+            Text(text(selectedAnimal.heatSourceKey))
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(text("lab.zoology.thermal.responseTitle"))
+                    .font(.callout.weight(.medium))
+                Picker(text("lab.zoology.thermal.responseTitle"), selection: $selectedResponse) {
+                    Text(text("lab.zoology.thermal.chooseResponse")).tag(nil as ThermoregulatoryResponse?)
+                    ForEach(ThermoregulatoryResponse.allCases) { response in
+                        Text(text(response.titleKey)).tag(response as ThermoregulatoryResponse?)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 420)
+                .onChange(of: selectedResponse) { _ in didCheck = false }
+                Button(text("lab.zoology.thermal.check")) {
+                    didCheck = true
+                    if isCorrect { solvedCases.insert(selectedAnimal.rawValue + "-" + selectedEnvironment.rawValue) }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedResponse == nil)
+                if didCheck, selectedResponse != nil {
+                    Label(text(isCorrect ? "lab.zoology.thermal.correct" : "lab.zoology.thermal.review"),
+                          systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(isCorrect ? .green : .orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(text(ThermoregulationModel.recommendedResponse(for: selectedAnimal, in: selectedEnvironment).explanationKey))
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(12)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            LabStatGrid {
+                LabStat(label: text("lab.zoology.thermal.statSolved"), value: "\(solvedCases.count) / \(totalCases)", tint: .green)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.zoology.thermal.challenge"),
+                         solved: solvedCases.count == totalCases, solvedText: text("lab.zoology.thermal.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.zoology.thermal.chartNote"), text("lab.zoology.thermal.limit")])
         }
         .onChange(of: selectedAnimal) { _ in resetPrediction() }
         .onChange(of: selectedEnvironment) { _ in resetPrediction() }
+    }
+
+    // Schematic: an ectotherm's body follows the surroundings, an endotherm's stays near a set value. The selected animal's line is bold.
+    private func drawChart(_ context: GraphicsContext, size: CGSize) {
+        let plot = LabPlotGeometry(size: size, x: 0...45, y: 0...45, leading: 40, bottom: 28)
+        let unit = L10n.unit("°C", store.language)
+        plot.drawAxes(in: context, xLabel: text("lab.zoology.thermal.axisOutside") + ", " + unit, yLabel: text("lab.zoology.thermal.axisBody") + ", " + unit,
+                      xTicks: [0, 10, 20, 30, 40], yTicks: [0, 10, 20, 30, 40], format: { L10n.number($0, fractionDigits: 0, store.language) })
+        let band = CGRect(x: plot.point(outsideTemperature - 3, 0).x, y: plot.rect.minY,
+                          width: plot.point(outsideTemperature + 3, 0).x - plot.point(outsideTemperature - 3, 0).x, height: plot.rect.height)
+        context.fill(Path(band), with: .color(.orange.opacity(0.16)))
+        let isEctotherm = selectedAnimal == .ectotherm
+        var ectotherm = Path()
+        ectotherm.move(to: plot.point(0, 2))
+        ectotherm.addLine(to: plot.point(43, 45))
+        context.stroke(ectotherm, with: .color(.teal.opacity(isEctotherm ? 1 : 0.3)), lineWidth: isEctotherm ? 3.5 : 2)
+        var endotherm = Path()
+        endotherm.move(to: plot.point(0, 37))
+        endotherm.addLine(to: plot.point(45, 37))
+        context.stroke(endotherm, with: .color(.red.opacity(isEctotherm ? 0.3 : 1)), lineWidth: isEctotherm ? 2 : 3.5)
+        context.draw(Text(text(ThermalAnimalMode.endotherm.titleKey)).font(.caption.weight(.semibold)).foregroundColor(.red.opacity(isEctotherm ? 0.5 : 1)),
+                     at: CGPoint(x: plot.point(8, 0).x, y: plot.point(0, 37).y - 11))
+        context.draw(Text(text(ThermalAnimalMode.ectotherm.titleKey)).font(.caption.weight(.semibold)).foregroundColor(.teal.opacity(isEctotherm ? 1 : 0.5)),
+                     at: CGPoint(x: plot.point(30, 0).x, y: plot.point(0, 24).y), anchor: .leading)
+        let body = isEctotherm ? outsideTemperature + 2 : 37
+        let dot = plot.point(outsideTemperature, body)
+        context.fill(Path(ellipseIn: CGRect(x: dot.x - 7, y: dot.y - 7, width: 14, height: 14)), with: .color(isEctotherm ? .teal : .red))
     }
 
     private func resetPrediction() {
@@ -11972,30 +12029,62 @@ private struct ThermalStrategyLab: View {
 
 private struct CirculationRouteLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animal: CirculationAnimal = .fish
     @State private var predictedPasses: Int?
     @State private var didCheck = false
+    @State private var solvedAnimals: Set<String> = []
+
+    private static let oxygenRich = Color.red
+    private static let oxygenPoor = Color.blue
+    private static let mixed = Color.purple
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var solved: Bool { didCheck && predictedPasses.map { CirculationRouteModel.isCorrect(passes: $0, for: animal) } ?? false }
+
+    /// One stretch of vessel between organs, drawn in the colour of the blood it carries.
+    private struct Vessel {
+        let points: [CGPoint]
+        let colour: Color
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("lab.circulation.title", store.language), instruction: L10n.text("lab.circulation.hint", store.language))
-
-            Picker(L10n.text("lab.circulation.animalTitle", store.language), selection: $animal) {
+            LabHeader(title: text("lab.circulation.title"), instruction: text("lab.circulation.hint"))
+            Picker(text("lab.circulation.animalTitle"), selection: $animal) {
                 ForEach(CirculationAnimal.allCases) { option in
-                    Text(L10n.text(option.titleKey, store.language)).tag(option)
+                    Text(text(option.titleKey)).tag(option)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .accessibilityIdentifier("lab.circulation.animal")
-
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+                Canvas { context, size in
+                    drawRoute(context, size: size, time: timeline.date.timeIntervalSinceReferenceDate)
+                }
+            }
+            .frame(height: 260)
+            .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.circulation.diagram"))
+            .accessibilityValue(Text(text(animal.routeKey)))
+            HStack(spacing: 14) {
+                legendItem(Self.oxygenPoor, text("lab.circulation.legendPoor"))
+                legendItem(Self.oxygenRich, text("lab.circulation.legendRich"))
+                if CirculationRouteModel.flowsMixInVentricle(animal) {
+                    legendItem(Self.mixed, text("lab.circulation.legendMixed"))
+                }
+            }
+            .font(.caption)
             VStack(alignment: .leading, spacing: 6) {
-                Label(L10n.text(animal.routeKey, store.language), systemImage: "arrow.triangle.2.circlepath")
+                Label(text(animal.routeKey), systemImage: "arrow.triangle.2.circlepath")
                     .font(.callout.weight(.medium))
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(animal.heartKey, store.language))
+                Text(text(animal.heartKey))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(animal.exchangeKey, store.language))
+                Text(text(animal.exchangeKey))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -12003,52 +12092,176 @@ private struct CirculationRouteLab: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
             .accessibilityElement(children: .combine)
-
-            Text(L10n.text("lab.circulation.predict", store.language))
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-            Picker(L10n.text("lab.circulation.predict", store.language), selection: $predictedPasses) {
-                Text(L10n.text("lab.circulation.choose", store.language)).tag(nil as Int?)
-                ForEach(CirculationRouteModel.passOptions, id: \.self) { passes in
-                    Text("\(passes)").tag(passes as Int?)
-                }
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: predictedPasses) { _ in didCheck = false }
-
-            Button(L10n.text("lab.circulation.check", store.language)) {
-                didCheck = true
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(predictedPasses == nil)
-
-            if didCheck, let predictedPasses {
-                let correct = CirculationRouteModel.isCorrect(passes: predictedPasses, for: animal)
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(
-                        L10n.text(correct ? "lab.circulation.correct" : "lab.circulation.review", store.language),
-                        systemImage: correct ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                    )
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(correct ? .green : .orange)
-                    if correct {
-                        Text(L10n.text(animal.explanationKey, store.language))
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-                .accessibilityIdentifier("lab.circulation.feedback")
-            }
-
-            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.circulation.limit", store.language)])
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.circulation.challenge"),
+                         solved: solvedAnimals.count == CirculationAnimal.allCases.count, solvedText: text("lab.circulation.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.circulation.limit")])
         }
         .onChange(of: animal) { _ in
             predictedPasses = nil
             didCheck = false
         }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.circulation.predict"))
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(text("lab.circulation.predict"), selection: $predictedPasses) {
+                Text(text("lab.circulation.choose")).tag(nil as Int?)
+                ForEach(CirculationRouteModel.passOptions, id: \.self) { passes in
+                    Text("\(passes)").tag(passes as Int?)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .onChange(of: predictedPasses) { _ in didCheck = false }
+            Button(text("lab.circulation.check")) {
+                didCheck = true
+                if solved { solvedAnimals.insert(animal.rawValue) }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(predictedPasses == nil)
+            if didCheck {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(text(solved ? "lab.circulation.correct" : "lab.circulation.review"),
+                          systemImage: solved ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(solved ? .green : .orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if solved {
+                        Text(text(animal.explanationKey))
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityIdentifier("lab.circulation.feedback")
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: Diagram
+
+    // A fish has one ring through the heart; amphibians and mammals have two loops that meet at the heart.
+    // The heart's left side on the screen is the side receiving oxygen-poor blood, as in a textbook diagram.
+    private func vessels(in size: CGSize) -> [Vessel] {
+        let cx = size.width / 2
+        if animal == .fish {
+            let low = size.height - 44
+            return [
+                Vessel(points: [CGPoint(x: cx - 34, y: low), CGPoint(x: cx - 150, y: low), CGPoint(x: cx - 150, y: 54)], colour: Self.oxygenPoor),
+                Vessel(points: [CGPoint(x: cx - 96, y: 34), CGPoint(x: cx + 96, y: 34)], colour: Self.oxygenRich),
+                Vessel(points: [CGPoint(x: cx + 150, y: 54), CGPoint(x: cx + 150, y: low), CGPoint(x: cx + 34, y: low)], colour: Self.oxygenPoor)
+            ]
+        }
+        let cy = size.height / 2
+        let top: CGFloat = 30, bottom = size.height - 30
+        let outflow = CirculationRouteModel.flowsMixInVentricle(animal) ? Self.mixed : Self.oxygenPoor
+        let bodyFlow = CirculationRouteModel.flowsMixInVentricle(animal) ? Self.mixed : Self.oxygenRich
+        return [
+            Vessel(points: [CGPoint(x: cx - 34, y: cy - 16), CGPoint(x: cx - 130, y: cy - 16), CGPoint(x: cx - 130, y: top), CGPoint(x: cx - 64, y: top)], colour: outflow),
+            Vessel(points: [CGPoint(x: cx + 64, y: top), CGPoint(x: cx + 130, y: top), CGPoint(x: cx + 130, y: cy - 16), CGPoint(x: cx + 34, y: cy - 16)], colour: Self.oxygenRich),
+            Vessel(points: [CGPoint(x: cx + 34, y: cy + 16), CGPoint(x: cx + 130, y: cy + 16), CGPoint(x: cx + 130, y: bottom), CGPoint(x: cx + 64, y: bottom)], colour: bodyFlow),
+            Vessel(points: [CGPoint(x: cx - 64, y: bottom), CGPoint(x: cx - 130, y: bottom), CGPoint(x: cx - 130, y: cy + 16), CGPoint(x: cx - 34, y: cy + 16)], colour: Self.oxygenPoor)
+        ]
+    }
+
+    private func drawRoute(_ context: GraphicsContext, size: CGSize, time: Double) {
+        let routes = vessels(in: size)
+        for vessel in routes {
+            var path = Path()
+            path.addLines(vessel.points)
+            context.stroke(path, with: .color(vessel.colour.opacity(0.8)), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            if let last = vessel.points.last, vessel.points.count >= 2 {
+                arrowHead(context, from: vessel.points[vessel.points.count - 2], to: last, colour: vessel.colour)
+            }
+        }
+        let cx = size.width / 2
+        if animal == .fish {
+            organ(context, centre: CGPoint(x: cx - 150, y: 34), label: text("lab.circulation.organGills"), colour: .teal)
+            organ(context, centre: CGPoint(x: cx + 150, y: 34), label: text("lab.circulation.organBody"), colour: .orange)
+            drawHeart(context, centre: CGPoint(x: cx, y: size.height - 44))
+        } else {
+            let lungs = animal == .amphibian ? "lab.circulation.organLungsSkin" : "lab.circulation.organLungs"
+            organ(context, centre: CGPoint(x: cx, y: 30), label: text(lungs), colour: .teal)
+            organ(context, centre: CGPoint(x: cx, y: size.height - 30), label: text("lab.circulation.organBody"), colour: .orange)
+            drawHeart(context, centre: CGPoint(x: cx, y: size.height / 2))
+        }
+        if !reduceMotion {
+            let spot = bloodDrop(along: routes, phase: (time / 6).truncatingRemainder(dividingBy: 1))
+            context.fill(Path(ellipseIn: CGRect(x: spot.x - 6, y: spot.y - 6, width: 12, height: 12)), with: .color(.white))
+        }
+    }
+
+    private func organ(_ context: GraphicsContext, centre: CGPoint, label: String, colour: Color) {
+        let box = CGRect(x: centre.x - 62, y: centre.y - 20, width: 124, height: 40)
+        context.fill(Path(roundedRect: box, cornerRadius: 10), with: .color(colour.opacity(0.85)))
+        context.draw(Text(verbatim: label).font(.caption.weight(.bold)).foregroundColor(.white), at: centre)
+    }
+
+    // The heart with its real chambers: atria in the top row, ventricles in the bottom row.
+    private func drawHeart(_ context: GraphicsContext, centre: CGPoint) {
+        let chambers = CirculationRouteModel.heartChambers(for: animal)
+        let width: CGFloat = 68, height: CGFloat = 56
+        let frame = CGRect(x: centre.x - width / 2, y: centre.y - height / 2, width: width, height: height)
+        for (row, count) in [chambers.atria, chambers.ventricles].enumerated() {
+            let cellWidth = width / CGFloat(count)
+            for column in 0..<count {
+                let cell = CGRect(x: frame.minX + CGFloat(column) * cellWidth + 1, y: frame.minY + CGFloat(row) * height / 2 + 1,
+                                  width: cellWidth - 2, height: height / 2 - 2)
+                let colour: Color
+                if animal == .fish {
+                    colour = Self.oxygenPoor
+                } else if count == 1 {
+                    colour = Self.mixed
+                } else {
+                    colour = column == 0 ? Self.oxygenPoor : Self.oxygenRich
+                }
+                context.fill(Path(roundedRect: cell, cornerRadius: 5), with: .color(colour))
+            }
+        }
+        context.stroke(Path(roundedRect: frame, cornerRadius: 7), with: .color(.primary.opacity(0.8)), lineWidth: 2)
+    }
+
+    private func arrowHead(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, colour: Color) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = max(hypot(dx, dy), 1)
+        let ux = dx / length, uy = dy / length
+        var head = Path()
+        head.move(to: end)
+        head.addLine(to: CGPoint(x: end.x - ux * 11 - uy * 7, y: end.y - uy * 11 + ux * 7))
+        head.addLine(to: CGPoint(x: end.x - ux * 11 + uy * 7, y: end.y - uy * 11 - ux * 7))
+        head.closeSubpath()
+        context.fill(head, with: .color(colour))
+    }
+
+    /// The drop's position along the vessels; `phase` 0…1 is one full route.
+    private func bloodDrop(along routes: [Vessel], phase: Double) -> CGPoint {
+        let points = routes.flatMap(\.points)
+        var lengths: [Double] = []
+        for index in 1..<points.count {
+            lengths.append(Double(hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y)))
+        }
+        var remaining = phase * lengths.reduce(0, +)
+        for (index, length) in lengths.enumerated() {
+            if remaining <= length, length > 0 {
+                let t = CGFloat(remaining / length)
+                let a = points[index], b = points[index + 1]
+                return CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
+            }
+            remaining -= length
+        }
+        return points.last ?? .zero
     }
 }
 
