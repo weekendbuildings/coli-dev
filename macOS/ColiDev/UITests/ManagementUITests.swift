@@ -766,6 +766,40 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testRadioactiveDatingLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/radioactive_decay_and_dating"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let age = app.staticTexts["lab.dating.age"]
+        XCTAssertTrue(
+            age.waitForExistence(timeout: 10),
+            "The radioactive dating lesson must show its lab. / В уроке о датировании должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (age.value as? String ?? "") + " " + age.label
+        // 25% of carbon-14 left is two half-lives, about 11 460 years; group separators depend on the locale.
+        XCTAssertTrue(shown.contains("460") && (shown.contains("2,00") || shown.contains("2.00")), shown)
+    }
+
+    @MainActor
+    func testFeedbackLoopLabShowsNegativeFeedbackSettling() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/homeostasis_and_feedback"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let result = app.staticTexts["lab.feedback.result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 10),
+            "The homeostasis lesson must show its lab. / В уроке о гомеостазе должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (result.value as? String ?? "") + " " + result.label
+        // 2 °C shrinking by 30% a step for 15 steps leaves 0.01 °C.
+        XCTAssertTrue(shown.contains("0,01") || shown.contains("0.01"), shown)
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

@@ -1882,6 +1882,10 @@ private struct PracticeLab: View {
             GenomeFidelityLab()
         } else if subject == .biology, moduleResource == "sequence_comparison_hamming_distance" {
             HammingDistanceLab()
+        } else if subject == .physics, moduleResource == "radioactive_decay_and_dating" {
+            RadioactiveDatingLab()
+        } else if subject == .biology, moduleResource == "homeostasis_and_feedback" {
+            FeedbackLoopLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12552,6 +12556,192 @@ private struct HammingDistanceLab: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(L10n.text("lab.hamming.alignment", store.language))
         .accessibilityValue(Text(verbatim: "\(cleanFirst) / \(cleanSecond)"))
+    }
+}
+
+private struct RadioactiveDatingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var isotopeIndex = 0
+    @State private var remainingPercent = 25.0
+
+    private typealias Model = RadioactiveDatingModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private var isotope: Model.Isotope { Model.isotopes[isotopeIndex] }
+
+    private func years(_ value: Double) -> String {
+        if value >= 1e9 {
+            return String(format: L10n.text("lab.dating.billionYears", store.language), L10n.number(value / 1e9, fractionDigits: 2, store.language))
+        }
+        return String(format: L10n.text("lab.dating.years", store.language), Int(value.rounded()).formatted(.number.locale(locale)))
+    }
+
+    var body: some View {
+        let halfLives = Model.halfLives(remainingPercent: remainingPercent)
+        LabCard {
+            Text(L10n.text("lab.dating.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.dating.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(L10n.text("lab.dating.isotope", store.language), selection: $isotopeIndex) {
+                Text(L10n.text("lab.dating.carbon", store.language)).tag(0)
+                Text(L10n.text("lab.dating.uranium", store.language)).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.dating.isotope")
+
+            curve(halfLives: halfLives)
+                .frame(height: 150)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.dating.chart", store.language))
+                .accessibilityValue(Text(verbatim: L10n.number(remainingPercent, fractionDigits: 0, store.language)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.dating.remaining", store.language), L10n.number(remainingPercent, fractionDigits: 0, store.language)))
+                    .monospacedDigit()
+                // Whole percents without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { remainingPercent }, set: { remainingPercent = $0.rounded() }), in: Model.remainingPercentRange)
+                    .accessibilityLabel(L10n.text("lab.dating.remainingLabel", store.language))
+                    .accessibilityValue(Text(verbatim: L10n.number(remainingPercent, fractionDigits: 0, store.language)))
+                    .accessibilityIdentifier("lab.dating.remaining")
+            }
+
+            Text(String(format: L10n.text("lab.dating.age", store.language), years(Model.age(remainingPercent: remainingPercent, isotope: isotope)),
+                        L10n.number(halfLives, fractionDigits: 2, store.language)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.dating.age")
+            Text(String(format: L10n.text("lab.dating.oldRock", store.language),
+                        Int(Model.halfLivesElapsed(years: 3e9, isotope: isotope).rounded()).formatted(.number.locale(locale))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.dating.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Remaining share (1/2)^n against the number of half-lives n, with the chosen share marked.
+    private func curve(halfLives: Double) -> some View {
+        Canvas { context, size in
+            let maxX = 7.0
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / 1.05))
+            }
+            var axes = Path()
+            axes.move(to: position(0, 1.05))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            var grid = Path()
+            for n in 1...7 {
+                grid.move(to: position(Double(n), 0))
+                grid.addLine(to: position(Double(n), pow(0.5, Double(n))))
+            }
+            context.stroke(grid, with: .color(.secondary.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            var line = Path()
+            for index in 0...200 {
+                let x = maxX * Double(index) / 200
+                let point = position(x, pow(0.5, x))
+                if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+            }
+            context.stroke(line, with: .color(.accentColor), lineWidth: 2)
+            let marker = position(min(halfLives, maxX), remainingPercent / 100)
+            context.fill(Path(ellipseIn: CGRect(x: marker.x - 5, y: marker.y - 5, width: 10, height: 10)), with: .color(.orange))
+        }
+    }
+}
+
+private struct FeedbackLoopLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var negative = true
+    @State private var gain = 0.3
+    @State private var disturbance = 2.0
+
+    private typealias Model = FeedbackLoopModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let finalDeviation = Model.deviation(after: Model.steps, initial: disturbance, gain: gain, negative: negative)
+        LabCard {
+            Text(L10n.text("lab.feedback.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.feedback.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(L10n.text("lab.feedback.type", store.language), selection: $negative) {
+                Text(L10n.text("lab.feedback.negative", store.language)).tag(true)
+                Text(L10n.text("lab.feedback.positive", store.language)).tag(false)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.feedback.type")
+
+            chart
+                .frame(height: 150)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.feedback.chart", store.language))
+                .accessibilityValue(Text(verbatim: number(finalDeviation, 2)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.feedback.disturbance", store.language), number(disturbance, 1)))
+                    .monospacedDigit()
+                // Rounds to half a degree without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { disturbance }, set: { disturbance = ($0 * 2).rounded() / 2 }), in: Model.disturbanceRange)
+                    .accessibilityLabel(L10n.text("lab.feedback.disturbanceLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(disturbance, 1)))
+                    .accessibilityIdentifier("lab.feedback.disturbance")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.feedback.gain", store.language), number(gain, 2)))
+                    .monospacedDigit()
+                Slider(value: Binding(get: { gain }, set: { gain = ($0 * 20).rounded() / 20 }), in: Model.gainRange)
+                    .accessibilityLabel(L10n.text("lab.feedback.gainLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(gain, 2)))
+                    .accessibilityIdentifier("lab.feedback.gain")
+            }
+
+            Text(String(format: L10n.text("lab.feedback.result", store.language), String(Model.steps), number(finalDeviation, 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.feedback.result")
+            Text(L10n.text(negative ? "lab.feedback.negativeNote" : "lab.feedback.positiveNote", store.language))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.feedback.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Temperature after each step between 33 and 41 °C, with the set point dashed; runaway values leave the chart.
+    private var chart: some View {
+        Canvas { context, size in
+            let minY = Model.setPoint - 4, maxY = Model.setPoint + 4
+            let values = Model.temperatures(initial: disturbance, gain: gain, negative: negative)
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / Double(Model.steps)), y: size.height * CGFloat(1 - (y - minY) / (maxY - minY)))
+            }
+            var setPoint = Path()
+            setPoint.move(to: position(0, Model.setPoint))
+            setPoint.addLine(to: position(Double(Model.steps), Model.setPoint))
+            context.stroke(setPoint, with: .color(.green), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var line = Path()
+            for (step, value) in values.enumerated() {
+                let clamped = min(max(value, minY - 1), maxY + 1)
+                let point = position(Double(step), clamped)
+                if step == 0 { line.move(to: point) } else { line.addLine(to: point) }
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(negative ? .accentColor : .red))
+            }
+            context.stroke(line, with: .color(negative ? .accentColor : .red), lineWidth: 2)
+        }
     }
 }
 

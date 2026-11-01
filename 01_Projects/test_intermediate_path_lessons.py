@@ -763,3 +763,25 @@ def test_fidelity_and_hamming_labs_are_wired_into_the_app_project_and_ci() -> No
     assert math.isclose(math.log(10) / 1e-9 / 1e9, 2.3026, abs_tol=1e-4)
     _, hamming = _sections("Biology", "sequence_comparison_hamming_distance")
     assert '"ATGCCGTA"' in hamming and '"ATGACGTT"' in hamming and "2 and 75.0" in hamming
+
+
+def test_dating_and_feedback_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "radioactive_decay_and_dating"' in views and "RadioactiveDatingLab()" in views
+    assert 'moduleResource == "homeostasis_and_feedback"' in views and "FeedbackLoopLab()" in views
+    assert "RegulationLabs.swift in Sources" in project and "scripts/verify_regulation_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:dating|feedback)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:dating|feedback)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, dating = _sections("Physics", "radioactive_decay_and_dating")
+    assert "5730 years" in dating and "4.5 billion years" in dating and "two half-lives" in dating
+    assert math.isclose(5730 * math.log2(100 / 25), 11_460)
+    assert math.isclose(2 * 0.7 ** 15, 0.0095, abs_tol=5e-4)  # the UI test's 0.01 °C after 15 steps
+    _, homeostasis = _sections("Biology", "homeostasis_and_feedback")
+    assert "negative feedback" in homeostasis.lower() and "positive feedback" in homeostasis.lower()

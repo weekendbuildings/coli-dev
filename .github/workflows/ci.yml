@@ -475,6 +475,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-sequence-labs"
           "$RUNNER_TEMP/verify-sequence-labs"
 
+      - name: Verify radioactive dating and feedback loop lab models / Проверка моделей датирования и обратной связи
+        run: |
+          swiftc macOS/ColiDev/App/RegulationLabs.swift macOS/ColiDev/scripts/verify_regulation_labs.swift \
+            -o "$RUNNER_TEMP/verify-regulation-labs"
+          "$RUNNER_TEMP/verify-regulation-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \
