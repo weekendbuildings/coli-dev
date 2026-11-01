@@ -917,6 +917,45 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testLogisticGrowthLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/logistic_population_growth"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.logistic.growth"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The logistic growth lesson must show its lab. / В уроке о логистическом росте должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("25,0") || shown.contains("25.0")), shown)
+    }
+
+    @MainActor
+    func testMarkRecaptureLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/mark_recapture_population_estimate"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.recapture.estimate"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The mark-recapture lesson must show its lab. / В уроке о мечении должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("200")), shown)
+    }
+
+    @MainActor
+    func testSurfaceVolumeLabStartsAtSizeOne() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/surface_volume_and_body_size"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.surface.ratio"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The body size lesson must show its lab. / В уроке о размере тела должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("3,00") || shown.contains("3.00")), shown)
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

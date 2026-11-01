@@ -851,3 +851,27 @@ def test_classical_physics_labs_are_wired_into_the_app_project_and_ci() -> None:
     assert math.isclose(math.degrees(math.asin(math.sin(math.radians(30)) / 1.52)), 19.2, abs_tol=0.05)
     _, torque = _sections("Physics", "torque_and_rotational_equilibrium")
     assert "30 · 2 = 40 · r" in torque and "1.5 m" in torque
+
+
+def test_zoology_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    for resource, view in [("logistic_population_growth", "LogisticGrowthLab"), ("mark_recapture_population_estimate", "MarkRecaptureLab"),
+                           ("surface_volume_and_body_size", "SurfaceVolumeLab")]:
+        assert f'moduleResource == "{resource}"' in views and f"{view}()" in views
+    assert "ZoologyLabs.swift in Sources" in project and "scripts/verify_zoology_labs.swift" in workflow
+    assert "LabKit.swift in Sources" in project
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:logistic|recapture|surface)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:logistic|recapture|surface)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, logistic = _sections("Zoology", "logistic_population_growth")
+    assert "0.1 · 500 · (1000 − 500)/1000 = 25" in logistic
+    _, recapture = _sections("Zoology", "mark_recapture_population_estimate")
+    assert "50 · 60 / 15 = 200" in recapture
+    _, surface = _sections("Zoology", "surface_volume_and_body_size")
+    assert "3/r" in surface

@@ -1902,6 +1902,12 @@ private struct PracticeLab: View {
             RefractionLab()
         } else if subject == .physics, moduleResource == "torque_and_rotational_equilibrium" {
             SeesawLab()
+        } else if subject == .zoology, moduleResource == "logistic_population_growth" {
+            LogisticGrowthLab()
+        } else if subject == .zoology, moduleResource == "mark_recapture_population_estimate" {
+            MarkRecaptureLab()
+        } else if subject == .zoology, moduleResource == "surface_volume_and_body_size" {
+            SurfaceVolumeLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -13899,6 +13905,276 @@ private struct SeesawLab: View {
                 context.fill(Path(roundedRect: rect, cornerRadius: 8), with: .color(color))
                 context.draw(Text(verbatim: number(mass, 0) + " " + text("lab.seesaw.unitKg")).font(.caption.weight(.bold)).foregroundColor(.white), at: base)
             }
+        }
+    }
+}
+
+private struct LogisticGrowthLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var rate = 0.1
+    @State private var capacity = 1000.0
+    @State private var population = 500.0
+
+    private typealias Model = LogisticGrowthModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        let growth = Model.growth(population: population, rate: rate, capacity: capacity)
+        LabCard {
+            LabHeader(title: text("lab.logistic.title"), instruction: text("lab.logistic.subtitle"))
+            HStack(spacing: 16) {
+                GeometryReader { proxy in
+                    let peak = Model.growth(population: capacity / 2, rate: rate, capacity: capacity)
+                    let plot = LabPlotGeometry(size: proxy.size, x: 0...capacity, y: 0...max(peak, 1) * 1.2)
+                    hump(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            population = min(max((plot.value(at: drag.location).x / 10).rounded() * 10, 0), capacity)
+                        })
+                }
+                sCurve
+                    .frame(width: 300)
+            }
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.logistic.chart"))
+            .accessibilityValue(Text(verbatim: number(growth, 1)))
+
+            slider(String(format: text("lab.logistic.rate"), number(rate, 2)), "lab.logistic.rate",
+                   Binding(get: { rate }, set: { rate = ($0 * 100).rounded() / 100 }), Model.rateRange)
+            slider(String(format: text("lab.logistic.capacity"), number(capacity, 0)), "lab.logistic.capacity",
+                   Binding(get: { capacity }, set: { capacity = ($0 / 50).rounded() * 50; population = min(population, capacity) }), Model.capacityRange)
+            LabStatGrid {
+                LabStat(label: text("lab.logistic.statPopulation"), value: number(population, 0), tint: .accentColor)
+                LabStat(label: text("lab.logistic.statGrowth"), value: number(growth, 1), tint: .orange, identifier: "lab.logistic.growth")
+                LabStat(label: text("lab.logistic.statExponential"), value: number(Model.exponentialGrowth(population: population, rate: rate), 1), tint: .secondary)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.logistic.challenge"),
+                         solved: abs(population - capacity / 2) <= capacity * 0.01, solvedText: text("lab.logistic.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.logistic.hint"), text("lab.logistic.limit")])
+        }
+    }
+
+    private func slider(_ title: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).monospacedDigit().frame(minWidth: 260, alignment: .leading)
+            // Rounded values without `step:`, which would draw a dense row of tick marks.
+            Slider(value: value, in: range)
+                .accessibilityLabel(Text(verbatim: title))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+
+    // The growth rate against N: a hump peaking at K/2, with the draggable current population.
+    private func hump(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "N", yLabel: "dN/dt", format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -8, dy: -8)))
+            var line = Path()
+            for index in 0...100 {
+                let n = capacity * Double(index) / 100
+                let location = plot.point(n, Model.growth(population: n, rate: rate, capacity: capacity))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            clipped.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+            var half = Path()
+            half.move(to: plot.point(capacity / 2, 0))
+            half.addLine(to: plot.point(capacity / 2, Model.growth(population: capacity / 2, rate: rate, capacity: capacity)))
+            clipped.stroke(half, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            clipped.draw(Text(verbatim: "K/2").font(.caption.weight(.semibold)).foregroundColor(.secondary), at: plot.point(capacity / 2, 0), anchor: .bottomLeading)
+            let marker = plot.point(population, Model.growth(population: population, rate: rate, capacity: capacity))
+            clipped.fill(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
+        }
+    }
+
+    // The S-shaped curve N(t) from 1% of K, stepped with a small time step, levelling off at K.
+    private var sCurve: some View {
+        Canvas { context, size in
+            var values: [Double] = [capacity * 0.01]
+            let dt = 0.5, span = 12 / rate
+            while Double(values.count) * dt < span { values.append(values.last! + dt * Model.growth(population: values.last!, rate: rate, capacity: capacity)) }
+            let plot = LabPlotGeometry(size: size, x: 0...span, y: 0...capacity * 1.1, leading: 50)
+            plot.drawAxes(in: context, xLabel: "t", yLabel: "N", format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            var k = Path()
+            k.move(to: plot.point(0, capacity))
+            k.addLine(to: plot.point(span, capacity))
+            clipped.stroke(k, with: .color(.green), style: StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+            clipped.draw(Text(verbatim: "K").font(.caption.weight(.bold)).foregroundColor(.green), at: plot.point(span * 0.04, capacity), anchor: .bottomLeading)
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index) * dt, value)
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            clipped.stroke(line, with: .color(.purple), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct MarkRecaptureLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var marked = 50
+    @State private var caught = 60
+    @State private var recaptured = 15
+
+    private typealias Model = MarkRecaptureModel
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        let estimate = Model.estimate(marked: marked, caught: caught, recaptured: recaptured)
+        LabCard {
+            LabHeader(title: text("lab.recapture.title"), instruction: text("lab.recapture.subtitle"))
+            pond
+                .frame(height: 200)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.recapture.chart"))
+                .accessibilityValue(Text(verbatim: "\(recaptured) / \(caught)"))
+            Grid(alignment: .leading, horizontalSpacing: 18, verticalSpacing: 8) {
+                GridRow {
+                    stepper(String(format: text("lab.recapture.marked"), String(marked)), "lab.recapture.marked",
+                            Binding(get: { marked }, set: { marked = $0; recaptured = min(recaptured, marked) }), 1...300)
+                    stepper(String(format: text("lab.recapture.caught"), String(caught)), "lab.recapture.caught",
+                            Binding(get: { caught }, set: { caught = $0; recaptured = min(recaptured, caught) }), 1...300)
+                }
+                GridRow {
+                    stepper(String(format: text("lab.recapture.recaptured"), String(recaptured)), "lab.recapture.recaptured",
+                            $recaptured, 1...max(1, min(marked, caught)))
+                }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.recapture.statShare"), value: L10n.number(Double(recaptured) / Double(max(caught, 1)) * 100, fractionDigits: 0, store.language) + " %", tint: .orange)
+                LabStat(label: text("lab.recapture.statEstimate"), value: estimate.map { L10n.number($0, fractionDigits: 0, store.language) } ?? "—", tint: .green)
+            }
+            Text(estimate.map {
+                    String(format: text("lab.recapture.estimate"), String(marked), String(caught), String(recaptured), L10n.number($0, fractionDigits: 0, store.language))
+                } ?? text("lab.recapture.none"))
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.recapture.estimate")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.recapture.challenge"),
+                         solved: marked == 50 && caught == 60 && recaptured == 10, solvedText: text("lab.recapture.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.recapture.hint"), text("lab.recapture.limit")])
+        }
+    }
+
+    private func stepper(_ title: String, _ identifier: String, _ value: Binding<Int>, _ range: ClosedRange<Int>) -> some View {
+        Stepper(value: value.animation(.easeInOut(duration: 0.2)), in: range) { Text(title).monospacedDigit() }
+            .accessibilityLabel(Text(verbatim: title))
+            .accessibilityIdentifier(identifier)
+    }
+
+    // The second catch as animals in a pond: the marked ones are orange with a tag, the rest grey.
+    private var pond: some View {
+        Canvas { context, size in
+            context.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 18), with: .color(.teal.opacity(0.15)))
+            let columns = max(1, Int((Double(caught) * Double(size.width / size.height)).squareRoot().rounded(.up)))
+            let rows = Int((Double(caught) / Double(columns)).rounded(.up))
+            let cell = min(size.width / CGFloat(columns), size.height / CGFloat(max(rows, 1)))
+            for index in 0..<caught {
+                let center = CGPoint(x: (CGFloat(index % columns) + 0.5) * cell + (size.width - cell * CGFloat(columns)) / 2,
+                                     y: (CGFloat(index / columns) + 0.5) * cell + (size.height - cell * CGFloat(rows)) / 2)
+                let radius = cell * 0.32
+                let isMarked = index < recaptured
+                context.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius * 0.7, width: radius * 2, height: radius * 1.4)),
+                             with: .color(isMarked ? .orange : .secondary.opacity(0.55)))
+                if isMarked {
+                    context.fill(Path(ellipseIn: CGRect(x: center.x + radius * 0.4, y: center.y - radius, width: radius * 0.6, height: radius * 0.6)), with: .color(.white))
+                }
+            }
+        }
+    }
+}
+
+private struct SurfaceVolumeLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var size = 1.0
+    @State private var isSphere = true
+
+    private typealias Model = SurfaceVolumeModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        let shape = isSphere ? Model.sphere(radius: size) : Model.cube(side: size)
+        let ratio = shape.surface / shape.volume
+        LabCard {
+            LabHeader(title: text("lab.surface.title"), instruction: text("lab.surface.subtitle"))
+            Picker(text("lab.surface.shape"), selection: $isSphere.animation()) {
+                Text(text("lab.surface.sphere")).tag(true)
+                Text(text("lab.surface.cube")).tag(false)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.surface.shape")
+            HStack(spacing: 16) {
+                figure
+                    .frame(width: 220)
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: Model.sizeRange, y: 0...Model.ratio(size: 1, sphere: isSphere) * 1.1)
+                    curve(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            size = min(max((plot.value(at: drag.location).x * 10).rounded() / 10, Model.sizeRange.lowerBound), Model.sizeRange.upperBound)
+                        })
+                }
+            }
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.surface.chart"))
+            .accessibilityValue(Text(verbatim: number(ratio, 2)))
+
+            HStack(spacing: 12) {
+                Text(String(format: text(isSphere ? "lab.surface.radius" : "lab.surface.side"), number(size, 1))).monospacedDigit().frame(minWidth: 190, alignment: .leading)
+                // Tenths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { size }, set: { size = ($0 * 10).rounded() / 10 }), in: Model.sizeRange)
+                    .accessibilityLabel(text("lab.surface.sizeLabel"))
+                    .accessibilityIdentifier("lab.surface.size")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.surface.statSurface"), value: number(shape.surface, 1), tint: .orange)
+                LabStat(label: text("lab.surface.statVolume"), value: number(shape.volume, 1), tint: .purple)
+                LabStat(label: "S / V", value: number(ratio, 2), tint: .green, identifier: "lab.surface.ratio")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.surface.challenge"),
+                         solved: abs(ratio - Model.ratio(size: 1, sphere: isSphere) / 4) < 0.01, solvedText: text("lab.surface.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.surface.hint"), text("lab.surface.limit")])
+        }
+    }
+
+    // The shape drawn to scale (size 1 to 10 fills the panel at 10), so growth is visible next to the falling ratio.
+    private var figure: some View {
+        Canvas { canvas, panel in
+            let side = min(panel.width, panel.height) * CGFloat(size / Model.sizeRange.upperBound) * 0.9
+            let rect = CGRect(x: (panel.width - side) / 2, y: (panel.height - side) / 2, width: side, height: side)
+            let path = isSphere ? Path(ellipseIn: rect) : Path(roundedRect: rect, cornerRadius: 3)
+            canvas.fill(path, with: .color(.teal.opacity(0.6)))
+            canvas.stroke(path, with: .color(.orange), lineWidth: 3)
+        }
+        .animation(.easeInOut(duration: 0.2), value: size)
+    }
+
+    private func curve(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text(isSphere ? "lab.surface.axisRadius" : "lab.surface.axisSide"), yLabel: "S / V", format: { number($0, $0 == $0.rounded() ? 0 : 1) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -8, dy: -8)))
+            var line = Path()
+            for index in 0...90 {
+                let x = 1 + Double(index) / 10
+                let location = plot.point(x, Model.ratio(size: x, sphere: isSphere))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            clipped.stroke(line, with: .color(.green), lineWidth: 2.5)
+            let marker = plot.point(size, Model.ratio(size: size, sphere: isSphere))
+            clipped.fill(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
         }
     }
 }

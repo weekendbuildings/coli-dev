@@ -499,6 +499,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-classical-physics-labs"
           "$RUNNER_TEMP/verify-classical-physics-labs"
 
+      - name: Verify logistic growth, mark-recapture, and surface-to-volume lab models / Проверка моделей логистического роста, мечения и отношения поверхности к объёму
+        run: |
+          swiftc macOS/ColiDev/App/ZoologyLabs.swift macOS/ColiDev/scripts/verify_zoology_labs.swift \
+            -o "$RUNNER_TEMP/verify-zoology-labs"
+          "$RUNNER_TEMP/verify-zoology-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \
