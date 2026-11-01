@@ -4855,7 +4855,6 @@ class TestMemoryFootprint:
         # This test measures memory, not the shared per-minute rate-limit bucket.
         # Fast CI runners can execute the whole suite inside the same 60-second window.
         monkeypatch.setattr(orchestrator.limiter, "enabled", False)
-        rss_before = self._rss_mb()
 
         mock_answer = "test response"
         mock_log = DebateLog()
@@ -4866,6 +4865,10 @@ class TestMemoryFootprint:
         mock_engine.run_local = AsyncMock(return_value=(mock_answer, mock_log))
 
         with patch("orchestrator.ConsiliumEngine", return_value=mock_engine):
+            # Первый запрос один раз загружает ленивые кэши (в замерах 15–25 MB) — это не утечка.
+            # The first request loads lazy caches once (15–25 MB in measurements); that is not a leak.
+            assert client.post("/chat/stream", json={"message": "Прогрев"}).status_code == 200
+            rss_before = self._rss_mb()
             for i in range(10):
                 resp = client.post(
                     "/chat/stream",

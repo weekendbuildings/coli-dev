@@ -36,7 +36,7 @@
 | Специальная и общая теория относительности / Special and general relativity | Анализировать пространство-время и пределы ньютоновского приближения. / Analyze spacetime and limits of Newtonian approximations. | lesson:special_relativity_time_dilation |
 | Квантовая механика и атомная физика / Quantum mechanics and atomic physics | Использовать состояния, измерение и вероятностные предсказания без классических аналогий там, где они ломаются. / Use states, measurement, and probabilistic predictions beyond classical analogies. | lesson:quantum_energy_levels_and_shells |
 | Твёрдое тело, ядро и частицы / Condensed matter, nuclear, particle physics | Понимать базовые модели вещества, ядерных процессов и фундаментальных взаимодействий. / Understand core models of matter, nuclei, and interactions. | lesson:radioactive_decay_and_dating |
-| Экспериментальная и вычислительная физика / Experimental and computational physics | Планировать измерение, оценивать неопределённость и сравнивать данные с симуляцией. / Plan measurements, quantify uncertainty, and compare data with models. | |
+| Экспериментальная и вычислительная физика / Experimental and computational physics | Планировать измерение, оценивать неопределённость и сравнивать данные с симуляцией. / Plan measurements, quantify uncertainty, and compare data with models. | lesson:fitting_pendulum_data_least_squares |
 
 ## Форматы практики / Practice formats
 

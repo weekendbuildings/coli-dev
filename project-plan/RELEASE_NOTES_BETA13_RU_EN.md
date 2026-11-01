@@ -1,11 +1,11 @@
-# ColiDev 0.1.0 Beta 13 — черновик заметок к выпуску / Draft release notes
+# ColiDev 0.1.0 Beta 13 — заметки к выпуску / Release notes
 
-> Статус: черновик. Выпуск публикуется только после «да» владельца, слияния рабочей ветки в `main` и зелёного CI на трёх Mac.
-> Status: draft. The release is published only after the owner's "yes", merging the working branch into `main`, and green CI on three Macs.
+
+**Опубликовано 2026-10-31: [v0.1.0-beta.13](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.13), собрано из `f55b211` (Merge PR #9), CI [41247367541](https://github.com/weekendbuildings/coli-dev/actions/runs/41247367541) зелёный на трёх Mac. / Published 2026-10-31, built from `f55b211`, CI green on three Macs.**
 
 ## Русский
 
-**Главное.** Курс вырос с 64 до 106 уроков и получил новый предмет «Химия». Добавлены уроки на пути к пониманию и созданию жизни и ИИ — от атомов и энтропии до пластичности синапсов и обучения нейросетей — и восемь новых тренажёров.
+**Главное.** Курс вырос с 64 до 109 уроков и получил новый предмет «Химия». Добавлены уроки на пути к пониманию и созданию жизни и ИИ — от атомов и энтропии до пластичности синапсов и обучения нейросетей — и восемь новых тренажёров.
 
 **Исправления после ручной проверки Beta 12 на MacBook Air M1:**
 - счётчик «проверки записаны» больше не обнуляется после перезапуска;
@@ -36,7 +36,7 @@ A=$([ "$(uname -m)" = arm64 ] && echo AppleSilicon || echo Intel); curl -fL -o /
 
 ## English
 
-**Highlights.** The course grew from 64 to 106 lessons and gained a new subject, Chemistry. New lessons follow the path toward understanding and creating life and AI, from atoms and entropy to synaptic plasticity and neural-network training, with eight new labs.
+**Highlights.** The course grew from 64 to 109 lessons and gained a new subject, Chemistry. New lessons follow the path toward understanding and creating life and AI, from atoms and entropy to synaptic plasticity and neural-network training, with eight new labs.
 
 **Fixes after the manual Beta 12 check on a MacBook Air M1:**
 - the "checks recorded" counter no longer resets after a restart;
