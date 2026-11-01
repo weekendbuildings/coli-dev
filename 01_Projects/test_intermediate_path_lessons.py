@@ -828,3 +828,26 @@ def test_modern_physics_labs_are_wired_into_the_app_project_and_ci() -> None:
     assert "656 nm" in quantum and "1240" in quantum and "2n²" in quantum
     _, maxwell = _sections("Physics", "maxwell_and_electromagnetic_waves")
     assert "3.00 m" in maxwell and "100 MHz" in maxwell
+
+
+def test_classical_physics_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    for resource, view in [("circuits_and_ohms_law", "CircuitLab"), ("refraction_of_light", "RefractionLab"), ("torque_and_rotational_equilibrium", "SeesawLab")]:
+        assert f'moduleResource == "{resource}"' in views and f"{view}()" in views
+    assert "ClassicalPhysicsLabs.swift in Sources" in project and "scripts/verify_classical_physics_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:circuit|refraction|seesaw)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:circuit|refraction|seesaw)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, circuits = _sections("Physics", "circuits_and_ohms_law")
+    assert "R = 1.5 Ω" in circuits and "8 A" in circuits
+    _, refraction = _sections("Physics", "refraction_of_light")
+    assert "1.333" in refraction and "1.52" in refraction and "30°" in refraction
+    assert math.isclose(math.degrees(math.asin(math.sin(math.radians(30)) / 1.52)), 19.2, abs_tol=0.05)
+    _, torque = _sections("Physics", "torque_and_rotational_equilibrium")
+    assert "30 · 2 = 40 · r" in torque and "1.5 m" in torque

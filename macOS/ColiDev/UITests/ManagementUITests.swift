@@ -878,6 +878,45 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testCircuitLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/circuits_and_ohms_law"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.circuit.total"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The circuits lesson must show its lab. / В уроке о цепях должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("1,50") || shown.contains("1.50")) && (shown.contains("8,00") || shown.contains("8.00")), shown)
+    }
+
+    @MainActor
+    func testRefractionLabStartsAtThePracticeRay() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/refraction_of_light"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.refraction.angle"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The refraction lesson must show its lab. / В уроке о преломлении должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("19,2") || shown.contains("19.2")), shown)
+    }
+
+    @MainActor
+    func testSeesawLabShowsTheBalancingDistance() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/torque_and_rotational_equilibrium"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.seesaw.balance"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The torque lesson must show its lab. / В уроке о моменте силы должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("1,50") || shown.contains("1.50")), shown)
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

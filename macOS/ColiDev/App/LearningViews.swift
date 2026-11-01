@@ -1896,6 +1896,12 @@ private struct PracticeLab: View {
             HydrogenSpectrumLab()
         } else if subject == .physics, moduleResource == "maxwell_and_electromagnetic_waves" {
             ElectromagneticWaveLab()
+        } else if subject == .physics, moduleResource == "circuits_and_ohms_law" {
+            CircuitLab()
+        } else if subject == .physics, moduleResource == "refraction_of_light" {
+            RefractionLab()
+        } else if subject == .physics, moduleResource == "torque_and_rotational_equilibrium" {
+            SeesawLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -13138,6 +13144,252 @@ private struct ElectromagneticWaveLab: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct CircuitLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var first = 2.0
+    @State private var second = 6.0
+    @State private var voltage = 12.0
+    @State private var parallel = true
+
+    private typealias Model = CircuitModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.circuit.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.circuit.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(L10n.text("lab.circuit.mode", store.language), selection: $parallel) {
+                Text(L10n.text("lab.circuit.series", store.language)).tag(false)
+                Text(L10n.text("lab.circuit.parallel", store.language)).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.circuit.mode")
+            slider(String(format: L10n.text("lab.circuit.first", store.language), number(first, 0)), "lab.circuit.first", $first, Model.resistanceRange)
+            slider(String(format: L10n.text("lab.circuit.second", store.language), number(second, 0)), "lab.circuit.second", $second, Model.resistanceRange)
+            slider(String(format: L10n.text("lab.circuit.voltage", store.language), number(voltage, 0)), "lab.circuit.voltage", $voltage, Model.voltageRange)
+
+            Text(String(format: L10n.text("lab.circuit.total", store.language),
+                        number(Model.totalResistance(first, second, parallel: parallel), 2),
+                        number(Model.totalCurrent(voltage: voltage, first, second, parallel: parallel), 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.circuit.total")
+            ForEach([(first, second, "R₁"), (second, first, "R₂")], id: \.2) { resistor, other, name in
+                Text(String(format: L10n.text("lab.circuit.branch", store.language), name,
+                            number(Model.branchCurrent(voltage: voltage, resistor: resistor, other: other, parallel: parallel), 2),
+                            number(Model.branchVoltage(voltage: voltage, resistor: resistor, other: other, parallel: parallel), 2)))
+                    .font(.callout.monospacedDigit())
+            }
+            Text(L10n.text(parallel ? "lab.circuit.parallelNote" : "lab.circuit.seriesNote", store.language))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.circuit.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func slider(_ title: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).monospacedDigit()
+            // Whole units without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = $0.rounded() }), in: range)
+                .accessibilityLabel(Text(verbatim: title))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+}
+
+private struct RefractionLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var firstIndex = 0
+    @State private var secondIndex = 2
+    @State private var incidence = 30.0
+
+    private typealias Model = RefractionModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private let mediumKeys = ["lab.refraction.air", "lab.refraction.water", "lab.refraction.glass", "lab.refraction.diamond"]
+
+    var body: some View {
+        let first = Model.media[firstIndex], second = Model.media[secondIndex]
+        let refracted = Model.refractionAngle(incidence: incidence, from: first, to: second)
+        LabCard {
+            Text(L10n.text("lab.refraction.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.refraction.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            mediumPicker("lab.refraction.from", $firstIndex, "lab.refraction.picker.first")
+            mediumPicker("lab.refraction.to", $secondIndex, "lab.refraction.picker.second")
+
+            rays(refracted: refracted)
+                .frame(height: 170)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.refraction.diagram", store.language))
+                .accessibilityValue(Text(verbatim: refracted.map { number($0, 1) } ?? "—"))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.refraction.incidence", store.language), number(incidence, 0))).monospacedDigit()
+                // Whole degrees without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { incidence }, set: { incidence = $0.rounded() }), in: Model.angleRange)
+                    .accessibilityLabel(L10n.text("lab.refraction.incidenceLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(incidence, 0)))
+                    .accessibilityIdentifier("lab.refraction.incidence")
+            }
+            Text(refracted.map { String(format: L10n.text("lab.refraction.angle", store.language), number($0, 1)) }
+                 ?? String(format: L10n.text("lab.refraction.total", store.language), number(Model.criticalAngle(from: first, to: second) ?? 90, 1)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.refraction.angle")
+            Text(String(format: L10n.text("lab.refraction.speed", store.language), number(Model.speed(in: second) / 1e8, 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.refraction.speed")
+            Text(L10n.text("lab.refraction.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func mediumPicker(_ titleKey: String, _ selection: Binding<Int>, _ identifier: String) -> some View {
+        Picker(L10n.text(titleKey, store.language), selection: selection) {
+            ForEach(mediumKeys.indices, id: \.self) { index in Text(L10n.text(mediumKeys[index], store.language)).tag(index) }
+        }
+        .pickerStyle(.segmented)
+        .accessibilityIdentifier(identifier)
+    }
+
+    // The boundary, the dashed normal, the incident ray from above, and the refracted (or reflected) ray below.
+    private func rays(refracted: Double?) -> some View {
+        Canvas { context, size in
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            let length = min(size.width, size.height) * 0.48
+            context.fill(Path(CGRect(x: 0, y: center.y, width: size.width, height: size.height / 2)), with: .color(.blue.opacity(0.08 + 0.06 * Double(secondIndex))))
+            var normal = Path()
+            normal.move(to: CGPoint(x: center.x, y: 0))
+            normal.addLine(to: CGPoint(x: center.x, y: size.height))
+            context.stroke(normal, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            let incoming = incidence * .pi / 180
+            var incident = Path()
+            incident.move(to: CGPoint(x: center.x - length * CGFloat(sin(incoming)), y: center.y - length * CGFloat(cos(incoming))))
+            incident.addLine(to: center)
+            context.stroke(incident, with: .color(.orange), lineWidth: 2.5)
+            var outgoing = Path()
+            outgoing.move(to: center)
+            if let refracted {
+                let angle = refracted * .pi / 180
+                outgoing.addLine(to: CGPoint(x: center.x + length * CGFloat(sin(angle)), y: center.y + length * CGFloat(cos(angle))))
+            } else {
+                outgoing.addLine(to: CGPoint(x: center.x + length * CGFloat(sin(incoming)), y: center.y - length * CGFloat(cos(incoming))))
+            }
+            context.stroke(outgoing, with: .color(refracted == nil ? .red : .accentColor), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct SeesawLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var leftMass = 30.0
+    @State private var leftDistance = 2.0
+    @State private var rightMass = 40.0
+    @State private var rightDistance = 2.0
+
+    private typealias Model = SeesawModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let net = Model.netTorque(leftMass: leftMass, leftDistance: leftDistance, rightMass: rightMass, rightDistance: rightDistance)
+        LabCard {
+            Text(L10n.text("lab.seesaw.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.seesaw.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            board(net: net)
+                .frame(height: 110)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.seesaw.diagram", store.language))
+                .accessibilityValue(Text(verbatim: number(net, 0)))
+
+            slider(String(format: L10n.text("lab.seesaw.leftMass", store.language), number(leftMass, 0)), "lab.seesaw.leftMass",
+                   Binding(get: { leftMass }, set: { leftMass = $0.rounded() }), Model.massRange)
+            slider(String(format: L10n.text("lab.seesaw.leftDistance", store.language), number(leftDistance, 2)), "lab.seesaw.leftDistance",
+                   Binding(get: { leftDistance }, set: { leftDistance = ($0 * 20).rounded() / 20 }), Model.distanceRange)
+            slider(String(format: L10n.text("lab.seesaw.rightMass", store.language), number(rightMass, 0)), "lab.seesaw.rightMass",
+                   Binding(get: { rightMass }, set: { rightMass = $0.rounded() }), Model.massRange)
+            slider(String(format: L10n.text("lab.seesaw.rightDistance", store.language), number(rightDistance, 2)), "lab.seesaw.rightDistance",
+                   Binding(get: { rightDistance }, set: { rightDistance = ($0 * 20).rounded() / 20 }), Model.distanceRange)
+
+            Text(String(format: L10n.text("lab.seesaw.torques", store.language),
+                        number(Model.torque(mass: leftMass, distance: leftDistance), 0), number(Model.torque(mass: rightMass, distance: rightDistance), 0)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text(abs(net) < 0.5 ? "lab.seesaw.balanced" : (net > 0 ? "lab.seesaw.rightDown" : "lab.seesaw.leftDown"), store.language))
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(String(format: L10n.text("lab.seesaw.balance", store.language),
+                        number(Model.balancingDistance(mass: leftMass, distance: leftDistance, otherMass: rightMass), 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.seesaw.balance")
+            Text(L10n.text("lab.seesaw.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func slider(_ title: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title).monospacedDigit()
+            // Rounded values without `step:`, which would draw a dense row of tick marks.
+            Slider(value: value, in: range)
+                .accessibilityLabel(Text(verbatim: title))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+
+    // The board tilts toward the side with the larger torque (capped at 12°); masses are drawn at their distances.
+    private func board(net: Double) -> some View {
+        Canvas { context, size in
+            let pivot = CGPoint(x: size.width / 2, y: size.height * 0.7)
+            let tilt = CGFloat(max(-12, min(12, net / 20))) * .pi / 180
+            let half = size.width * 0.45
+            let scale = half / CGFloat(Model.distanceRange.upperBound)
+            func point(_ offset: CGFloat) -> CGPoint { CGPoint(x: pivot.x + offset * cos(tilt), y: pivot.y + offset * sin(tilt)) }
+            var plank = Path()
+            plank.move(to: point(-half))
+            plank.addLine(to: point(half))
+            context.stroke(plank, with: .color(.primary), lineWidth: 4)
+            var triangle = Path()
+            triangle.move(to: pivot)
+            triangle.addLine(to: CGPoint(x: pivot.x - 12, y: pivot.y + 24))
+            triangle.addLine(to: CGPoint(x: pivot.x + 12, y: pivot.y + 24))
+            triangle.closeSubpath()
+            context.fill(triangle, with: .color(.secondary))
+            for (offset, mass) in [(-CGFloat(leftDistance) * scale, leftMass), (CGFloat(rightDistance) * scale, rightMass)] {
+                let side = CGFloat(10 + mass / 4)
+                let base = point(offset)
+                context.fill(Path(roundedRect: CGRect(x: base.x - side / 2, y: base.y - side - 2, width: side, height: side), cornerRadius: 3),
+                             with: .color(offset < 0 ? .orange : .accentColor))
+            }
         }
     }
 }

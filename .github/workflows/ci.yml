@@ -493,6 +493,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-modern-physics-labs"
           "$RUNNER_TEMP/verify-modern-physics-labs"
 
+      - name: Verify circuit, refraction, and seesaw lab models / Проверка моделей цепи, преломления и качелей
+        run: |
+          swiftc macOS/ColiDev/App/ClassicalPhysicsLabs.swift macOS/ColiDev/scripts/verify_classical_physics_labs.swift \
+            -o "$RUNNER_TEMP/verify-classical-physics-labs"
+          "$RUNNER_TEMP/verify-classical-physics-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \
