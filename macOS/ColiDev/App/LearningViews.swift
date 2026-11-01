@@ -1878,6 +1878,10 @@ private struct PracticeLab: View {
             NeuralLayerLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
+        } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
+            GenomeFidelityLab()
+        } else if subject == .biology, moduleResource == "sequence_comparison_hamming_distance" {
+            HammingDistanceLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12400,6 +12404,154 @@ private struct GradientDescent2DLab: View {
                              with: .color(index == path.count - 1 ? .accentColor : .orange))
             }
         }
+    }
+}
+
+private struct GenomeFidelityLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var exponent = 9
+    @State private var advantage = 10.0
+
+    private typealias Model = GenomeFidelityModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private func grouped(_ value: Double) -> String { Int(value.rounded()).formatted(.number.locale(locale)) }
+
+    var body: some View {
+        let exact = Model.exactLimit(exponent: exponent, advantage: advantage)
+        LabCard {
+            Text(L10n.text("lab.fidelity.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.fidelity.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.fidelity.error", store.language), String(exponent), grouped(pow(10, Double(exponent)))))
+                    .monospacedDigit()
+                // Whole exponents only, without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { Double(exponent) }, set: { exponent = Int($0.rounded()) }),
+                       in: Double(Model.exponentRange.lowerBound)...Double(Model.exponentRange.upperBound))
+                    .accessibilityLabel(L10n.text("lab.fidelity.errorLabel", store.language))
+                    .accessibilityValue(Text(verbatim: "10^−\(exponent)"))
+                    .accessibilityIdentifier("lab.fidelity.exponent")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.fidelity.advantage", store.language), grouped(advantage)))
+                    .monospacedDigit()
+                Slider(value: Binding(get: { advantage }, set: { advantage = $0.rounded() }), in: Model.advantageRange)
+                    .accessibilityLabel(L10n.text("lab.fidelity.advantageLabel", store.language))
+                    .accessibilityValue(Text(verbatim: grouped(advantage)))
+                    .accessibilityIdentifier("lab.fidelity.advantage")
+            }
+
+            // Bar on a logarithmic scale from 1 to 10¹¹ letters, so every tenfold gain in length is one equal step.
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.12))
+                    Capsule().fill(Color.accentColor.gradient)
+                        .frame(width: max(6, geometry.size.width * CGFloat(log10(max(exact, 1)) / 11)))
+                }
+            }
+            .frame(height: 14)
+            .accessibilityHidden(true)
+
+            Text(String(format: L10n.text("lab.fidelity.limitExact", store.language), grouped(exact)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.fidelity.exact")
+            Text(String(format: L10n.text("lab.fidelity.limitApprox", store.language), grouped(Model.approximateLimit(exponent: exponent, advantage: advantage))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.fidelity.note", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct HammingDistanceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var first = "ATGCCGTA"
+    @State private var second = "ATGACGTT"
+
+    private typealias Model = HammingModel
+
+    private var cleanFirst: String { first.uppercased().filter { !$0.isWhitespace } }
+    private var cleanSecond: String { second.uppercased().filter { !$0.isWhitespace } }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.hamming.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.hamming.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField(L10n.text("lab.hamming.first", store.language), text: $first)
+                .textFieldStyle(.roundedBorder)
+                .font(.body.monospaced())
+                .accessibilityIdentifier("lab.hamming.first")
+            TextField(L10n.text("lab.hamming.second", store.language), text: $second)
+                .textFieldStyle(.roundedBorder)
+                .font(.body.monospaced())
+                .accessibilityIdentifier("lab.hamming.second")
+
+            if let mismatches = Model.mismatchPositions(cleanFirst, cleanSecond) {
+                alignment(mismatches: Set(mismatches))
+                Text(String(format: L10n.text("lab.hamming.result", store.language), String(mismatches.count),
+                            L10n.number(Model.identity(cleanFirst, cleanSecond) ?? 0, fractionDigits: 1, store.language)))
+                    .font(.headline.monospacedDigit())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.hamming.result")
+                Text(mismatches.isEmpty
+                     ? L10n.text("lab.hamming.identical", store.language)
+                     : String(format: L10n.text("lab.hamming.positions", store.language), mismatches.map(String.init).joined(separator: ", ")))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(!Model.isValid(cleanFirst) || !Model.isValid(cleanSecond)
+                     ? L10n.text("lab.hamming.invalid", store.language)
+                     : String(format: L10n.text("lab.hamming.lengths", store.language), String(cleanFirst.count), String(cleanSecond.count)))
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.hamming.result")
+            }
+            Button(L10n.text("lab.hamming.reset", store.language)) {
+                first = "ATGCCGTA"
+                second = "ATGACGTT"
+            }
+            .accessibilityIdentifier("lab.hamming.reset")
+            Text(L10n.text("lab.hamming.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // The two sequences letter by letter, with differing positions highlighted.
+    private func alignment(mismatches: Set<Int>) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 2) {
+                ForEach(Array(zip(cleanFirst, cleanSecond).enumerated()), id: \.offset) { index, pair in
+                    VStack(spacing: 2) {
+                        Text(String(pair.0))
+                        Text(String(pair.1))
+                        Text(String(index + 1)).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .font(.body.monospaced())
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 4).fill(mismatches.contains(index + 1) ? Color.orange.opacity(0.3) : Color.secondary.opacity(0.08)))
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.text("lab.hamming.alignment", store.language))
+        .accessibilityValue(Text(verbatim: "\(cleanFirst) / \(cleanSecond)"))
     }
 }
 

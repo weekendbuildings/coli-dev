@@ -732,6 +732,40 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testGenomeFidelityLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/dna_replication_fidelity_and_repair"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let exact = app.staticTexts["lab.fidelity.exact"]
+        XCTAssertTrue(
+            exact.waitForExistence(timeout: 10),
+            "The DNA fidelity lesson must show its lab. / В уроке о точности копирования ДНК должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (exact.value as? String ?? "") + " " + exact.label
+        // e = 10⁻⁹ and σ = 10 give about 2.3 billion letters; group separators depend on the locale.
+        XCTAssertTrue(shown.contains("302") && shown.contains("585"), shown)
+    }
+
+    @MainActor
+    func testHammingLabShowsTheLessonExample() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/sequence_comparison_hamming_distance"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let result = app.staticTexts["lab.hamming.result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 10),
+            "The sequence comparison lesson must show its lab. / В уроке о сравнении последовательностей должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (result.value as? String ?? "") + " " + result.label
+        XCTAssertTrue(shown.contains("2") && (shown.contains("75,0") || shown.contains("75.0")), shown)
+        XCTAssertTrue(shown.contains("%"), "The identity must keep its percent sign. / У идентичности должен быть знак процента.\n\(shown)")
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

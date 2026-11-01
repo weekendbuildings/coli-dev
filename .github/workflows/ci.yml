@@ -469,6 +469,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-neural-math-labs"
           "$RUNNER_TEMP/verify-neural-math-labs"
 
+      - name: Verify genome fidelity and Hamming distance lab models / Проверка моделей точности копирования и расстояния Хэмминга
+        run: |
+          swiftc macOS/ColiDev/App/SequenceLabs.swift macOS/ColiDev/scripts/verify_sequence_labs.swift \
+            -o "$RUNNER_TEMP/verify-sequence-labs"
+          "$RUNNER_TEMP/verify-sequence-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

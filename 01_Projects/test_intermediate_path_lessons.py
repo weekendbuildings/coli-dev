@@ -435,6 +435,20 @@ def test_l10n_dictionary_has_no_duplicate_keys() -> None:
     assert keys and duplicates == []
 
 
+def test_l10n_format_strings_escape_percent_signs() -> None:
+    # In a String(format:) template a literal percent sign must be written %%; a lone % is read as a broken
+    # conversion and the number after it is lost or garbled.
+    import re
+
+    strings = (AREAS.parent / "macOS" / "ColiDev" / "App" / "L10n.swift").read_text(encoding="utf-8")
+    entries = re.findall(r'^\s*"([^"]+)": \("((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)"\)', strings, re.MULTILINE)
+    assert entries
+    lone = [(key, text) for key, *texts in entries for text in texts
+            if re.search(r"%(?:\d+\$)?[@d]", text)
+            and re.search(r"%(?![@dfisu]|\d+\$[@dfisu]|l{1,2}[du]|\d*\.\d+f)", text.replace("%%", ""))]
+    assert lone == []
+
+
 def test_statistical_labs_are_wired_into_the_app_project_and_ci() -> None:
     import re
 
@@ -727,3 +741,25 @@ def test_neural_layer_and_descent_labs_are_wired_into_the_app_project_and_ci() -
     assert "W = [[1, 2], [0, −1]]" in matrices and "(11, −4)" in matrices
     _, gradient = _sections("Mathematics", "gradient_and_partial_derivatives")
     assert "(1, 1) − 0.1 · (2, 6) = (0.8, 0.4)" in gradient
+
+
+def test_fidelity_and_hamming_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "dna_replication_fidelity_and_repair"' in views and "GenomeFidelityLab()" in views
+    assert 'moduleResource == "sequence_comparison_hamming_distance"' in views and "HammingDistanceLab()" in views
+    assert "SequenceLabs.swift in Sources" in project and "scripts/verify_sequence_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Both labs start at their lesson examples: 2.3 billion letters at e = 10⁻⁹, and distance 2 with 75% identity.
+    _, fidelity = _sections("Biology", "dna_replication_fidelity_and_repair")
+    assert "ln 10 / 10⁻⁹ ≈ 2.3" in fidelity and "229 letters" in fidelity
+    assert math.isclose(math.log(10) / 1e-9 / 1e9, 2.3026, abs_tol=1e-4)
+    _, hamming = _sections("Biology", "sequence_comparison_hamming_distance")
+    assert '"ATGCCGTA"' in hamming and '"ATGACGTT"' in hamming and "2 and 75.0" in hamming
