@@ -1,6 +1,6 @@
 # ColiDev 0.1.0 Beta 16 — заметки к выпуску / Release notes
 
-**Статус: готовится, ещё не опубликовано. / Status: in preparation, not yet published.**
+**Опубликовано 2026-11-01: [v0.1.0-beta.16](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.16), выпуск из `2f976ce` (Merge PR #14); сборка из `3ca8aaa`, который отличается от него только этим файлом заметок, CI [41300415111](https://github.com/weekendbuildings/coli-dev/actions/runs/41300415111) зелёный на macOS 15 и 26 Apple Silicon. Только для Apple Silicon. / Published 2026-11-01 from `2f976ce`; the build comes from `3ca8aaa`, which differs only in this notes file; Apple Silicon only.**
 
 ## Русский
 
