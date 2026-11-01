@@ -445,6 +445,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-statistical-labs"
           "$RUNNER_TEMP/verify-statistical-labs"
 
+      - name: Verify least-squares lab model / Проверка модели подгонки прямой
+        run: |
+          swiftc macOS/ColiDev/App/LeastSquaresFit.swift macOS/ColiDev/scripts/verify_least_squares_fit.swift \
+            -o "$RUNNER_TEMP/verify-least-squares-fit"
+          "$RUNNER_TEMP/verify-least-squares-fit"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

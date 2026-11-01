@@ -605,6 +605,37 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let lessonScrollView = app.scrollViews["lesson.scrollView"]
+        XCTAssertTrue(lessonScrollView.waitForExistence(timeout: 5))
+
+        let fit = app.buttons["lab.lsq.fit"]
+        XCTAssertTrue(
+            fit.waitForExistence(timeout: 10),
+            "The pendulum fitting lesson must show its least-squares lab. / В уроке о подгонке данных маятника должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let gravity = app.staticTexts["lab.lsq.gravity"]
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        XCTAssertTrue(text(gravity).contains("13,16") || text(gravity).contains("13.16"), text(gravity))
+
+        scrollUntilHittable(fit, in: lessonScrollView)
+        fit.click()
+        // On macOS, the first click on an off-screen SwiftUI control may only scroll it into view.
+        if !(text(gravity).contains("9,74") || text(gravity).contains("9.74")), fit.isHittable {
+            fit.click()
+        }
+        XCTAssertTrue(
+            text(gravity).contains("9,74") || text(gravity).contains("9.74"),
+            "Fitting by least squares must give g = 9.74 m/s² from the lesson data. / Подгонка должна дать g = 9,74 м/с².\n\(text(gravity))"
+        )
+    }
+
+    @MainActor
     func testFrictionLessonOffersSourceBackedVideoStudyCard() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"

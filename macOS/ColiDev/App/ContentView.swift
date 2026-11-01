@@ -229,17 +229,25 @@ struct ContentView: View {
         ProcessInfo.processInfo.environment["COLIDEV_UI_TEST_MISSING_INTRO_ROUTE"] == "1"
     }
 
+    /// The lesson a UI test opens directly: the friction video lesson, or any lesson given as "subject/resource".
+    private var uiTestLessonRoute: (subject: Subject, resource: String)? {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["COLIDEV_UI_TEST_FRICTION_LESSON"] == "1" { return (.physics, "static_and_kinetic_friction") }
+        let parts = (environment["COLIDEV_UI_TEST_LESSON"] ?? "").split(separator: "/", maxSplits: 1).map(String.init)
+        guard parts.count == 2, let subject = Subject(rawValue: parts[0]), !parts[1].isEmpty else { return nil }
+        return (subject, parts[1])
+    }
+
     private func openCell3DUITestRouteIfNeeded() {
-        if !didOpenFrictionUITestRoute,
-           ProcessInfo.processInfo.environment["COLIDEV_UI_TEST_FRICTION_LESSON"] == "1" {
+        if !didOpenFrictionUITestRoute, let target = uiTestLessonRoute {
             didOpenFrictionUITestRoute = true
-            // The video tests cover the lesson itself, not its earlier physics prerequisites.
+            // The lesson tests cover the lesson itself, not its earlier prerequisites.
             // Keep this route override limited to the dedicated UI-test launch environment.
             DispatchQueue.main.async {
-                let route = StudyLessonRoute(subjectID: "physics", resource: "static_and_kinetic_friction")
+                let route = StudyLessonRoute(subjectID: target.subject.rawValue, resource: target.resource)
                 practiceFocusRoute = route
-                store.rememberCourseLesson(subject: .physics, resource: route.resource)
-                selection = .courseLesson(.physics, route.resource)
+                store.rememberCourseLesson(subject: target.subject, resource: route.resource)
+                selection = .courseLesson(target.subject, route.resource)
             }
             return
         }
