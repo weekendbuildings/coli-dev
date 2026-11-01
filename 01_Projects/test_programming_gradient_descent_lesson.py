@@ -72,6 +72,6 @@ def test_gradient_descent_lab_is_wired_into_the_app_project_and_ci() -> None:
     assert 'moduleResource == "gradient_descent_and_learning_rate"' in views and "GradientDescentLab()" in views
     assert "GradientDescent.swift in Sources" in project
     assert "scripts/verify_gradient_descent.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.gd\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.gd\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.gd\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined

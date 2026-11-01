@@ -85,7 +85,7 @@ def test_holdout_lab_is_wired_into_the_app_project_and_ci() -> None:
     assert "HeldOutEvaluation.swift in Sources" in project
     assert "scripts/verify_held_out_evaluation.swift" in workflow
 
-    used_keys = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.holdout\.[A-Za-z]+)"', views))
+    used_keys = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.holdout\.[A-Za-z]+)"', views))
     defined_keys = set(re.findall(r'^\s*"(lab\.holdout\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used_keys
     assert used_keys <= defined_keys

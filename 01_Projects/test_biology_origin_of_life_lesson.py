@@ -63,7 +63,7 @@ def test_replicator_lab_is_wired_into_the_app_project_and_ci() -> None:
     assert 'moduleResource == "what_is_life_and_its_origin"' in views and "ReplicatorErrorThresholdLab()" in views
     assert "ReplicatorErrorThreshold.swift in Sources" in project
     assert "scripts/verify_replicator_error_threshold.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.replicator\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.replicator\.[A-Za-z]+)"', views))
     defined = re.findall(r'^\s*"(lab\.replicator\.[A-Za-z]+)":', strings, re.MULTILINE)
     assert used and used <= set(defined) and len(defined) == len(set(defined))
     biology_stage = journey.split('id: "biology"', 1)[1].split("),\n        .init(", 1)[0]

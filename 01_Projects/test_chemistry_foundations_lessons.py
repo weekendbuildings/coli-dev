@@ -109,7 +109,7 @@ def test_chemistry_labs_are_wired_into_the_app_project_and_ci() -> None:
     assert 'moduleResource == "reaction_energy_and_catalysis"' in views and "ReactionEnergyLab()" in views
     assert "ChemistryLabs.swift in Sources" in project
     assert "scripts/verify_chemistry_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:ph|molecule|energy)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:ph|molecule|energy)\.[A-Za-z]+)"', views))
     # Atom and molecule names are looked up by key from the model, e.g. "lab.molecule.name.C".
     used |= {f"lab.molecule.{group}.{atom}" for group in ("atom", "name") for atom in "HONC"}
     defined = re.findall(r'^\s*"(lab\.(?:ph|molecule|energy)\.[A-Za-z.]+)":', strings, re.MULTILINE)

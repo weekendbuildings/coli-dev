@@ -63,7 +63,7 @@ def test_synapse_lab_is_wired_into_the_app_project_and_ci() -> None:
     assert 'moduleResource == "synapses_and_signal_summation"' in views and "SynapticSummationLab()" in views
     assert "SynapticSummation.swift in Sources" in project
     assert "scripts/verify_synaptic_summation.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.synapse\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.synapse\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.synapse\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     brain_stage = journey.split('id: "brain_science"', 1)[1].split("),\n        .init(", 1)[0]

@@ -2272,10 +2272,7 @@ private struct AnimalGroupLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.animalGroupHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AnimalGroupLab", store.language), instruction: L10n.text("lab.animalGroupHint", store.language))
 
             if complete {
                 Label(L10n.text("lab.animalGroupComplete", store.language), systemImage: "checkmark.circle.fill")
@@ -2385,10 +2382,7 @@ private struct AnimalLineageLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.lineageHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AnimalLineageLab", store.language), instruction: L10n.text("lab.lineageHint", store.language))
 
             VStack(spacing: 12) {
                 Label(L10n.text("lab.lineageBilateria", store.language), systemImage: "point.3.connected.trianglepath.dotted")
@@ -2525,9 +2519,7 @@ private struct GeometryMeasureLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.geometryHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.GeometryMeasureLab", store.language), instruction: L10n.text("lab.geometryHint", store.language))
             Picker(L10n.text("lab.geometryShape", store.language), selection: $shape) {
                 Text(L10n.text("lab.geometryRectangle", store.language)).tag(GeometryShape.rectangle)
                 Text(L10n.text("lab.geometryTriangle", store.language)).tag(GeometryShape.rightTriangle)
@@ -2974,10 +2966,7 @@ private struct RationalExpressionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.rationalHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.RationalExpressionLab", store.language), instruction: L10n.text("lab.rationalHint", store.language))
 
             Text("f(x) = (x² − 9) / (x − 3)")
                 .font(.title3.monospaced().weight(.semibold))
@@ -3040,115 +3029,94 @@ private struct DerivativeRateLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var point = 2.0
     @State private var step = 1.0
+    @State private var shrinking = false
 
     private var secantSlope: Double { 2 * point + step }
     private var tangentSlope: Double { 2 * point }
 
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
     var body: some View {
         LabCard {
-            Text("f(x) = x²")
-                .font(.system(.headline, design: .monospaced))
-
-            Text(L10n.text("lab.derivativeHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0 else { return }
-                func location(_ x: Double, _ y: Double) -> CGPoint {
-                    CGPoint(
-                        x: CGFloat((x + 3) / 6) * size.width,
-                        y: CGFloat((9 - y) / 12) * size.height
-                    )
-                }
-
-                var grid = Path()
-                for value in -3...3 {
-                    let x = CGFloat(value + 3) / 6 * size.width
-                    grid.move(to: CGPoint(x: x, y: 0))
-                    grid.addLine(to: CGPoint(x: x, y: size.height))
-                }
-                for value in stride(from: -3, through: 9, by: 2) {
-                    let y = CGFloat(9 - value) / 12 * size.height
-                    grid.move(to: CGPoint(x: 0, y: y))
-                    grid.addLine(to: CGPoint(x: size.width, y: y))
-                }
-                context.stroke(grid, with: .color(.secondary.opacity(0.16)), lineWidth: 1)
-
-                var axes = Path()
-                axes.move(to: location(-3, 0))
-                axes.addLine(to: location(3, 0))
-                axes.move(to: location(0, -3))
-                axes.addLine(to: location(0, 9))
-                context.stroke(axes, with: .color(.secondary.opacity(0.7)), lineWidth: 1.5)
-
-                var curve = Path()
-                for index in 0...120 {
-                    let x = -3.0 + Double(index) * 0.05
-                    let p = location(x, x * x)
-                    if index == 0 { curve.move(to: p) } else { curve.addLine(to: p) }
-                }
-                context.stroke(curve, with: .color(.indigo), lineWidth: 2.5)
-
-                var tangent = Path()
-                let tangentStart = point - 0.7
-                let tangentEnd = point + 0.7
-                tangent.move(to: location(tangentStart, tangentSlope * tangentStart - point * point))
-                tangent.addLine(to: location(tangentEnd, tangentSlope * tangentEnd - point * point))
-                context.stroke(tangent, with: .color(.green), lineWidth: 2.5)
-
-                var secant = Path()
-                secant.move(to: location(point, point * point))
-                secant.addLine(to: location(point + step, (point + step) * (point + step)))
-                context.stroke(secant, with: .color(.orange), lineWidth: 2.5)
-
-                for x in [point, point + step] {
-                    let p = location(x, x * x)
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: p.x - 4.5, y: p.y - 4.5, width: 9, height: 9)),
-                        with: .color(.orange)
-                    )
-                }
+            LabHeader(title: text("lab.derivativeTitle"), instruction: text("lab.derivativeSubtitle"))
+            GeometryReader { proxy in
+                let plot = LabPlotGeometry(size: proxy.size, x: -3...3, y: -3...9)
+                graph(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        point = min(max((plot.value(at: drag.location).x * 10).rounded() / 10, -2), 2)
+                    })
             }
-            .frame(height: 230)
-            .accessibilityLabel(L10n.text("lab.derivativeGraph", store.language))
+            .frame(height: 280)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.derivativeGraph"))
+            .accessibilityValue(Text(verbatim: number(secantSlope, 2)))
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(L10n.text("lab.derivativePoint", store.language))
-                    Spacer()
-                    Text(verbatim: "x = " + L10n.number(point, fractionDigits: 1, store.language)).monospacedDigit()
-                }
-                Slider(value: $point, in: -2.0...2.0, step: 0.1)
-                    .accessibilityLabel(Text(L10n.text("lab.derivativePoint", store.language)))
-
-                HStack {
-                    Text(L10n.text("lab.derivativeStep", store.language))
-                    Spacer()
-                    Text(verbatim: "h = " + L10n.number(step, fractionDigits: 1, store.language)).monospacedDigit()
-                }
-                Slider(value: $step, in: 0.05...1.0, step: 0.05)
-                    .accessibilityLabel(Text(L10n.text("lab.derivativeStep", store.language)))
+            HStack(spacing: 12) {
+                Text(verbatim: text("lab.derivativePoint") + ": x = " + number(point, 1)).monospacedDigit().frame(minWidth: 200, alignment: .leading)
+                // Tenths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { point }, set: { point = ($0 * 10).rounded() / 10 }), in: -2.0...2.0)
+                    .accessibilityLabel(Text(text("lab.derivativePoint")))
             }
-
-            HStack(spacing: 14) {
-                Label(L10n.text("lab.derivativeFunction", store.language), systemImage: "waveform.path")
-                    .foregroundStyle(.indigo)
-                Label(L10n.text("lab.derivativeSecant", store.language), systemImage: "line.diagonal")
-                    .foregroundStyle(.orange)
-                Label(L10n.text("lab.derivativeTangent", store.language), systemImage: "line.diagonal")
-                    .foregroundStyle(.green)
+            HStack(spacing: 12) {
+                Button {
+                    step = 1
+                    shrinking = true
+                } label: { Label(text("lab.derivativeShrink"), systemImage: "arrow.down.right.and.arrow.up.left") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.derivative.shrink")
+                Text(verbatim: "h = " + number(step, 2)).monospacedDigit().frame(minWidth: 90, alignment: .leading)
+                Slider(value: Binding(get: { step }, set: { step = max(0.01, ($0 * 100).rounded() / 100) }), in: 0.01...1.0)
+                    .accessibilityLabel(Text(text("lab.derivativeStep")))
             }
-            .font(.caption)
-            .labelStyle(.titleAndIcon)
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(String(format: L10n.text("lab.derivativeSecantValue", store.language), L10n.number(secantSlope, fractionDigits: 2, store.language)))
-                Text(String(format: L10n.text("lab.derivativeTangentValue", store.language), L10n.number(tangentSlope, fractionDigits: 2, store.language)))
-                    .fontWeight(.semibold)
+            LabStatGrid {
+                LabStat(label: text("lab.derivativeSecant"), value: number(secantSlope, 2), tint: .orange)
+                LabStat(label: text("lab.derivativeTangent") + " f′(x) = 2x", value: number(tangentSlope, 2), tint: .green)
+                LabStat(label: text("lab.derivativeGap"), value: number(secantSlope - tangentSlope, 2), tint: .purple)
             }
-            .font(.callout.monospacedDigit())
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.derivativeChallenge"), solved: step < 0.1, solvedText: text("lab.derivativeChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.derivativeHint"),
+                String(format: text("lab.derivativeSecantValue"), number(secantSlope, 2)) + " · " + String(format: text("lab.derivativeTangentValue"), number(tangentSlope, 2)),
+            ])
+        }
+        .task(id: shrinking) {
+            guard shrinking else { return }
+            while step > 0.011 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                withAnimation(.linear(duration: 0.06)) { step = max(0.01, (step * 0.93 * 100).rounded() / 100) }
+            }
+            shrinking = false
+        }
+    }
+
+    // f(x) = x² with the secant through x and x + h (orange) and the tangent at x (green), both drawn across the plot.
+    private func graph(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "f(x) = x²", format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            var curve = Path()
+            for index in 0...120 {
+                let x = -3.0 + Double(index) * 0.05
+                let location = plot.point(x, x * x)
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.indigo), lineWidth: 2.5)
+            func line(slope: Double, through x0: Double, color: Color, width: CGFloat) {
+                var path = Path()
+                path.move(to: plot.point(-3, point * point + slope * (-3 - x0)))
+                path.addLine(to: plot.point(3, point * point + slope * (3 - x0)))
+                clipped.stroke(path, with: .color(color), lineWidth: width)
+            }
+            line(slope: tangentSlope, through: point, color: .green, width: 2)
+            line(slope: secantSlope, through: point, color: .orange, width: 2.5)
+            let second = plot.point(point + step, (point + step) * (point + step))
+            clipped.fill(Path(ellipseIn: CGRect(x: second.x - 6, y: second.y - 6, width: 12, height: 12)), with: .color(.orange))
+            let first = plot.point(point, point * point)
+            clipped.fill(Path(ellipseIn: CGRect(x: first.x - 8, y: first.y - 8, width: 16, height: 16)), with: .color(.green))
+            clipped.stroke(Path(ellipseIn: CGRect(x: first.x - 8, y: first.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
         }
     }
 }
@@ -3394,9 +3362,7 @@ private struct DomainRangeLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.domainHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.DomainRangeLab", store.language), instruction: L10n.text("lab.domainHint", store.language))
 
             Picker("", selection: $selectedScenario) {
                 Text(L10n.text("lab.domainTaxi", store.language)).tag(0)
@@ -4306,9 +4272,7 @@ private struct OsmosisLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.osmosisHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.OsmosisLab", store.language), instruction: L10n.text("lab.osmosisHint", store.language))
 
             HStack(alignment: .center, spacing: 14) {
                 concentrationDisplay(
@@ -4695,83 +4659,103 @@ private struct PhotosynthesisLab: View {
         return light < carbonDioxide ? "lab.photosynthesisLightLimits" : "lab.photosynthesisCO2Limits"
     }
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func percent(_ value: Double) -> String { L10n.measurement(value, fractionDigits: 0, unit: "%", store.language) }
+
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.photosynthesisHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            HStack(alignment: .center, spacing: 10) {
-                stageCard(
-                    symbol: "sun.max.fill",
-                    color: .orange,
-                    title: L10n.text("lab.photosynthesisLightStage", store.language),
-                    detail: L10n.text("lab.photosynthesisEnergyProducts", store.language)
-                )
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                stageCard(
-                    symbol: "leaf.fill",
-                    color: .green,
-                    title: L10n.text("lab.photosynthesisCarbonStage", store.language),
-                    detail: L10n.text("lab.photosynthesisCarbonProduct", store.language)
-                )
-            }
-
-            factorSlider(title: L10n.text("lab.photosynthesisLight", store.language), value: $light)
-            factorSlider(title: L10n.text("lab.photosynthesisCO2", store.language), value: $carbonDioxide)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(L10n.text("lab.photosynthesisRelativeRate", store.language))
-                    Spacer()
-                    Text("\(Int(rate))%")
-                        .monospacedDigit()
-                        .fontWeight(.semibold)
+            LabHeader(title: text("lab.photosynthesisTitle"), instruction: text("lab.photosynthesisSubtitle"))
+            HStack(spacing: 16) {
+                stages
+                    .frame(width: 300)
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: 0...100, y: 0...100)
+                    factorMap(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            let value = plot.value(at: drag.location)
+                            light = min(max((value.x / 5).rounded() * 5, 0), 100)
+                            carbonDioxide = min(max((value.y / 5).rounded() * 5, 0), 100)
+                        })
                 }
-                ProgressView(value: rate, total: 100)
-                    .tint(.green)
-                Label(L10n.text(limitingFactorKey, store.language), systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(.orange)
             }
-            .padding(12)
-            .background(Color.green.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        }
-    }
+            .frame(height: 260)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.photosynthesisMap"))
+            .accessibilityValue(Text(verbatim: percent(rate)))
 
-    private func stageCard(symbol: String, color: Color, title: String, detail: String) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: symbol)
-                .font(.title2)
-                .foregroundStyle(color)
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .multilineTextAlignment(.center)
-            Text(detail)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            factorSlider(title: text("lab.photosynthesisLight"), value: $light)
+            factorSlider(title: text("lab.photosynthesisCO2"), value: $carbonDioxide)
+            LabStatGrid {
+                LabStat(label: text("lab.photosynthesisRelativeRate"), value: percent(rate), tint: .green)
+                LabStat(label: text("lab.photosynthesisLight"), value: percent(light), tint: .orange)
+                LabStat(label: text("lab.photosynthesisCO2"), value: percent(carbonDioxide), tint: .teal)
+            }
+            LabStatusBadge(kind: light == carbonDioxide ? .good : .warning, text: text(limitingFactorKey))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.photosynthesisChallenge"),
+                         solved: rate == 80 && light == carbonDioxide, solvedText: text("lab.photosynthesisChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.photosynthesisHint")])
         }
-        .frame(maxWidth: .infinity, minHeight: 94)
-        .padding(9)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
     }
 
     private func factorSlider(title: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text("\(Int(value.wrappedValue))%")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 0...100, step: 5)
+        HStack(spacing: 12) {
+            Text(verbatim: "\(title): \(percent(value.wrappedValue))").monospacedDigit().frame(minWidth: 220, alignment: .leading)
+            // Steps of 5% without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / 5).rounded() * 5 }), in: 0...100)
                 .accessibilityLabel(Text(title))
+        }
+    }
+
+    // The two linked stages: the sun's size follows the light, the arrow's thickness the ATP and NADPH made,
+    // and the sugar output follows the slower of the two stages.
+    private var stages: some View {
+        Canvas { context, size in
+            let sun = CGPoint(x: 40, y: 40)
+            let sunRadius = CGFloat(10 + light / 6)
+            context.fill(Path(ellipseIn: CGRect(x: sun.x - sunRadius, y: sun.y - sunRadius, width: 2 * sunRadius, height: 2 * sunRadius)), with: .color(.yellow))
+            let lightBox = CGRect(x: 20, y: 90, width: 110, height: 70)
+            let carbonBox = CGRect(x: size.width - 130, y: 90, width: 110, height: 70)
+            context.fill(Path(roundedRect: lightBox, cornerRadius: 12), with: .color(.orange.opacity(0.25 + 0.6 * light / 100)))
+            context.fill(Path(roundedRect: carbonBox, cornerRadius: 12), with: .color(.green.opacity(0.25 + 0.6 * rate / 100)))
+            context.draw(Text(text("lab.photosynthesisLightStage")).font(.caption.weight(.bold)).foregroundColor(.primary), at: CGPoint(x: lightBox.midX, y: lightBox.midY))
+            context.draw(Text(text("lab.photosynthesisCarbonStage")).font(.caption.weight(.bold)).foregroundColor(.primary), at: CGPoint(x: carbonBox.midX, y: carbonBox.midY))
+            var energy = Path()
+            energy.move(to: CGPoint(x: lightBox.maxX + 4, y: lightBox.midY))
+            energy.addLine(to: CGPoint(x: carbonBox.minX - 8, y: carbonBox.midY))
+            context.stroke(energy, with: .color(.orange), style: StrokeStyle(lineWidth: CGFloat(2 + light / 12), lineCap: .round))
+            context.draw(Text(verbatim: "ATP, NADPH").font(.caption2.weight(.semibold)).foregroundColor(.orange), at: CGPoint(x: size.width / 2, y: lightBox.midY - 20))
+            for index in 0..<Int(carbonDioxide / 10) {
+                let x = carbonBox.minX + 8 + CGFloat(index % 5) * 22, y = 50 + CGFloat(index / 5) * 18
+                context.draw(Text(verbatim: "CO₂").font(.caption2.weight(.bold)).foregroundColor(.teal), at: CGPoint(x: x, y: y))
+            }
+            let sugar = CGRect(x: carbonBox.midX - CGFloat(rate / 4), y: carbonBox.maxY + 18, width: CGFloat(rate / 2), height: 22)
+            context.fill(Path(roundedRect: sugar, cornerRadius: 6), with: .color(.green))
+            context.draw(Text(text("lab.photosynthesisCarbonProduct")).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: carbonBox.midX, y: sugar.maxY + 12))
+        }
+    }
+
+    // Rate = min(light, CO₂) as a heat map over both factors: the corner-shaped bands show that raising the factor
+    // that is not limiting does nothing. The current point can be dragged anywhere on the map.
+    private func factorMap(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            let cells = 40
+            let width = plot.rect.width / CGFloat(cells), height = plot.rect.height / CGFloat(cells)
+            for column in 0..<cells {
+                for row in 0..<cells {
+                    let x = (Double(column) + 0.5) * 100 / Double(cells), y = 100 - (Double(row) + 0.5) * 100 / Double(cells)
+                    context.fill(Path(CGRect(x: plot.rect.minX + CGFloat(column) * width, y: plot.rect.minY + CGFloat(row) * height, width: width + 0.5, height: height + 0.5)),
+                                 with: .color(LabHeatScale.color(min(x, y) / 100)))
+                }
+            }
+            plot.drawAxes(in: context, xLabel: text("lab.photosynthesisAxisLight"), yLabel: text("lab.photosynthesisAxisCO2"), format: { String(Int($0)) })
+            var diagonal = Path()
+            diagonal.move(to: plot.point(0, 0))
+            diagonal.addLine(to: plot.point(100, 100))
+            context.stroke(diagonal, with: .color(.white.opacity(0.5)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            let current = plot.point(light, carbonDioxide)
+            context.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white))
+            context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(.accentColor))
         }
     }
 }
@@ -4789,9 +4773,7 @@ private struct SymmetryLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.symmetryHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.SymmetryLab", store.language), instruction: L10n.text("lab.symmetryHint", store.language))
 
             Picker(L10n.text("lab.symmetryPlan", store.language), selection: $bodyPlan) {
                 Text(L10n.text("lab.symmetryOptionAsym", store.language)).tag(0)
@@ -5485,10 +5467,8 @@ private struct FrictionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.frictionHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .accessibilityIdentifier("lesson.friction.model")
+            LabHeader(title: L10n.text("labkit.title.FrictionLab", store.language), instruction: L10n.text("lab.frictionHint", store.language),
+                      instructionIdentifier: "lesson.friction.model")
 
             GeometryReader { geometry in
                 let width = max(geometry.size.width - 64, 0)
@@ -5701,12 +5681,7 @@ private struct ProjectileMotionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.projectile.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.projectile.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.projectile.title", store.language), instruction: L10n.text("lab.projectile.hint", store.language))
 
             Canvas { context, size in
                 guard size.width > 0, size.height > 0 else { return }
@@ -5976,9 +5951,7 @@ private struct KineticEnergyLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.energyHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.KineticEnergyLab", store.language), instruction: L10n.text("lab.energyHint", store.language))
 
             Energy3DVisualization(mass: mass, speed: finalSpeed)
                 .frame(height: 190)
@@ -5988,15 +5961,16 @@ private struct KineticEnergyLab: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(alignment: .firstTextBaseline, spacing: 14) {
-                energyReadout(title: L10n.text("lab.energyInitial", store.language), value: initialEnergy, unit: "J")
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
-                energyReadout(title: L10n.text("lab.energyFinal", store.language), value: finalEnergy, unit: "J")
-                Spacer(minLength: 0)
-                energyReadout(title: L10n.text("lab.energyFinalSpeed", store.language), value: finalSpeed, unit: "m/s")
+            LabStatGrid {
+                LabStat(label: L10n.text("lab.energyInitial", store.language), value: L10n.measurement(initialEnergy, fractionDigits: 1, unit: "J", store.language), tint: .accentColor)
+                LabStat(label: L10n.text("lab.energyNetWork", store.language), value: L10n.measurement(netWork, fractionDigits: 1, unit: "J", store.language), tint: netWork >= 0 ? .green : .red)
+                LabStat(label: L10n.text("lab.energyFinal", store.language), value: L10n.measurement(finalEnergy, fractionDigits: 1, unit: "J", store.language), tint: .orange)
+                LabStat(label: L10n.text("lab.energyFinalSpeed", store.language), value: L10n.measurement(finalSpeed, fractionDigits: 2, unit: "m/s", store.language), tint: .purple)
             }
+            energyBars
+                .frame(height: 120)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.energyBars", store.language))
 
             valueSlider(title: L10n.text("lab.mass", store.language), value: $mass, range: 1...8, unit: "kg")
             valueSlider(title: L10n.text("lab.energyInitialSpeed", store.language), value: $initialSpeed, range: 0...12, unit: "m/s")
@@ -6008,6 +5982,32 @@ private struct KineticEnergyLab: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.energyChallenge", store.language),
+                         solved: abs(proposedFinalEnergy) < 0.5 && initialEnergy > 0, solvedText: L10n.text("lab.energyChallengeSolved", store.language))
+        }
+    }
+
+    // The work–energy theorem as bars: kinetic energy before, the net work added or taken away, and the energy after.
+    private var energyBars: some View {
+        Canvas { context, size in
+            let values = [initialEnergy, netWork, finalEnergy]
+            let top = max(values.map(abs).max() ?? 1, 1)
+            let zeroY = size.height * 0.62
+            let slot = size.width / 3
+            let titles = ["lab.energyInitial", "lab.energyNetWork", "lab.energyFinal"]
+            let colors: [Color] = [.accentColor, netWork >= 0 ? .green : .red, .orange]
+            for (index, value) in values.enumerated() {
+                let height = (zeroY - 14) * CGFloat(abs(value) / top)
+                let rect = CGRect(x: CGFloat(index) * slot + slot * 0.3, y: value >= 0 ? zeroY - height : zeroY, width: slot * 0.4, height: max(2, height))
+                context.fill(Path(roundedRect: rect, cornerRadius: 5), with: .color(colors[index]))
+                context.draw(Text(L10n.text(titles[index], store.language)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: rect.midX, y: size.height - 8))
+            }
+            var zero = Path()
+            zero.move(to: CGPoint(x: 0, y: zeroY))
+            zero.addLine(to: CGPoint(x: size.width, y: zeroY))
+            context.stroke(zero, with: .color(.secondary), lineWidth: 1)
+            context.draw(Text(verbatim: "+").font(.headline).foregroundColor(.secondary), at: CGPoint(x: slot, y: zeroY - 20))
+            context.draw(Text(verbatim: "=").font(.headline).foregroundColor(.secondary), at: CGPoint(x: 2 * slot, y: zeroY - 20))
         }
     }
 
@@ -6104,10 +6104,7 @@ private struct MomentumCollisionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.momentumHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.MomentumCollisionLab", store.language), instruction: L10n.text("lab.momentumHint", store.language))
 
             Canvas { context, size in
                 let baseline = size.height * 0.69
@@ -6421,6 +6418,9 @@ private struct Energy3DVisualization: View {
 private struct PunnettLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var selectedCross = 0
+    @State private var sample: [String] = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     private var parentGenotypes: (String, String) {
         switch selectedCross {
@@ -6429,84 +6429,90 @@ private struct PunnettLab: View {
         default: return ("Aa", "Aa")
         }
     }
-
     private var firstParentGametes: [String] { parentGenotypes.0.map { String($0) } }
     private var secondParentGametes: [String] { parentGenotypes.1.map { String($0) } }
-
-    private var genotypeCounts: [String: Int] {
-        var counts: [String: Int] = [:]
-        for secondGamete in secondParentGametes {
-            for firstGamete in firstParentGametes {
-                counts[offspringGenotype(firstGamete, secondGamete), default: 0] += 1
-            }
-        }
-        return counts
-    }
-
+    private var cells: [String] { secondParentGametes.flatMap { second in firstParentGametes.map { offspringGenotype($0, second) } } }
+    private var genotypeCounts: [String: Int] { cells.reduce(into: [:]) { $0[$1, default: 0] += 1 } }
     private var probabilitySummary: String {
-        genotypeCounts.keys.sorted().map { genotype in
-            "\(genotype): \(genotypeCounts[genotype, default: 0] * 25)%"
-        }.joined(separator: " · ")
+        genotypeCounts.keys.sorted().map { "\($0): \(genotypeCounts[$0, default: 0] * 25)%" }.joined(separator: " · ")
     }
+    private func showsDominant(_ genotype: String) -> Bool { genotype.contains("A") }
 
     var body: some View {
+        let dominantShare = Double(cells.filter(showsDominant).count) / 4
         LabCard {
-            Text(L10n.text("lab.geneticsHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            Picker(L10n.text("lab.geneticsCross", store.language), selection: $selectedCross) {
-                Text(L10n.text("lab.geneticsCross0", store.language)).tag(0)
-                Text(L10n.text("lab.geneticsCross1", store.language)).tag(1)
-                Text(L10n.text("lab.geneticsCross2", store.language)).tag(2)
+            LabHeader(title: text("lab.geneticsTitle"), instruction: text("lab.geneticsSubtitle"))
+            Picker(text("lab.geneticsCross"), selection: Binding(get: { selectedCross }, set: { selectedCross = $0; sample = [] }).animation()) {
+                Text(verbatim: "Aa × Aa").tag(0)
+                Text(verbatim: "Aa × aa").tag(1)
+                Text(verbatim: "AA × aa").tag(2)
             }
-            .pickerStyle(.menu)
+            .pickerStyle(.segmented)
+            Text(text("lab.geneticsCross\(selectedCross)")).font(.callout).foregroundStyle(.secondary)
 
-            HStack(alignment: .top, spacing: 18) {
-                Text("\(L10n.text("lab.geneticsParent1", store.language)): \(parentGenotypes.0)")
-                Text("\(L10n.text("lab.geneticsParent2", store.language)): \(parentGenotypes.1)")
+            HStack(alignment: .top, spacing: 24) {
+                grid
+                if !sample.isEmpty { offspringField }
             }
-            .font(.callout.monospacedDigit().weight(.medium))
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        sample = (0..<100).map { _ in offspringGenotype(firstParentGametes.randomElement()!, secondParentGametes.randomElement()!) }
+                    }
+                } label: { Label(text("lab.geneticsBreed"), systemImage: "dice.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.genetics.breed")
+                Text(verbatim: text("lab.geneticsOutcomes") + ": " + probabilitySummary).font(.callout.monospacedDigit())
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.geneticsStatExpected"), value: L10n.number(dominantShare * 100, fractionDigits: 0, store.language) + " %", tint: .purple)
+                LabStat(label: text("lab.geneticsStatObserved"),
+                        value: sample.isEmpty ? "—" : String(sample.filter(showsDominant).count) + " / 100", tint: .orange)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.geneticsChallenge"), solved: selectedCross == 2, solvedText: text("lab.geneticsChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.geneticsHint")])
+        }
+    }
 
-            VStack(spacing: 7) {
-                HStack(spacing: 7) {
-                    Color.clear.frame(width: 54, height: 34)
+    // The Punnett square with large cells; purple cells carry the dominant allele A (dominant trait), white ones are aa.
+    private var grid: some View {
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                Text(verbatim: "♂ \\ ♀").font(.caption).foregroundStyle(.secondary).frame(width: 56, height: 44)
+                ForEach(firstParentGametes.indices, id: \.self) { column in
+                    Text(firstParentGametes[column]).font(.title2.weight(.bold)).frame(width: 80, height: 44)
+                        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                }
+            }
+            ForEach(secondParentGametes.indices, id: \.self) { row in
+                GridRow {
+                    Text(secondParentGametes[row]).font(.title2.weight(.bold)).frame(width: 56, height: 80)
+                        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
                     ForEach(firstParentGametes.indices, id: \.self) { column in
-                        Text(firstParentGametes[column])
-                            .font(.headline.monospaced())
-                            .frame(maxWidth: .infinity, minHeight: 34)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        let genotype = offspringGenotype(firstParentGametes[column], secondParentGametes[row])
+                        Text(genotype)
+                            .font(.title.weight(.bold))
+                            .foregroundStyle(showsDominant(genotype) ? Color.white : Color.primary)
+                            .frame(width: 80, height: 80)
+                            .background(showsDominant(genotype) ? Color.purple.opacity(0.85) : Color.secondary.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
+                            .accessibilityLabel(Text("\(text("lab.geneticsOffspring")): \(genotype)"))
                     }
                 }
-                ForEach(secondParentGametes.indices, id: \.self) { row in
-                    HStack(spacing: 7) {
-                        Text(secondParentGametes[row])
-                            .font(.headline.monospaced())
-                            .frame(width: 54, height: 54)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                        ForEach(firstParentGametes.indices, id: \.self) { column in
-                            let genotype = offspringGenotype(
-                                firstParentGametes[column],
-                                secondParentGametes[row]
-                            )
-                            Text(genotype)
-                                .font(.title3.monospaced().weight(.semibold))
-                                .frame(maxWidth: .infinity, minHeight: 54)
-                                .background(Color.indigo.opacity(0.11), in: RoundedRectangle(cornerRadius: 8))
-                                .accessibilityLabel(Text(
-                                    "\(L10n.text("lab.geneticsOffspring", store.language)): \(genotype)"
-                                ))
-                        }
-                    }
-                }
-            }
-
-            LabeledContent(L10n.text("lab.geneticsOutcomes", store.language)) {
-                Text(probabilitySummary)
-                    .font(.callout.monospacedDigit().weight(.medium))
-                    .multilineTextAlignment(.trailing)
             }
         }
+    }
+
+    // A hundred random offspring from the same cross: chance makes the count wander around the expected share.
+    private var offspringField: some View {
+        Canvas { context, size in
+            let cell = min(size.width, size.height) / 10
+            for (index, genotype) in sample.enumerated() {
+                let rect = CGRect(x: CGFloat(index % 10) * cell + cell * 0.15, y: CGFloat(index / 10) * cell + cell * 0.15, width: cell * 0.7, height: cell * 0.7)
+                context.fill(Path(ellipseIn: rect), with: .color(showsDominant(genotype) ? .purple : .secondary.opacity(0.35)))
+            }
+        }
+        .frame(width: 220, height: 220)
+        .accessibilityHidden(true)
     }
 
     private func offspringGenotype(_ firstAllele: String, _ secondAllele: String) -> String {
@@ -6532,9 +6538,7 @@ private struct GeneRegulationLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.dnaModelHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.GeneRegulationLab", store.language), instruction: L10n.text("lab.dnaModelHint", store.language))
 
             Picker(L10n.text("lab.dnaVariant", store.language), selection: $variant) {
                 Text(L10n.text("lab.dnaVariant0", store.language)).tag(0)
@@ -6684,10 +6688,7 @@ private struct GeneExpressionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.geneExpressionHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.GeneExpressionLab", store.language), instruction: L10n.text("lab.geneExpressionHint", store.language))
 
             Toggle(L10n.text("lab.geneExpressionRegulator", store.language), isOn: $transcriptionEnabled)
                 .onChange(of: transcriptionEnabled) { _ in
@@ -6816,10 +6817,7 @@ private struct CellCycleLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.cellCycle.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.CellCycleLab", store.language), instruction: L10n.text("lab.cellCycle.hint", store.language))
 
             Picker(L10n.text("lab.cellCycle.chooseStage", store.language), selection: $selectedStage) {
                 ForEach(CellCycleStage.allCases) { stage in
@@ -6918,10 +6916,7 @@ private struct CellCycleLab: View {
                 }
             }
 
-            Text(L10n.text("lab.cellCycle.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.cellCycle.limit", store.language)])
         }
     }
 
@@ -6969,10 +6964,7 @@ private struct AnimalFunctionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.zoology.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AnimalFunctionLab", store.language), instruction: L10n.text("lab.zoology.hint", store.language))
 
             Picker(L10n.text("lab.zoology.chooseFunction", store.language), selection: $selectedFunction) {
                 ForEach(AnimalFunction.allCases) { function in
@@ -7038,10 +7030,7 @@ private struct AnimalFunctionLab: View {
                 }
             }
 
-            Text(L10n.text("lab.zoology.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.zoology.limit", store.language)])
         }
     }
 
@@ -7843,10 +7832,7 @@ private struct NaturalSelectionLab: View {
     }
 
     private var limitations: some View {
-        Text(L10n.text("lab.naturalSelection.limit", store.language))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.naturalSelection.limit", store.language)])
     }
 
     private var modelRule: some View {
@@ -7944,85 +7930,69 @@ private struct EcosystemEnergyLab: View {
     @State private var transferFraction = 0.12
 
     private let levels = ["producers", "primary", "secondary", "tertiary"]
-    private var energies: [Double] {
-        levels.indices.map { producerEnergy * pow(transferFraction, Double($0)) }
-    }
+    private var energies: [Double] { levels.indices.map { producerEnergy * pow(transferFraction, Double($0)) } }
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func kilojoules(_ value: Double) -> String { L10n.measurement(value, fractionDigits: value < 10 ? 1 : 0, unit: "kJ", store.language) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Label(L10n.text("biology.energyLab.title", store.language), systemImage: "chart.bar.xaxis")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(L10n.text("biology.energy.level.\(level)", store.language))
-                                Spacer()
-                                Text(verbatim: L10n.measurement(energies[index], fractionDigits: 1, unit: "kJ", store.language))
-                                    .monospacedDigit()
-                            }
-                            .font(.caption.weight(.medium))
-                            ProgressView(value: energies[index], total: producerEnergy)
-                                .tint(levelColor(index))
-                                .accessibilityLabel(Text(L10n.text("biology.energy.level.\(level)", store.language)))
-                                .accessibilityValue(Text(verbatim: L10n.measurement(energies[index], fractionDigits: 1, unit: "kJ", store.language)))
-                        }
-                    }
-                }
-                .padding(12)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
-
-                energySlider(
-                    key: "biology.energyLab.producerEnergy",
-                    value: $producerEnergy,
-                    range: 1_000...20_000,
-                    unit: "kJ"
-                )
-                energySlider(
-                    key: "biology.energyLab.transfer",
-                    value: $transferFraction,
-                    range: 0.05...0.30,
-                    unit: "%",
-                    scale: 100
-                )
-
-                Text(L10n.text("biology.energyLab.limit", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("biology.energyLab.title"), instruction: text("biology.energyLab.subtitle"))
+            pyramid
+                .frame(height: 260)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("biology.energyLab.title"))
+                .accessibilityValue(Text(verbatim: energies.map(kilojoules).joined(separator: ", ")))
+            slider(String(format: "%@: %@", text("biology.energyLab.producerEnergy"), kilojoules(producerEnergy)), "biology.energyLab.producerEnergy",
+                   Binding(get: { producerEnergy }, set: { producerEnergy = ($0 / 500).rounded() * 500 }), 1_000...20_000)
+            slider(String(format: "%@: %@", text("biology.energyLab.transfer"), L10n.measurement(transferFraction * 100, fractionDigits: 0, unit: "%", store.language)),
+                   "biology.energyLab.transfer", Binding(get: { transferFraction }, set: { transferFraction = ($0 * 100).rounded() / 100 }), 0.05...0.30)
+            LabStatGrid {
+                LabStat(label: text("biology.energy.level.tertiary"), value: kilojoules(energies[3]), tint: .red)
+                LabStat(label: text("biology.energyLab.statShare"), value: L10n.number(pow(transferFraction, 3) * 100, fractionDigits: 2, store.language) + " %", tint: .purple)
+                LabStat(label: text("biology.energyLab.statLost"), value: L10n.measurement((1 - transferFraction) * 100, fractionDigits: 0, unit: "%", store.language), tint: .orange)
             }
+            LabChallenge(caption: text("lab.kit.task"), task: text("biology.energyLab.challenge"),
+                         solved: abs(transferFraction - 0.10) < 0.001, solvedText: text("biology.energyLab.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("biology.energyLab.limit")])
         }
     }
 
-    private func energySlider(
-        key: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        unit: String,
-        scale: Double = 1
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(L10n.text(key, store.language))
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue * scale, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
+    private func slider(_ title: String, _ labelKey: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).monospacedDigit().frame(minWidth: 320, alignment: .leading)
+            // Rounded values without `step:`, which would draw a dense row of tick marks.
             Slider(value: value, in: range)
-                .accessibilityLabel(Text(L10n.text(key, store.language)))
+                .accessibilityLabel(Text(text(labelKey)))
         }
-        .font(.caption)
     }
 
-    private func levelColor(_ index: Int) -> Color {
-        switch index {
-        case 0: .green
-        case 1: .teal
-        case 2: .orange
-        default: .purple
+    // An energy pyramid: each level's width follows the square root of its energy so the top stays visible,
+    // with the energy written on it and an orange arrow for the share lost as heat at every step.
+    private var pyramid: some View {
+        Canvas { context, size in
+            let colors: [Color] = [.green, .teal, .orange, .red]
+            let rowHeight = (size.height - 10) / CGFloat(levels.count)
+            let maxWidth = size.width * 0.62
+            for (index, level) in levels.enumerated() {
+                let share = (energies[index] / producerEnergy).squareRoot()
+                let width = max(46, maxWidth * CGFloat(share))
+                let y = size.height - CGFloat(index + 1) * rowHeight
+                let rect = CGRect(x: size.width * 0.36 - width / 2, y: y + 4, width: width, height: rowHeight - 8)
+                context.fill(Path(roundedRect: rect, cornerRadius: 6), with: .color(colors[index].opacity(0.85)))
+                context.draw(Text(verbatim: kilojoules(energies[index])).font(.caption.weight(.bold)).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.midY))
+                context.draw(Text(text("biology.energy.level.\(level)")).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                             at: CGPoint(x: size.width * 0.36 + maxWidth / 2 + 12, y: rect.midY), anchor: .leading)
+                if index < levels.count - 1 {
+                    let start = CGPoint(x: rect.maxX + 4, y: rect.minY + 6)
+                    var arrow = Path()
+                    arrow.move(to: start)
+                    arrow.addLine(to: CGPoint(x: start.x + 26, y: start.y - 14))
+                    context.stroke(arrow, with: .color(.orange.opacity(0.8)), style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [4, 3]))
+                }
+            }
+            context.draw(Text(String(format: text("biology.energyLab.heatLoss"), L10n.number((1 - transferFraction) * 100, fractionDigits: 0, store.language)))
+                .font(.caption2).foregroundColor(.orange), at: CGPoint(x: 6, y: 8), anchor: .topLeading)
         }
     }
 }
@@ -8975,10 +8945,7 @@ private struct AlgorithmicThinkingLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.algorithmHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AlgorithmicThinkingLab", store.language), instruction: L10n.text("lab.algorithmHint", store.language))
 
             if let currentQuestion = session.currentQuestion {
                 Text(L10n.text(currentQuestion.contextKey, store.language))
@@ -9492,10 +9459,7 @@ private struct FileReadingLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.fileTrace.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.FileReadingLab", store.language), instruction: L10n.text("lab.fileTrace.hint", store.language))
 
             Picker(L10n.text("lab.fileTrace.scenario", store.language), selection: $scenarioID) {
                 ForEach(FileReadingPractice.scenarios) { item in
@@ -9596,10 +9560,7 @@ private struct TransactionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.transaction.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.TransactionLab", store.language), instruction: L10n.text("lab.transaction.hint", store.language))
 
             Picker(L10n.text("lab.transaction.scenarioPicker", store.language), selection: $scenario) {
                 ForEach(TransactionScenario.allCases) { item in
@@ -9698,12 +9659,7 @@ private struct SQLSchemaQueryLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.sql.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.sql.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.sql.title", store.language), instruction: L10n.text("lab.sql.hint", store.language))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.text("lab.sql.sampleTable", store.language))
@@ -9788,10 +9744,7 @@ private struct SQLSchemaQueryLab: View {
                 .buttonStyle(.bordered)
             }
 
-            Text(L10n.text("lab.sql.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.sql.limit", store.language)])
         }
     }
 
@@ -9849,10 +9802,7 @@ private struct DebuggingLab: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             LabCard {
-                Text(L10n.text("lab.debugging.hint", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                LabHeader(title: L10n.text("labkit.title.DebuggingLab", store.language), instruction: L10n.text("lab.debugging.hint", store.language))
 
                 Picker(L10n.text("lab.debugging.scenarioPicker", store.language), selection: $scenarioID) {
                     ForEach(DebuggingPractice.scenarios) { item in
@@ -9995,12 +9945,7 @@ private struct GitWorkflowLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.git.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.git.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.git.title", store.language), instruction: L10n.text("lab.git.hint", store.language))
             Text(L10n.text("lab.git.files", store.language))
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -10088,10 +10033,7 @@ private struct GitWorkflowLab: View {
                 .buttonStyle(.bordered)
             }
 
-            Text(L10n.text("lab.git.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.git.limit", store.language)])
         }
     }
 
@@ -10158,10 +10100,7 @@ private struct LinearSystemLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.linearSystemHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.LinearSystemLab", store.language), instruction: L10n.text("lab.linearSystemHint", store.language))
 
             Picker(L10n.text("lab.linearSystemScenario", store.language), selection: $scenarioID) {
                 Text(L10n.text("lab.linearSystemUnique", store.language)).tag("unique")
@@ -10265,223 +10204,269 @@ private struct LinearSystemLab: View {
 
 private struct AlgorithmComplexityLab: View {
     @EnvironmentObject private var store: LearningStore
-    @State private var sizeIndex = 2.0
+    @State private var sizeIndex = 2
+    @State private var progress = 1.0
+    @State private var racing = false
 
-    private var itemCount: Int {
-        AlgorithmComplexityPractice.sampleSizes[Int(sizeIndex.rounded())]
-    }
+    private typealias Model = AlgorithmComplexityPractice
 
-    private var linearCount: Int {
-        AlgorithmComplexityPractice.linearSearchWorstCaseComparisons(for: itemCount)
-    }
-
-    private var binaryCount: Int {
-        AlgorithmComplexityPractice.binarySearchWorstCaseComparisons(for: itemCount)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var itemCount: Int { Model.sampleSizes[sizeIndex] }
+    private var linearCount: Int { Model.linearSearchWorstCaseComparisons(for: itemCount) }
+    private var binaryCount: Int { Model.binarySearchWorstCaseComparisons(for: itemCount) }
 
     var body: some View {
+        let done = Int((progress * Double(linearCount)).rounded())
         LabCard {
-            Text(L10n.text("lab.complexityHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: L10n.text("lab.complexitySize", store.language), itemCount))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $sizeIndex, in: 0...3, step: 1)
-                    .accessibilityLabel(L10n.text("lab.complexitySize", store.language))
-                    .accessibilityValue(String(itemCount))
+            LabHeader(title: text("lab.complexityTitle"), instruction: text("lab.complexitySubtitle"))
+            Picker(text("lab.complexitySizeShort"), selection: $sizeIndex) {
+                ForEach(Model.sampleSizes.indices, id: \.self) { index in Text(verbatim: "n = \(Model.sampleSizes[index])").tag(index) }
             }
-
-            complexityBar(
-                title: L10n.text("lab.complexityLinear", store.language),
-                comparisons: linearCount,
-                maximum: linearCount,
-                tint: .blue
-            )
-            complexityBar(
-                title: L10n.text("lab.complexityBinary", store.language),
-                comparisons: binaryCount,
-                maximum: linearCount,
-                tint: .purple
-            )
-
-            Label(L10n.text("lab.complexityPrecondition", store.language), systemImage: "checkmark.seal")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.complexityLimit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .pickerStyle(.segmented)
+            .accessibilityValue(String(itemCount))
+            race(done: done)
+                .frame(height: 150)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.complexityRace"))
+            HStack(spacing: 12) {
+                Button {
+                    progress = 0
+                    racing = true
+                } label: { Label(text("lab.complexityStart"), systemImage: "flag.checkered") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.complexity.race")
+                Label(text("lab.complexityPrecondition"), systemImage: "checkmark.seal").font(.callout).foregroundStyle(.secondary)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.complexityLinear"), value: String(format: text("lab.complexityComparisons"), min(done, linearCount)), tint: .blue)
+                LabStat(label: text("lab.complexityBinary"), value: String(format: text("lab.complexityComparisons"), min(done, binaryCount)), tint: .purple)
+                LabStat(label: text("lab.complexityRatio"), value: "× " + L10n.number(Double(linearCount) / Double(binaryCount), fractionDigits: 0, store.language), tint: .orange)
+            }
+            growth
+                .frame(height: 170)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.complexityGrowth"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.complexityChallenge"),
+                         solved: Double(linearCount) / Double(binaryCount) > 50, solvedText: text("lab.complexityChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.complexityHint"), text("lab.complexityLimit")])
+        }
+        .task(id: racing) {
+            guard racing else { return }
+            while progress < 1 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000)
+                progress = min(progress + 0.008, 1)
+            }
+            racing = false
         }
     }
 
-    private func complexityBar(title: String, comparisons: Int, maximum: Int, tint: Color) -> some View {
-        HStack(spacing: 10) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .frame(width: 132, alignment: .leading)
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.12))
-                    Capsule()
-                        .fill(tint.gradient)
-                        .frame(width: max(8, geometry.size.width * CGFloat(comparisons) / CGFloat(maximum)))
+    // Both searches look for the last element on one shared clock of comparisons: linear search fills the row cell
+    // by cell, binary search halves its purple window each time and finishes almost at once.
+    private func race(done: Int) -> some View {
+        Canvas { context, size in
+            let left: CGFloat = 8, width = size.width - 16
+            for (row, title, color) in [(0, text("lab.complexityLinear"), Color.blue), (1, text("lab.complexityBinary"), Color.purple)] {
+                let y = 26 + CGFloat(row) * 66
+                context.draw(Text(verbatim: title).font(.caption.weight(.semibold)).foregroundColor(color), at: CGPoint(x: left, y: y - 16), anchor: .leading)
+                let bar = CGRect(x: left, y: y, width: width, height: 26)
+                context.fill(Path(roundedRect: bar, cornerRadius: 5), with: .color(.secondary.opacity(0.15)))
+                if row == 0 {
+                    let share = CGFloat(min(done, linearCount)) / CGFloat(linearCount)
+                    context.fill(Path(roundedRect: CGRect(x: bar.minX, y: bar.minY, width: bar.width * share, height: bar.height), cornerRadius: 5), with: .color(color.opacity(0.8)))
+                } else {
+                    let steps = min(done, binaryCount)
+                    let windowShare = pow(0.5, Double(steps))
+                    let window = max(3, bar.width * CGFloat(windowShare))
+                    context.fill(Path(roundedRect: CGRect(x: bar.maxX - window, y: bar.minY, width: window, height: bar.height), cornerRadius: 5), with: .color(color.opacity(0.85)))
                 }
+                context.fill(Path(CGRect(x: bar.maxX - 3, y: bar.minY - 4, width: 3, height: bar.height + 8)), with: .color(.green))
             }
-            .frame(height: 14)
-            Text(String(format: L10n.text("lab.complexityComparisons", store.language), comparisons))
-                .font(.caption.monospacedDigit())
-                .frame(width: 82, alignment: .trailing)
         }
-        .accessibilityElement(children: .combine)
+    }
+
+    // Worst-case comparisons against n for both searches on the four sizes: n grows straight up, log₂ n barely moves.
+    private var growth: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...1100, y: 0...1100, leading: 54)
+            plot.drawAxes(in: context, xLabel: "n", yLabel: text("lab.complexityAxisComparisons"), format: { String(Int($0)) })
+            for (counts, color) in [(Model.sampleSizes.map(Model.linearSearchWorstCaseComparisons), Color.blue),
+                                    (Model.sampleSizes.map(Model.binarySearchWorstCaseComparisons), Color.purple)] {
+                var line = Path()
+                for (index, n) in Model.sampleSizes.enumerated() {
+                    let location = plot.point(Double(n), Double(counts[index]))
+                    if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+                    let radius: CGFloat = index == sizeIndex ? 7 : 4
+                    context.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(color))
+                }
+                context.stroke(line, with: .color(color), lineWidth: 2.5)
+            }
+        }
     }
 }
 
 private struct HeldOutEvaluationLab: View {
     @EnvironmentObject private var store: LearningStore
-    // The slider moves over the k values themselves, so VoiceOver reports "k = 13", not a slider position.
-    @State private var neighbourValue = Double(HeldOutEvaluationPractice.neighbourCounts[0])
+    @State private var neighbourIndex = 0
 
-    private static let counts = HeldOutEvaluationPractice.neighbourCounts
-    private static let neighbourRange = Double(counts[0])...Double(counts[counts.count - 1])
-    private static let neighbourStep = Double(counts[1] - counts[0])
+    private typealias Model = HeldOutEvaluationPractice
 
-    private var neighbourCount: Int {
-        let target = Int(neighbourValue.rounded())
-        return HeldOutEvaluationPractice.neighbourCounts.min { abs($0 - target) < abs($1 - target) } ?? target
-    }
-
-    private var verdictKey: String {
-        if HeldOutEvaluationPractice.showsOverfitting(neighbours: neighbourCount) {
-            return "lab.holdout.overfit"
-        }
-        if HeldOutEvaluationPractice.matchesBaseline(neighbours: neighbourCount) {
-            return "lab.holdout.atBaseline"
-        }
-        return "lab.holdout.generalizes"
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var neighbours: Int { Model.neighbourCounts[neighbourIndex] }
 
     var body: some View {
+        let training = Model.accuracy(of: Model.trainingExamples, neighbours: neighbours)
+        let heldOut = Model.accuracy(of: Model.heldOutExamples, neighbours: neighbours)
+        let baseline = Model.baselineAccuracy(on: Model.heldOutExamples)
+        let status: (LabStatusKind, String) = Model.showsOverfitting(neighbours: neighbours) ? (.bad, text("lab.holdout.overfit"))
+            : Model.matchesBaseline(neighbours: neighbours) ? (.warning, text("lab.holdout.atBaseline")) : (.good, text("lab.holdout.generalizes"))
         LabCard {
-            Text(L10n.text("lab.holdout.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.holdout.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: L10n.text("lab.holdout.neighbours", store.language), neighbourCount))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $neighbourValue, in: Self.neighbourRange, step: Self.neighbourStep)
-                    .accessibilityLabel(L10n.text("lab.holdout.neighboursLabel", store.language))
-                    .accessibilityValue("k = \(neighbourCount)")
+            LabHeader(title: text("lab.holdout.title"), instruction: text("lab.holdout.subtitle"))
+            timeline
+                .frame(height: 170)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.holdout.chart"))
+            Picker(text("lab.holdout.neighboursLabel"), selection: $neighbourIndex.animation()) {
+                ForEach(Model.neighbourCounts.indices, id: \.self) { index in Text(verbatim: "k = \(Model.neighbourCounts[index])").tag(index) }
             }
-
-            accuracyBar(
-                title: L10n.text("lab.holdout.training", store.language),
-                accuracy: HeldOutEvaluationPractice.accuracy(of: HeldOutEvaluationPractice.trainingExamples, neighbours: neighbourCount),
-                tint: .blue
-            )
-            accuracyBar(
-                title: L10n.text("lab.holdout.heldOut", store.language),
-                accuracy: HeldOutEvaluationPractice.accuracy(of: HeldOutEvaluationPractice.heldOutExamples, neighbours: neighbourCount),
-                tint: .green
-            )
-            accuracyBar(
-                title: L10n.text("lab.holdout.baseline", store.language),
-                accuracy: HeldOutEvaluationPractice.baselineAccuracy(on: HeldOutEvaluationPractice.heldOutExamples),
-                tint: .gray
-            )
-
-            Label(L10n.text(verdictKey, store.language), systemImage: verdictKey == "lab.holdout.generalizes" ? "checkmark.seal" : "exclamationmark.triangle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.holdout.verdict")
-            Text(L10n.text("lab.holdout.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.holdout.neighbours")
+            VStack(alignment: .leading, spacing: 8) {
+                bar(text("lab.holdout.training"), training, .blue)
+                bar(text("lab.holdout.heldOut"), heldOut, .orange)
+                bar(text("lab.holdout.baseline"), baseline, .secondary)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.holdout.verdict")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.holdout.challenge"),
+                         solved: neighbours == Model.bestHeldOutNeighbourCount, solvedText: text("lab.holdout.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.holdout.hint"), text("lab.holdout.limit")])
         }
     }
 
-    private func accuracyBar(title: String, accuracy: HeldOutAccuracy, tint: Color) -> some View {
+    private func bar(_ title: String, _ accuracy: HeldOutAccuracy, _ color: Color) -> some View {
         HStack(spacing: 10) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .frame(width: 150, alignment: .leading)
-            GeometryReader { geometry in
+            Text(title).font(.callout).frame(width: 200, alignment: .leading)
+            GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.12))
-                    Capsule()
-                        .fill(tint.gradient)
-                        .frame(width: max(8, geometry.size.width * CGFloat(accuracy.percent) / 100))
+                    Capsule().fill(Color.secondary.opacity(0.15))
+                    Capsule().fill(color.gradient).frame(width: max(6, proxy.size.width * CGFloat(accuracy.percent) / 100))
                 }
             }
-            .frame(height: 14)
-            Text(String(format: L10n.text("lab.holdout.score", store.language), accuracy.correct, accuracy.total, accuracy.percent))
-                .font(.caption.monospacedDigit())
-                .frame(width: 104, alignment: .trailing)
+            .frame(height: 16)
+            Text(String(format: text("lab.holdout.score"), accuracy.correct, accuracy.total, accuracy.percent)).font(.callout.monospacedDigit()).frame(width: 130, alignment: .trailing)
         }
-        .accessibilityElement(children: .combine)
+        .animation(.easeInOut(duration: 0.25), value: accuracy.percent)
+    }
+
+    // Minutes of practice on a line: training examples above (green passed, red failed), held-out examples below
+    // filled with the true answer and ringed with the model's prediction; wrong predictions get a cross.
+    private var timeline: some View {
+        Canvas { context, size in
+            let left: CGFloat = 20, right = size.width - 20
+            func x(_ minutes: Int) -> CGFloat { left + (right - left) * CGFloat(minutes) / 75 }
+            let trainY = size.height * 0.28, testY = size.height * 0.68
+            for (y, key) in [(trainY, "lab.holdout.training"), (testY, "lab.holdout.heldOut")] {
+                var line = Path()
+                line.move(to: CGPoint(x: left, y: y))
+                line.addLine(to: CGPoint(x: right, y: y))
+                context.stroke(line, with: .color(.secondary.opacity(0.4)), lineWidth: 1)
+                context.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(.secondary), at: CGPoint(x: left, y: y - 22), anchor: .leading)
+            }
+            for example in Model.trainingExamples {
+                context.fill(Path(ellipseIn: CGRect(x: x(example.minutes) - 7, y: trainY - 7, width: 14, height: 14)), with: .color(example.passed ? .green : .red))
+            }
+            for example in Model.heldOutExamples {
+                let predicted = Model.predictsPass(minutes: example.minutes, neighbours: neighbours)
+                let center = CGPoint(x: x(example.minutes), y: testY)
+                context.fill(Path(ellipseIn: CGRect(x: center.x - 7, y: center.y - 7, width: 14, height: 14)), with: .color(example.passed ? .green : .red))
+                context.stroke(Path(ellipseIn: CGRect(x: center.x - 11, y: center.y - 11, width: 22, height: 22)), with: .color(predicted ? .green : .red), lineWidth: 2.5)
+                if predicted != example.passed {
+                    context.draw(Text(verbatim: "✗").font(.headline).foregroundColor(.red), at: CGPoint(x: center.x, y: center.y + 22))
+                }
+            }
+            for minutes in stride(from: 0, through: 75, by: 15) {
+                context.draw(Text(verbatim: "\(minutes)").font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x(minutes), y: size.height - 8))
+            }
+        }
     }
 }
 
 private struct NeuronSignalLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var depolarization = 10.0
+    @State private var progress = 1.0
+    @State private var playing = false
 
-    private var potential: Int {
-        Int(NeuronSignalModel.membranePotential(afterDepolarization: depolarization).rounded())
-    }
+    private typealias Model = NeuronSignalModel
 
-    private var fires: Bool {
-        NeuronSignalModel.firesActionPotential(afterDepolarization: depolarization)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func millivolts(_ value: Double) -> String { L10n.measurement(value, fractionDigits: 0, unit: "mV", store.language) }
 
     var body: some View {
+        let fires = Model.firesActionPotential(afterDepolarization: depolarization)
         LabCard {
-            Text(L10n.text("lab.neuron.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.neuron.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.neuron.title"), instruction: text("lab.neuron.subtitle"))
+            trace(fires: fires)
+                .frame(height: 260)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text(fires ? "lab.neuron.traceFires" : "lab.neuron.traceNoFire"))
 
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(
-                    format: L10n.text("lab.neuron.stimulus", store.language),
-                    Int(depolarization.rounded()),
-                    L10n.measurement(Double(potential), fractionDigits: 0, unit: "mV", store.language)
-                ))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $depolarization, in: NeuronSignalModel.stimulusRange, step: 1)
-                    .accessibilityLabel(L10n.text("lab.neuron.stimulusLabel", store.language))
-                    .accessibilityValue(String(
-                        format: L10n.text("lab.neuron.potentialValue", store.language),
-                        L10n.measurement(Double(potential), fractionDigits: 0, unit: "mV", store.language)
-                    ))
+            HStack(spacing: 12) {
+                Button {
+                    progress = 0
+                    playing = true
+                } label: { Label(text("lab.neuron.play"), systemImage: "bolt.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.neuron.play")
+                Text(String(format: text("lab.neuron.stimulus"), Int(depolarization.rounded()), millivolts(Model.membranePotential(afterDepolarization: depolarization))))
+                    .monospacedDigit()
+                    .frame(minWidth: 260, alignment: .leading)
+                // Whole millivolts without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { depolarization }, set: { depolarization = $0.rounded() }), in: Model.stimulusRange)
+                    .accessibilityLabel(text("lab.neuron.stimulusLabel"))
             }
+            LabStatGrid {
+                LabStat(label: text("lab.neuron.statMembrane"), value: millivolts(Model.membranePotential(afterDepolarization: depolarization)), tint: .accentColor)
+                LabStat(label: text("lab.neuron.statPeak"), value: millivolts(Model.highestPotential(afterDepolarization: depolarization)), tint: fires ? .yellow : .secondary)
+            }
+            LabStatusBadge(kind: fires ? .good : .info, text: text(fires ? "lab.neuron.fires" : "lab.neuron.noFire"), identifier: "lab.neuron.outcome")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.neuron.challenge"),
+                         solved: fires && !Model.firesActionPotential(afterDepolarization: depolarization - 1), solvedText: text("lab.neuron.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.neuron.hint"), text("lab.neuron.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while progress < 1 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 25_000_000)
+                progress = min(progress + 0.02, 1)
+            }
+            playing = false
+        }
+    }
 
-            MembraneTraceView(
-                points: NeuronSignalModel.trace(afterDepolarization: depolarization),
-                thresholdLabel: L10n.text("lab.neuron.thresholdLine", store.language),
-                restLabel: L10n.text("lab.neuron.restLine", store.language)
-            )
-            .frame(height: 170)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(L10n.text(fires ? "lab.neuron.traceFires" : "lab.neuron.traceNoFire", store.language))
-
-            Label(L10n.text(fires ? "lab.neuron.fires" : "lab.neuron.noFire", store.language), systemImage: fires ? "bolt.fill" : "minus.circle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.neuron.outcome")
-            Text(L10n.text("lab.neuron.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    // The membrane potential over time with the resting and threshold levels; Play draws it from left to right.
+    private func trace(fires: Bool) -> some View {
+        Canvas { context, size in
+            let points = Model.trace(afterDepolarization: depolarization)
+            let maxTime = points.last?.milliseconds ?? 5
+            let plot = LabPlotGeometry(size: size, x: 0...maxTime, y: -90...50)
+            plot.drawAxes(in: context, xLabel: text("lab.neuron.axisTime"), yLabel: text("lab.neuron.axisVoltage"), format: { L10n.number($0, fractionDigits: 0, store.language) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -4, dy: -4)))
+            for (value, key, color) in [(Model.thresholdPotential, "lab.neuron.thresholdLine", Color.orange), (Model.restingPotential, "lab.neuron.restLine", Color.secondary)] {
+                var line = Path()
+                line.move(to: plot.point(0, value))
+                line.addLine(to: plot.point(maxTime, value))
+                clipped.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+                clipped.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(color), at: plot.point(maxTime, value + 3), anchor: .bottomTrailing)
+            }
+            let visible = maxTime * progress
+            var line = Path()
+            var started = false
+            for point in points where point.milliseconds <= visible {
+                let location = plot.point(point.milliseconds, point.millivolts)
+                if started { line.addLine(to: location) } else { line.move(to: location); started = true }
+            }
+            clipped.stroke(line, with: .color(fires ? .yellow : .accentColor), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
         }
     }
 }
@@ -10568,11 +10553,7 @@ private struct VectorKinematicsLab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.text("lab.vector.title", store.language))
-                .font(.title3.weight(.semibold))
-            Text(L10n.text("lab.vector.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("lab.vector.title", store.language), instruction: L10n.text("lab.vector.hint", store.language))
 
             HStack(alignment: .center, spacing: 24) {
                 vectorDiagram
@@ -10712,10 +10693,7 @@ private struct ThermalStrategyLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.zoology.thermal.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.ThermalStrategyLab", store.language), instruction: L10n.text("lab.zoology.thermal.hint", store.language))
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(L10n.text("lab.zoology.thermal.modeTitle", store.language))
@@ -10815,12 +10793,7 @@ private struct CirculationRouteLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.circulation.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.circulation.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.circulation.title", store.language), instruction: L10n.text("lab.circulation.hint", store.language))
 
             Picker(L10n.text("lab.circulation.animalTitle", store.language), selection: $animal) {
                 ForEach(CirculationAnimal.allCases) { option in
@@ -10885,10 +10858,7 @@ private struct CirculationRouteLab: View {
                 .accessibilityIdentifier("lab.circulation.feedback")
             }
 
-            Text(L10n.text("lab.circulation.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.circulation.limit", store.language)])
         }
         .onChange(of: animal) { _ in
             predictedPasses = nil
@@ -10901,89 +10871,128 @@ private struct GradientDescentLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var learningRateIndex = 1
     @State private var steps = 5.0
+    @State private var playing = false
 
-    private var learningRate: Double {
-        GradientDescentPractice.learningRates[min(max(learningRateIndex, 0), GradientDescentPractice.learningRates.count - 1)]
-    }
+    private typealias Model = GradientDescentPractice
 
-    private var trajectory: [GradientDescentStep] {
-        GradientDescentPractice.trajectory(learningRate: learningRate, steps: Int(steps.rounded()))
-    }
-
-    private var verdictKey: String {
-        if !GradientDescentPractice.converges(learningRate: learningRate) {
-            return "lab.gd.diverges"
-        }
-        return GradientDescentPractice.oscillates(learningRate: learningRate) ? "lab.gd.oscillates" : "lab.gd.converges"
-    }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var rate: Double { Model.learningRates[learningRateIndex] }
 
     var body: some View {
+        let path = Model.trajectory(learningRate: rate, steps: Int(steps.rounded()))
+        let last = path.last ?? GradientDescentStep(step: 0, weight: Model.initialWeight, loss: Model.loss(weight: Model.initialWeight))
+        let status: (LabStatusKind, String) = !Model.converges(learningRate: rate) ? (.bad, text("lab.gd.diverges"))
+            : Model.oscillates(learningRate: rate) ? (.warning, text("lab.gd.oscillates")) : (.good, text("lab.gd.converges"))
         LabCard {
-            Text(L10n.text("lab.gd.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.gd.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.gd.title"), instruction: text("lab.gd.subtitle"))
+            HStack(spacing: 16) {
+                dataPlot(weight: last.weight)
+                lossPlot(path: path)
+            }
+            .frame(height: 260)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.gd.chart"))
+            .accessibilityValue(Text(verbatim: number(last.loss, 3)))
 
-            Picker(L10n.text("lab.gd.rate", store.language), selection: $learningRateIndex) {
-                ForEach(Array(GradientDescentPractice.learningRates.enumerated()), id: \.offset) { index, rate in
-                    Text(verbatim: "η = " + L10n.number(rate, fractionDigits: 2, store.language)).tag(index)
-                }
+            Picker(text("lab.gd.rate"), selection: $learningRateIndex) {
+                ForEach(Model.learningRates.indices, id: \.self) { index in Text(verbatim: "η = " + number(Model.learningRates[index], 2)).tag(index) }
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("lab.gd.rate")
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: L10n.text("lab.gd.steps", store.language), Int(steps.rounded())))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $steps, in: 0...Double(GradientDescentPractice.maximumSteps), step: 1)
-                    .accessibilityLabel(L10n.text("lab.gd.stepsLabel", store.language))
-                    .accessibilityValue(String(Int(steps.rounded())))
+            HStack(spacing: 12) {
+                Button {
+                    if Int(steps.rounded()) >= Model.maximumSteps { steps = 0 }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.gd.play")
+                Text(String(format: text("lab.gd.steps"), Int(steps.rounded()))).monospacedDigit().frame(minWidth: 130, alignment: .leading)
+                // Whole iterations without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { steps }, set: { steps = $0.rounded() }), in: 0...Double(Model.maximumSteps))
+                    .accessibilityLabel(text("lab.gd.stepsLabel"))
             }
-
-            if let last = trajectory.last {
-                Text(String(
-                    format: L10n.text("lab.gd.state", store.language),
-                    L10n.number(last.weight, fractionDigits: 3, store.language),
-                    L10n.number(last.loss, fractionDigits: 3, store.language)
-                ))
-                    .font(.callout.monospacedDigit())
-                    .accessibilityIdentifier("lab.gd.state")
+            LabStatGrid {
+                LabStat(label: "w", value: number(last.weight, 3), tint: .accentColor)
+                LabStat(label: text("lab.gd.statLoss"), value: number(last.loss, 3), tint: .orange)
+                LabStat(label: text("lab.gd.statFactor"), value: number(1 - 15 * rate, 2), tint: .purple)
             }
-
-            lossChart
-                .frame(height: 90)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.gd.chart", store.language))
-
-            Label(L10n.text(verdictKey, store.language), systemImage: verdictKey == "lab.gd.diverges" ? "exclamationmark.triangle" : "checkmark.seal")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.gd.verdict")
-            Text(L10n.text("lab.gd.optimum", store.language))
-                .font(.callout)
+            Text(String(format: text("lab.gd.state"), number(last.weight, 3), number(last.loss, 3)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-            Text(L10n.text("lab.gd.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.gd.state")
+            LabStatusBadge(kind: status.0, text: status.1)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.gd.challenge"),
+                         solved: Model.converges(learningRate: rate) && Model.oscillates(learningRate: rate), solvedText: text("lab.gd.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.gd.hint"), text("lab.gd.optimum"), text("lab.gd.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled && Int(steps.rounded()) < Model.maximumSteps {
+                try? await Task.sleep(nanoseconds: 380_000_000)
+                withAnimation(.easeInOut(duration: 0.3)) { steps += 1 }
+            }
+            playing = false
         }
     }
 
-    // Loss spans about seven decades across the offered rates, so bars use a logarithmic scale above the minimum.
-    private var lossChart: some View {
-        let minimumLoss = GradientDescentPractice.loss(weight: GradientDescentPractice.optimalWeight)
-        return GeometryReader { geometry in
-            HStack(alignment: .bottom, spacing: 3) {
-                ForEach(trajectory, id: \.step) { point in
-                    let decades = log10(max(point.loss / minimumLoss, 1))
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accentColor.gradient)
-                        .frame(height: max(3, geometry.size.height * CGFloat(min(decades / 7, 1))))
-                }
+    // The four data points with the current line y = w·x and the best line dashed.
+    private func dataPlot(weight: Double) -> some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...4.5, y: 0...10)
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "y", format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            var best = Path()
+            best.move(to: plot.point(0, 0))
+            best.addLine(to: plot.point(4.5, 4.5 * Model.optimalWeight))
+            clipped.stroke(best, with: .color(.green), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var line = Path()
+            line.move(to: plot.point(0, 0))
+            line.addLine(to: plot.point(4.5, 4.5 * weight))
+            clipped.stroke(line, with: .color(.accentColor), lineWidth: 3)
+            for (x, y) in zip(Model.inputs, Model.targets) {
+                let measured = plot.point(x, y), predicted = plot.point(x, weight * x)
+                var residual = Path()
+                residual.move(to: measured)
+                residual.addLine(to: predicted)
+                clipped.stroke(residual, with: .color(.orange.opacity(0.7)), lineWidth: 1.5)
+                clipped.fill(Path(ellipseIn: CGRect(x: measured.x - 6, y: measured.y - 6, width: 12, height: 12)), with: .color(.orange))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            context.draw(Text(verbatim: "y = " + number(weight, 2) + "·x").font(.caption.weight(.bold)).foregroundColor(.accentColor),
+                         at: CGPoint(x: plot.rect.minX + 8, y: plot.rect.minY + 14), anchor: .leading)
+        }
+    }
+
+    // The error parabola L(w) with each iteration as a dot hopping toward (or away from) the minimum.
+    private func lossPlot(path: [GradientDescentStep]) -> some View {
+        Canvas { context, size in
+            let maxLoss = max(Model.loss(weight: Model.initialWeight), path.map(\.loss).max() ?? 0) * 1.05
+            let plot = LabPlotGeometry(size: size, x: -0.5...4.5, y: 0...maxLoss)
+            plot.drawAxes(in: context, xLabel: "w", yLabel: text("lab.gd.axisLoss"), format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -8, dy: -8)))
+            var curve = Path()
+            for index in 0...200 {
+                let w = -0.5 + 5 * Double(index) / 200
+                let location = plot.point(w, min(Model.loss(weight: w), maxLoss * 1.2))
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.secondary), lineWidth: 2)
+            var hops = Path()
+            for (index, step) in path.enumerated() {
+                let location = plot.point(min(max(step.weight, -0.5), 4.5), min(step.loss, maxLoss))
+                if index == 0 { hops.move(to: location) } else { hops.addLine(to: location) }
+            }
+            clipped.stroke(hops, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            for (index, step) in path.enumerated() {
+                let location = plot.point(min(max(step.weight, -0.5), 4.5), min(step.loss, maxLoss))
+                let radius: CGFloat = index == path.count - 1 ? 7 : 4
+                clipped.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)),
+                             with: .color(index == path.count - 1 ? .accentColor : .orange))
+            }
+            let minimum = plot.point(Model.optimalWeight, Model.loss(weight: Model.optimalWeight))
+            clipped.fill(Path(ellipseIn: CGRect(x: minimum.x - 5, y: minimum.y - 5, width: 10, height: 10)), with: .color(.green))
         }
     }
 }
@@ -10993,78 +11002,102 @@ private struct SynapticSummationLab: View {
     @State private var excitatory = 2
     @State private var inhibitory = 0
 
-    private var potential: Double {
-        SynapticSummationModel.membranePotential(excitatory: excitatory, inhibitory: inhibitory)
-    }
+    private typealias Model = SynapticSummationModel
 
-    private var fires: Bool {
-        SynapticSummationModel.reachesThreshold(excitatory: excitatory, inhibitory: inhibitory)
-    }
-
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private var potentialDescription: String {
-        L10n.measurement(potential.rounded(), fractionDigits: 0, unit: "mV", store.language)
+        L10n.measurement(Model.membranePotential(excitatory: excitatory, inhibitory: inhibitory), fractionDigits: 0, unit: "mV", store.language)
     }
 
     var body: some View {
+        let fires = Model.reachesThreshold(excitatory: excitatory, inhibitory: inhibitory)
         LabCard {
-            Text(L10n.text("lab.synapse.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.synapse.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Stepper(value: $excitatory, in: SynapticSummationModel.inputRange) {
-                Text(String(format: L10n.text("lab.synapse.excitatory", store.language), excitatory))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.synapse.title"), instruction: text("lab.synapse.subtitle"))
+            HStack(spacing: 18) {
+                cell(fires: fires)
+                meter
+                    .frame(width: 120)
             }
-            .accessibilityLabel(Text(L10n.text("lab.synapse.excitatoryLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(excitatory)))
-            .accessibilityIdentifier("lab.synapse.excitatory")
-            Stepper(value: $inhibitory, in: SynapticSummationModel.inputRange) {
-                Text(String(format: L10n.text("lab.synapse.inhibitory", store.language), inhibitory))
-                    .monospacedDigit()
-            }
-            .accessibilityLabel(Text(L10n.text("lab.synapse.inhibitoryLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(inhibitory)))
-            .accessibilityIdentifier("lab.synapse.inhibitory")
+            .frame(height: 240)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.synapse.scale"))
+            .accessibilityValue(String(format: text("lab.synapse.potential"), potentialDescription))
 
-            Text(String(format: L10n.text("lab.synapse.potential", store.language), potentialDescription))
+            HStack(spacing: 24) {
+                Stepper(value: $excitatory.animation(.spring(response: 0.35)), in: Model.inputRange) {
+                    Text(String(format: text("lab.synapse.excitatory"), excitatory)).foregroundStyle(.green)
+                }
+                .accessibilityLabel(Text(text("lab.synapse.excitatoryLabel")))
+                .accessibilityIdentifier("lab.synapse.excitatory")
+                Stepper(value: $inhibitory.animation(.spring(response: 0.35)), in: Model.inputRange) {
+                    Text(String(format: text("lab.synapse.inhibitory"), inhibitory)).foregroundStyle(.red)
+                }
+                .accessibilityLabel(Text(text("lab.synapse.inhibitoryLabel")))
+                .accessibilityIdentifier("lab.synapse.inhibitory")
+            }
+            Text(String(format: text("lab.synapse.potential"), potentialDescription))
                 .font(.headline.monospacedDigit())
                 .accessibilityIdentifier("lab.synapse.potential")
-            potentialScale
-                .frame(height: 26)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.synapse.scale", store.language))
-                .accessibilityValue(String(format: L10n.text("lab.synapse.potential", store.language), potentialDescription))
-
-            Label(L10n.text(fires ? "lab.synapse.fires" : "lab.synapse.noFire", store.language), systemImage: fires ? "bolt.fill" : "minus.circle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.synapse.outcome")
-            Text(L10n.text("lab.synapse.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabStatusBadge(kind: fires ? .good : .info, text: text(fires ? "lab.synapse.fires" : "lab.synapse.noFire"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.synapse.challenge"),
+                         solved: inhibitory == 2 && excitatory == Model.excitatoryInputsNeeded(inhibitory: 2), solvedText: text("lab.synapse.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.synapse.hint"), text("lab.synapse.limit")])
         }
     }
 
-    // The scale spans the lab's reachable range, −94 to −46 mV, with the −55 mV threshold marked.
-    private var potentialScale: some View {
-        GeometryReader { geometry in
-            let lower = -94.0
-            let upper = -46.0
-            let fraction = (potential - lower) / (upper - lower)
-            let thresholdFraction = (SynapticSummationModel.thresholdPotential - lower) / (upper - lower)
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.secondary.opacity(0.12))
-                Capsule()
-                    .fill((fires ? Color.green : Color.accentColor).gradient)
-                    .frame(width: max(8, geometry.size.width * CGFloat(fraction)))
-                Rectangle()
-                    .fill(Color.orange)
-                    .frame(width: 2)
-                    .offset(x: geometry.size.width * CGFloat(thresholdFraction))
+    // A neuron with excitatory (green) and inhibitory (red) synapses on its dendrites; the axon lights up when it fires.
+    private func cell(fires: Bool) -> some View {
+        Canvas { context, size in
+            let soma = CGPoint(x: size.width * 0.42, y: size.height / 2)
+            let dendrites = (0..<6).map { index -> CGPoint in
+                let angle = Double.pi * (0.62 + Double(index) * 0.15)
+                return CGPoint(x: soma.x + CGFloat(cos(angle)) * size.height * 0.46, y: soma.y - CGFloat(sin(angle)) * size.height * 0.46)
+            }
+            for (index, tip) in dendrites.enumerated() {
+                var branch = Path()
+                branch.move(to: soma)
+                branch.addLine(to: tip)
+                context.stroke(branch, with: .color(.secondary.opacity(0.6)), lineWidth: 4)
+                let excitatoryHere = index < excitatory
+                let inhibitoryHere = index < inhibitory
+                if excitatoryHere {
+                    let point = CGPoint(x: soma.x + (tip.x - soma.x) * 0.75, y: soma.y + (tip.y - soma.y) * 0.75)
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - 9, y: point.y - 9, width: 18, height: 18)), with: .color(.green))
+                    context.draw(Text(verbatim: "+").font(.caption.weight(.heavy)).foregroundColor(.white), at: point)
+                }
+                if inhibitoryHere {
+                    let point = CGPoint(x: soma.x + (tip.x - soma.x) * 0.45, y: soma.y + (tip.y - soma.y) * 0.45)
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - 9, y: point.y - 9, width: 18, height: 18)), with: .color(.red))
+                    context.draw(Text(verbatim: "−").font(.caption.weight(.heavy)).foregroundColor(.white), at: point)
+                }
+            }
+            context.fill(Path(ellipseIn: CGRect(x: soma.x - 34, y: soma.y - 34, width: 68, height: 68)), with: .color(.purple.opacity(0.8)))
+            var axon = Path()
+            axon.move(to: CGPoint(x: soma.x + 34, y: soma.y))
+            axon.addLine(to: CGPoint(x: size.width - 10, y: soma.y))
+            context.stroke(axon, with: .color(fires ? .yellow : .secondary.opacity(0.5)), lineWidth: fires ? 7 : 4)
+            context.draw(Text(text(fires ? "lab.synapse.spike" : "lab.synapse.silent")).font(.caption.weight(.bold)).foregroundColor(fires ? .yellow : .secondary),
+                         at: CGPoint(x: (soma.x + size.width) / 2 + 20, y: soma.y - 18))
+        }
+    }
+
+    // The membrane potential on a scale from −94 to −46 mV with the resting and threshold levels.
+    private var meter: some View {
+        Canvas { context, size in
+            let low = -94.0, high = -46.0
+            func y(_ value: Double) -> CGFloat { 10 + (size.height - 20) * CGFloat((high - value) / (high - low)) }
+            let bar = CGRect(x: 18, y: 10, width: 30, height: size.height - 20)
+            context.fill(Path(roundedRect: bar, cornerRadius: 10), with: .color(.secondary.opacity(0.15)))
+            let potential = Model.membranePotential(excitatory: excitatory, inhibitory: inhibitory)
+            let top = y(potential)
+            context.fill(Path(roundedRect: CGRect(x: bar.minX, y: top, width: bar.width, height: bar.maxY - top), cornerRadius: 10),
+                         with: .color(potential >= Model.thresholdPotential ? .yellow : .accentColor))
+            for (value, key, color) in [(Model.thresholdPotential, "lab.neuron.thresholdLine", Color.orange), (Model.restingPotential, "lab.neuron.restLine", Color.secondary)] {
+                var line = Path()
+                line.move(to: CGPoint(x: bar.minX - 6, y: y(value)))
+                line.addLine(to: CGPoint(x: bar.maxX + 6, y: y(value)))
+                context.stroke(line, with: .color(color), lineWidth: 2)
+                context.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(color), at: CGPoint(x: bar.maxX + 10, y: y(value)), anchor: .leading)
             }
         }
     }
@@ -11076,109 +11109,109 @@ private struct ReplicatorErrorThresholdLab: View {
     @State private var errorPercent = 1.0
     @State private var advantage = 10.0
 
+    private typealias Model = ReplicatorErrorThresholdModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private var errorRate: Double { errorPercent / 100 }
 
-    private var exactCopy: Double {
-        ReplicatorErrorThresholdModel.exactCopyProbability(length: length, errorRate: errorRate)
-    }
-
-    private var offspring: Double {
-        ReplicatorErrorThresholdModel.exactOffspring(length: length, errorRate: errorRate, advantage: advantage)
-    }
-
-    private var persists: Bool {
-        ReplicatorErrorThresholdModel.persists(length: length, errorRate: errorRate, advantage: advantage)
-    }
-
-    private var maximumLengthDescription: String {
-        guard let maximum = ReplicatorErrorThresholdModel.maximumLength(errorRate: errorRate, advantage: advantage) else {
-            return L10n.text("lab.replicator.noLength", store.language)
-        }
-        return String(format: L10n.text("lab.replicator.maxLength", store.language), String(maximum))
-    }
-
     var body: some View {
+        let offspring = Model.exactOffspring(length: length, errorRate: errorRate, advantage: advantage)
+        let persists = Model.persists(length: length, errorRate: errorRate, advantage: advantage)
+        let maximum = Model.maximumLength(errorRate: errorRate, advantage: advantage)
         LabCard {
-            Text(L10n.text("lab.replicator.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.replicator.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.replicator.length", store.language), String(Int(length))))
-                    .monospacedDigit()
-                Slider(value: snapped($length, to: 10), in: ReplicatorErrorThresholdModel.lengthRange)
-                    .accessibilityLabel(L10n.text("lab.replicator.lengthLabel", store.language))
-                    .accessibilityValue(Text(verbatim: String(Int(length))))
-                    .accessibilityIdentifier("lab.replicator.length")
+            LabHeader(title: text("lab.replicator.title"), instruction: text("lab.replicator.subtitle"))
+            HStack(spacing: 16) {
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: Model.lengthRange, y: 0...max(2, advantage * 0.25))
+                    chart(plot, maximum: maximum)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            length = min(max(plot.value(at: drag.location).x.rounded(), Model.lengthRange.lowerBound), Model.lengthRange.upperBound)
+                        })
+                }
+                colony
+                    .frame(width: 200)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.replicator.error", store.language), L10n.number(errorPercent, fractionDigits: 1, store.language)))
-                    .monospacedDigit()
-                Slider(value: snapped($errorPercent, to: 0.1), in: 0.1...5.0)
-                    .accessibilityLabel(L10n.text("lab.replicator.errorLabel", store.language))
-                    .accessibilityValue(Text(String(format: L10n.text("lab.replicator.percentValue", store.language), L10n.number(errorPercent, fractionDigits: 1, store.language))))
-                    .accessibilityIdentifier("lab.replicator.error")
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.replicator.advantage", store.language), String(Int(advantage))))
-                    .monospacedDigit()
-                Slider(value: snapped($advantage, to: 1), in: ReplicatorErrorThresholdModel.advantageRange)
-                    .accessibilityLabel(L10n.text("lab.replicator.advantageLabel", store.language))
-                    .accessibilityValue(Text(verbatim: String(Int(advantage))))
-                    .accessibilityIdentifier("lab.replicator.advantage")
-            }
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.replicator.scale"))
+            .accessibilityValue(Text(verbatim: number(offspring, 2)))
 
-            Text(String(format: L10n.text("lab.replicator.exactCopy", store.language), L10n.number(exactCopy * 100, fractionDigits: 1, store.language)))
-                .font(.callout.monospacedDigit())
-            Text(String(format: L10n.text("lab.replicator.offspring", store.language), L10n.number(offspring, fractionDigits: 2, store.language)))
-                .font(.headline.monospacedDigit())
-                .accessibilityIdentifier("lab.replicator.offspring")
-            offspringScale
-                .frame(height: 26)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.replicator.scale", store.language))
-                .accessibilityValue(String(format: L10n.text("lab.replicator.offspring", store.language), L10n.number(offspring, fractionDigits: 2, store.language)))
-
-            Label(L10n.text(persists ? "lab.replicator.persists" : "lab.replicator.erased", store.language), systemImage: persists ? "checkmark.seal" : "exclamationmark.triangle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.replicator.outcome")
-            Text(maximumLengthDescription)
-                .font(.callout.monospacedDigit())
-                .accessibilityIdentifier("lab.replicator.maxLength")
-            Text(L10n.text("lab.replicator.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            slider(String(format: text("lab.replicator.length"), number(length, 0)), "lab.replicator.lengthLabel", "lab.replicator.length",
+                   Binding(get: { length }, set: { length = $0.rounded() }), Model.lengthRange)
+            slider(String(format: text("lab.replicator.error"), number(errorPercent, 1)), "lab.replicator.errorLabel", "lab.replicator.error",
+                   Binding(get: { errorPercent }, set: { errorPercent = ($0 * 10).rounded() / 10 }), (Model.errorRateRange.lowerBound * 100)...(Model.errorRateRange.upperBound * 100))
+            slider(String(format: text("lab.replicator.advantage"), number(advantage, 0)), "lab.replicator.advantageLabel", "lab.replicator.advantage",
+                   Binding(get: { advantage }, set: { advantage = $0.rounded() }), Model.advantageRange)
+            LabStatGrid {
+                LabStat(label: text("lab.replicator.statExact"), value: number(Model.exactCopyProbability(length: length, errorRate: errorRate) * 100, 1) + " %", tint: .green)
+                LabStat(label: "σ · (1 − e)ᴸ", value: number(offspring, 2), tint: persists ? .green : .red, identifier: "lab.replicator.offspring")
+                LabStat(label: text("lab.replicator.statMax"), value: maximum.map(String.init) ?? "0", tint: .purple)
+            }
+            LabStatusBadge(kind: persists ? .good : .bad, text: text(persists ? "lab.replicator.persists" : "lab.replicator.erased"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.replicator.challenge"),
+                         solved: errorPercent == 1 && advantage == 10 && persists && length >= 200, solvedText: text("lab.replicator.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.replicator.hint"), text("lab.replicator.limit")])
         }
     }
 
-    // Rounds slider values without `step:`, which would draw a dense row of tick marks under each slider.
-    private func snapped(_ value: Binding<Double>, to increment: Double) -> Binding<Double> {
-        Binding(
-            get: { value.wrappedValue },
-            set: { value.wrappedValue = ($0 / increment).rounded() * increment }
-        )
+    private func slider(_ title: String, _ labelKey: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).monospacedDigit().frame(minWidth: 300, alignment: .leading)
+            // Each slider rounds without `step:`, which would draw a dense row of tick marks.
+            Slider(value: value, in: range)
+                .accessibilityLabel(text(labelKey))
+                .accessibilityIdentifier(identifier)
+        }
     }
 
-    // Exact offspring on a 0…2 scale with the survival line at 1 in the middle; larger values are capped.
-    private var offspringScale: some View {
-        GeometryReader { geometry in
-            let fraction = min(offspring, 2) / 2
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.secondary.opacity(0.12))
-                Capsule()
-                    .fill((persists ? Color.green : Color.orange).gradient)
-                    .frame(width: max(8, geometry.size.width * CGFloat(fraction)))
-                Rectangle()
-                    .fill(Color.primary.opacity(0.7))
-                    .frame(width: 2)
-                    .offset(x: geometry.size.width * 0.5)
+    // Exact offspring σ(1 − e)ᴸ against length: above the line at 1 the information survives (green), below it is erased.
+    private func chart(_ plot: LabPlotGeometry, maximum: Int?) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text("lab.replicator.axisLength"), yLabel: text("lab.replicator.axisOffspring"), format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            let one = plot.point(0, 1).y
+            clipped.fill(Path(CGRect(x: plot.rect.minX, y: plot.rect.minY, width: plot.rect.width, height: one - plot.rect.minY)), with: .color(.green.opacity(0.08)))
+            clipped.fill(Path(CGRect(x: plot.rect.minX, y: one, width: plot.rect.width, height: plot.rect.maxY - one)), with: .color(.red.opacity(0.08)))
+            var threshold = Path()
+            threshold.move(to: CGPoint(x: plot.rect.minX, y: one))
+            threshold.addLine(to: CGPoint(x: plot.rect.maxX, y: one))
+            clipped.stroke(threshold, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var curve = Path()
+            for index in 0...200 {
+                let l = plot.x.lowerBound + (plot.x.upperBound - plot.x.lowerBound) * Double(index) / 200
+                let location = plot.point(l, min(Model.exactOffspring(length: l, errorRate: errorRate, advantage: advantage), plot.y.upperBound))
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.accentColor), lineWidth: 2.5)
+            if let maximum {
+                var mark = Path()
+                mark.move(to: plot.point(Double(maximum), 0))
+                mark.addLine(to: plot.point(Double(maximum), 1))
+                clipped.stroke(mark, with: .color(.purple), lineWidth: 2)
+                clipped.draw(Text(verbatim: "L max = \(maximum)").font(.caption.weight(.bold)).foregroundColor(.purple), at: plot.point(Double(maximum), 1.08), anchor: .bottomLeading)
+            }
+            let current = plot.point(length, min(Model.exactOffspring(length: length, errorRate: errorRate, advantage: advantage), plot.y.upperBound))
+            clipped.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
+        }
+    }
+
+    // Forty copies of the molecule: the exact-copy share is green, copies with at least one error are red.
+    private var colony: some View {
+        Canvas { context, size in
+            let exact = Model.exactCopyProbability(length: length, errorRate: errorRate)
+            let good = Int((exact * 40).rounded())
+            let cell = min(size.width / 5, size.height / 8)
+            for index in 0..<40 {
+                let rect = CGRect(x: CGFloat(index % 5) * cell + cell * 0.12, y: CGFloat(index / 5) * cell + cell * 0.12, width: cell * 0.76, height: cell * 0.76)
+                context.fill(Path(roundedRect: rect, cornerRadius: 5), with: .color(index < good ? .green : .red.opacity(0.7)))
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: length)
+        .accessibilityHidden(true)
     }
 }
 
@@ -11215,12 +11248,7 @@ private struct PHScaleLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.ph.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.ph.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.ph.title", store.language), instruction: L10n.text("lab.ph.hint", store.language))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(format: L10n.text("lab.ph.value", store.language), String(Int(pH))))
@@ -11246,10 +11274,7 @@ private struct PHScaleLab: View {
                 .font(.callout.monospacedDigit())
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("lab.ph.comparison")
-            Text(L10n.text("lab.ph.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.ph.limit", store.language)])
         }
     }
 
@@ -11299,12 +11324,7 @@ private struct MoleculeBuilderLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.molecule.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.molecule.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.molecule.title", store.language), instruction: L10n.text("lab.molecule.hint", store.language))
 
             Picker(L10n.text("lab.molecule.central", store.language), selection: $central) {
                 ForEach(MoleculeBuilderModel.CentralAtom.allCases) { atom in
@@ -11341,10 +11361,7 @@ private struct MoleculeBuilderLab: View {
                         .accessibilityIdentifier("lab.molecule.status")
                 }
             }
-            Text(L10n.text("lab.molecule.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.molecule.limit", store.language)])
         }
     }
 
@@ -11414,12 +11431,7 @@ private struct ReactionEnergyLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.energy.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.energy.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.energy.title", store.language), instruction: L10n.text("lab.energy.hint", store.language))
 
             labeledSlider("lab.energy.freeEnergy", "lab.energy.freeEnergyLabel", value: $freeEnergy, range: Model.freeEnergyRange, increment: 5)
             labeledSlider("lab.energy.activation", "lab.energy.activationLabel", value: $activation, range: Model.activationRange, increment: 5)
@@ -11468,10 +11480,7 @@ private struct ReactionEnergyLab: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text(L10n.text("lab.energy.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.energy.limit", store.language)])
         }
     }
 
@@ -11523,94 +11532,119 @@ private struct NeuronTrainingLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var model = NeuronTrainingModel()
     @State private var learningRate = 0.05
+    @State private var playing = false
 
-    private func number(_ value: Double, _ digits: Int = 3) -> String {
-        L10n.number(value, fractionDigits: digits, store.language)
-    }
+    private typealias Model = NeuronTrainingModel
 
-    private var regime: NeuronTrainingModel.Regime {
-        NeuronTrainingModel.regime(learningRate: learningRate)
-    }
-
-    private var regimeKey: String {
-        switch regime {
-        case .converging: return "lab.neurontrain.converging"
-        case .oscillating: return "lab.neurontrain.oscillating"
-        case .diverging: return "lab.neurontrain.diverging"
-        }
-    }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
+        let regime = Model.regime(learningRate: learningRate)
+        let factor = number(Model.errorFactor(learningRate: learningRate), 2), limit = number(Model.stableLearningRateLimit, 2)
+        let status: (LabStatusKind, String) = switch regime {
+        case .converging: (.good, String(format: text("lab.neurontrain.converging"), factor, limit))
+        case .oscillating: (.warning, String(format: text("lab.neurontrain.oscillating"), factor, limit))
+        case .diverging: (.bad, String(format: text("lab.neurontrain.diverging"), factor, limit))
+        }
         LabCard {
-            Text(L10n.text("lab.neurontrain.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.neurontrain.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.neurontrain.title"), instruction: text("lab.neurontrain.subtitle"))
+            HStack(spacing: 16) {
+                neuron
+                    .frame(width: 360)
+                lossChart
+            }
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.neurontrain.chart"))
+            .accessibilityValue(Text(verbatim: number(model.loss, 4)))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.neurontrain.rate", store.language), number(learningRate, 2)))
-                    .monospacedDigit()
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.neurontrain.rate"), number(learningRate, 2))).monospacedDigit().frame(minWidth: 220, alignment: .leading)
                 // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
-                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 100).rounded() / 100 }), in: NeuronTrainingModel.learningRateRange)
-                    .accessibilityLabel(L10n.text("lab.neurontrain.rateLabel", store.language))
-                    .accessibilityValue(Text(verbatim: number(learningRate, 2)))
+                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 100).rounded() / 100 }), in: Model.learningRateRange)
+                    .accessibilityLabel(text("lab.neurontrain.rateLabel"))
                     .accessibilityIdentifier("lab.neurontrain.rate")
             }
-            HStack {
-                Button(L10n.text("lab.neurontrain.step", store.language)) { model.step(learningRate: learningRate) }
+            HStack(spacing: 10) {
+                Button {
+                    if model.lossHistory.count >= 30 { model.reset() }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
                     .buttonStyle(.borderedProminent)
-                    .disabled(model.lossHistory.count >= 30 || !model.loss.isFinite)
+                    .accessibilityIdentifier("lab.neurontrain.play")
+                Button(text("lab.neurontrain.step")) { withAnimation(.easeInOut(duration: 0.25)) { model.step(learningRate: learningRate) } }
                     .accessibilityIdentifier("lab.neurontrain.step")
-                Button(L10n.text("lab.neurontrain.reset", store.language)) { model.reset() }
+                Button(text("lab.neurontrain.reset")) { playing = false; withAnimation { model.reset() } }
                     .accessibilityIdentifier("lab.neurontrain.reset")
             }
-
-            Text(String(format: L10n.text("lab.neurontrain.state", store.language),
-                        String(model.lossHistory.count), number(model.weight), number(model.bias), number(model.output)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(String(format: L10n.text("lab.neurontrain.gradients", store.language),
-                        number(model.loss, 4), number(model.weightGradient), number(model.biasGradient)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.neurontrain.loss")
-            lossChart
-                .frame(height: 120)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.neurontrain.chart", store.language))
-                .accessibilityValue(Text(verbatim: (model.lossHistory + [model.loss]).map { number($0, 4) }.joined(separator: ", ")))
-            Label(String(format: L10n.text(regimeKey, store.language),
-                         number(NeuronTrainingModel.errorFactor(learningRate: learningRate), 2),
-                         number(NeuronTrainingModel.stableLearningRateLimit, 2)),
-                  systemImage: regime == .converging ? "arrow.down.right" : "exclamationmark.triangle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.neurontrain.regime")
-            Text(L10n.text("lab.neurontrain.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabStatGrid {
+                LabStat(label: text("lab.neurontrain.statSteps"), value: String(model.lossHistory.count))
+                LabStat(label: "w · b", value: number(model.weight, 3) + " · " + number(model.bias, 3), tint: .purple)
+                LabStat(label: text("lab.neurontrain.statOutput"), value: number(model.output, 3), tint: .accentColor)
+                LabStat(label: text("lab.neurontrain.statLoss"), value: number(model.loss, 4), tint: .orange, identifier: "lab.neurontrain.loss")
+            }
+            LabStatusBadge(kind: status.0, text: status.1)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.neurontrain.challenge"),
+                         solved: model.lossHistory.count == 1 && model.loss < 1e-9, solvedText: text("lab.neurontrain.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.neurontrain.hint"),
+                String(format: text("lab.neurontrain.gradients"), number(model.loss, 4), number(model.weightGradient, 3), number(model.biasGradient, 3)),
+                text("lab.neurontrain.limit"),
+            ])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                guard playing else { break }
+                withAnimation(.easeInOut(duration: 0.25)) { model.step(learningRate: learningRate) }
+                if model.loss < 1e-8 || model.loss > 1e6 || model.lossHistory.count >= 30 { playing = false }
+            }
         }
     }
 
-    // Loss after each step on a logarithmic scale, so fast convergence and divergence both stay visible.
+    // x = 2 flows through ×w and +b into the output y, compared with the target 2; the gap is the error.
+    private var neuron: some View {
+        Canvas { context, size in
+            let y = size.height * 0.45
+            let input = CGPoint(x: 34, y: y), body = CGPoint(x: size.width * 0.55, y: y), output = CGPoint(x: size.width - 40, y: y)
+            var wires = Path()
+            wires.move(to: input)
+            wires.addLine(to: body)
+            wires.addLine(to: output)
+            context.stroke(wires, with: .color(.secondary), lineWidth: 3)
+            context.fill(Path(ellipseIn: CGRect(x: input.x - 26, y: y - 26, width: 52, height: 52)), with: .color(.teal))
+            context.draw(Text(verbatim: "x = 2").font(.caption.weight(.bold)).foregroundColor(.white), at: input)
+            context.fill(Path(ellipseIn: CGRect(x: body.x - 40, y: y - 40, width: 80, height: 80)), with: .color(.purple.opacity(0.85)))
+            context.draw(Text(verbatim: "w·x + b").font(.caption.weight(.bold)).foregroundColor(.white), at: body)
+            context.draw(Text(verbatim: "w = " + number(model.weight, 2)).font(.caption.weight(.semibold)).foregroundColor(.purple), at: CGPoint(x: (input.x + body.x) / 2, y: y - 16))
+            context.draw(Text(verbatim: "b = " + number(model.bias, 2)).font(.caption.weight(.semibold)).foregroundColor(.purple), at: CGPoint(x: body.x, y: y + 54))
+            let error = model.output - Model.target
+            let color: Color = abs(error) < 0.01 ? .green : .orange
+            context.fill(Path(ellipseIn: CGRect(x: output.x - 30, y: y - 30, width: 60, height: 60)), with: .color(color))
+            context.draw(Text(verbatim: number(model.output, 2)).font(.headline).foregroundColor(.white), at: output)
+            context.draw(Text(text("lab.neurontrain.target")).font(.caption.weight(.semibold)).foregroundColor(.green), at: CGPoint(x: output.x, y: y + 46))
+            context.draw(Text(verbatim: "y − t = " + number(error, 3)).font(.caption.weight(.bold)).foregroundColor(color), at: CGPoint(x: output.x - 10, y: y - 44))
+        }
+    }
+
+    // The error after every step: falling for a good rate, flat or rising for a bad one.
     private var lossChart: some View {
         Canvas { context, size in
-            let values = (model.lossHistory + [model.loss]).map { max($0, 1e-6) }
-            guard values.count > 1 else { return }
-            let logs = values.map { log10($0) }
-            let low = min(logs.min() ?? 0, -2)
-            let high = max(logs.max() ?? 0, 1)
-            var path = Path()
-            for (index, value) in logs.enumerated() {
-                let x = size.width * CGFloat(index) / CGFloat(values.count - 1)
-                let y = size.height * CGFloat((high - value) / (high - low))
-                if index == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-                context.fill(Path(ellipseIn: CGRect(x: x - 3, y: y - 3, width: 6, height: 6)), with: .color(.accentColor))
+            let values = model.lossHistory + [model.loss]
+            let top = max(min(values.max() ?? 1, 50), 0.5)
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(values.count - 1, 5)), y: 0...top * 1.1)
+            plot.drawAxes(in: context, xLabel: text("lab.descent2d.lossX"), yLabel: "L", format: { number($0, $0 < 10 && $0 != $0.rounded() ? 1 : 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -4, dy: -4)))
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index), min(value, top * 1.1))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+                clipped.fill(Path(ellipseIn: CGRect(x: location.x - 3, y: location.y - 3, width: 6, height: 6)), with: .color(.orange))
             }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 2)
+            clipped.stroke(line, with: .color(.orange), lineWidth: 2)
         }
     }
 }
@@ -11618,65 +11652,85 @@ private struct NeuronTrainingLab: View {
 private struct CoinEntropyLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var coins = 4
+    @State private var toss: [Bool] = []
 
     private typealias Model = CoinMicrostateModel
 
     private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
     private func grouped(_ value: Int) -> String { value.formatted(.number.locale(locale)) }
     private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: value < 0.001 ? 4 : 1, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let mostLikely = Model.mostLikelyHeads(coins: coins)
         let total = Model.total(coins: coins)
+        let tossHeads = toss.count == coins ? toss.filter { $0 }.count : nil
         LabCard {
-            Text(L10n.text("lab.entropy.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.entropy.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Stepper(value: $coins, in: Model.coinRange) {
-                Text(String(format: L10n.text("lab.entropy.coins", store.language), String(coins), grouped(total)))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.entropy.title"), instruction: text("lab.entropy.subtitle"))
+            HStack(spacing: 12) {
+                Stepper(value: Binding(get: { coins }, set: { coins = $0; toss = [] }), in: Model.coinRange) {
+                    Text(String(format: text("lab.entropy.coins"), String(coins), grouped(total))).monospacedDigit()
+                }
+                .accessibilityLabel(Text(text("lab.entropy.coinsLabel")))
+                .accessibilityIdentifier("lab.entropy.coins")
+                Spacer()
+                Button {
+                    withAnimation(.spring(response: 0.4)) { toss = (0..<coins).map { _ in Bool.random() } }
+                } label: { Label(text("lab.entropy.toss"), systemImage: "circle.lefthalf.filled") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.entropy.toss")
             }
-            .accessibilityLabel(Text(L10n.text("lab.entropy.coinsLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(coins)))
-            .accessibilityIdentifier("lab.entropy.coins")
-
-            histogram
-                .frame(height: 140)
+            if !toss.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(toss.indices, id: \.self) { index in
+                        Text(verbatim: toss[index] ? text("lab.entropy.headShort") : text("lab.entropy.tailShort"))
+                            .font(.caption.weight(.bold))
+                            .frame(width: 26, height: 26)
+                            .background(Circle().fill(toss[index] ? Color.orange : Color.secondary.opacity(0.35)))
+                    }
+                }
+            }
+            histogram(highlight: tossHeads)
+                .frame(height: 230)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.entropy.chart", store.language))
+                .accessibilityLabel(text("lab.entropy.chart"))
                 .accessibilityValue(Text(verbatim: (0...coins).map { String(Model.microstates(coins: coins, heads: $0)) }.joined(separator: ", ")))
-
-            Text(String(format: L10n.text("lab.entropy.mostLikely", store.language),
-                        String(mostLikely), grouped(Model.microstates(coins: coins, heads: mostLikely)), grouped(total),
+            LabStatGrid {
+                LabStat(label: text("lab.entropy.statTotal"), value: grouped(total), tint: .purple)
+                LabStat(label: String(format: text("lab.entropy.statMost"), String(mostLikely)), value: percent(Model.probability(coins: coins, heads: mostLikely)) + " %", tint: .orange)
+                LabStat(label: text("lab.entropy.statAllHeads"), value: percent(Model.probability(coins: coins, heads: coins)) + " %", tint: .red)
+            }
+            Text(String(format: text("lab.entropy.mostLikely"), String(mostLikely), grouped(Model.microstates(coins: coins, heads: mostLikely)), grouped(total),
                         percent(Model.probability(coins: coins, heads: mostLikely))))
                 .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.entropy.mostLikely")
-            Text(String(format: L10n.text("lab.entropy.allHeads", store.language), grouped(total), percent(Model.probability(coins: coins, heads: coins))))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.entropy.allHeads")
-            Text(L10n.text("lab.entropy.limit", store.language))
-                .font(.caption)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.entropy.mostLikely")
+            Text(String(format: text("lab.entropy.allHeads"), grouped(total), percent(Model.probability(coins: coins, heads: coins))))
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("lab.entropy.allHeads")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.entropy.challenge"), solved: total > 1_000_000, solvedText: text("lab.entropy.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.entropy.hint"), text("lab.entropy.limit")])
         }
     }
 
-    // One bar per macrostate, height proportional to its number of microstates; the most likely bar is highlighted.
-    private var histogram: some View {
+    // Microstates per macrostate with axes; the most likely bars are orange and the last toss's macrostate is outlined.
+    private func histogram(highlight: Int?) -> some View {
         Canvas { context, size in
             let counts = (0...coins).map { Model.microstates(coins: coins, heads: $0) }
             let peak = Double(counts.max() ?? 1)
-            let slot = size.width / CGFloat(counts.count)
+            let plot = LabPlotGeometry(size: size, x: -0.5...(Double(coins) + 0.5), y: 0...peak * 1.1, leading: 60)
+            let xTicks = coins <= 10 ? Array(0...coins).map(Double.init) : LabPlotGeometry.ticks(0...Double(coins), count: 5)
+            plot.drawAxes(in: context, xLabel: text("lab.entropy.axisHeads"), yLabel: text("lab.entropy.axisWays"), xTicks: xTicks, format: { grouped(Int($0.rounded())) })
+            let slot = plot.rect.width / CGFloat(counts.count)
             for (heads, count) in counts.enumerated() {
-                let height = size.height * CGFloat(Double(count) / peak)
-                let rect = CGRect(x: CGFloat(heads) * slot + slot * 0.15, y: size.height - height, width: slot * 0.7, height: height)
-                let highlighted = heads == Model.mostLikelyHeads(coins: coins) || heads == coins - Model.mostLikelyHeads(coins: coins)
-                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(highlighted ? .accentColor : .secondary.opacity(0.45)))
+                let top = plot.point(Double(heads), Double(count))
+                let rect = CGRect(x: top.x - slot * 0.35, y: top.y, width: slot * 0.7, height: plot.rect.maxY - top.y)
+                let likely = heads == Model.mostLikelyHeads(coins: coins) || heads == coins - Model.mostLikelyHeads(coins: coins)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(likely ? .orange : .accentColor.opacity(0.55)))
+                if heads == highlight {
+                    context.stroke(Path(roundedRect: rect.insetBy(dx: -3, dy: -3), cornerRadius: 4), with: .color(.primary), lineWidth: 2.5)
+                }
             }
         }
     }
@@ -11688,56 +11742,66 @@ private struct HardyWeinbergLab: View {
 
     private typealias Model = HardyWeinbergModel
 
-    private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: 1, store.language) }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let genotypes = Model.genotypes(recessiveAllele: recessiveAllele)
+        let ratio = Model.carriersPerAffected(recessiveAllele: recessiveAllele)
         LabCard {
-            Text(L10n.text("lab.hardy.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.hardy.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.hardy.alleles", store.language),
-                            L10n.number(1 - recessiveAllele, fractionDigits: 2, store.language),
-                            L10n.number(recessiveAllele, fractionDigits: 2, store.language)))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.hardy.title"), instruction: text("lab.hardy.subtitle"))
+            HStack(spacing: 18) {
+                population(genotypes)
+                    .frame(width: 260, height: 260)
+                VStack(alignment: .leading, spacing: 12) {
+                    legend(text("lab.hardy.dominant"), genotypes.dominantHomozygous, .blue)
+                    legend(text("lab.hardy.carrier"), genotypes.heterozygous, .purple)
+                    legend(text("lab.hardy.recessive"), genotypes.recessiveHomozygous, .orange)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.hardy.alleles"), number(1 - recessiveAllele, 2), number(recessiveAllele, 2))).monospacedDigit().frame(minWidth: 220, alignment: .leading)
                 // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
                 Slider(value: Binding(get: { recessiveAllele }, set: { recessiveAllele = ($0 * 100).rounded() / 100 }), in: Model.recessiveRange)
-                    .accessibilityLabel(L10n.text("lab.hardy.sliderLabel", store.language))
-                    .accessibilityValue(Text(verbatim: L10n.number(recessiveAllele, fractionDigits: 2, store.language)))
+                    .accessibilityLabel(text("lab.hardy.sliderLabel"))
+                    .accessibilityValue(Text(verbatim: number(recessiveAllele, 2)))
                     .accessibilityIdentifier("lab.hardy.q")
             }
-            genotypeBar(L10n.text("lab.hardy.dominant", store.language), genotypes.dominantHomozygous, .blue)
-            genotypeBar(L10n.text("lab.hardy.carrier", store.language), genotypes.heterozygous, .purple)
-            genotypeBar(L10n.text("lab.hardy.recessive", store.language), genotypes.recessiveHomozygous, .orange)
-            Text(String(format: L10n.text("lab.hardy.ratio", store.language),
-                        L10n.number(Model.carriersPerAffected(recessiveAllele: recessiveAllele), fractionDigits: 1, store.language)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.hardy.ratio")
-            Text(L10n.text("lab.hardy.limit", store.language))
-                .font(.caption)
+            LabStatGrid {
+                LabStat(label: text("lab.hardy.statRatio"), value: number(ratio, 1), tint: .purple, identifier: "lab.hardy.ratio")
+                LabStat(label: "2pq", value: number(genotypes.heterozygous * 100, 1) + " %", tint: .purple)
+                LabStat(label: "q²", value: number(genotypes.recessiveHomozygous * 100, 1) + " %", tint: .orange)
+            }
+            Text(String(format: text("lab.hardy.ratio"), number(ratio, 1)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.hardy.challenge"), solved: abs(ratio - 10) < 0.6, solvedText: text("lab.hardy.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.hardy.hint"), text("lab.hardy.limit")])
         }
     }
 
-    private func genotypeBar(_ title: String, _ share: Double, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("\(title): \(percent(share)) %")
-                .font(.callout.monospacedDigit())
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.12))
-                    Capsule().fill(color.gradient).frame(width: max(4, geometry.size.width * CGFloat(share)))
-                }
-            }
-            .frame(height: 12)
+    private func legend(_ title: String, _ share: Double, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Circle().fill(color).frame(width: 16, height: 16)
+            Text(verbatim: "\(title): \(number(share * 100, 1)) %").font(.callout.monospacedDigit())
         }
-        .accessibilityElement(children: .combine)
+    }
+
+    // A hundred individuals coloured by genotype in Hardy–Weinberg proportions p², 2pq, q².
+    private func population(_ genotypes: HardyWeinbergModel.Genotypes) -> some View {
+        Canvas { context, size in
+            let dominant = Int((genotypes.dominantHomozygous * 100).rounded())
+            let carriers = Int((genotypes.heterozygous * 100).rounded())
+            let cell = min(size.width, size.height) / 10
+            for index in 0..<100 {
+                let color: Color = index < dominant ? .blue : (index < dominant + carriers ? .purple : .orange)
+                let rect = CGRect(x: CGFloat(index % 10) * cell + cell * 0.12, y: CGFloat(index / 10) * cell + cell * 0.12, width: cell * 0.76, height: cell * 0.76)
+                context.fill(Path(ellipseIn: rect), with: .color(color))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: recessiveAllele)
+        .accessibilityHidden(true)
     }
 }
 
@@ -13575,6 +13639,7 @@ private struct CircuitLab: View {
     @State private var second = 6.0
     @State private var voltage = 12.0
     @State private var parallel = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private typealias Model = CircuitModel
 
@@ -13592,8 +13657,9 @@ private struct CircuitLab: View {
             .pickerStyle(.segmented)
             .accessibilityIdentifier("lab.circuit.mode")
 
-            TimelineView(.animation) { timeline in
-                schematic(time: timeline.date.timeIntervalSinceReferenceDate)
+            // With Reduce Motion the current dots stay still; their spacing still shows the circuit.
+            TimelineView(.animation(paused: reduceMotion)) { timeline in
+                schematic(time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate)
             }
             .frame(height: 230)
             .accessibilityElement(children: .ignore)
@@ -14186,81 +14252,114 @@ private struct SurfaceVolumeLab: View {
 
 private struct PendulumLab: View {
     @EnvironmentObject private var store: LearningStore
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var length = 1.0
     @State private var mass = 0.5
     @State private var isSwinging = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    private typealias Model = PendulumModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
+        let period = Model.period(length: length)
         LabCard {
-            Text(L10n.text("lab.pendulum.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.pendulum.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(alignment: .top, spacing: 20) {
-                pendulum
-                    .frame(width: 170, height: 170)
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(L10n.text("lab.pendulum.diagram", store.language))
-                VStack(alignment: .leading, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(format: L10n.text("lab.pendulum.length", store.language), L10n.measurement(length, fractionDigits: 2, unit: "m", store.language)))
-                            .monospacedDigit()
-                        Slider(value: $length, in: PendulumModel.lengthRange, step: 0.25)
-                            .accessibilityLabel(L10n.text("lab.pendulum.lengthLabel", store.language))
-                    }
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(String(format: L10n.text("lab.pendulum.mass", store.language), L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)))
-                            .monospacedDigit()
-                        Slider(value: $mass, in: PendulumModel.massRange, step: 0.1)
-                            .accessibilityLabel(L10n.text("lab.pendulum.massLabel", store.language))
-                    }
-                    Text(String(
-                        format: L10n.text("lab.pendulum.reading", store.language),
-                        L10n.measurement(PendulumModel.period(length: length, mass: mass), fractionDigits: 2, unit: "s", store.language),
-                        L10n.measurement(PendulumModel.frequency(length: length), fractionDigits: 2, unit: "Hz", store.language)
-                    ))
-                    .font(.headline.monospacedDigit())
-                    .accessibilityIdentifier("lab.pendulum.reading")
-                    if !reduceMotion {
-                        Toggle(L10n.text("lab.pendulum.swing", store.language), isOn: $isSwinging)
-                            .toggleStyle(.switch)
-                            .accessibilityLabel(Text(L10n.text("lab.pendulum.swing", store.language)))
-                    }
+            LabHeader(title: text("lab.pendulum.title"), instruction: text("lab.pendulum.subtitle"))
+            HStack(spacing: 16) {
+                // With Reduce Motion the pendulum does not swing; it shows both extreme positions instead.
+                TimelineView(.animation(paused: !isSwinging || reduceMotion)) { timeline in
+                    pendulum(time: isSwinging && !reduceMotion ? timeline.date.timeIntervalSinceReferenceDate : 0)
+                }
+                .frame(width: 260)
+                .accessibilityLabel(text("lab.pendulum.diagram"))
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: Model.lengthRange, y: 0...3)
+                    periodCurve(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            length = min(max((plot.value(at: drag.location).x * 100).rounded() / 100, Model.lengthRange.lowerBound), Model.lengthRange.upperBound)
+                        })
                 }
             }
+            .frame(height: 260)
 
-            Text(L10n.text("lab.pendulum.challenge", store.language))
-                .font(.callout)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            Text(L10n.text("lab.pendulum.limit", store.language))
-                .font(.caption)
+            HStack(spacing: 12) {
+                Button { isSwinging.toggle() } label: {
+                    Label(text(isSwinging ? "lab.descent2d.pause" : "lab.pendulum.swing"), systemImage: isSwinging ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.pendulum.swingButton")
+                Text(String(format: text("lab.pendulum.length"), L10n.measurement(length, fractionDigits: 2, unit: "m", store.language))).monospacedDigit().frame(minWidth: 180, alignment: .leading)
+                // Rounds to centimetres without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { length }, set: { length = ($0 * 100).rounded() / 100 }), in: Model.lengthRange)
+                    .accessibilityLabel(text("lab.pendulum.lengthLabel"))
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.pendulum.mass"), L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language))).monospacedDigit().frame(minWidth: 180, alignment: .leading)
+                Slider(value: Binding(get: { mass }, set: { mass = ($0 * 10).rounded() / 10 }), in: Model.massRange)
+                    .accessibilityLabel(text("lab.pendulum.massLabel"))
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.pendulum.statPeriod"), value: L10n.measurement(period, fractionDigits: 2, unit: "s", store.language), tint: .orange)
+                LabStat(label: text("lab.pendulum.statFrequency"), value: L10n.measurement(Model.frequency(length: length), fractionDigits: 2, unit: "Hz", store.language), tint: .purple)
+            }
+            Text(String(format: text("lab.pendulum.reading"), L10n.measurement(period, fractionDigits: 2, unit: "s", store.language),
+                        L10n.measurement(Model.frequency(length: length), fractionDigits: 2, unit: "Hz", store.language)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.pendulum.reading")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.pendulum.goal"), solved: abs(period - 2) < 0.01, solvedText: text("lab.pendulum.goalSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.pendulum.hint"), text("lab.pendulum.challenge"), text("lab.pendulum.limit")])
         }
     }
 
-    @ViewBuilder
-    private var pendulum: some View {
-        if isSwinging && !reduceMotion {
-            TimelineView(.animation) { context in
-                PendulumDrawing(
-                    lengthFraction: length / PendulumModel.lengthRange.upperBound,
-                    massFraction: mass / PendulumModel.massRange.upperBound,
-                    angle: PendulumModel.angle(atSeconds: context.date.timeIntervalSinceReferenceDate, length: length)
-                )
+    // The pendulum drawn to scale with the bob sized by mass; it swings with the true period when started.
+    private func pendulum(time: Double) -> some View {
+        Canvas { context, size in
+            let pivot = CGPoint(x: size.width / 2, y: 14)
+            let scale = (size.height - 50) / CGFloat(Model.lengthRange.upperBound)
+            let angle = isSwinging && !reduceMotion ? Model.angle(atSeconds: time, length: length) : Model.amplitudeDegrees * .pi / 180
+            if isSwinging && reduceMotion {
+                let ghost = CGPoint(x: pivot.x - CGFloat(sin(angle)) * CGFloat(length) * scale, y: pivot.y + CGFloat(cos(angle)) * CGFloat(length) * scale)
+                var ghostString = Path()
+                ghostString.move(to: pivot)
+                ghostString.addLine(to: ghost)
+                context.stroke(ghostString, with: .color(.secondary.opacity(0.5)), style: StrokeStyle(lineWidth: 2, dash: [4, 4]))
+                let ghostRadius = CGFloat(8 + mass * 9)
+                context.fill(Path(ellipseIn: CGRect(x: ghost.x - ghostRadius, y: ghost.y - ghostRadius, width: 2 * ghostRadius, height: 2 * ghostRadius)), with: .color(.orange.opacity(0.35)))
             }
-        } else {
-            PendulumDrawing(
-                lengthFraction: length / PendulumModel.lengthRange.upperBound,
-                massFraction: mass / PendulumModel.massRange.upperBound,
-                angle: PendulumModel.amplitudeDegrees * Double.pi / 180
-            )
+            let bob = CGPoint(x: pivot.x + CGFloat(sin(angle)) * CGFloat(length) * scale, y: pivot.y + CGFloat(cos(angle)) * CGFloat(length) * scale)
+            context.fill(Path(CGRect(x: pivot.x - 40, y: pivot.y - 6, width: 80, height: 6)), with: .color(.secondary))
+            var string = Path()
+            string.move(to: pivot)
+            string.addLine(to: bob)
+            context.stroke(string, with: .color(.primary), lineWidth: 2)
+            let radius = CGFloat(8 + mass * 9)
+            context.fill(Path(ellipseIn: CGRect(x: bob.x - radius, y: bob.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(.orange))
+        }
+    }
+
+    // T = 2π√(L/g) against L with the chosen length marked; the L = 0.25 m and 1.00 m pair shows the doubling.
+    private func periodCurve(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text("lab.pendulum.axisLength"), yLabel: text("lab.pendulum.axisPeriod"), format: { number($0, $0 == $0.rounded() ? 0 : 1) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -8, dy: -8)))
+            var curve = Path()
+            for index in 0...100 {
+                let l = plot.x.lowerBound + (plot.x.upperBound - plot.x.lowerBound) * Double(index) / 100
+                let location = plot.point(l, Model.period(length: l))
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.accentColor), lineWidth: 2.5)
+            for l in [0.25, 1.0] {
+                let location = plot.point(l, Model.period(length: l))
+                clipped.fill(Path(ellipseIn: CGRect(x: location.x - 4, y: location.y - 4, width: 8, height: 8)), with: .color(.green))
+            }
+            let current = plot.point(length, Model.period(length: length))
+            clipped.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
         }
     }
 }
@@ -14299,96 +14398,85 @@ private struct HeatMixingLab: View {
     @State private var hotMass = 1.0
     @State private var hotTemperature = 80.0
 
-    private var finalTemperature: Double {
-        HeatMixingModel.finalTemperature(
-            coldMass: coldMass,
-            coldTemperature: coldTemperature,
-            hotMass: hotMass,
-            hotTemperature: hotTemperature
-        )
-    }
+    private typealias Model = HeatMixingModel
 
-    private var transferredHeat: Double {
-        abs(HeatMixingModel.heat(mass: coldMass, from: coldTemperature, to: finalTemperature))
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func celsius(_ value: Double, _ digits: Int = 1) -> String { L10n.measurement(value, fractionDigits: digits, unit: "°C", store.language) }
+
+    // Blue for cold water through purple to red for hot, by temperature from 0 to 100 °C.
+    private func waterColor(_ temperature: Double) -> Color {
+        let t = min(max(temperature / 100, 0), 1)
+        return Color(red: 0.15 + 0.8 * t, green: 0.35 - 0.2 * t, blue: 0.9 - 0.75 * t)
     }
 
     var body: some View {
+        let finalTemperature = Model.finalTemperature(coldMass: coldMass, coldTemperature: coldTemperature, hotMass: hotMass, hotTemperature: hotTemperature)
+        let transferredHeat = abs(Model.heat(mass: coldMass, from: coldTemperature, to: finalTemperature))
         LabCard {
-            Text(L10n.text("lab.heat.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.heat.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.heat.title"), instruction: text("lab.heat.subtitle"))
+            HStack(alignment: .bottom, spacing: 22) {
+                beaker(text("lab.heat.first"), mass: coldMass, temperature: coldTemperature)
+                Image(systemName: "plus").font(.title2.weight(.bold)).foregroundStyle(.secondary)
+                beaker(text("lab.heat.second"), mass: hotMass, temperature: hotTemperature)
+                Image(systemName: "arrow.right").font(.title2.weight(.bold)).foregroundStyle(.secondary)
+                beaker(text("lab.heat.mixture"), mass: coldMass + hotMass, temperature: finalTemperature)
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.heat.scale"))
+            .accessibilityValue(Text(verbatim: celsius(finalTemperature)))
 
-            portionControls(titleKey: "lab.heat.first", mass: $coldMass, temperature: $coldTemperature)
-            portionControls(titleKey: "lab.heat.second", mass: $hotMass, temperature: $hotTemperature)
-
-            Text(String(format: L10n.text("lab.heat.result", store.language), L10n.measurement(finalTemperature, fractionDigits: 1, unit: "°C", store.language)))
-                .font(.headline.monospacedDigit())
-                .accessibilityIdentifier("lab.heat.result")
-            Text(String(format: L10n.text("lab.heat.transfer", store.language), L10n.measurement(transferredHeat / 1000, fractionDigits: 1, unit: "kJ", store.language)))
+            Grid(alignment: .leading, horizontalSpacing: 14, verticalSpacing: 8) {
+                portion(text("lab.heat.first"), mass: $coldMass, temperature: $coldTemperature)
+                portion(text("lab.heat.second"), mass: $hotMass, temperature: $hotTemperature)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.heat.statFinal"), value: celsius(finalTemperature), tint: .purple)
+                LabStat(label: text("lab.heat.statHeat"), value: L10n.measurement(transferredHeat / 1000, fractionDigits: 1, unit: "kJ", store.language), tint: .orange)
+            }
+            Text(String(format: text("lab.heat.result"), celsius(finalTemperature)))
                 .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-            temperatureScale
-                .frame(height: 28)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.heat.scale", store.language))
-                .accessibilityValue(String(format: L10n.text("lab.heat.result", store.language), L10n.measurement(finalTemperature, fractionDigits: 1, unit: "°C", store.language)))
-
-            Text(L10n.text("lab.heat.challenge", store.language))
-                .font(.callout)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            Text(L10n.text("lab.heat.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.heat.result")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.heat.goal"),
+                         solved: coldTemperature == 20 && hotTemperature == 80 && abs(finalTemperature - 40) < 0.05, solvedText: text("lab.heat.goalSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.heat.hint"),
+                String(format: text("lab.heat.transfer"), L10n.measurement(transferredHeat / 1000, fractionDigits: 1, unit: "kJ", store.language)),
+                text("lab.heat.challenge"),
+                text("lab.heat.limit"),
+            ])
         }
     }
 
-    private func portionControls(titleKey: String, mass: Binding<Double>, temperature: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(titleKey, store.language))
-                .font(.callout.weight(.semibold))
-            HStack(spacing: 16) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(String(format: L10n.text("lab.heat.mass", store.language), L10n.measurement(mass.wrappedValue, fractionDigits: 1, unit: "kg", store.language)))
-                        .font(.caption.monospacedDigit())
-                    Slider(value: mass, in: HeatMixingModel.massRange, step: 0.5)
-                        .accessibilityLabel(L10n.text(titleKey, store.language) + ", " + L10n.text("lab.heat.massLabel", store.language))
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(String(format: L10n.text("lab.heat.temperature", store.language), temperature.wrappedValue))
-                        .font(.caption.monospacedDigit())
-                    Slider(value: temperature, in: HeatMixingModel.temperatureRange, step: 1)
-                        .accessibilityLabel(L10n.text(titleKey, store.language) + ", " + L10n.text("lab.heat.temperatureLabel", store.language))
-                }
+    private func portion(_ title: String, mass: Binding<Double>, temperature: Binding<Double>) -> some View {
+        GridRow {
+            Text(title).font(.callout.weight(.semibold))
+            Text(String(format: text("lab.heat.mass"), L10n.measurement(mass.wrappedValue, fractionDigits: 1, unit: "kg", store.language))).monospacedDigit().frame(minWidth: 90, alignment: .leading)
+            // Rounded values without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { mass.wrappedValue }, set: { mass.wrappedValue = ($0 * 10).rounded() / 10 }), in: Model.massRange)
+                .accessibilityLabel(Text(title + " · " + text("lab.heat.massLabel")))
+            Text(String(format: text("lab.heat.temperature"), temperature.wrappedValue)).monospacedDigit().frame(minWidth: 80, alignment: .leading)
+            Slider(value: Binding(get: { temperature.wrappedValue }, set: { temperature.wrappedValue = $0.rounded() }), in: Model.temperatureRange)
+                .accessibilityLabel(Text(title + " · " + text("lab.heat.temperatureLabel")))
+        }
+    }
+
+    // A beaker filled in proportion to the mass and coloured by temperature, with a thermometer reading.
+    private func beaker(_ title: String, mass: Double, temperature: Double) -> some View {
+        VStack(spacing: 6) {
+            Text(verbatim: celsius(temperature)).font(.headline.monospacedDigit()).foregroundStyle(waterColor(temperature))
+            ZStack(alignment: .bottom) {
+                RoundedRectangle(cornerRadius: 10).stroke(Color.secondary, lineWidth: 2).frame(width: 90, height: 150)
+                RoundedRectangle(cornerRadius: 8).fill(waterColor(temperature).gradient)
+                    .frame(width: 84, height: max(6, 146 * CGFloat(mass / (2 * Model.massRange.upperBound))))
+                    .padding(.bottom, 2)
             }
+            Text(verbatim: "\(title) · " + L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)).font(.caption).foregroundStyle(.secondary)
         }
-    }
-
-    // Markers for both starting temperatures and the mixture on a 0–100 °C scale.
-    private var temperatureScale: some View {
-        GeometryReader { geometry in
-            ZStack(alignment: .leading) {
-                Capsule()
-                    .fill(LinearGradient(colors: [.blue.opacity(0.5), .red.opacity(0.5)], startPoint: .leading, endPoint: .trailing))
-                    .frame(height: 8)
-                marker(at: coldTemperature, width: geometry.size.width, color: .secondary)
-                marker(at: hotTemperature, width: geometry.size.width, color: .secondary)
-                marker(at: finalTemperature, width: geometry.size.width, color: .accentColor)
-            }
-            .frame(maxHeight: .infinity)
-        }
-    }
-
-    private func marker(at temperature: Double, width: CGFloat, color: Color) -> some View {
-        Circle()
-            .fill(color)
-            .frame(width: 12, height: 12)
-            .offset(x: width * CGFloat(temperature / HeatMixingModel.temperatureRange.upperBound) - 6)
+        .animation(.easeInOut(duration: 0.25), value: temperature)
+        .animation(.easeInOut(duration: 0.25), value: mass)
     }
 }
 
@@ -14521,12 +14609,7 @@ private struct DataStructureChoiceLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.dataStructures.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.dataStructures.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.dataStructures.title", store.language), instruction: L10n.text("lab.dataStructures.hint", store.language))
 
             if let scenario = currentScenario {
                 Text(String(format: L10n.text("lab.dataStructures.progress", store.language), stepIndex + 1, DataStructureChoicePractice.scenarios.count))
@@ -14588,10 +14671,7 @@ private struct DataStructureChoiceLab: View {
                 .buttonStyle(.bordered)
             }
 
-            Text(L10n.text("lab.dataStructures.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.dataStructures.limit", store.language)])
         }
     }
 
@@ -14653,10 +14733,7 @@ private struct LoopTraceLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.loopTraceHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.LoopTraceLab", store.language), instruction: L10n.text("lab.loopTraceHint", store.language))
 
             Text("count_even(\(scenario.displayedValues))")
                 .font(.system(.body, design: .monospaced).weight(.semibold))
@@ -14833,10 +14910,7 @@ private struct CollectionsLoopsLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.collectionsHelp", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.CollectionsLoopsLab", store.language), instruction: L10n.text("lab.collectionsHelp", store.language))
 
             Text("tasks = [\(tasks.map { "\"\($0)\"" }.joined(separator: ", "))]")
                 .font(.system(.body, design: .monospaced).weight(.medium))
