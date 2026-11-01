@@ -2272,10 +2272,7 @@ private struct AnimalGroupLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.animalGroupHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AnimalGroupLab", store.language), instruction: L10n.text("lab.animalGroupHint", store.language))
 
             if complete {
                 Label(L10n.text("lab.animalGroupComplete", store.language), systemImage: "checkmark.circle.fill")
@@ -2385,10 +2382,7 @@ private struct AnimalLineageLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.lineageHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AnimalLineageLab", store.language), instruction: L10n.text("lab.lineageHint", store.language))
 
             VStack(spacing: 12) {
                 Label(L10n.text("lab.lineageBilateria", store.language), systemImage: "point.3.connected.trianglepath.dotted")
@@ -2525,9 +2519,7 @@ private struct GeometryMeasureLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.geometryHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.GeometryMeasureLab", store.language), instruction: L10n.text("lab.geometryHint", store.language))
             Picker(L10n.text("lab.geometryShape", store.language), selection: $shape) {
                 Text(L10n.text("lab.geometryRectangle", store.language)).tag(GeometryShape.rectangle)
                 Text(L10n.text("lab.geometryTriangle", store.language)).tag(GeometryShape.rightTriangle)
@@ -2974,10 +2966,7 @@ private struct RationalExpressionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.rationalHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.RationalExpressionLab", store.language), instruction: L10n.text("lab.rationalHint", store.language))
 
             Text("f(x) = (x² − 9) / (x − 3)")
                 .font(.title3.monospaced().weight(.semibold))
@@ -3373,9 +3362,7 @@ private struct DomainRangeLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.domainHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.DomainRangeLab", store.language), instruction: L10n.text("lab.domainHint", store.language))
 
             Picker("", selection: $selectedScenario) {
                 Text(L10n.text("lab.domainTaxi", store.language)).tag(0)
@@ -4285,9 +4272,7 @@ private struct OsmosisLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.osmosisHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.OsmosisLab", store.language), instruction: L10n.text("lab.osmosisHint", store.language))
 
             HStack(alignment: .center, spacing: 14) {
                 concentrationDisplay(
@@ -4788,9 +4773,7 @@ private struct SymmetryLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.symmetryHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.SymmetryLab", store.language), instruction: L10n.text("lab.symmetryHint", store.language))
 
             Picker(L10n.text("lab.symmetryPlan", store.language), selection: $bodyPlan) {
                 Text(L10n.text("lab.symmetryOptionAsym", store.language)).tag(0)
@@ -5484,9 +5467,7 @@ private struct FrictionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.frictionHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.FrictionLab", store.language), instruction: L10n.text("lab.frictionHint", store.language))
                 .accessibilityIdentifier("lesson.friction.model")
 
             GeometryReader { geometry in
@@ -5970,9 +5951,7 @@ private struct KineticEnergyLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.energyHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.KineticEnergyLab", store.language), instruction: L10n.text("lab.energyHint", store.language))
 
             Energy3DVisualization(mass: mass, speed: finalSpeed)
                 .frame(height: 190)
@@ -6098,10 +6077,7 @@ private struct MomentumCollisionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.momentumHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.MomentumCollisionLab", store.language), instruction: L10n.text("lab.momentumHint", store.language))
 
             Canvas { context, size in
                 let baseline = size.height * 0.69
@@ -6535,9 +6511,7 @@ private struct GeneRegulationLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.dnaModelHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("labkit.title.GeneRegulationLab", store.language), instruction: L10n.text("lab.dnaModelHint", store.language))
 
             Picker(L10n.text("lab.dnaVariant", store.language), selection: $variant) {
                 Text(L10n.text("lab.dnaVariant0", store.language)).tag(0)
@@ -6687,10 +6661,7 @@ private struct GeneExpressionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.geneExpressionHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.GeneExpressionLab", store.language), instruction: L10n.text("lab.geneExpressionHint", store.language))
 
             Toggle(L10n.text("lab.geneExpressionRegulator", store.language), isOn: $transcriptionEnabled)
                 .onChange(of: transcriptionEnabled) { _ in
@@ -6819,10 +6790,7 @@ private struct CellCycleLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.cellCycle.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.CellCycleLab", store.language), instruction: L10n.text("lab.cellCycle.hint", store.language))
 
             Picker(L10n.text("lab.cellCycle.chooseStage", store.language), selection: $selectedStage) {
                 ForEach(CellCycleStage.allCases) { stage in
@@ -6969,10 +6937,7 @@ private struct AnimalFunctionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.zoology.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AnimalFunctionLab", store.language), instruction: L10n.text("lab.zoology.hint", store.language))
 
             Picker(L10n.text("lab.zoology.chooseFunction", store.language), selection: $selectedFunction) {
                 ForEach(AnimalFunction.allCases) { function in
@@ -8953,10 +8918,7 @@ private struct AlgorithmicThinkingLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.algorithmHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.AlgorithmicThinkingLab", store.language), instruction: L10n.text("lab.algorithmHint", store.language))
 
             if let currentQuestion = session.currentQuestion {
                 Text(L10n.text(currentQuestion.contextKey, store.language))
@@ -9470,10 +9432,7 @@ private struct FileReadingLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.fileTrace.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.FileReadingLab", store.language), instruction: L10n.text("lab.fileTrace.hint", store.language))
 
             Picker(L10n.text("lab.fileTrace.scenario", store.language), selection: $scenarioID) {
                 ForEach(FileReadingPractice.scenarios) { item in
@@ -9574,10 +9533,7 @@ private struct TransactionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.transaction.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.TransactionLab", store.language), instruction: L10n.text("lab.transaction.hint", store.language))
 
             Picker(L10n.text("lab.transaction.scenarioPicker", store.language), selection: $scenario) {
                 ForEach(TransactionScenario.allCases) { item in
@@ -9819,10 +9775,7 @@ private struct DebuggingLab: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             LabCard {
-                Text(L10n.text("lab.debugging.hint", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                LabHeader(title: L10n.text("labkit.title.DebuggingLab", store.language), instruction: L10n.text("lab.debugging.hint", store.language))
 
                 Picker(L10n.text("lab.debugging.scenarioPicker", store.language), selection: $scenarioID) {
                     ForEach(DebuggingPractice.scenarios) { item in
@@ -10120,10 +10073,7 @@ private struct LinearSystemLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.linearSystemHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.LinearSystemLab", store.language), instruction: L10n.text("lab.linearSystemHint", store.language))
 
             Picker(L10n.text("lab.linearSystemScenario", store.language), selection: $scenarioID) {
                 Text(L10n.text("lab.linearSystemUnique", store.language)).tag("unique")
@@ -10716,10 +10666,7 @@ private struct ThermalStrategyLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.zoology.thermal.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.ThermalStrategyLab", store.language), instruction: L10n.text("lab.zoology.thermal.hint", store.language))
 
             VStack(alignment: .leading, spacing: 8) {
                 Text(L10n.text("lab.zoology.thermal.modeTitle", store.language))
@@ -14759,10 +14706,7 @@ private struct LoopTraceLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.loopTraceHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.LoopTraceLab", store.language), instruction: L10n.text("lab.loopTraceHint", store.language))
 
             Text("count_even(\(scenario.displayedValues))")
                 .font(.system(.body, design: .monospaced).weight(.semibold))
@@ -14939,10 +14883,7 @@ private struct CollectionsLoopsLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.collectionsHelp", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("labkit.title.CollectionsLoopsLab", store.language), instruction: L10n.text("lab.collectionsHelp", store.language))
 
             Text("tasks = [\(tasks.map { "\"\($0)\"" }.joined(separator: ", "))]")
                 .font(.system(.body, design: .monospaced).weight(.medium))
