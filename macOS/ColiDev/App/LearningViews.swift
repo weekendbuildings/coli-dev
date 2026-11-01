@@ -14074,13 +14074,18 @@ private struct MarkRecaptureLab: View {
     private var pond: some View {
         Canvas { context, size in
             context.fill(Path(roundedRect: CGRect(origin: .zero, size: size), cornerRadius: 18), with: .color(.teal.opacity(0.15)))
-            let columns = max(1, Int((Double(caught) * Double(size.width / size.height)).squareRoot().rounded(.up)))
-            let rows = Int((Double(caught) / Double(columns)).rounded(.up))
-            let cell = min(size.width / CGFloat(columns), size.height / CGFloat(max(rows, 1)))
+            // Typed steps keep older Swift compilers from timing out on one long expression.
+            let aspect: Double = Double(size.width / size.height)
+            let columns: Int = max(1, Int((Double(caught) * aspect).squareRoot().rounded(.up)))
+            let rows: Int = max(1, Int((Double(caught) / Double(columns)).rounded(.up)))
+            let cell: CGFloat = min(size.width / CGFloat(columns), size.height / CGFloat(rows))
+            let marginX: CGFloat = (size.width - cell * CGFloat(columns)) / 2
+            let marginY: CGFloat = (size.height - cell * CGFloat(rows)) / 2
             for index in 0..<caught {
-                let center = CGPoint(x: (CGFloat(index % columns) + 0.5) * cell + (size.width - cell * CGFloat(columns)) / 2,
-                                     y: (CGFloat(index / columns) + 0.5) * cell + (size.height - cell * CGFloat(rows)) / 2)
-                let radius = cell * 0.32
+                let column: CGFloat = CGFloat(index % columns)
+                let row: CGFloat = CGFloat(index / columns)
+                let center = CGPoint(x: (column + 0.5) * cell + marginX, y: (row + 0.5) * cell + marginY)
+                let radius: CGFloat = cell * 0.32
                 let isMarked = index < recaptured
                 context.fill(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius * 0.7, width: radius * 2, height: radius * 1.4)),
                              with: .color(isMarked ? .orange : .secondary.opacity(0.55)))
