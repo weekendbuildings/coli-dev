@@ -13713,6 +13713,7 @@ private struct CircuitLab: View {
     @State private var second = 6.0
     @State private var voltage = 12.0
     @State private var parallel = true
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private typealias Model = CircuitModel
 
@@ -13730,8 +13731,9 @@ private struct CircuitLab: View {
             .pickerStyle(.segmented)
             .accessibilityIdentifier("lab.circuit.mode")
 
-            TimelineView(.animation) { timeline in
-                schematic(time: timeline.date.timeIntervalSinceReferenceDate)
+            // With Reduce Motion the current dots stay still; their spacing still shows the circuit.
+            TimelineView(.animation(paused: reduceMotion)) { timeline in
+                schematic(time: reduceMotion ? 0 : timeline.date.timeIntervalSinceReferenceDate)
             }
             .frame(height: 230)
             .accessibilityElement(children: .ignore)
