@@ -684,3 +684,25 @@ def test_plasticity_and_enzyme_labs_are_wired_into_the_app_project_and_ci() -> N
     _, enzyme = _sections("Chemistry", "enzyme_kinetics_michaelis_menten")
     assert "v = 100 · 6 / (2 + 6) = 75" in enzyme
     assert math.isclose(100 * 6 / (2 + 6), 75)
+
+
+def test_euler_and_autocatalysis_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "euler_method_numerical_modeling"' in views and "EulerMethodLab()" in views
+    assert 'moduleResource == "prebiotic_chemistry_and_autocatalysis"' in views and "AutocatalysisLab()" in views
+    assert "GrowthModelLabs.swift in Sources" in project and "scripts/verify_growth_model_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Both labs start at their lesson quizzes: Euler with h = 1 gives 121, and ten doublings give 1024.
+    _, euler = _sections("Mathematics", "euler_method_numerical_modeling")
+    assert "N₂ = 110 + 1 · 0.1 · 110 = 121" in euler and "122.14" in euler
+    assert math.isclose(100 * 1.1 * 1.1, 121) and math.isclose(100 * math.exp(0.2), 122.14, abs_tol=5e-3)
+    _, autocatalysis = _sections("Chemistry", "prebiotic_chemistry_and_autocatalysis")
+    assert "2¹⁰ = 1024" in autocatalysis and 2 ** 10 == 1024

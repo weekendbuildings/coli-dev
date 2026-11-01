@@ -1870,6 +1870,10 @@ private struct PracticeLab: View {
             SynapticPlasticityLab()
         } else if subject == .chemistry, moduleResource == "enzyme_kinetics_michaelis_menten" {
             MichaelisMentenLab()
+        } else if subject == .mathematics, moduleResource == "euler_method_numerical_modeling" {
+            EulerMethodLab()
+        } else if subject == .chemistry, moduleResource == "prebiotic_chemistry_and_autocatalysis" {
+            AutocatalysisLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12020,6 +12024,200 @@ private struct MichaelisMentenLab: View {
 
             let current = position(substrate, Model.rate(substrate: substrate, maximumRate: maximumRate, michaelisConstant: michaelisConstant))
             context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(.orange))
+        }
+    }
+}
+
+private struct EulerMethodLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var stepIndex = 0
+    @State private var endTime = 2
+
+    private typealias Model = EulerMethodModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var stepSize: Double { Model.stepSizes[stepIndex] }
+
+    var body: some View {
+        let euler = Model.eulerValue(stepSize: stepSize, endTime: endTime)
+        let exact = Model.exactValue(at: Double(endTime))
+        LabCard {
+            Text(L10n.text("lab.euler.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.euler.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            chart
+                .frame(height: 170)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.euler.chart", store.language))
+                .accessibilityValue(Text(verbatim: "\(number(euler, 2)); \(number(exact, 2))"))
+
+            Text(L10n.text("lab.euler.stepLabel", store.language))
+            Picker(L10n.text("lab.euler.stepLabel", store.language), selection: $stepIndex) {
+                ForEach(Model.stepSizes.indices, id: \.self) { index in
+                    Text(verbatim: "h = " + number(Model.stepSizes[index], [0, 1, 2, 1][index])).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .accessibilityIdentifier("lab.euler.step")
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.euler.endTime", store.language), String(endTime)))
+                    .monospacedDigit()
+                // Rounds to whole time units without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { Double(endTime) }, set: { endTime = Int($0.rounded()) }),
+                       in: Double(Model.endTimeRange.lowerBound)...Double(Model.endTimeRange.upperBound))
+                    .accessibilityLabel(L10n.text("lab.euler.endTimeLabel", store.language))
+                    .accessibilityValue(Text(verbatim: String(endTime)))
+                    .accessibilityIdentifier("lab.euler.endTime")
+            }
+
+            Text(String(format: L10n.text("lab.euler.result", store.language), String(endTime), number(euler, 2),
+                        String(Model.stepCount(stepSize: stepSize, endTime: endTime))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.euler.result")
+            Text(String(format: L10n.text("lab.euler.exact", store.language), number(exact, 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.euler.exact")
+            Text(String(format: L10n.text("lab.euler.error", store.language), number(exact - euler, 2), number((exact - euler) / exact * 100, 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.euler.error")
+            Text(L10n.text("lab.euler.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // The exact curve N₀·e^(r·t) and Euler's broken line with a dot after every step.
+    private var chart: some View {
+        Canvas { context, size in
+            let maxX = Double(endTime), maxY = Model.exactValue(at: maxX) * 1.08
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+
+            var exactPath = Path()
+            for index in 0...200 {
+                let t = maxX * Double(index) / 200
+                let point = position(t, Model.exactValue(at: t))
+                if index == 0 { exactPath.move(to: point) } else { exactPath.addLine(to: point) }
+            }
+            context.stroke(exactPath, with: .color(.accentColor), lineWidth: 2)
+
+            let points = Model.eulerPoints(stepSize: stepSize, endTime: endTime)
+            var eulerPath = Path()
+            for (index, point) in points.enumerated() {
+                let location = position(point.t, point.value)
+                if index == 0 { eulerPath.move(to: location) } else { eulerPath.addLine(to: location) }
+            }
+            context.stroke(eulerPath, with: .color(.orange), lineWidth: 1.5)
+            if points.count <= 60 {
+                for point in points {
+                    let location = position(point.t, point.value)
+                    context.fill(Path(ellipseIn: CGRect(x: location.x - 3, y: location.y - 3, width: 6, height: 6)), with: .color(.orange))
+                }
+            }
+        }
+    }
+}
+
+private struct AutocatalysisLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var hours = 10
+    @State private var logarithmic = false
+
+    private typealias Model = AutocatalysisModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private func grouped(_ value: Int) -> String { value.formatted(.number.locale(locale)) }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.autocatalysis.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.autocatalysis.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            chart
+                .frame(height: 160)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.autocatalysis.chart", store.language))
+                .accessibilityValue(Text(verbatim: "\(grouped(Model.catalysed(hours: hours))); \(grouped(Model.autocatalytic(hours: hours)))"))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.autocatalysis.hours", store.language), String(hours)))
+                    .monospacedDigit()
+                // Rounds to whole hours without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { Double(hours) }, set: { hours = Int($0.rounded()) }),
+                       in: Double(Model.hourRange.lowerBound)...Double(Model.hourRange.upperBound))
+                    .accessibilityLabel(L10n.text("lab.autocatalysis.hoursLabel", store.language))
+                    .accessibilityValue(Text(verbatim: String(hours)))
+                    .accessibilityIdentifier("lab.autocatalysis.hours")
+            }
+            Toggle(L10n.text("lab.autocatalysis.log", store.language), isOn: $logarithmic)
+                .accessibilityIdentifier("lab.autocatalysis.log")
+
+            Text(String(format: L10n.text("lab.autocatalysis.counts", store.language), String(hours),
+                        grouped(Model.catalysed(hours: hours)), grouped(Model.autocatalytic(hours: hours))))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.autocatalysis.counts")
+            Text(String(format: L10n.text("lab.autocatalysis.overtake", store.language), String(Model.overtakingHour)))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            if logarithmic {
+                Text(L10n.text("lab.autocatalysis.logNote", store.language))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(L10n.text("lab.autocatalysis.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Both processes from hour 0 to the chosen hour, on a linear scale or as log₂ of the molecule count.
+    private var chart: some View {
+        Canvas { context, size in
+            let maxX = Double(max(hours, 1))
+            func scaled(_ count: Int) -> Double { logarithmic ? log2(Double(count)) : Double(count) }
+            let maxY = max(scaled(Model.autocatalytic(hours: max(hours, 1))), 1) * 1.08
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+
+            for (series, color) in [(Model.catalysed, Color.secondary), (Model.autocatalytic, Color.accentColor)] {
+                var path = Path()
+                for hour in 0...max(hours, 1) {
+                    let point = position(Double(hour), scaled(series(hour)))
+                    if hour == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(color))
+                }
+                context.stroke(path, with: .color(color), lineWidth: 2)
+            }
         }
     }
 }

@@ -657,6 +657,41 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testEulerMethodLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/euler_method_numerical_modeling"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let result = app.staticTexts["lab.euler.result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 10),
+            "The Euler method lesson must show its lab. / В уроке о методе Эйлера должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        XCTAssertTrue(text(result).contains("121"), "Two steps with h = 1 must give 121. / Два шага с h = 1 дают 121.\n\(text(result))")
+        let exact = app.staticTexts["lab.euler.exact"]
+        XCTAssertTrue(text(exact).contains("122,14") || text(exact).contains("122.14"), text(exact))
+    }
+
+    @MainActor
+    func testAutocatalysisLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/prebiotic_chemistry_and_autocatalysis"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let counts = app.staticTexts["lab.autocatalysis.counts"]
+        XCTAssertTrue(
+            counts.waitForExistence(timeout: 10),
+            "The autocatalysis lesson must show its lab. / В уроке об автокатализе должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (counts.value as? String ?? "") + " " + counts.label
+        // 1024 may be shown with a locale group separator, so check its last digits and the catalyst's 11.
+        XCTAssertTrue(shown.contains("024") && shown.contains("11"), "Ten hours must give 1024 and 11. / Через 10 ч должно быть 1024 и 11.\n\(shown)")
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"
