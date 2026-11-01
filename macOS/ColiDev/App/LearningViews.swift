@@ -6415,6 +6415,9 @@ private struct Energy3DVisualization: View {
 private struct PunnettLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var selectedCross = 0
+    @State private var sample: [String] = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     private var parentGenotypes: (String, String) {
         switch selectedCross {
@@ -6423,84 +6426,90 @@ private struct PunnettLab: View {
         default: return ("Aa", "Aa")
         }
     }
-
     private var firstParentGametes: [String] { parentGenotypes.0.map { String($0) } }
     private var secondParentGametes: [String] { parentGenotypes.1.map { String($0) } }
-
-    private var genotypeCounts: [String: Int] {
-        var counts: [String: Int] = [:]
-        for secondGamete in secondParentGametes {
-            for firstGamete in firstParentGametes {
-                counts[offspringGenotype(firstGamete, secondGamete), default: 0] += 1
-            }
-        }
-        return counts
-    }
-
+    private var cells: [String] { secondParentGametes.flatMap { second in firstParentGametes.map { offspringGenotype($0, second) } } }
+    private var genotypeCounts: [String: Int] { cells.reduce(into: [:]) { $0[$1, default: 0] += 1 } }
     private var probabilitySummary: String {
-        genotypeCounts.keys.sorted().map { genotype in
-            "\(genotype): \(genotypeCounts[genotype, default: 0] * 25)%"
-        }.joined(separator: " · ")
+        genotypeCounts.keys.sorted().map { "\($0): \(genotypeCounts[$0, default: 0] * 25)%" }.joined(separator: " · ")
     }
+    private func showsDominant(_ genotype: String) -> Bool { genotype.contains("A") }
 
     var body: some View {
+        let dominantShare = Double(cells.filter(showsDominant).count) / 4
         LabCard {
-            Text(L10n.text("lab.geneticsHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            Picker(L10n.text("lab.geneticsCross", store.language), selection: $selectedCross) {
-                Text(L10n.text("lab.geneticsCross0", store.language)).tag(0)
-                Text(L10n.text("lab.geneticsCross1", store.language)).tag(1)
-                Text(L10n.text("lab.geneticsCross2", store.language)).tag(2)
+            LabHeader(title: text("lab.geneticsTitle"), instruction: text("lab.geneticsSubtitle"))
+            Picker(text("lab.geneticsCross"), selection: Binding(get: { selectedCross }, set: { selectedCross = $0; sample = [] }).animation()) {
+                Text(verbatim: "Aa × Aa").tag(0)
+                Text(verbatim: "Aa × aa").tag(1)
+                Text(verbatim: "AA × aa").tag(2)
             }
-            .pickerStyle(.menu)
+            .pickerStyle(.segmented)
+            Text(text("lab.geneticsCross\(selectedCross)")).font(.callout).foregroundStyle(.secondary)
 
-            HStack(alignment: .top, spacing: 18) {
-                Text("\(L10n.text("lab.geneticsParent1", store.language)): \(parentGenotypes.0)")
-                Text("\(L10n.text("lab.geneticsParent2", store.language)): \(parentGenotypes.1)")
+            HStack(alignment: .top, spacing: 24) {
+                grid
+                if !sample.isEmpty { offspringField }
             }
-            .font(.callout.monospacedDigit().weight(.medium))
+            HStack(spacing: 12) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        sample = (0..<100).map { _ in offspringGenotype(firstParentGametes.randomElement()!, secondParentGametes.randomElement()!) }
+                    }
+                } label: { Label(text("lab.geneticsBreed"), systemImage: "dice.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.genetics.breed")
+                Text(verbatim: text("lab.geneticsOutcomes") + ": " + probabilitySummary).font(.callout.monospacedDigit())
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.geneticsStatExpected"), value: L10n.number(dominantShare * 100, fractionDigits: 0, store.language) + " %", tint: .purple)
+                LabStat(label: text("lab.geneticsStatObserved"),
+                        value: sample.isEmpty ? "—" : String(sample.filter(showsDominant).count) + " / 100", tint: .orange)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.geneticsChallenge"), solved: selectedCross == 2, solvedText: text("lab.geneticsChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.geneticsHint")])
+        }
+    }
 
-            VStack(spacing: 7) {
-                HStack(spacing: 7) {
-                    Color.clear.frame(width: 54, height: 34)
+    // The Punnett square with large cells; purple cells carry the dominant allele A (dominant trait), white ones are aa.
+    private var grid: some View {
+        Grid(horizontalSpacing: 8, verticalSpacing: 8) {
+            GridRow {
+                Text(verbatim: "♂ \\ ♀").font(.caption).foregroundStyle(.secondary).frame(width: 56, height: 44)
+                ForEach(firstParentGametes.indices, id: \.self) { column in
+                    Text(firstParentGametes[column]).font(.title2.weight(.bold)).frame(width: 80, height: 44)
+                        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                }
+            }
+            ForEach(secondParentGametes.indices, id: \.self) { row in
+                GridRow {
+                    Text(secondParentGametes[row]).font(.title2.weight(.bold)).frame(width: 56, height: 80)
+                        .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
                     ForEach(firstParentGametes.indices, id: \.self) { column in
-                        Text(firstParentGametes[column])
-                            .font(.headline.monospaced())
-                            .frame(maxWidth: .infinity, minHeight: 34)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+                        let genotype = offspringGenotype(firstParentGametes[column], secondParentGametes[row])
+                        Text(genotype)
+                            .font(.title.weight(.bold))
+                            .foregroundStyle(showsDominant(genotype) ? Color.white : Color.primary)
+                            .frame(width: 80, height: 80)
+                            .background(showsDominant(genotype) ? Color.purple.opacity(0.85) : Color.secondary.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
+                            .accessibilityLabel(Text("\(text("lab.geneticsOffspring")): \(genotype)"))
                     }
                 }
-                ForEach(secondParentGametes.indices, id: \.self) { row in
-                    HStack(spacing: 7) {
-                        Text(secondParentGametes[row])
-                            .font(.headline.monospaced())
-                            .frame(width: 54, height: 54)
-                            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
-                        ForEach(firstParentGametes.indices, id: \.self) { column in
-                            let genotype = offspringGenotype(
-                                firstParentGametes[column],
-                                secondParentGametes[row]
-                            )
-                            Text(genotype)
-                                .font(.title3.monospaced().weight(.semibold))
-                                .frame(maxWidth: .infinity, minHeight: 54)
-                                .background(Color.indigo.opacity(0.11), in: RoundedRectangle(cornerRadius: 8))
-                                .accessibilityLabel(Text(
-                                    "\(L10n.text("lab.geneticsOffspring", store.language)): \(genotype)"
-                                ))
-                        }
-                    }
-                }
-            }
-
-            LabeledContent(L10n.text("lab.geneticsOutcomes", store.language)) {
-                Text(probabilitySummary)
-                    .font(.callout.monospacedDigit().weight(.medium))
-                    .multilineTextAlignment(.trailing)
             }
         }
+    }
+
+    // A hundred random offspring from the same cross: chance makes the count wander around the expected share.
+    private var offspringField: some View {
+        Canvas { context, size in
+            let cell = min(size.width, size.height) / 10
+            for (index, genotype) in sample.enumerated() {
+                let rect = CGRect(x: CGFloat(index % 10) * cell + cell * 0.15, y: CGFloat(index / 10) * cell + cell * 0.15, width: cell * 0.7, height: cell * 0.7)
+                context.fill(Path(ellipseIn: rect), with: .color(showsDominant(genotype) ? .purple : .secondary.opacity(0.35)))
+            }
+        }
+        .frame(width: 220, height: 220)
+        .accessibilityHidden(true)
     }
 
     private func offspringGenotype(_ firstAllele: String, _ secondAllele: String) -> String {
