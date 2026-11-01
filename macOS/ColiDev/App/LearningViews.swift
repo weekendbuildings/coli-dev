@@ -2510,8 +2510,9 @@ private struct AnimalLineageLab: View {
 private struct GeometryMeasureLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var shape = GeometryShape.rectangle
-    @State private var base = 6.0
-    @State private var height = 4.0
+    // Not 6 × 4: that rectangle is the answer to the task below.
+    @State private var base = 5.0
+    @State private var height = 3.0
 
     private static let maxSide = 10.0
 
@@ -5637,42 +5638,14 @@ private struct FrictionLab: View {
             LabHeader(title: L10n.text("labkit.title.FrictionLab", store.language), instruction: L10n.text("lab.frictionHint", store.language),
                       instructionIdentifier: "lesson.friction.model")
 
-            GeometryReader { geometry in
-                let width = max(geometry.size.width - 64, 0)
-                let travel = min(width, motion.displacement * 16)
-                ZStack(alignment: .leading) {
-                    VStack(spacing: 0) {
-                        Spacer()
-                        Rectangle()
-                            .fill(.secondary.opacity(0.45))
-                            .frame(height: 3)
-                    }
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.accentColor.gradient)
-                        .overlay {
-                            Image(systemName: "shippingbox.fill")
-                                .foregroundStyle(.white)
-                        }
-                        .frame(width: 54, height: 42)
-                        .offset(x: travel, y: 0)
-                        .accessibilityHidden(true)
-                }
+            Canvas { context, size in drawForces(context, size: size) }
+                .frame(height: 130)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(L10n.text("lab.frictionBlock", store.language)))
                 .accessibilityValue(Text(motion.isSliding
                     ? L10n.text("lab.frictionSliding", store.language)
                     : L10n.text("lab.frictionResting", store.language)))
-            }
-            .frame(height: 64)
-            .accessibilityElement(children: .contain)
-
-            HStack(spacing: 14) {
-                Label("F = " + L10n.measurement(appliedForce, fractionDigits: 1, unit: "N", store.language), systemImage: "arrow.right")
-                Label("f = " + L10n.measurement(motion.frictionForce, fractionDigits: 1, unit: "N", store.language), systemImage: "arrow.left")
-            }
-            .font(.callout.monospacedDigit())
-            .accessibilityElement(children: .combine)
-
             Text(L10n.text(motion.isSliding ? "lab.frictionSliding" : "lab.frictionResting", store.language))
                 .font(.headline)
                 .foregroundStyle(motion.isSliding ? Color.orange : Color.primary)
@@ -5681,6 +5654,12 @@ private struct FrictionLab: View {
                 + L10n.measurement(motion.maximumStaticFriction, fractionDigits: 2, unit: "N", store.language))
                 .font(.callout.monospacedDigit())
                 .accessibilityIdentifier("lesson.friction.threshold")
+            Canvas { context, size in drawFrictionGraph(context, size: size) }
+                .frame(height: 190)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(L10n.text("lab.frictionGraph", store.language)))
+                .accessibilityValue(Text(verbatim: "F = " + L10n.measurement(appliedForce, fractionDigits: 1, unit: "N", store.language)
+                                         + ", f = " + L10n.measurement(motion.frictionForce, fractionDigits: 1, unit: "N", store.language)))
 
             slider("lab.mass", value: $mass, range: 1...10, step: 0.5, unit: "kg", identifier: "mass")
             slider("lab.frictionPush", value: $appliedForce, range: 0...60, step: 1, unit: "N", identifier: "push")
@@ -5699,13 +5678,84 @@ private struct FrictionLab: View {
             Text(L10n.text("lab.frictionPrediction", store.language))
                 .font(.callout)
             predictionPracticeView
-            Text(L10n.text("lab.frictionLimits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.frictionChallenge", store.language),
+                         solved: !motion.isSliding && appliedForce + 1 > motion.maximumStaticFriction,
+                         solvedText: L10n.text("lab.frictionChallengeSolved", store.language))
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.frictionLimits", store.language)])
         }
         .onChange(of: staticCoefficient) { newValue in
             kineticCoefficient = min(kineticCoefficient, newValue)
         }
+    }
+
+    // The block on the floor with its forces: the push to the right, friction to the left, and the normal force up.
+    private func drawForces(_ context: GraphicsContext, size: CGSize) {
+        let floor = size.height - 16
+        let margin: CGFloat = 132
+        let usable = max(size.width - margin * 2 - 64, 0)
+        let blockX = margin + min(usable, CGFloat(motion.displacement) * 16)
+        var ground = Path()
+        ground.move(to: CGPoint(x: 8, y: floor))
+        ground.addLine(to: CGPoint(x: size.width - 8, y: floor))
+        context.stroke(ground, with: .color(.secondary.opacity(0.6)), lineWidth: 3)
+        let block = CGRect(x: blockX, y: floor - 44, width: 64, height: 44)
+        context.fill(Path(roundedRect: block, cornerRadius: 8), with: .color(motion.isSliding ? .orange : .accentColor))
+        context.draw(Text(verbatim: L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)).font(.caption.weight(.bold)).foregroundColor(.white),
+                     at: CGPoint(x: block.midX, y: block.midY))
+        let pixelsPerNewton: CGFloat = 1.6
+        forceArrow(context, from: CGPoint(x: block.maxX, y: block.midY), to: CGPoint(x: block.maxX + CGFloat(appliedForce) * pixelsPerNewton, y: block.midY),
+                   colour: .blue, label: "F = " + L10n.measurement(appliedForce, fractionDigits: 0, unit: "N", store.language), labelOffset: CGPoint(x: 6, y: 0), anchor: .leading)
+        forceArrow(context, from: CGPoint(x: block.minX, y: floor - 8), to: CGPoint(x: block.minX - CGFloat(motion.frictionForce) * pixelsPerNewton, y: floor - 8),
+                   colour: .red, label: "f = " + L10n.measurement(motion.frictionForce, fractionDigits: 1, unit: "N", store.language), labelOffset: CGPoint(x: -6, y: 0), anchor: .trailing)
+        forceArrow(context, from: CGPoint(x: block.midX, y: block.minY), to: CGPoint(x: block.midX, y: block.minY - 34),
+                   colour: .green, label: "N = " + L10n.measurement(motion.normalForce, fractionDigits: 1, unit: "N", store.language), labelOffset: CGPoint(x: 8, y: 8), anchor: .leading)
+    }
+
+    private func forceArrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, colour: Color, label: String, labelOffset: CGPoint, anchor: UnitPoint) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 2 else { return }
+        let ux = dx / length, uy = dy / length
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 9 - uy * 5, y: end.y - uy * 9 + ux * 5))
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 9 + uy * 5, y: end.y - uy * 9 - ux * 5))
+        context.stroke(path, with: .color(colour), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        context.draw(Text(verbatim: label).font(.caption2.weight(.semibold)).foregroundColor(colour),
+                     at: CGPoint(x: end.x + labelOffset.x, y: end.y + labelOffset.y), anchor: anchor)
+    }
+
+    // Friction against push: at rest f matches F up to the static limit, then the block slips and f drops to the smaller kinetic value.
+    private func drawFrictionGraph(_ context: GraphicsContext, size: CGSize) {
+        let threshold = motion.maximumStaticFriction
+        let kinetic = min(kineticCoefficient, staticCoefficient) * motion.normalForce
+        let plot = LabPlotGeometry(size: size, x: 0...60, y: 0...max(min(threshold, 60) * 1.25, 10), leading: 40, bottom: 28)
+        let unit = L10n.unit("N", store.language)
+        plot.drawAxes(in: context, xLabel: "F, " + unit, yLabel: "f, " + unit, format: { L10n.number($0, fractionDigits: 0, store.language) })
+        let limit = min(threshold, 60)
+        var curve = Path()
+        curve.move(to: plot.point(0, 0))
+        curve.addLine(to: plot.point(limit, limit))
+        context.stroke(curve, with: .color(.accentColor), lineWidth: 3)
+        if threshold < 60 {
+            var drop = Path()
+            drop.move(to: plot.point(threshold, threshold))
+            drop.addLine(to: plot.point(threshold, kinetic))
+            context.stroke(drop, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            var sliding = Path()
+            sliding.move(to: plot.point(threshold, kinetic))
+            sliding.addLine(to: plot.point(60, kinetic))
+            context.stroke(sliding, with: .color(.orange), lineWidth: 3)
+            context.draw(Text(L10n.text("lab.frictionZoneSlide", store.language)).font(.caption.weight(.semibold)).foregroundColor(.orange),
+                         at: CGPoint(x: plot.point((threshold + 60) / 2, 0).x, y: plot.point(0, kinetic).y - 12))
+        }
+        context.draw(Text(L10n.text("lab.frictionZoneRest", store.language)).font(.caption.weight(.semibold)).foregroundColor(.accentColor),
+                     at: CGPoint(x: plot.point(limit / 2, 0).x + 26, y: plot.point(0, limit / 2).y + 6))
+        let now = plot.point(appliedForce, motion.frictionForce)
+        context.fill(Path(ellipseIn: CGRect(x: now.x - 7, y: now.y - 7, width: 14, height: 14)), with: .color(motion.isSliding ? .orange : .accentColor))
     }
 
     private var predictionPracticeView: some View {
@@ -5806,7 +5856,8 @@ private struct FrictionLab: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
-            Slider(value: value, in: range, step: step)
+            // Rounded to the step without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step }), in: range)
                 .accessibilityLabel(Text(L10n.text(titleKey, store.language)))
                 .accessibilityValue(Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 2, unit: unit, store.language)))
                 .accessibilityIdentifier("lesson.friction.slider.\(identifier)")
