@@ -550,3 +550,94 @@ def test_idempotency_program_runs_as_described() -> None:
     assert "PUT" in russian and "DELETE" in english and "Idempotency-Key" in english
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Programming", "retries_and_idempotency")
+
+
+def _run_lesson_code(subject: str, name: str) -> tuple[str, str, str]:
+    import contextlib
+    import io
+
+    russian, english = _sections(subject, name)
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    output = io.StringIO()
+    with contextlib.redirect_stdout(output):
+        exec(code, {"__name__": "lesson"})
+    return russian, english, output.getvalue().strip()
+
+
+def test_pendulum_fit_gives_g_from_the_slope() -> None:
+    # The single-point example from College Physics 2e 16.4.
+    assert math.isclose(4 * math.pi ** 2 * 0.75000 / 1.7357 ** 2, 9.8281, abs_tol=5e-5)
+    assert math.isclose(4 * math.pi ** 2 / 4.00, math.pi ** 2)  # the quiz: slope 4.00 s²/m
+    russian, english, printed = _run_lesson_code("Physics", "fitting_pendulum_data_least_squares")
+    assert printed == "4.053 -0.012 9.74"
+    assert "4.053 -0.012 9.74" in russian and "4.053 -0.012 9.74" in english
+    # Shifting every length by the same offset leaves the slope unchanged, as the practice task claims.
+    lengths, squares = [0.25, 0.50, 0.75, 1.00], [t * t for t in (1.00, 1.42, 1.74, 2.01)]
+
+    def slope(xs: list[float]) -> float:
+        mx, my = sum(xs) / len(xs), sum(squares) / len(squares)
+        return sum((x - mx) * (y - my) for x, y in zip(xs, squares)) / sum((x - mx) ** 2 for x in xs)
+
+    assert math.isclose(slope(lengths), slope([x + 0.02 for x in lengths]))
+    assert "15°" in russian and "15°" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Physics", "fitting_pendulum_data_least_squares")
+
+
+def test_number_theory_lesson_program_and_quiz() -> None:
+    russian, english, printed = _run_lesson_code("Mathematics", "primes_gcd_and_clock_arithmetic")
+    assert printed.splitlines() == ["[2, 2, 3] [2, 3, 3] 6", "3"]
+    assert math.gcd(24, 36) == 12 and math.lcm(24, 36) == 72  # the quiz and its distractor
+    assert (7 + 100) % 12 == 11  # practice task: 100 hours after 7 o'clock
+    assert "2²·3" in russian and "2²·3" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Mathematics", "primes_gcd_and_clock_arithmetic")
+
+
+def test_insect_lesson_keeps_the_source_body_plan() -> None:
+    russian, english = _sections("Zoology", "insect_body_plan_and_metamorphosis")
+    assert "голова, грудь и брюшко" in russian and "head, thorax, and abdomen" in english
+    assert "пара членистых ног" in russian and "pair of jointed legs" in english
+    for insect in ("ants", "beetles", "flies", "butterflies", "cockroaches", "crickets"):
+        assert insect in english
+    assert "complete metamorphosis" in english and "incomplete, gradual metamorphosis" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Zoology", "insect_body_plan_and_metamorphosis")
+
+
+def test_logging_lesson_program_drops_info_and_times_membership() -> None:
+    import subprocess
+    import sys
+
+    russian, english = _sections("Programming", "logging_and_measuring_performance")
+    code = russian.split("```python", 1)[1].split("```", 1)[0]
+    assert code == english.split("```python", 1)[1].split("```", 1)[0]
+    # A fresh interpreter, so pytest's own logging handlers do not change the default configuration.
+    result = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True, timeout=60)
+    assert result.returncode == 0
+    assert result.stderr.strip() == "WARNING source not checked for 400 days"
+    assert result.stdout.strip() == "True"
+    assert 'logging.getLogger("colidev")' in (AREAS.parent / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+    assert "WARNING" in russian and "perf_counter" in english
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "logging_and_measuring_performance")
+
+
+def test_ast_lesson_program_shows_precedence_and_safe_literals() -> None:
+    import ast
+
+    russian, english, printed = _run_lesson_code("Programming", "parsing_and_abstract_syntax_trees")
+    tree = "BinOp(left=Constant(value=2), op=Add(), right=BinOp(left=Constant(value=3), op=Mult(), right=Constant(value=4)))"
+    assert printed.splitlines() == [tree, "14", "[1, 2, 3]", "literal_eval refuses operators"]
+    assert tree in russian and tree in english
+    assert isinstance(ast.parse("(2 + 3) * 4", mode="eval").body.op, ast.Mult)  # practice task: brackets move the root
+    assert ast.literal_eval("{'level': 3}") == {"level": 3}
+    try:
+        ast.literal_eval("__import__('os')")
+    except ValueError:
+        pass
+    else:
+        raise AssertionError("literal_eval must refuse function calls")
+    assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
+    assert _linked_advanced("Programming", "parsing_and_abstract_syntax_trees")

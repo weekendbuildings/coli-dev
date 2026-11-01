@@ -31,9 +31,9 @@
 |---|---|---|
 | Конкурентность, асинхронность и очереди / Concurrency, async, queues | Выявлять гонки и блокировки и выбирать модель параллелизма под задачу. / Detect races and choose an appropriate concurrency model. | lesson:concurrency_async_await |
 | Безопасность приложений / Application security | Моделировать угрозы, валидировать границы доверия и защищать секреты и данные. / Threat-model trust boundaries and protect secrets and data. | lesson:application_security_injection_and_secrets |
-| Архитектура, наблюдаемость и производительность / Architecture, observability, performance | Измерять узкие места, строить логи и метрики и менять архитектуру только по данным. / Measure bottlenecks and instrument systems before redesign. | |
+| Архитектура, наблюдаемость и производительность / Architecture, observability, performance | Измерять узкие места, строить логи и метрики и менять архитектуру только по данным. / Measure bottlenecks and instrument systems before redesign. | lesson:logging_and_measuring_performance |
 | Распределённые системы и отказоустойчивость / Distributed systems and resilience | Анализировать повторы, таймауты, согласованность, идемпотентность и частичные сбои. / Reason about retries, timeouts, consistency, idempotency, and partial failure. | lesson:retries_and_idempotency |
-| Компиляторы, протоколы и специализации / Compilers, protocols, specializations | Выбирать углублённую ветку и строить проект, где можно проверить каждый слой. / Pursue a focused specialization through a verifiable project. | |
+| Компиляторы, протоколы и специализации / Compilers, protocols, specializations | Выбирать углублённую ветку и строить проект, где можно проверить каждый слой. / Pursue a focused specialization through a verifiable project. | lesson:parsing_and_abstract_syntax_trees |
 | Нейронные сети: обучение и обратное распространение / Neural networks: training and backpropagation | Писать обучаемый нейрон, считать градиент ошибки по правилу цепочки и обновлять веса градиентным спуском, понимая ограничения обучения на малых данных. / Write a trainable neuron, compute the error gradient with the chain rule, and update weights by gradient descent, understanding the limits of learning from small data. | lesson:neural_network_backpropagation |
 
 ## Форматы практики / Practice formats
