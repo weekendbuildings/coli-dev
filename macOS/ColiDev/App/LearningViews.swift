@@ -1866,6 +1866,10 @@ private struct PracticeLab: View {
             HardyWeinbergLab()
         } else if subject == .physics, moduleResource == "fitting_pendulum_data_least_squares" {
             LeastSquaresFitLab()
+        } else if subject == .biology, moduleResource == "synaptic_plasticity_and_learning" {
+            SynapticPlasticityLab()
+        } else if subject == .chemistry, moduleResource == "enzyme_kinetics_michaelis_menten" {
+            MichaelisMentenLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -11810,6 +11814,212 @@ private struct LeastSquaresFitLab: View {
                 let center = position(point.x, point.y)
                 context.fill(Path(ellipseIn: CGRect(x: center.x - 4, y: center.y - 4, width: 8, height: 8)), with: .color(.primary))
             }
+        }
+    }
+}
+
+private struct SynapticPlasticityLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var receptors = SynapticPlasticityModel.startingAMPAReceptors
+    @State private var glutamate = true
+    @State private var strongDepolarization = false
+    @State private var lastOutcome: SynapticPlasticityModel.Outcome?
+
+    private typealias Model = SynapticPlasticityModel
+
+    private var outcomeText: String {
+        switch lastOutcome {
+        case nil: return L10n.text("lab.plasticity.ready", store.language)
+        case .noTransmitter: return L10n.text("lab.plasticity.noTransmitter", store.language)
+        case .magnesiumBlock: return L10n.text("lab.plasticity.magnesiumBlock", store.language)
+        case .potentiation: return L10n.text("lab.plasticity.potentiation", store.language)
+        case .saturated: return L10n.text("lab.plasticity.saturated", store.language)
+        }
+    }
+
+    var body: some View {
+        let calciumFlows = Model.nmdaPassesCalcium(glutamate: glutamate, strongDepolarization: strongDepolarization)
+        LabCard {
+            Text(L10n.text("lab.plasticity.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.plasticity.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Toggle(L10n.text("lab.plasticity.glutamate", store.language), isOn: $glutamate)
+                .accessibilityIdentifier("lab.plasticity.glutamate")
+            Toggle(L10n.text("lab.plasticity.depolarization", store.language), isOn: $strongDepolarization)
+                .accessibilityIdentifier("lab.plasticity.depolarization")
+
+            diagram(calciumFlows: calciumFlows)
+                .frame(height: 120)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.plasticity.diagram", store.language))
+                .accessibilityValue(Text(L10n.text(calciumFlows ? "lab.plasticity.nmdaOpen" : "lab.plasticity.nmdaBlocked", store.language)))
+            Text(L10n.text(calciumFlows ? "lab.plasticity.nmdaOpen" : "lab.plasticity.nmdaBlocked", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            HStack {
+                Button(L10n.text("lab.plasticity.stimulate", store.language)) {
+                    let result = Model.stimulate(ampaReceptors: receptors, glutamate: glutamate, strongDepolarization: strongDepolarization)
+                    receptors = result.receptors
+                    lastOutcome = result.outcome
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.plasticity.stimulate")
+                Button(L10n.text("lab.plasticity.reset", store.language)) {
+                    receptors = Model.startingAMPAReceptors
+                    lastOutcome = nil
+                }
+                .accessibilityIdentifier("lab.plasticity.reset")
+            }
+            Text(outcomeText)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.plasticity.outcome")
+            Text(String(format: L10n.text("lab.plasticity.strength", store.language),
+                        String(receptors), String(Model.response(ampaReceptors: receptors, glutamate: true))))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.plasticity.strength")
+            Text(L10n.text("lab.plasticity.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Postsynaptic membrane with one block per AMPA receptor and an NMDA channel that is plugged by magnesium
+    // unless glutamate and strong depolarisation coincide, in which case calcium dots pass through it.
+    private func diagram(calciumFlows: Bool) -> some View {
+        Canvas { context, size in
+            let membraneY = size.height * 0.62
+            context.fill(Path(CGRect(x: 0, y: membraneY, width: size.width, height: 10)), with: .color(.secondary.opacity(0.35)))
+            let slot = size.width * 0.72 / CGFloat(Model.maximumAMPAReceptors)
+            for index in 0..<receptors {
+                let rect = CGRect(x: CGFloat(index) * slot + slot * 0.2, y: membraneY - 14, width: slot * 0.6, height: 38)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.accentColor))
+            }
+            let channelX = size.width * 0.86
+            let channel = CGRect(x: channelX - 12, y: membraneY - 16, width: 24, height: 42)
+            context.stroke(Path(roundedRect: channel, cornerRadius: 4), with: .color(.purple), lineWidth: 2)
+            if calciumFlows {
+                for step in 0..<3 {
+                    let y = membraneY - 34 + CGFloat(step) * 26
+                    context.fill(Path(ellipseIn: CGRect(x: channelX - 4, y: y, width: 8, height: 8)), with: .color(.orange))
+                }
+            } else {
+                context.fill(Path(ellipseIn: CGRect(x: channelX - 8, y: membraneY - 4, width: 16, height: 16)), with: .color(.gray))
+            }
+            if glutamate {
+                for index in 0..<6 {
+                    let x = size.width * 0.08 + CGFloat(index) * size.width * 0.15
+                    context.fill(Path(ellipseIn: CGRect(x: x, y: size.height * 0.12, width: 6, height: 6)), with: .color(.green))
+                }
+            }
+        }
+    }
+}
+
+private struct MichaelisMentenLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var substrate = 6.0
+    @State private var michaelisConstant = 2.0
+    @State private var maximumRate = 100.0
+
+    private typealias Model = MichaelisMentenModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let rate = Model.rate(substrate: substrate, maximumRate: maximumRate, michaelisConstant: michaelisConstant)
+        LabCard {
+            Text(L10n.text("lab.enzyme.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.enzyme.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            curve
+                .frame(height: 170)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.enzyme.chart", store.language))
+                .accessibilityValue(Text(verbatim: "\(number(substrate, 1)); \(number(rate, 1))"))
+            Text(L10n.text("lab.enzyme.axes", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            // Each slider rounds without `step:`, which would draw a dense row of tick marks.
+            slider(String(format: L10n.text("lab.enzyme.substrate", store.language), number(substrate, 1)), "lab.enzyme.substrateLabel", "lab.enzyme.substrate",
+                   Binding(get: { substrate }, set: { substrate = ($0 * 2).rounded() / 2 }), Model.substrateRange, number(substrate, 1))
+            slider(String(format: L10n.text("lab.enzyme.km", store.language), number(michaelisConstant, 1)), "lab.enzyme.kmLabel", "lab.enzyme.km",
+                   Binding(get: { michaelisConstant }, set: { michaelisConstant = ($0 * 2).rounded() / 2 }), Model.michaelisRange, number(michaelisConstant, 1))
+            slider(String(format: L10n.text("lab.enzyme.vmax", store.language), number(maximumRate, 0)), "lab.enzyme.vmaxLabel", "lab.enzyme.vmax",
+                   Binding(get: { maximumRate }, set: { maximumRate = ($0 / 10).rounded() * 10 }), Model.maximumRateRange, number(maximumRate, 0))
+
+            Text(String(format: L10n.text("lab.enzyme.rate", store.language), number(rate, 1),
+                        number(Model.shareOfMaximum(substrate: substrate, michaelisConstant: michaelisConstant) * 100, 0)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.enzyme.rate")
+            Text(String(format: L10n.text("lab.enzyme.half", store.language), number(michaelisConstant, 1), number(maximumRate / 2, 0)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.enzyme.half")
+            Text(L10n.text("lab.enzyme.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func slider(_ title: String, _ labelKey: String, _ identifier: String,
+                        _ value: Binding<Double>, _ range: ClosedRange<Double>, _ spoken: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .monospacedDigit()
+            Slider(value: value, in: range)
+                .accessibilityLabel(L10n.text(labelKey, store.language))
+                .accessibilityValue(Text(verbatim: spoken))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+
+    // Saturation curve on a fixed scale up to the largest Vmax, with dashed Vmax and Vmax/2 levels and the current point.
+    private var curve: some View {
+        Canvas { context, size in
+            let maxX = Model.substrateRange.upperBound, maxY = Model.maximumRateRange.upperBound * 1.05
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+
+            var levels = Path()
+            levels.move(to: position(0, maximumRate))
+            levels.addLine(to: position(maxX, maximumRate))
+            levels.move(to: position(0, maximumRate / 2))
+            levels.addLine(to: position(michaelisConstant, maximumRate / 2))
+            levels.addLine(to: position(michaelisConstant, 0))
+            context.stroke(levels, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+
+            var line = Path()
+            for step in 0...200 {
+                let x = maxX * Double(step) / 200
+                let point = position(x, Model.rate(substrate: x, maximumRate: maximumRate, michaelisConstant: michaelisConstant))
+                if step == 0 { line.move(to: point) } else { line.addLine(to: point) }
+            }
+            context.stroke(line, with: .color(.accentColor), lineWidth: 2)
+
+            let current = position(substrate, Model.rate(substrate: substrate, maximumRate: maximumRate, michaelisConstant: michaelisConstant))
+            context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(.orange))
         }
     }
 }

@@ -605,6 +605,58 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testSynapticPlasticityLabStrengthensOnlyOnCoincidence() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/synaptic_plasticity_and_learning"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let lessonScrollView = app.scrollViews["lesson.scrollView"]
+        XCTAssertTrue(lessonScrollView.waitForExistence(timeout: 5))
+
+        let stimulate = app.buttons["lab.plasticity.stimulate"]
+        XCTAssertTrue(
+            stimulate.waitForExistence(timeout: 10),
+            "The synaptic plasticity lesson must show its lab. / В уроке о пластичности синапса должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let strength = app.staticTexts["lab.plasticity.strength"]
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        XCTAssertTrue(text(strength).contains(": 3 "), text(strength))
+
+        // Glutamate alone: magnesium blocks NMDA, so the synapse stays the same.
+        scrollUntilHittable(stimulate, in: lessonScrollView)
+        stimulate.click()
+        if !text(app.staticTexts["lab.plasticity.outcome"]).contains("NMDA"), stimulate.isHittable { stimulate.click() }
+        XCTAssertTrue(text(strength).contains(": 3 "), text(strength))
+
+        let depolarization = app.descendants(matching: .any)["lab.plasticity.depolarization"]
+        XCTAssertTrue(depolarization.exists)
+        scrollUntilHittable(depolarization, in: lessonScrollView)
+        depolarization.click()
+        stimulate.click()
+        XCTAssertTrue(
+            text(strength).contains(": 4 "),
+            "Glutamate plus strong depolarisation must insert one more AMPA receptor. / Совпадение должно добавить рецептор AMPA.\n\(text(strength))"
+        )
+    }
+
+    @MainActor
+    func testMichaelisMentenLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/enzyme_kinetics_michaelis_menten"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let rate = app.staticTexts["lab.enzyme.rate"]
+        XCTAssertTrue(
+            rate.waitForExistence(timeout: 10),
+            "The enzyme kinetics lesson must show its lab. / В уроке о кинетике ферментов должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (rate.value as? String ?? "") + " " + rate.label
+        XCTAssertTrue(shown.contains("75"), "Vmax 100, Km 2 mM, [S] 6 mM must give 75. / Должно получиться 75.\n\(shown)")
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

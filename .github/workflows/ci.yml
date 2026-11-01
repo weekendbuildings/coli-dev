@@ -451,6 +451,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-least-squares-fit"
           "$RUNNER_TEMP/verify-least-squares-fit"
 
+      - name: Verify synaptic plasticity and enzyme lab models / Проверка моделей пластичности синапса и кинетики фермента
+        run: |
+          swiftc macOS/ColiDev/App/LifeMechanismLabs.swift macOS/ColiDev/scripts/verify_life_mechanism_labs.swift \
+            -o "$RUNNER_TEMP/verify-life-mechanism-labs"
+          "$RUNNER_TEMP/verify-life-mechanism-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \
