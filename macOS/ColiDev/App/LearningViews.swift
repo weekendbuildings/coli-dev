@@ -7909,85 +7909,69 @@ private struct EcosystemEnergyLab: View {
     @State private var transferFraction = 0.12
 
     private let levels = ["producers", "primary", "secondary", "tertiary"]
-    private var energies: [Double] {
-        levels.indices.map { producerEnergy * pow(transferFraction, Double($0)) }
-    }
+    private var energies: [Double] { levels.indices.map { producerEnergy * pow(transferFraction, Double($0)) } }
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func kilojoules(_ value: Double) -> String { L10n.measurement(value, fractionDigits: value < 10 ? 1 : 0, unit: "kJ", store.language) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Label(L10n.text("biology.energyLab.title", store.language), systemImage: "chart.bar.xaxis")
-                    .font(.headline)
-
-                VStack(alignment: .leading, spacing: 10) {
-                    ForEach(Array(levels.enumerated()), id: \.offset) { index, level in
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack {
-                                Text(L10n.text("biology.energy.level.\(level)", store.language))
-                                Spacer()
-                                Text(verbatim: L10n.measurement(energies[index], fractionDigits: 1, unit: "kJ", store.language))
-                                    .monospacedDigit()
-                            }
-                            .font(.caption.weight(.medium))
-                            ProgressView(value: energies[index], total: producerEnergy)
-                                .tint(levelColor(index))
-                                .accessibilityLabel(Text(L10n.text("biology.energy.level.\(level)", store.language)))
-                                .accessibilityValue(Text(verbatim: L10n.measurement(energies[index], fractionDigits: 1, unit: "kJ", store.language)))
-                        }
-                    }
-                }
-                .padding(12)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
-
-                energySlider(
-                    key: "biology.energyLab.producerEnergy",
-                    value: $producerEnergy,
-                    range: 1_000...20_000,
-                    unit: "kJ"
-                )
-                energySlider(
-                    key: "biology.energyLab.transfer",
-                    value: $transferFraction,
-                    range: 0.05...0.30,
-                    unit: "%",
-                    scale: 100
-                )
-
-                Text(L10n.text("biology.energyLab.limit", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("biology.energyLab.title"), instruction: text("biology.energyLab.subtitle"))
+            pyramid
+                .frame(height: 260)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("biology.energyLab.title"))
+                .accessibilityValue(Text(verbatim: energies.map(kilojoules).joined(separator: ", ")))
+            slider(String(format: "%@: %@", text("biology.energyLab.producerEnergy"), kilojoules(producerEnergy)), "biology.energyLab.producerEnergy",
+                   Binding(get: { producerEnergy }, set: { producerEnergy = ($0 / 500).rounded() * 500 }), 1_000...20_000)
+            slider(String(format: "%@: %@", text("biology.energyLab.transfer"), L10n.measurement(transferFraction * 100, fractionDigits: 0, unit: "%", store.language)),
+                   "biology.energyLab.transfer", Binding(get: { transferFraction }, set: { transferFraction = ($0 * 100).rounded() / 100 }), 0.05...0.30)
+            LabStatGrid {
+                LabStat(label: text("biology.energy.level.tertiary"), value: kilojoules(energies[3]), tint: .red)
+                LabStat(label: text("biology.energyLab.statShare"), value: L10n.number(pow(transferFraction, 3) * 100, fractionDigits: 2, store.language) + " %", tint: .purple)
+                LabStat(label: text("biology.energyLab.statLost"), value: L10n.measurement((1 - transferFraction) * 100, fractionDigits: 0, unit: "%", store.language), tint: .orange)
             }
+            LabChallenge(caption: text("lab.kit.task"), task: text("biology.energyLab.challenge"),
+                         solved: abs(transferFraction - 0.10) < 0.001, solvedText: text("biology.energyLab.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("biology.energyLab.limit")])
         }
     }
 
-    private func energySlider(
-        key: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        unit: String,
-        scale: Double = 1
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(L10n.text(key, store.language))
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue * scale, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
+    private func slider(_ title: String, _ labelKey: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).monospacedDigit().frame(minWidth: 320, alignment: .leading)
+            // Rounded values without `step:`, which would draw a dense row of tick marks.
             Slider(value: value, in: range)
-                .accessibilityLabel(Text(L10n.text(key, store.language)))
+                .accessibilityLabel(Text(text(labelKey)))
         }
-        .font(.caption)
     }
 
-    private func levelColor(_ index: Int) -> Color {
-        switch index {
-        case 0: .green
-        case 1: .teal
-        case 2: .orange
-        default: .purple
+    // An energy pyramid: each level's width follows the square root of its energy so the top stays visible,
+    // with the energy written on it and an orange arrow for the share lost as heat at every step.
+    private var pyramid: some View {
+        Canvas { context, size in
+            let colors: [Color] = [.green, .teal, .orange, .red]
+            let rowHeight = (size.height - 10) / CGFloat(levels.count)
+            let maxWidth = size.width * 0.62
+            for (index, level) in levels.enumerated() {
+                let share = (energies[index] / producerEnergy).squareRoot()
+                let width = max(46, maxWidth * CGFloat(share))
+                let y = size.height - CGFloat(index + 1) * rowHeight
+                let rect = CGRect(x: size.width * 0.36 - width / 2, y: y + 4, width: width, height: rowHeight - 8)
+                context.fill(Path(roundedRect: rect, cornerRadius: 6), with: .color(colors[index].opacity(0.85)))
+                context.draw(Text(verbatim: kilojoules(energies[index])).font(.caption.weight(.bold)).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.midY))
+                context.draw(Text(text("biology.energy.level.\(level)")).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                             at: CGPoint(x: size.width * 0.36 + maxWidth / 2 + 12, y: rect.midY), anchor: .leading)
+                if index < levels.count - 1 {
+                    let start = CGPoint(x: rect.maxX + 4, y: rect.minY + 6)
+                    var arrow = Path()
+                    arrow.move(to: start)
+                    arrow.addLine(to: CGPoint(x: start.x + 26, y: start.y - 14))
+                    context.stroke(arrow, with: .color(.orange.opacity(0.8)), style: StrokeStyle(lineWidth: 2, lineCap: .round, dash: [4, 3]))
+                }
+            }
+            context.draw(Text(String(format: text("biology.energyLab.heatLoss"), L10n.number((1 - transferFraction) * 100, fractionDigits: 0, store.language)))
+                .font(.caption2).foregroundColor(.orange), at: CGPoint(x: 6, y: 8), anchor: .topLeading)
         }
     }
 }
