@@ -3040,115 +3040,94 @@ private struct DerivativeRateLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var point = 2.0
     @State private var step = 1.0
+    @State private var shrinking = false
 
     private var secantSlope: Double { 2 * point + step }
     private var tangentSlope: Double { 2 * point }
 
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
     var body: some View {
         LabCard {
-            Text("f(x) = x²")
-                .font(.system(.headline, design: .monospaced))
-
-            Text(L10n.text("lab.derivativeHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0 else { return }
-                func location(_ x: Double, _ y: Double) -> CGPoint {
-                    CGPoint(
-                        x: CGFloat((x + 3) / 6) * size.width,
-                        y: CGFloat((9 - y) / 12) * size.height
-                    )
-                }
-
-                var grid = Path()
-                for value in -3...3 {
-                    let x = CGFloat(value + 3) / 6 * size.width
-                    grid.move(to: CGPoint(x: x, y: 0))
-                    grid.addLine(to: CGPoint(x: x, y: size.height))
-                }
-                for value in stride(from: -3, through: 9, by: 2) {
-                    let y = CGFloat(9 - value) / 12 * size.height
-                    grid.move(to: CGPoint(x: 0, y: y))
-                    grid.addLine(to: CGPoint(x: size.width, y: y))
-                }
-                context.stroke(grid, with: .color(.secondary.opacity(0.16)), lineWidth: 1)
-
-                var axes = Path()
-                axes.move(to: location(-3, 0))
-                axes.addLine(to: location(3, 0))
-                axes.move(to: location(0, -3))
-                axes.addLine(to: location(0, 9))
-                context.stroke(axes, with: .color(.secondary.opacity(0.7)), lineWidth: 1.5)
-
-                var curve = Path()
-                for index in 0...120 {
-                    let x = -3.0 + Double(index) * 0.05
-                    let p = location(x, x * x)
-                    if index == 0 { curve.move(to: p) } else { curve.addLine(to: p) }
-                }
-                context.stroke(curve, with: .color(.indigo), lineWidth: 2.5)
-
-                var tangent = Path()
-                let tangentStart = point - 0.7
-                let tangentEnd = point + 0.7
-                tangent.move(to: location(tangentStart, tangentSlope * tangentStart - point * point))
-                tangent.addLine(to: location(tangentEnd, tangentSlope * tangentEnd - point * point))
-                context.stroke(tangent, with: .color(.green), lineWidth: 2.5)
-
-                var secant = Path()
-                secant.move(to: location(point, point * point))
-                secant.addLine(to: location(point + step, (point + step) * (point + step)))
-                context.stroke(secant, with: .color(.orange), lineWidth: 2.5)
-
-                for x in [point, point + step] {
-                    let p = location(x, x * x)
-                    context.fill(
-                        Path(ellipseIn: CGRect(x: p.x - 4.5, y: p.y - 4.5, width: 9, height: 9)),
-                        with: .color(.orange)
-                    )
-                }
+            LabHeader(title: text("lab.derivativeTitle"), instruction: text("lab.derivativeSubtitle"))
+            GeometryReader { proxy in
+                let plot = LabPlotGeometry(size: proxy.size, x: -3...3, y: -3...9)
+                graph(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        point = min(max((plot.value(at: drag.location).x * 10).rounded() / 10, -2), 2)
+                    })
             }
-            .frame(height: 230)
-            .accessibilityLabel(L10n.text("lab.derivativeGraph", store.language))
+            .frame(height: 280)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.derivativeGraph"))
+            .accessibilityValue(Text(verbatim: number(secantSlope, 2)))
 
-            VStack(alignment: .leading, spacing: 10) {
-                HStack {
-                    Text(L10n.text("lab.derivativePoint", store.language))
-                    Spacer()
-                    Text(verbatim: "x = " + L10n.number(point, fractionDigits: 1, store.language)).monospacedDigit()
-                }
-                Slider(value: $point, in: -2.0...2.0, step: 0.1)
-                    .accessibilityLabel(Text(L10n.text("lab.derivativePoint", store.language)))
-
-                HStack {
-                    Text(L10n.text("lab.derivativeStep", store.language))
-                    Spacer()
-                    Text(verbatim: "h = " + L10n.number(step, fractionDigits: 1, store.language)).monospacedDigit()
-                }
-                Slider(value: $step, in: 0.05...1.0, step: 0.05)
-                    .accessibilityLabel(Text(L10n.text("lab.derivativeStep", store.language)))
+            HStack(spacing: 12) {
+                Text(verbatim: text("lab.derivativePoint") + ": x = " + number(point, 1)).monospacedDigit().frame(minWidth: 200, alignment: .leading)
+                // Tenths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { point }, set: { point = ($0 * 10).rounded() / 10 }), in: -2.0...2.0)
+                    .accessibilityLabel(Text(text("lab.derivativePoint")))
             }
-
-            HStack(spacing: 14) {
-                Label(L10n.text("lab.derivativeFunction", store.language), systemImage: "waveform.path")
-                    .foregroundStyle(.indigo)
-                Label(L10n.text("lab.derivativeSecant", store.language), systemImage: "line.diagonal")
-                    .foregroundStyle(.orange)
-                Label(L10n.text("lab.derivativeTangent", store.language), systemImage: "line.diagonal")
-                    .foregroundStyle(.green)
+            HStack(spacing: 12) {
+                Button {
+                    step = 1
+                    shrinking = true
+                } label: { Label(text("lab.derivativeShrink"), systemImage: "arrow.down.right.and.arrow.up.left") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.derivative.shrink")
+                Text(verbatim: "h = " + number(step, 2)).monospacedDigit().frame(minWidth: 90, alignment: .leading)
+                Slider(value: Binding(get: { step }, set: { step = max(0.01, ($0 * 100).rounded() / 100) }), in: 0.01...1.0)
+                    .accessibilityLabel(Text(text("lab.derivativeStep")))
             }
-            .font(.caption)
-            .labelStyle(.titleAndIcon)
-
-            VStack(alignment: .leading, spacing: 5) {
-                Text(String(format: L10n.text("lab.derivativeSecantValue", store.language), L10n.number(secantSlope, fractionDigits: 2, store.language)))
-                Text(String(format: L10n.text("lab.derivativeTangentValue", store.language), L10n.number(tangentSlope, fractionDigits: 2, store.language)))
-                    .fontWeight(.semibold)
+            LabStatGrid {
+                LabStat(label: text("lab.derivativeSecant"), value: number(secantSlope, 2), tint: .orange)
+                LabStat(label: text("lab.derivativeTangent") + " f′(x) = 2x", value: number(tangentSlope, 2), tint: .green)
+                LabStat(label: text("lab.derivativeGap"), value: number(secantSlope - tangentSlope, 2), tint: .purple)
             }
-            .font(.callout.monospacedDigit())
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.derivativeChallenge"), solved: step < 0.1, solvedText: text("lab.derivativeChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.derivativeHint"),
+                String(format: text("lab.derivativeSecantValue"), number(secantSlope, 2)) + " · " + String(format: text("lab.derivativeTangentValue"), number(tangentSlope, 2)),
+            ])
+        }
+        .task(id: shrinking) {
+            guard shrinking else { return }
+            while step > 0.011 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                withAnimation(.linear(duration: 0.06)) { step = max(0.01, (step * 0.93 * 100).rounded() / 100) }
+            }
+            shrinking = false
+        }
+    }
+
+    // f(x) = x² with the secant through x and x + h (orange) and the tangent at x (green), both drawn across the plot.
+    private func graph(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "f(x) = x²", format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            var curve = Path()
+            for index in 0...120 {
+                let x = -3.0 + Double(index) * 0.05
+                let location = plot.point(x, x * x)
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.indigo), lineWidth: 2.5)
+            func line(slope: Double, through x0: Double, color: Color, width: CGFloat) {
+                var path = Path()
+                path.move(to: plot.point(-3, point * point + slope * (-3 - x0)))
+                path.addLine(to: plot.point(3, point * point + slope * (3 - x0)))
+                clipped.stroke(path, with: .color(color), lineWidth: width)
+            }
+            line(slope: tangentSlope, through: point, color: .green, width: 2)
+            line(slope: secantSlope, through: point, color: .orange, width: 2.5)
+            let second = plot.point(point + step, (point + step) * (point + step))
+            clipped.fill(Path(ellipseIn: CGRect(x: second.x - 6, y: second.y - 6, width: 12, height: 12)), with: .color(.orange))
+            let first = plot.point(point, point * point)
+            clipped.fill(Path(ellipseIn: CGRect(x: first.x - 8, y: first.y - 8, width: 16, height: 16)), with: .color(.green))
+            clipped.stroke(Path(ellipseIn: CGRect(x: first.x - 8, y: first.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
         }
     }
 }
