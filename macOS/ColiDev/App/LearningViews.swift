@@ -2630,113 +2630,119 @@ private struct PercentRepresentationLab: View {
     @State private var whole = 240.0
     @State private var kilometres = 1.5
 
-    private var representation: PercentRepresentation {
-        PercentRepresentation(percent: Int(percent.rounded()))
-    }
-
-    private var formattedDecimal: String {
-        L10n.number(representation.decimal, fractionDigits: 2, store.language)
-    }
-
-    private var formattedKilometres: String {
-        L10n.number(kilometres, fractionDigits: 1, store.language)
-    }
-
-    private var formattedMetres: String {
-        L10n.number(KilometreConversion(kilometres: kilometres).metres, fractionDigits: 0, store.language)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var representation: PercentRepresentation { PercentRepresentation(percent: Int(percent.rounded())) }
+    private var formattedDecimal: String { L10n.number(representation.decimal, fractionDigits: 2, store.language) }
+    private var formattedKilometres: String { L10n.number(kilometres, fractionDigits: 1, store.language) }
+    private var formattedMetres: String { L10n.number(KilometreConversion(kilometres: kilometres).metres, fractionDigits: 0, store.language) }
+    private var part: Double { representation.part(of: Int(whole)) }
+    private var formattedPart: String { L10n.number(part, fractionDigits: part == part.rounded() ? 0 : 1, store.language) }
 
     var body: some View {
         LabCard {
-            Label(L10n.text("lab.percent.title", store.language), systemImage: "chart.pie.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.orange)
-
-            Text(L10n.text("lab.percent.help", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 8) {
-                Text("\(representation.percent)%")
-                Text("=")
-                Text(representation.fractionDescription)
-                Text("=")
-                Text(formattedDecimal)
-            }
-            .font(.system(size: 22, weight: .semibold, design: .rounded).monospacedDigit())
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(String(
-                format: L10n.text("lab.percent.representations", store.language),
-                "\(representation.percent)%",
-                representation.fractionDescription,
-                formattedDecimal
-            ))
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(L10n.text("lab.percent.share", store.language))
-                    Spacer()
-                    Text("\(representation.percent)%")
-                        .monospacedDigit()
+            LabHeader(title: text("lab.percent.title"), instruction: text("lab.percent.subtitle"))
+            HStack(alignment: .center, spacing: 24) {
+                GeometryReader { proxy in
+                    hundredGrid(size: proxy.size)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in paint(at: drag.location, size: proxy.size) })
                 }
-                Slider(value: $percent, in: 0...100, step: 1)
-                    .tint(.orange)
-                    .accessibilityLabel(L10n.text("lab.percent.share", store.language))
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.16))
-                    Capsule()
-                        .fill(Color.orange.gradient)
-                        .frame(width: geometry.size.width * CGFloat(representation.decimal))
+                .frame(width: 220, height: 220)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.percent.gridLabel"))
+                .accessibilityValue(Text(verbatim: "\(representation.percent)%"))
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: percent = min(100, percent + 1)
+                    case .decrement: percent = max(0, percent - 1)
+                    @unknown default: break
+                    }
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(verbatim: "\(representation.percent) %")
+                        .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.orange)
+                    Text(verbatim: "= " + representation.fractionDescription + " = " + formattedDecimal)
+                        .font(.system(size: 24, weight: .semibold, design: .rounded).monospacedDigit())
+                        .accessibilityLabel(String(format: text("lab.percent.representations"), "\(representation.percent)%",
+                                                   representation.fractionDescription, formattedDecimal))
+                    Text(text("lab.percent.gridHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(height: 18)
-            .accessibilityElement()
-            .accessibilityLabel(L10n.text("lab.percent.bar", store.language)
-                .replacingOccurrences(of: "%@", with: "\(representation.percent)%"))
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(L10n.text("lab.percent.whole", store.language))
-                    Spacer()
-                    Text("\(Int(whole))")
-                        .monospacedDigit()
+            percentSlider(title: text("lab.percent.share"), value: $percent, range: 0...100, step: 1, display: "\(representation.percent) %", tint: .orange)
+            VStack(alignment: .leading, spacing: 6) {
+                percentSlider(title: text("lab.percent.whole"), value: $whole, range: 100...1000, step: 50, display: "\(Int(whole))", tint: .orange)
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.16))
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.orange.gradient)
+                            .frame(width: proxy.size.width * CGFloat(representation.decimal))
+                        Text(verbatim: formattedPart + " / \(Int(whole))")
+                            .font(.callout.weight(.semibold).monospacedDigit())
+                            .padding(.horizontal, 8)
+                    }
                 }
-                Slider(value: $whole, in: 100...1000, step: 50)
-                    .tint(.orange)
-                    .accessibilityLabel(L10n.text("lab.percent.whole", store.language))
+                .frame(height: 28)
+                .accessibilityElement()
+                .accessibilityLabel(text("lab.percent.bar").replacingOccurrences(of: "%@", with: "\(representation.percent)%"))
             }
-
-            Text(String(format: L10n.text("lab.percent.part", store.language), representation.part(of: Int(whole))))
-                .font(.headline.monospacedDigit())
-                .accessibilityElement(children: .combine)
-
-            Divider()
-
-            Text(L10n.text("lab.percent.unitsTitle", store.language))
-                .font(.headline)
-
-            HStack {
-                Text(L10n.text("lab.percent.kilometres", store.language))
-                Spacer()
-                Text(formattedKilometres)
-                    .monospacedDigit()
+            LabStatGrid {
+                LabStat(label: text("lab.percent.statPart"), value: formattedPart, tint: .orange)
+                LabStat(label: text("lab.percent.statFraction"), value: representation.fractionDescription, tint: .purple)
+                LabStat(label: text("lab.percent.statDecimal"), value: formattedDecimal, tint: .teal)
             }
-            Slider(value: $kilometres, in: 0...10, step: 0.5)
-                .tint(.teal)
-                .accessibilityLabel(L10n.text("lab.percent.kilometres", store.language))
-
-            Text(L10n.text("lab.percent.unitEquation", store.language)
-                .replacingOccurrences(of: "%1", with: formattedKilometres)
-                .replacingOccurrences(of: "%2", with: formattedMetres))
-                .font(.headline.monospacedDigit())
-                .accessibilityElement(children: .combine)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.percent.challenge"),
+                         solved: abs(part - 150) < 0.001, solvedText: text("lab.percent.challengeSolved"))
+            VStack(alignment: .leading, spacing: 8) {
+                Text(text("lab.percent.unitsTitle")).font(.headline)
+                percentSlider(title: text("lab.percent.kilometres"), value: $kilometres, range: 0...10, step: 0.5, display: formattedKilometres, tint: .teal)
+                Text(text("lab.percent.unitEquation").replacingOccurrences(of: "%1", with: formattedKilometres).replacingOccurrences(of: "%2", with: formattedMetres))
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .accessibilityElement(children: .combine)
+            }
+            .padding(12)
+            .background(Color.teal.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.percent.help"), text("lab.percent.gridNote")])
         }
+    }
+
+    // One hundred squares: each is 1 %. Filled squares are the chosen share.
+    private func hundredGrid(size: CGSize) -> some View {
+        Canvas { context, size in
+            let cell = min(size.width, size.height) / 10
+            for index in 0..<100 {
+                let row = index / 10, column = index % 10
+                let rect = CGRect(x: CGFloat(column) * cell + 1, y: CGFloat(row) * cell + 1, width: cell - 2, height: cell - 2)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3),
+                             with: .color(index < representation.percent ? .orange : .secondary.opacity(0.15)))
+            }
+        }
+    }
+
+    /// Dragging over the grid fills it up to the square under the pointer.
+    private func paint(at location: CGPoint, size: CGSize) {
+        let cell = min(size.width, size.height) / 10
+        let column = min(max(Int(location.x / cell), 0), 9)
+        let row = min(max(Int(location.y / cell), 0), 9)
+        percent = Double(row * 10 + column + 1)
+    }
+
+    private func percentSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, display: String, tint: Color) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 170, alignment: .leading)
+            // Rounded to the step without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step }), in: range)
+                .tint(tint)
+                .accessibilityLabel(Text(title))
+            Text(verbatim: display)
+                .monospacedDigit()
+                .frame(width: 60, alignment: .trailing)
+        }
+        .font(.callout)
     }
 }
 
@@ -2748,6 +2754,7 @@ private struct LinearEquationLab: View {
     @State private var didCheckSolution = false
     @State private var feedbackKey: String?
     @State private var feedbackIsCorrect = false
+    @State private var solvedCount = 0
 
     init() {
         let equation = LinearEquation.random()
@@ -2755,17 +2762,12 @@ private struct LinearEquationLab: View {
         _operationOrders = State(initialValue: equation.operationChoiceOrders())
     }
 
-    private var variableTerm: String {
-        equation.coefficient == 1 ? "x" : "\(equation.coefficient)x"
-    }
-
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var variableTerm: String { equation.coefficient == 1 ? "x" : "\(equation.coefficient)x" }
     private var initialLeftSide: String {
-        let offsetTerm = equation.offset < 0
-            ? "− \(abs(equation.offset))"
-            : "+ \(equation.offset)"
+        let offsetTerm = equation.offset < 0 ? "− \(abs(equation.offset))" : "+ \(equation.offset)"
         return "\(variableTerm) \(offsetTerm)"
     }
-
     private var visibleLeftSide: String {
         switch completedSteps {
         case 0: initialLeftSide
@@ -2773,7 +2775,6 @@ private struct LinearEquationLab: View {
         default: "x"
         }
     }
-
     private var visibleRightSide: String {
         switch completedSteps {
         case 0: "\(equation.rightSide)"
@@ -2781,27 +2782,29 @@ private struct LinearEquationLab: View {
         default: "\(equation.valueAfterDivision)"
         }
     }
-
-    private var operationChoices: [LinearEquationOperation] {
-        equation.operationChoices(at: completedSteps)
+    /// What each pan holds now: x tiles and signed unit tiles.
+    private var leftTiles: (x: Int, units: Int) {
+        switch completedSteps {
+        case 0: (equation.coefficient, equation.offset)
+        case 1: (equation.coefficient, 0)
+        default: (1, 0)
+        }
     }
-
-    private var progressActionTitle: String {
-        didCheckSolution
-            ? L10n.text("lab.equation.newExample", store.language)
-            : L10n.text("lab.equation.check", store.language)
+    private var rightUnits: Int {
+        switch completedSteps {
+        case 0: equation.rightSide
+        case 1: equation.isolatedVariableRightSide
+        default: equation.valueAfterDivision
+        }
     }
+    private var operationChoices: [LinearEquationOperation] { equation.operationChoices(at: completedSteps) }
 
     private func operationTitle(_ operation: LinearEquationOperation) -> String {
         switch operation {
-        case .add(let value):
-            return localized("lab.equation.add", value: String(value))
-        case .subtract(let value):
-            return localized("lab.equation.subtract", value: String(value))
-        case .divide(let value):
-            return localized("lab.equation.divide", value: String(value))
-        case .multiply(let value):
-            return localized("lab.equation.multiply", value: String(value))
+        case .add(let value): return localized("lab.equation.add", value: String(value))
+        case .subtract(let value): return localized("lab.equation.subtract", value: String(value))
+        case .divide(let value): return localized("lab.equation.divide", value: String(value))
+        case .multiply(let value): return localized("lab.equation.multiply", value: String(value))
         }
     }
 
@@ -2811,49 +2814,28 @@ private struct LinearEquationLab: View {
             feedbackIsCorrect = false
             return
         }
-
-        completedSteps += 1
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { completedSteps += 1 }
         feedbackKey = completedSteps == 1 ? "lab.equation.firstCorrect" : "lab.equation.secondCorrect"
         feedbackIsCorrect = true
     }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Label(L10n.text("lab.equation.title", store.language), systemImage: "scalemass")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.indigo)
-                Text(L10n.text("lab.equation.help", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.equation.title"), instruction: text("lab.equation.subtitle"))
+            Text(verbatim: "\(visibleLeftSide) = \(visibleRightSide)")
+                .font(.system(size: 30, weight: .semibold, design: .rounded).monospacedDigit())
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel("\(visibleLeftSide) = \(visibleRightSide)")
+            balance
+            HStack(spacing: 16) {
+                legendTile(color: .green, label: "x", wide: true)
+                legendTile(color: .yellow, label: "+1", wide: false)
+                legendTile(color: .red, label: "−1", wide: false)
             }
-
-            HStack(spacing: 10) {
-                equationSide(
-                    title: L10n.text("lab.equation.left", store.language),
-                    expression: visibleLeftSide
-                )
-                Text("=")
-                    .font(.title2.weight(.bold).monospacedDigit())
-                    .accessibilityLabel(L10n.text("lab.equation.equals", store.language))
-                equationSide(
-                    title: L10n.text("lab.equation.right", store.language),
-                    expression: visibleRightSide
-                )
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(visibleLeftSide) = \(visibleRightSide)")
-
-            Text(L10n.text("lab.equation.operationHint", store.language))
-                .font(.callout.weight(.medium))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(11)
-                .background(Color.indigo.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-
+            .font(.caption)
             if completedSteps < 2 {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.text("lab.equation.chooseOperation", store.language))
+                    Text(text("lab.equation.chooseOperation"))
                         .font(.callout.weight(.semibold))
                     ForEach(Array(operationOrders[completedSteps].displayedOriginalIndices.enumerated()), id: \.offset) { _, originalIndex in
                         let operation = operationChoices[originalIndex]
@@ -2867,84 +2849,124 @@ private struct LinearEquationLab: View {
                     }
                 }
             }
-
             if let feedbackKey {
-                Label(
-                    L10n.text(feedbackKey, store.language),
-                    systemImage: feedbackIsCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .font(.callout.weight(.medium))
-                .foregroundStyle(feedbackIsCorrect ? Color.green : Color.orange)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityElement(children: .combine)
+                Label(text(feedbackKey), systemImage: feedbackIsCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(feedbackIsCorrect ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
             }
-
             HStack {
-                Label(
-                    String(
-                        format: L10n.text("lab.equation.progress", store.language),
-                        min(completedSteps, 2),
-                        2
-                    ),
-                    systemImage: didCheckSolution ? "checkmark.seal.fill" : "equal.circle"
-                )
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(didCheckSolution ? .green : .secondary)
+                LabStatusBadge(kind: didCheckSolution ? .good : .info,
+                               text: String(format: text("lab.equation.progress"), min(completedSteps, 2), 2))
                 Spacer()
                 if completedSteps == 2 {
                     Button {
                         if !didCheckSolution {
                             didCheckSolution = true
+                            solvedCount += 1
                         } else {
-                            let nextEquation = LinearEquation.random()
-                            equation = nextEquation
-                            operationOrders = nextEquation.operationChoiceOrders()
-                            completedSteps = 0
-                            didCheckSolution = false
-                            feedbackKey = nil
-                            feedbackIsCorrect = false
+                            nextExample()
                         }
                     } label: {
-                        Label(
-                            progressActionTitle,
-                            systemImage: didCheckSolution ? "shuffle" : "checkmark.circle"
-                        )
+                        Label(text(didCheckSolution ? "lab.equation.newExample" : "lab.equation.check"),
+                              systemImage: didCheckSolution ? "shuffle" : "checkmark.circle")
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.indigo)
                 }
             }
-
             if didCheckSolution {
-                Label(
-                    localized(
-                        "lab.equation.substitution",
-                        value: "\(equation.coefficient) × \(equation.solution) \(equation.offset < 0 ? "− \(abs(equation.offset))" : "+ \(equation.offset)") = \(equation.rightSide)"
-                    ),
-                    systemImage: equation.isSolution(equation.solution) ? "checkmark.circle.fill" : "xmark.circle.fill"
-                )
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(equation.isSolution(equation.solution) ? .green : .red)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityElement(children: .combine)
+                Label(localized("lab.equation.substitution", value: substitutionText),
+                      systemImage: equation.isSolution(equation.solution) ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(equation.isSolution(equation.solution) ? .green : .red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
             }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.equation.challenge"),
+                         solved: solvedCount >= 3, solvedText: text("lab.equation.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.equation.help"), text("lab.equation.operationHint"), text("lab.equation.tilesNote")])
         }
     }
 
-    private func equationSide(title: String, expression: String) -> some View {
-        VStack(spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text(expression)
-                .font(.system(size: 23, weight: .semibold, design: .rounded).monospacedDigit())
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity)
+    private var substitutionText: String {
+        let offset = equation.offset < 0 ? "− \(abs(equation.offset))" : "+ \(equation.offset)"
+        return "\(equation.coefficient) × \(equation.solution) \(offset) = \(equation.rightSide)"
+    }
+
+    // Two pans on a level beam: whatever is done to one pan is done to the other, so the beam stays level.
+    // Before dividing, the right pan is laid out in one row per x, which is what dividing by the coefficient means.
+    private var balance: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .bottom, spacing: 18) {
+                pan(xCount: leftTiles.x, units: leftTiles.units, rows: 1)
+                Text(verbatim: "=")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(.secondary)
+                pan(xCount: 0, units: rightUnits, rows: completedSteps == 1 ? equation.coefficient : 1)
+            }
+            Rectangle()
+                .fill(Color.secondary.opacity(0.6))
+                .frame(height: 5)
+                .clipShape(Capsule())
+            Image(systemName: "triangle.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(Color.secondary.opacity(0.6))
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 68)
-        .background(Color.indigo.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.equation.balance"))
+        .accessibilityValue(Text(verbatim: "\(visibleLeftSide) = \(visibleRightSide)"))
+    }
+
+    private func pan(xCount: Int, units: Int, rows: Int) -> some View {
+        let columns = rows > 1 ? max(1, abs(units) / rows) : 12
+        return VStack(alignment: .leading, spacing: 6) {
+            if xCount > 0 {
+                HStack(spacing: 4) {
+                    ForEach(0..<xCount, id: \.self) { _ in
+                        Text(verbatim: "x")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 18)
+                            .background(Color.green, in: RoundedRectangle(cornerRadius: 4))
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+            }
+            if units != 0 {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(14), spacing: 3), count: columns), alignment: .leading, spacing: rows > 1 ? 7 : 3) {
+                    ForEach(0..<abs(units), id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(units > 0 ? Color.yellow : Color.red)
+                            .frame(width: 14, height: 14)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+            } else if xCount == 0 {
+                Text(verbatim: "0").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 90, alignment: .bottomLeading)
+        .background(Color.indigo.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func legendTile(color: Color, label: String, wide: Bool) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: wide ? 24 : 12, height: 12)
+            Text(verbatim: label).foregroundStyle(.secondary)
+        }
+    }
+
+    private func nextExample() {
+        let nextEquation = LinearEquation.random()
+        equation = nextEquation
+        operationOrders = nextEquation.operationChoiceOrders()
+        completedSteps = 0
+        didCheckSolution = false
+        feedbackKey = nil
+        feedbackIsCorrect = false
     }
 
     private func localized(_ key: String, value: String) -> String {
@@ -4959,115 +4981,92 @@ private struct LinearFunctionLab: View {
         self.lessonID = lessonID
     }
 
-    private var function: LinearFunctionModel {
-        LinearFunctionModel(slope: slope, intercept: intercept)!
-    }
-
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var function: LinearFunctionModel { LinearFunctionModel(slope: slope, intercept: intercept)! }
     private var formula: String {
         let slopeTerm = slope < 0 ? "− \(format(abs(slope)))x" : "\(format(slope))x"
         let interceptTerm = intercept < 0 ? "− \(format(abs(intercept)))" : "+ \(format(intercept))"
         return "y = \(slopeTerm) \(interceptTerm)"
     }
-
     private var parsedAnswer: Double? {
-        let normalized = predictionText
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: ",", with: ".")
-        return Double(normalized)
+        Double(predictionText.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
     }
-
+    private var revealed: Bool { round.lastAnswerCorrect == true || round.attempts >= 2 }
     private var solutionText: String {
-        String(
-            format: L10n.text("lab.linear.solution", store.language),
-            format(slope),
-            format(input),
-            format(intercept),
-            format(function.value(at: input)!)
-        )
+        String(format: text("lab.linear.solution"), format(slope), format(input), format(intercept), format(function.value(at: input)!))
     }
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.linear.prompt", store.language))
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-
+            LabHeader(title: text("lab.linear.title"), instruction: text("lab.linear.prompt"))
             Text(formula)
                 .font(.system(.title2, design: .monospaced, weight: .semibold))
-                .accessibilityLabel(Text(String(format: L10n.text("lab.linear.formula", store.language), formula)))
-
+                .accessibilityLabel(Text(String(format: text("lab.linear.formula"), formula)))
             LinearFunctionPlot(function: function, input: input, language: store.language)
-                .frame(height: 230)
-
-            Text(String(format: L10n.text("lab.linear.currentInput", store.language), format(input)))
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
-
+                .frame(height: 260)
             VStack(spacing: 10) {
                 parameterRow("lab.linear.slope", value: $slope, range: -2...2, step: 0.5)
                 parameterRow("lab.linear.intercept", value: $intercept, range: -4...4, step: 0.5)
                 parameterRow("lab.linear.input", value: $input, range: -3...3, step: 0.5)
             }
-
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                TextField(L10n.text("lab.linear.placeholder", store.language), text: $predictionText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 240)
-                    .accessibilityLabel(Text(L10n.text("lab.linear.prediction", store.language)))
-                    .onSubmit { checkPrediction() }
-                    .disabled(round.lastAnswerCorrect == true || round.attempts >= 2)
-
-                if round.submittedAnswer == nil {
-                    Button(L10n.text("lab.linear.check", store.language)) {
-                        checkPrediction()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(parsedAnswer == nil)
-                } else if round.lastAnswerCorrect == false && round.attempts < 2 {
-                    Button(L10n.text("lab.linear.retry", store.language)) {
-                        retryPrediction()
-                    }
-                    .buttonStyle(.bordered)
-                }
+            LabStatGrid {
+                LabStat(label: text("lab.linear.slope"), value: format(slope), tint: .purple)
+                LabStat(label: text("lab.linear.statIntercept"), value: format(intercept), tint: .orange)
+                LabStat(label: "x", value: format(input), tint: .teal)
+                LabStat(label: "y", value: revealed ? format(function.value(at: input)!) : "?", tint: .accentColor)
             }
-
-            if let isCorrect = round.lastAnswerCorrect {
-                Label(
-                    L10n.text(isCorrect ? "lab.linear.correct" : "lab.linear.incorrect", store.language),
-                    systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .foregroundStyle(isCorrect ? Color.green : Color.orange)
-                .fixedSize(horizontal: false, vertical: true)
-
-                if isCorrect || round.attempts >= 2 {
-                    Text(solutionText)
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text(L10n.text("lab.linear.hint", store.language))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.linear.challenge"),
+                         solved: slope == 2 && intercept == 1, solvedText: text("lab.linear.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.linear.hint"), text("lab.linear.slopeNote")])
         }
         .onChange(of: slope) { _ in resetPrediction() }
         .onChange(of: intercept) { _ in resetPrediction() }
         .onChange(of: input) { _ in resetPrediction() }
     }
 
-    private func parameterRow(
-        _ labelKey: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        step: Double
-    ) -> some View {
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(String(format: text("lab.linear.currentInput"), format(input)))
+                .font(.callout.weight(.medium).monospacedDigit())
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                TextField(text("lab.linear.placeholder"), text: $predictionText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 240)
+                    .accessibilityLabel(Text(text("lab.linear.prediction")))
+                    .onSubmit { checkPrediction() }
+                    .disabled(round.lastAnswerCorrect == true || round.attempts >= 2)
+                if round.submittedAnswer == nil {
+                    Button(text("lab.linear.check")) { checkPrediction() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(parsedAnswer == nil)
+                } else if round.lastAnswerCorrect == false && round.attempts < 2 {
+                    Button(text("lab.linear.retry")) { retryPrediction() }
+                        .buttonStyle(.bordered)
+                }
+            }
+            if let isCorrect = round.lastAnswerCorrect {
+                Label(text(isCorrect ? "lab.linear.correct" : "lab.linear.incorrect"),
+                      systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .foregroundStyle(isCorrect ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(isCorrect || round.attempts >= 2 ? solutionText : text("lab.linear.hint"))
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func parameterRow(_ labelKey: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double) -> some View {
         HStack(spacing: 10) {
-            Text(L10n.text(labelKey, store.language))
-                .frame(width: 146, alignment: .leading)
-            Slider(value: value, in: range, step: step)
-                .accessibilityLabel(Text(L10n.text(labelKey, store.language)))
+            Text(text(labelKey))
+                .frame(width: 200, alignment: .leading)
+            // Rounded to the step without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step }), in: range)
+                .accessibilityLabel(Text(text(labelKey)))
             Text(format(value.wrappedValue))
                 .font(.callout.monospacedDigit())
                 .frame(width: 54, alignment: .trailing)
@@ -5092,11 +5091,7 @@ private struct LinearFunctionLab: View {
     }
 
     private func format(_ value: Double) -> String {
-        value.formatted(
-            .number
-                .locale(Locale(identifier: store.language == .ru ? "ru_RU" : "en_US"))
-                .precision(.fractionLength(0...2))
-        )
+        value.formatted(.number.locale(Locale(identifier: store.language == .ru ? "ru_RU" : "en_US")).precision(.fractionLength(0...2)))
     }
 }
 
@@ -5266,58 +5261,67 @@ private struct ForceLab: View {
         _prediction = State(initialValue: Self.makePrediction())
     }
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
     private var motion: ForceMotion { ForceMotion(force: force, mass: mass, time: elapsed) }
     private var isRunning: Bool { startedAt != nil }
 
     var body: some View {
         LabCard {
+            LabHeader(title: text("lab.forceTitle"), instruction: text("lab.forceSubtitle"))
             if lessonID != nil {
                 predictionView
             }
             Force3DVisualization(force: force, mass: mass, displacement: motion.displacement, language: store.language)
-                .frame(height: 240)
+                .frame(height: 220)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-                .accessibilityLabel(Text(L10n.text("lab.force3DHint", store.language)))
-            Text(L10n.text("lab.force3DHint", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("F = ma   ·   v = at   ·   x = ½at²")
-                .font(.system(.headline, design: .monospaced))
-            Text(L10n.text("lab.forceAssumptions", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            valueSlider(title: L10n.text("lab.force", store.language), value: $force, range: -30...30, unit: "N")
-            valueSlider(title: L10n.text("lab.mass", store.language), value: $mass, range: 1...10, unit: "kg")
+                .accessibilityLabel(Text(text("lab.force3DHint")))
+            HStack(spacing: 14) {
+                Canvas { context, size in drawMotionChart(context, size: size, showsVelocity: true) }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.forceVelocityChart"))
+                    .accessibilityValue(Text(verbatim: measure(motion.velocity, 2, "m/s")))
+                Canvas { context, size in drawMotionChart(context, size: size, showsVelocity: false) }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.forcePositionChart"))
+                    .accessibilityValue(Text(verbatim: measure(motion.displacement, 2, "m")))
+            }
+            .frame(height: 160)
+            valueSlider(title: text("lab.force"), value: $force, range: -30...30, unit: "N")
+            valueSlider(title: text("lab.mass"), value: $mass, range: 1...10, unit: "kg")
             HStack {
                 Button {
                     if isRunning { pause() } else { start() }
                 } label: {
-                    Label(L10n.text(isRunning ? "lab.motionPause" : "lab.motionPlay", store.language),
-                          systemImage: isRunning ? "pause.fill" : "play.fill")
+                    Label(text(isRunning ? "lab.motionPause" : "lab.motionPlay"), systemImage: isRunning ? "pause.fill" : "play.fill")
                 }
+                .buttonStyle(.borderedProminent)
                 .disabled(reduceMotion || scenePhase != .active)
-                Button(L10n.text("lab.motionStep", store.language)) {
+                Button(text("lab.motionStep")) {
                     elapsed = min(ForceMotion.duration, elapsed + 0.1)
                 }
                 .disabled(isRunning || motion.hasFinished)
-                Button(L10n.text("lab.motionReset", store.language), action: reset)
+                Button(text("lab.motionReset"), action: reset)
+                ProgressView(value: elapsed, total: ForceMotion.duration)
+                    .accessibilityLabel(Text(text("lab.motionTime")))
+                    .accessibilityValue(Text(verbatim: L10n.number(elapsed, fractionDigits: 1, store.language) + " / " + measure(ForceMotion.duration, 0, "s")))
             }
-            ProgressView(value: elapsed, total: ForceMotion.duration)
-                .accessibilityLabel(Text(L10n.text("lab.motionTime", store.language)))
-                .accessibilityValue(Text(verbatim: L10n.number(elapsed, fractionDigits: 1, store.language) + " / " + L10n.measurement(ForceMotion.duration, fractionDigits: 0, unit: "s", store.language)))
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), alignment: .leading)], alignment: .leading, spacing: 12) {
-                reading("lab.motionTime", value: elapsed, unit: "s")
-                reading("lab.acceleration", value: motion.acceleration, unit: "m/s²")
-                reading("lab.motionVelocity", value: motion.velocity, unit: "m/s")
-                reading("lab.motionDisplacement", value: motion.displacement, unit: "m")
+            LabStatGrid {
+                LabStat(label: text("lab.motionTime"), value: measure(elapsed, 2, "s"), tint: .secondary)
+                LabStat(label: text("lab.acceleration"), value: measure(motion.acceleration, 2, "m/s²"), tint: .purple)
+                LabStat(label: text("lab.motionVelocity"), value: measure(motion.velocity, 2, "m/s"), tint: .blue)
+                LabStat(label: text("lab.motionDisplacement"), value: measure(motion.displacement, 2, "m"), tint: .orange)
             }
             if reduceMotion {
-                Text(L10n.text("lab.motionReduced", store.language)).font(.caption).foregroundStyle(.secondary)
+                Text(text("lab.motionReduced")).font(.caption).foregroundStyle(.secondary)
             }
             if motion.hasFinished {
-                Text(L10n.text("lab.motionFinished", store.language)).font(.callout)
+                Text(text("lab.motionFinished")).font(.callout)
             }
-            Text(L10n.text("lab.forceExperiment", store.language)).font(.callout)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.forceChallenge"),
+                         solved: abs(motion.acceleration - 2) < 0.001 && motion.hasFinished, solvedText: text("lab.forceChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: ["F = ma   ·   v = at   ·   x = ½at²", text("lab.forceAssumptions"),
+                                                                 text("lab.forceExperiment"), text("lab.force3DHint")])
         }
         .onReceive(timer) { _ in advance() }
         .onChange(of: force) { _ in reset() }
@@ -5327,9 +5331,40 @@ private struct ForceLab: View {
         .onDisappear(perform: pause)
     }
 
+    /// Axis limits that change only in round steps, so a steeper line still looks steeper after a slider move.
+    private static func niceLimit(_ value: Double) -> Double {
+        [2.0, 5, 10, 20, 40, 60, 120].first { $0 >= abs(value) } ?? 120
+    }
+
+    // v(t) = at is a straight line; x(t) = ½at² is a parabola. Dashed: the whole 2 s run; solid: the part already travelled.
+    private func drawMotionChart(_ context: GraphicsContext, size: CGSize, showsVelocity: Bool) {
+        let duration = ForceMotion.duration
+        let acceleration = force / mass
+        let value: (Double) -> Double = { t in showsVelocity ? acceleration * t : 0.5 * acceleration * t * t }
+        let limit = Self.niceLimit(value(duration))
+        let plot = LabPlotGeometry(size: size, x: 0...duration, y: -limit...limit, leading: 40, bottom: 26)
+        plot.drawAxes(in: context, xLabel: "t, " + L10n.unit("s", store.language),
+                      yLabel: showsVelocity ? "v, " + L10n.unit("m/s", store.language) : "x, " + L10n.unit("m", store.language),
+                      xTicks: [0, 0.5, 1, 1.5, 2], yTicks: [-limit, 0, limit], format: { L10n.number($0, fractionDigits: $0 == $0.rounded() ? 0 : 1, store.language) })
+        let colour: Color = showsVelocity ? .blue : .orange
+        var whole = Path(), travelled = Path()
+        for step in 0...80 {
+            let t = duration * Double(step) / 80
+            let point = plot.point(t, value(t))
+            if step == 0 { whole.move(to: point) } else { whole.addLine(to: point) }
+            if t <= elapsed + 0.0001 {
+                if step == 0 { travelled.move(to: point) } else { travelled.addLine(to: point) }
+            }
+        }
+        context.stroke(whole, with: .color(colour.opacity(0.35)), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+        context.stroke(travelled, with: .color(colour), lineWidth: 3)
+        let now = plot.point(elapsed, value(elapsed))
+        context.fill(Path(ellipseIn: CGRect(x: now.x - 5, y: now.y - 5, width: 10, height: 10)), with: .color(colour))
+    }
+
     private var predictionView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.text("lab.forcePredictionPrompt", store.language))
+            Text(text("lab.forcePredictionPrompt"))
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(0..<prediction.choiceOrder.displayedOriginalIndices.count, id: \.self) { displayedIndex in
@@ -5341,7 +5376,7 @@ private struct ForceLab: View {
                         if prediction.selectedOriginalIndex == optionIndex {
                             Image(systemName: prediction.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
                         }
-                        Text(L10n.text("lab.forcePredictionOption.\(optionIndex)", store.language))
+                        Text(text("lab.forcePredictionOption.\(optionIndex)"))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -5350,20 +5385,20 @@ private struct ForceLab: View {
             }
             if prediction.hasAnswered {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.forcePredictionCorrect", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.forcePredictionCorrect"), systemImage: "checkmark.circle.fill")
                         .font(.callout)
                         .foregroundStyle(.green)
-                    Button(L10n.text("lab.forcePredictionNew", store.language), action: startNewPrediction)
+                    Button(text("lab.forcePredictionNew"), action: startNewPrediction)
                         .buttonStyle(.link)
                 } else {
-                    Label(L10n.text("lab.forcePredictionWrong", store.language), systemImage: "arrow.counterclockwise.circle")
+                    Label(text("lab.forcePredictionWrong"), systemImage: "arrow.counterclockwise.circle")
                         .font(.callout)
                         .foregroundStyle(.orange)
-                    Text(L10n.text("lab.forcePredictionHint", store.language))
+                    Text(text("lab.forcePredictionHint"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.forcePredictionRetry", store.language), action: retryPrediction)
+                    Button(text("lab.forcePredictionRetry"), action: retryPrediction)
                         .buttonStyle(.link)
                 }
             }
@@ -5400,14 +5435,6 @@ private struct ForceLab: View {
         return attempt
     }
 
-    private func reading(_ key: String, value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(key, store.language)).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: L10n.measurement(value, fractionDigits: 2, unit: unit, store.language)).monospacedDigit()
-        }
-        .accessibilityElement(children: .combine)
-    }
-
     private func start() {
         guard !reduceMotion, scenePhase == .active else { return }
         if motion.hasFinished { elapsed = 0 }
@@ -5435,17 +5462,19 @@ private struct ForceLab: View {
     }
 
     private func valueSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, step: 1)
+        HStack(spacing: 12) {
+            Text(title).frame(width: 150, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { newValue in
+                let rounded = newValue.rounded()
+                if rounded != value.wrappedValue { value.wrappedValue = rounded }
+            }), in: range)
                 .accessibilityLabel(Text(title))
+            Text(verbatim: measure(value.wrappedValue, 0, unit))
+                .monospacedDigit()
+                .frame(width: 64, alignment: .trailing)
         }
+        .font(.callout)
     }
 }
 
@@ -5456,79 +5485,104 @@ private struct LengthMeasurementLab: View {
 
     private let scaleCentimetres = 32.0
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
     private var measurement: LengthMeasurement {
         LengthMeasurement(centimetres: length, uncertaintyCentimetres: uncertainty)
     }
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.measurementTitle", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.measurementHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: text("lab.measurementTitle"), instruction: text("lab.measurementSubtitle"))
+            GeometryReader { proxy in
+                ruler(size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        let usable = proxy.size.width - 32
+                        let centimetres = Double((drag.location.x - 16) / usable) * scaleCentimetres
+                        length = min(max((centimetres * 10).rounded() / 10, 3), 30)
+                    })
+            }
+            .frame(height: 150)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(text("lab.measurementBand")))
+            .accessibilityValue(Text(verbatim: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language)
+                + "–" + measure(measurement.upperCentimetres, 1, "cm")))
+            measurementSlider(title: text("lab.measurementLength"), value: $length, range: 3...30)
+            measurementSlider(title: text("lab.measurementUncertainty"), value: $uncertainty, range: 0.1...2)
+            Text(verbatim: L10n.number(length, fractionDigits: 1, store.language) + " ± " + measure(uncertainty, 1, "cm")
+                + " = " + L10n.number(measurement.metres, fractionDigits: 3, store.language) + " ± " + measure(measurement.uncertaintyMetres, 3, "m"))
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .textSelection(.enabled)
+            LabStatGrid {
+                LabStat(label: text("lab.measurementInterval"),
+                        value: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language) + "–" + measure(measurement.upperCentimetres, 1, "cm"), tint: .accentColor)
+                LabStat(label: text("lab.measurementRelative"), value: measure(measurement.relativeUncertaintyPercent, 1, "%"),
+                        tint: measurement.relativeUncertaintyPercent < 1 ? .green : .orange)
+                LabStat(label: text("lab.measurementInMetres"), value: measure(measurement.metres, 3, "m"), tint: .purple)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.measurementChallenge"),
+                         solved: length >= 10 && measurement.relativeUncertaintyPercent < 1, solvedText: text("lab.measurementChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.measurementHint"), text("lab.measurementLimits")])
+        }
+    }
 
-            GeometryReader { geometry in
-                let trackWidth = max(geometry.size.width - 12, 0)
-                let lowerX = measurement.lowerCentimetres / scaleCentimetres * trackWidth
-                let centreX = measurement.centimetres / scaleCentimetres * trackWidth
-                let bandWidth = 2 * uncertainty / scaleCentimetres * trackWidth
-                ZStack(alignment: .topLeading) {
-                    Capsule()
-                        .fill(.secondary.opacity(0.5))
-                        .frame(width: trackWidth, height: 3)
-                        .offset(x: 6, y: 25)
-                    Capsule()
-                        .fill(Color.accentColor.opacity(0.35))
-                        .frame(width: bandWidth, height: 18)
-                        .offset(x: 6 + lowerX, y: 17)
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 10, height: 10)
-                        .offset(x: 1 + centreX, y: 21)
+    // A ruler with millimetre ticks; the measured strip ends at the reading, and the blue band is the range the true length can lie in.
+    private func ruler(size: CGSize) -> some View {
+        Canvas { context, size in
+            let left: CGFloat = 16
+            let usable = size.width - 32
+            let perCentimetre = usable / CGFloat(scaleCentimetres)
+            let top: CGFloat = 70
+            let body = CGRect(x: left - 6, y: top, width: usable + 12, height: 52)
+            context.fill(Path(roundedRect: body, cornerRadius: 6), with: .color(Color(red: 0.93, green: 0.82, blue: 0.55).opacity(0.85)))
+            var ticks = Path()
+            for millimetre in 0...Int(scaleCentimetres * 10) {
+                let x = left + CGFloat(millimetre) / 10 * perCentimetre
+                let tall: CGFloat = millimetre % 10 == 0 ? 18 : (millimetre % 5 == 0 ? 12 : 7)
+                ticks.move(to: CGPoint(x: x, y: top))
+                ticks.addLine(to: CGPoint(x: x, y: top + tall))
+                if millimetre % 10 == 0, (millimetre / 10) % 2 == 0 || perCentimetre > 26 {
+                    context.draw(Text(verbatim: "\(millimetre / 10)").font(.caption2.weight(.semibold)).foregroundColor(.black),
+                                 at: CGPoint(x: x, y: top + 30))
                 }
             }
-            .frame(height: 54)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(L10n.text("lab.measurementBand", store.language)))
-            .accessibilityValue(Text(verbatim: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language)
-                + "–" + L10n.measurement(measurement.upperCentimetres, fractionDigits: 1, unit: "cm", store.language)))
-
-            HStack {
-                Text(verbatim: L10n.measurement(0, fractionDigits: 0, unit: "cm", store.language))
-                Spacer()
-                Text(verbatim: L10n.measurement(scaleCentimetres, fractionDigits: 0, unit: "cm", store.language))
+            context.stroke(ticks, with: .color(.black.opacity(0.75)), lineWidth: 0.8)
+            context.draw(Text(verbatim: L10n.unit("cm", store.language)).font(.caption2).foregroundColor(.black.opacity(0.7)),
+                         at: CGPoint(x: body.maxX - 14, y: top + 44))
+            let lower = left + CGFloat(measurement.lowerCentimetres) * perCentimetre
+            let upper = left + CGFloat(measurement.upperCentimetres) * perCentimetre
+            let end = left + CGFloat(length) * perCentimetre
+            context.fill(Path(roundedRect: CGRect(x: left, y: top - 30, width: end - left, height: 22), cornerRadius: 4), with: .color(.teal.opacity(0.85)))
+            context.fill(Path(CGRect(x: lower, y: top - 40, width: max(upper - lower, 1), height: 92)), with: .color(.blue.opacity(0.18)))
+            var edges = Path()
+            for x in [lower, upper] {
+                edges.move(to: CGPoint(x: x, y: top - 40))
+                edges.addLine(to: CGPoint(x: x, y: top + 52))
             }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L10n.text("lab.measurementLength", store.language))
-                Slider(value: $length, in: 3...30, step: 0.1)
-                    .accessibilityLabel(Text(L10n.text("lab.measurementLength", store.language)))
-                    .accessibilityValue(Text(verbatim: L10n.measurement(length, fractionDigits: 1, unit: "cm", store.language)))
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L10n.text("lab.measurementUncertainty", store.language))
-                Slider(value: $uncertainty, in: 0.1...2, step: 0.1)
-                    .accessibilityLabel(Text(L10n.text("lab.measurementUncertainty", store.language)))
-                    .accessibilityValue(Text(verbatim: L10n.measurement(uncertainty, fractionDigits: 1, unit: "cm", store.language)))
-            }
-
-            Text(verbatim: L10n.number(length, fractionDigits: 1, store.language)
-                + " ± " + L10n.measurement(uncertainty, fractionDigits: 1, unit: "cm", store.language)
-                + " = " + L10n.number(measurement.metres, fractionDigits: 3, store.language)
-                + " ± " + L10n.measurement(measurement.uncertaintyMetres, fractionDigits: 3, unit: "m", store.language))
-                .font(.headline.monospacedDigit())
-                .textSelection(.enabled)
-            Text(verbatim: L10n.text("lab.measurementRelative", store.language) + ": "
-                + L10n.measurement(measurement.relativeUncertaintyPercent, fractionDigits: 1, unit: "%", store.language))
-                .font(.callout.monospacedDigit())
-            Text(L10n.text("lab.measurementLimits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            context.stroke(edges, with: .color(.blue.opacity(0.7)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            var reading = Path()
+            reading.move(to: CGPoint(x: end, y: top - 46))
+            reading.addLine(to: CGPoint(x: end, y: top + 52))
+            context.stroke(reading, with: .color(.red), lineWidth: 2)
+            context.draw(Text(verbatim: measure(length, 1, "cm") + " ± " + L10n.number(uncertainty, fractionDigits: 1, store.language))
+                            .font(.caption.weight(.bold)).foregroundColor(.red),
+                         at: CGPoint(x: min(max(end, 70), size.width - 70), y: top - 56))
         }
+    }
+
+    private func measurementSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 200, alignment: .leading)
+            // Tenths without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 * 10).rounded() / 10 }), in: range)
+                .accessibilityLabel(Text(title))
+                .accessibilityValue(Text(verbatim: measure(value.wrappedValue, 1, "cm")))
+            Text(verbatim: measure(value.wrappedValue, 1, "cm"))
+                .monospacedDigit()
+                .frame(width: 70, alignment: .trailing)
+        }
+        .font(.callout)
     }
 }
 
@@ -10827,89 +10881,143 @@ private struct LinearSystemLab: View {
     @State private var scenarioID = LinearSystemPractice.scenarios[0].id
     @State private var selectedDisplayIndex = -1
     @State private var prediction: InteractivePredictionAttempt
+    @State private var solvedScenarios: Set<String> = []
+
     private let predictionOptionKeys = ["lab.linearSystemOne", "lab.linearSystemNone", "lab.linearSystemInfinite"]
 
     init() {
         _prediction = State(initialValue: Self.makePrediction(for: LinearSystemPractice.scenarios[0]))
     }
 
-    private var scenario: LinearSystemScenario {
-        LinearSystemPractice.scenario(id: scenarioID)
-    }
-
-    private var equationOne: String {
-        equation(scenario.first.x, scenario.first.y, scenario.first.result)
-    }
-
-    private var equationTwo: String {
-        equation(scenario.second.x, scenario.second.y, scenario.second.result)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: LinearSystemScenario { LinearSystemPractice.scenario(id: scenarioID) }
+    private var revealed: Bool { prediction.hasAnswered && prediction.isCorrect }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.LinearSystemLab", store.language), instruction: L10n.text("lab.linearSystemHint", store.language))
-
-            Picker(L10n.text("lab.linearSystemScenario", store.language), selection: $scenarioID) {
-                Text(L10n.text("lab.linearSystemUnique", store.language)).tag("unique")
-                Text(L10n.text("lab.linearSystemParallel", store.language)).tag("parallel")
-                Text(L10n.text("lab.linearSystemSameLine", store.language)).tag("same-line")
+            LabHeader(title: text("labkit.title.LinearSystemLab"), instruction: text("lab.linearSystemSubtitle"))
+            Picker(text("lab.linearSystemScenario"), selection: $scenarioID) {
+                Text(text("lab.linearSystemUnique")).tag("unique")
+                Text(text("lab.linearSystemParallel")).tag("parallel")
+                Text(text("lab.linearSystemSameLine")).tag("same-line")
             }
             .pickerStyle(.segmented)
-            .disabled(prediction.hasAnswered)
+            .labelsHidden()
             .onChange(of: scenarioID) { newScenarioID in
                 selectedDisplayIndex = -1
                 prediction = Self.makePrediction(for: LinearSystemPractice.scenario(id: newScenarioID))
             }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(equationOne).font(.title3.monospaced())
-                Text(equationTwo).font(.title3.monospaced())
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(equation(scenario.first.x, scenario.first.y, scenario.first.result))
+                        .font(.title3.monospaced().weight(.semibold))
+                        .foregroundStyle(.blue)
+                    Text(equation(scenario.second.x, scenario.second.y, scenario.second.result))
+                        .font(.title3.monospaced().weight(.semibold))
+                        .foregroundStyle(.orange)
+                    Label(text("lab.linearSystemEliminate"), systemImage: "arrow.down.to.line")
+                        .font(.callout.weight(.medium))
+                        .padding(.top, 6)
+                    Text(String(format: text("lab.linearSystemReduction"), scenario.eliminationResult.x, scenario.eliminationResult.result))
+                        .font(.title3.monospaced())
+                        .accessibilityLabel(text("lab.linearSystemReduction"))
+                }
+                .frame(maxWidth: 260, alignment: .leading)
+                .accessibilityElement(children: .combine)
+                Canvas { context, size in drawLines(context, size: size) }
+                    .frame(height: 260)
+                    .overlay {
+                        if !revealed {
+                            VStack(spacing: 6) {
+                                Image(systemName: "eye.slash").font(.title2)
+                                Text(text("lab.linearSystemGraphHidden")).font(.caption).multilineTextAlignment(.center)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(12)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.linearSystemGraph"))
+                    .accessibilityValue(Text(revealed ? outcomeDescription : text("lab.linearSystemGraphHidden")))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.linearSystemChallenge"),
+                         solved: solvedScenarios.count == 3, solvedText: text("lab.linearSystemChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.linearSystemHint"), text("lab.linearSystemGraphNote")])
+        }
+    }
 
-            Label(L10n.text("lab.linearSystemEliminate", store.language), systemImage: "arrow.down.to.line")
+    // Each equation ax + by = c is a straight line; the solutions of the system are the points the two lines share.
+    private func drawLines(_ context: GraphicsContext, size: CGSize) {
+        let plot = LabPlotGeometry(size: size, x: -1...11, y: -1...11, leading: 30, bottom: 24)
+        plot.drawAxes(in: context, xLabel: "x", yLabel: "y", xTicks: [0, 2, 4, 6, 8, 10], yTicks: [0, 2, 4, 6, 8, 10],
+                      format: { L10n.number($0, fractionDigits: 0, store.language) })
+        guard revealed else { return }
+        let sameLine: Bool = { if case .infinitelyManySolutions = LinearSystemPractice.classify(scenario) { return true }; return false }()
+        context.stroke(line(scenario.first, plot: plot), with: .color(.blue), lineWidth: sameLine ? 7 : 3)
+        context.stroke(line(scenario.second, plot: plot), with: .color(.orange), style: StrokeStyle(lineWidth: 3, dash: sameLine ? [8, 6] : []))
+        if case let .oneSolution(x, y) = LinearSystemPractice.classify(scenario) {
+            let point = plot.point(x, y)
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 7, y: point.y - 7, width: 14, height: 14)), with: .color(.green))
+            context.draw(Text(verbatim: "(" + L10n.number(x, fractionDigits: 0, store.language) + "; " + L10n.number(y, fractionDigits: 0, store.language) + ")").font(.callout.weight(.bold)).foregroundColor(.green),
+                         at: CGPoint(x: point.x + 12, y: point.y - 14), anchor: .leading)
+        }
+    }
+
+    private func line(_ equation: (x: Int, y: Int, result: Int), plot: LabPlotGeometry) -> Path {
+        var path = Path()
+        let a = Double(equation.x), b = Double(equation.y), c = Double(equation.result)
+        if b != 0 {
+            path.move(to: plot.point(-1, (c - a * -1) / b))
+            path.addLine(to: plot.point(11, (c - a * 11) / b))
+        } else if a != 0 {
+            path.move(to: plot.point(c / a, -1))
+            path.addLine(to: plot.point(c / a, 11))
+        }
+        return path
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.linearSystemPredict"))
                 .font(.callout.weight(.medium))
-            Text(String(format: L10n.text("lab.linearSystemReduction", store.language), scenario.eliminationResult.x, scenario.eliminationResult.result))
-                .font(.title3.monospaced())
-                .accessibilityLabel(L10n.text("lab.linearSystemReduction", store.language))
-
-            Picker(L10n.text("lab.linearSystemPredict", store.language), selection: $selectedDisplayIndex) {
+            Picker(text("lab.linearSystemPredict"), selection: $selectedDisplayIndex) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(predictionOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(predictionOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
-
-            Button(L10n.text("lab.linearSystemCheck", store.language)) {
+            Button(text("lab.linearSystemCheck")) {
                 prediction.select(displayedIndex: selectedDisplayIndex)
+                if prediction.isCorrect { solvedScenarios.insert(scenarioID) }
                 guard let evidence = prediction.currentAnswerEventEvidence() else { return }
                 store.recordStudyAssessment(lessonID: "mathematics.systems_of_linear_equations", evidence: evidence)
             }
             .buttonStyle(.borderedProminent)
             .disabled(prediction.hasAnswered || selectedDisplayIndex < 0)
-
             if prediction.hasAnswered {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.linearSystemCorrect", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.linearSystemCorrect"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.green)
                     Text(outcomeDescription)
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.linearSystemNew", store.language)) {
+                    Button(text("lab.linearSystemNew")) {
                         prediction = Self.makePrediction(for: scenario)
                         selectedDisplayIndex = -1
                     }
                     .buttonStyle(.link)
                 } else {
-                    Label(L10n.text("lab.linearSystemReview", store.language), systemImage: "arrow.uturn.backward.circle")
+                    Label(text("lab.linearSystemReview"), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.linearSystemRetry", store.language)) {
+                    Button(text("lab.linearSystemRetry")) {
                         prediction.retry()
                         selectedDisplayIndex = -1
                     }
@@ -10917,6 +11025,8 @@ private struct LinearSystemLab: View {
                 }
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private static func makePrediction(for scenario: LinearSystemScenario) -> InteractivePredictionAttempt {
@@ -10932,12 +11042,9 @@ private struct LinearSystemLab: View {
 
     private var outcomeDescription: String {
         switch LinearSystemPractice.classify(scenario) {
-        case let .oneSolution(x, y):
-            return String(format: L10n.text("lab.linearSystemOutcomeOne", store.language), x, y)
-        case .noSolution:
-            return L10n.text("lab.linearSystemOutcomeNone", store.language)
-        case .infinitelyManySolutions:
-            return L10n.text("lab.linearSystemOutcomeInfinite", store.language)
+        case let .oneSolution(x, y): return String(format: text("lab.linearSystemOutcomeOne"), x, y)
+        case .noSolution: return text("lab.linearSystemOutcomeNone")
+        case .infinitelyManySolutions: return text("lab.linearSystemOutcomeInfinite")
         }
     }
 
@@ -11283,151 +11390,149 @@ private struct VectorKinematicsLab: View {
     @State private var angleDegrees = 30.0
     @State private var showsComponents = false
 
-    private var vector: VectorKinematics {
-        VectorKinematics(magnitude: magnitude, angleDegrees: angleDegrees)
-    }
+    private static let reach = 20.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
+    private var vector: VectorKinematics { VectorKinematics(magnitude: magnitude, angleDegrees: angleDegrees) }
 
     private var vectorAccessibilityValue: String {
-        let language = store.language
-        var value = "r " + L10n.measurement(vector.magnitude, fractionDigits: 0, unit: "m", language)
-            + ", θ " + L10n.measurement(vector.angleDegrees, fractionDigits: 0, unit: "°", language)
+        var value = "r " + measure(vector.magnitude, 0, "m") + ", θ " + measure(vector.angleDegrees, 0, "°")
         if showsComponents {
-            value += ", Δx " + L10n.measurement(vector.xComponent, fractionDigits: 2, unit: "m", language)
-                + ", Δy " + L10n.measurement(vector.yComponent, fractionDigits: 2, unit: "m", language)
+            value += ", Δx " + measure(vector.xComponent, 2, "m") + ", Δy " + measure(vector.yComponent, 2, "m")
         }
         return value
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            LabHeader(title: L10n.text("lab.vector.title", store.language), instruction: L10n.text("lab.vector.hint", store.language))
-
-            HStack(alignment: .center, spacing: 24) {
-                vectorDiagram
-                    .frame(minWidth: 260, idealWidth: 340, maxWidth: 420, minHeight: 240)
+        LabCard {
+            LabHeader(title: text("lab.vector.title"), instruction: text("lab.vector.subtitle"))
+            HStack(alignment: .top, spacing: 20) {
+                GeometryReader { proxy in
+                    vectorDiagram(size: proxy.size)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in setTip(drag.location, size: proxy.size) })
+                }
+                .frame(minWidth: 260, maxWidth: 420)
+                .frame(height: 320)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(text("lab.vector.diagram")))
+                .accessibilityValue(Text(verbatim: vectorAccessibilityValue))
                 VStack(alignment: .leading, spacing: 14) {
-                    vectorSlider(
-                        title: L10n.text("lab.vector.magnitude", store.language),
-                        value: $magnitude,
-                        range: 1...20,
-                        step: 1,
-                        unit: "m"
-                    )
-                    vectorSlider(
-                        title: L10n.text("lab.vector.angle", store.language),
-                        value: $angleDegrees,
-                        range: 0...359,
-                        step: 1,
-                        unit: "°"
-                    )
+                    vectorSlider(title: text("lab.vector.magnitude"), value: $magnitude, range: 1...20, unit: "m")
+                    vectorSlider(title: text("lab.vector.angle"), value: $angleDegrees, range: 0...359, unit: "°")
                     Toggle(isOn: $showsComponents) {
-                        Text(L10n.text("lab.vector.showComponents", store.language))
+                        Text(text("lab.vector.showComponents"))
                     }
                     .toggleStyle(.switch)
-                    .accessibilityLabel(Text(L10n.text("lab.vector.showComponents", store.language)))
-                    .help(L10n.text("lab.vector.revealHelp", store.language))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        if showsComponents {
-                            vectorReading("lab.vector.xComponent", value: vector.xComponent)
-                            vectorReading("lab.vector.yComponent", value: vector.yComponent)
-                            vectorReading("lab.vector.magnitudeResult", value: vector.reconstructedMagnitude)
-                        } else {
-                            Text(L10n.text("lab.vector.predictFirst", store.language))
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    .accessibilityLabel(Text(text("lab.vector.showComponents")))
+                    .help(text("lab.vector.revealHelp"))
+                    if !showsComponents {
+                        Text(text("lab.vector.predictFirst"))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
-                    .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
                 }
                 .frame(maxWidth: 280)
             }
-
-            Text(L10n.text("lab.vector.challenge", store.language))
-                .font(.callout)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            Text(L10n.text("lab.vector.limits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            LabStatGrid {
+                LabStat(label: text("lab.vector.magnitude"), value: measure(vector.magnitude, 0, "m"), tint: .accentColor)
+                LabStat(label: "θ", value: measure(vector.angleDegrees, 0, "°"), tint: .purple)
+                LabStat(label: text("lab.vector.xComponent"), value: showsComponents ? measure(vector.xComponent, 2, "m") : "?", tint: .orange)
+                LabStat(label: text("lab.vector.yComponent"), value: showsComponents ? measure(vector.yComponent, 2, "m") : "?", tint: .green)
+                LabStat(label: text("lab.vector.magnitudeResult"), value: showsComponents ? measure(vector.reconstructedMagnitude, 2, "m") : "?", tint: .teal)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.vector.challenge"),
+                         solved: magnitude == 10 && angleDegrees == 60 && showsComponents, solvedText: text("lab.vector.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.vector.hint"), text("lab.vector.limits")])
         }
-        .padding(.vertical, 8)
     }
 
-    private var vectorDiagram: some View {
+    // Square grid in metres; the components appear as an orange Δx along the x-axis and a green Δy up to the tip.
+    private func vectorDiagram(size: CGSize) -> some View {
         Canvas { context, size in
-            let inset: CGFloat = 28
             let origin = CGPoint(x: size.width / 2, y: size.height / 2)
-            let scale = min((size.width - inset * 2) / 40, (size.height - inset * 2) / 40)
-            let tip = CGPoint(
-                x: origin.x + vector.xComponent * scale,
-                y: origin.y - vector.yComponent * scale
-            )
-            var axes = Path()
-            axes.move(to: CGPoint(x: inset, y: origin.y))
-            axes.addLine(to: CGPoint(x: size.width - inset, y: origin.y))
-            axes.move(to: CGPoint(x: origin.x, y: size.height - inset))
-            axes.addLine(to: CGPoint(x: origin.x, y: inset))
-            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
-
-            if showsComponents {
-                var projections = Path()
-                projections.move(to: origin)
-                projections.addLine(to: CGPoint(x: tip.x, y: origin.y))
-                projections.addLine(to: tip)
-                context.stroke(projections, with: .color(.orange.opacity(0.8)), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
+            let scale = (min(size.width, size.height) / 2 - 20) / CGFloat(Self.reach)
+            var grid = Path()
+            for metre in stride(from: -20, through: 20, by: 5) {
+                let offset = CGFloat(metre) * scale
+                grid.move(to: CGPoint(x: origin.x + offset, y: origin.y - CGFloat(Self.reach) * scale))
+                grid.addLine(to: CGPoint(x: origin.x + offset, y: origin.y + CGFloat(Self.reach) * scale))
+                grid.move(to: CGPoint(x: origin.x - CGFloat(Self.reach) * scale, y: origin.y + offset))
+                grid.addLine(to: CGPoint(x: origin.x + CGFloat(Self.reach) * scale, y: origin.y + offset))
             }
-
-            var arrow = Path()
-            arrow.move(to: origin)
-            arrow.addLine(to: tip)
-            context.stroke(arrow, with: .color(.accentColor), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            let direction = CGVector(dx: tip.x - origin.x, dy: tip.y - origin.y)
-            let length = max(hypot(direction.dx, direction.dy), 1)
-            let unit = CGVector(dx: direction.dx / length, dy: direction.dy / length)
-            let perpendicular = CGVector(dx: -unit.dy, dy: unit.dx)
-            var head = Path()
-            head.move(to: tip)
-            head.addLine(to: CGPoint(x: tip.x - unit.dx * 12 + perpendicular.dx * 6, y: tip.y - unit.dy * 12 + perpendicular.dy * 6))
-            head.move(to: tip)
-            head.addLine(to: CGPoint(x: tip.x - unit.dx * 12 - perpendicular.dx * 6, y: tip.y - unit.dy * 12 - perpendicular.dy * 6))
-            context.stroke(head, with: .color(.accentColor), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            context.stroke(grid, with: .color(.secondary.opacity(0.15)), lineWidth: 1)
+            var axes = Path()
+            axes.move(to: CGPoint(x: origin.x - CGFloat(Self.reach) * scale, y: origin.y))
+            axes.addLine(to: CGPoint(x: origin.x + CGFloat(Self.reach) * scale, y: origin.y))
+            axes.move(to: CGPoint(x: origin.x, y: origin.y + CGFloat(Self.reach) * scale))
+            axes.addLine(to: CGPoint(x: origin.x, y: origin.y - CGFloat(Self.reach) * scale))
+            context.stroke(axes, with: .color(.secondary.opacity(0.7)), lineWidth: 1.2)
+            context.draw(Text(verbatim: "+x").font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: origin.x + CGFloat(Self.reach) * scale - 8, y: origin.y - 10))
+            context.draw(Text(verbatim: "+y").font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: origin.x + 12, y: origin.y - CGFloat(Self.reach) * scale + 8))
+            context.draw(Text(verbatim: measure(5, 0, "m")).font(.caption2).foregroundColor(.secondary),
+                         at: CGPoint(x: origin.x + 5 * scale, y: origin.y + 10))
+            let tip = CGPoint(x: origin.x + CGFloat(vector.xComponent) * scale, y: origin.y - CGFloat(vector.yComponent) * scale)
+            var arc = Path()
+            arc.addArc(center: origin, radius: 26, startAngle: .degrees(0), endAngle: .degrees(-angleDegrees), clockwise: true)
+            context.stroke(arc, with: .color(.purple), lineWidth: 1.5)
+            let middle = -angleDegrees / 2 * .pi / 180
+            context.draw(Text(verbatim: "θ").font(.caption.weight(.bold)).foregroundColor(.purple),
+                         at: CGPoint(x: origin.x + 38 * CGFloat(cos(middle)), y: origin.y + 38 * CGFloat(sin(middle))))
+            if showsComponents {
+                let corner = CGPoint(x: tip.x, y: origin.y)
+                arrow(context, from: origin, to: corner, color: .orange, width: 3)
+                arrow(context, from: corner, to: tip, color: .green, width: 3)
+                context.draw(Text(verbatim: "Δx").font(.caption.weight(.bold)).foregroundColor(.orange),
+                             at: CGPoint(x: (origin.x + corner.x) / 2, y: origin.y + (vector.yComponent >= 0 ? 12 : -12)))
+                context.draw(Text(verbatim: "Δy").font(.caption.weight(.bold)).foregroundColor(.green),
+                             at: CGPoint(x: corner.x + (vector.xComponent >= 0 ? 16 : -16), y: (origin.y + tip.y) / 2))
+            }
+            arrow(context, from: origin, to: tip, color: .accentColor, width: 3.5)
+            context.stroke(Path(ellipseIn: CGRect(x: tip.x - 9, y: tip.y - 9, width: 18, height: 18)), with: .color(.accentColor), lineWidth: 2)
             context.fill(Path(ellipseIn: CGRect(x: origin.x - 3, y: origin.y - 3, width: 6, height: 6)), with: .color(.primary))
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(L10n.text("lab.vector.diagram", store.language)))
-        .accessibilityValue(Text(verbatim: vectorAccessibilityValue))
     }
 
-    private func vectorSlider(
-        title: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        step: Double,
-        unit: String
-    ) -> some View {
+    private func arrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, color: Color, width: CGFloat) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 2 else { return }
+        let ux = dx / length, uy = dy / length
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 11 - uy * 5.5, y: end.y - uy * 11 + ux * 5.5))
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 11 + uy * 5.5, y: end.y - uy * 11 - ux * 5.5))
+        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
+    }
+
+    /// Dragging moves the arrow's tip: its distance from the origin is the magnitude, its direction the angle from +x.
+    private func setTip(_ location: CGPoint, size: CGSize) {
+        let scale = (min(size.width, size.height) / 2 - 20) / CGFloat(Self.reach)
+        let dx = Double((location.x - size.width / 2) / scale), dy = Double((size.height / 2 - location.y) / scale)
+        magnitude = min(max((dx * dx + dy * dy).squareRoot().rounded(), 1), 20)
+        var degrees = (atan2(dy, dx) * 180 / .pi).rounded()
+        if degrees < 0 { degrees += 360 }
+        angleDegrees = min(degrees, 359)
+    }
+
+    private func vectorSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(title)
                 Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language)).monospacedDigit()
+                Text(verbatim: measure(value.wrappedValue, 0, unit)).monospacedDigit()
             }
-            Slider(value: value, in: range, step: step)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = $0.rounded() }), in: range)
                 .accessibilityLabel(Text(title))
         }
-    }
-
-    private func vectorReading(_ key: String, value: Double) -> some View {
-        HStack {
-            Text(L10n.text(key, store.language)).foregroundStyle(.secondary)
-            Spacer()
-            Text(verbatim: L10n.measurement(value, fractionDigits: 2, unit: "m", store.language)).monospacedDigit()
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 
