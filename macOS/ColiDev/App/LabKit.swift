@@ -80,6 +80,8 @@ struct LabPlotGeometry {
 struct LabHeader: View {
     let title: String
     let instruction: String
+    /// Accessibility identifier for the instruction text, for labs whose UI tests read it.
+    var instructionIdentifier: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -89,6 +91,7 @@ struct LabHeader: View {
                 .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier(instructionIdentifier ?? "")
         }
     }
 }

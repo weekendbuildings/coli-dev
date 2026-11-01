@@ -5467,8 +5467,8 @@ private struct FrictionLab: View {
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.FrictionLab", store.language), instruction: L10n.text("lab.frictionHint", store.language))
-                .accessibilityIdentifier("lesson.friction.model")
+            LabHeader(title: L10n.text("labkit.title.FrictionLab", store.language), instruction: L10n.text("lab.frictionHint", store.language),
+                      instructionIdentifier: "lesson.friction.model")
 
             GeometryReader { geometry in
                 let width = max(geometry.size.width - 64, 0)
