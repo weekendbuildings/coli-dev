@@ -5747,144 +5747,198 @@ private struct FrictionLab: View {
 
 private struct ProjectileMotionLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var launchSpeed = 20.0
     @State private var angleDegrees = 35.0
     @State private var elapsed = 0.0
     @State private var comparesComplement = true
+    @State private var flying = false
 
-    private var motion: ProjectileMotion {
-        ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: angleDegrees)
-    }
-    private var complement: ProjectileMotion {
-        ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: 90 - angleDegrees)
-    }
-    private var displayedMaximumRange: Double {
-        max(max(motion.horizontalRange, comparesComplement ? complement.horizontalRange : 0), 1) * 1.12
-    }
-    private var displayedMaximumHeight: Double {
-        max(max(motion.maximumHeight, comparesComplement ? complement.maximumHeight : 0), 1) * 1.16
-    }
+    private static let targetDistance = 60.0
+    private static let worldWidth = 96.0
+    /// Pixels of aiming arrow per m/s of launch speed.
+    private static let aimScale: CGFloat = 4.5
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
+    private var motion: ProjectileMotion { ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: angleDegrees) }
+    private var complement: ProjectileMotion { ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: 90 - angleDegrees) }
+    private var hitsTarget: Bool { abs(motion.horizontalRange - Self.targetDistance) < 1.5 }
+    private var verticalVelocityNow: Double { motion.verticalVelocity - motion.gravity * elapsed }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("lab.projectile.title", store.language), instruction: L10n.text("lab.projectile.hint", store.language))
-
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0 else { return }
-                let inset: CGFloat = 12
-                func location(_ x: Double, _ y: Double) -> CGPoint {
-                    CGPoint(
-                        x: inset + CGFloat(x / displayedMaximumRange) * (size.width - 2 * inset),
-                        y: size.height - inset - CGFloat(y / displayedMaximumHeight) * (size.height - 2 * inset)
-                    )
-                }
-
-                var grid = Path()
-                for step in 0...4 {
-                    let fraction = CGFloat(step) / 4
-                    let x = inset + fraction * (size.width - 2 * inset)
-                    let y = inset + fraction * (size.height - 2 * inset)
-                    grid.move(to: CGPoint(x: x, y: inset))
-                    grid.addLine(to: CGPoint(x: x, y: size.height - inset))
-                    grid.move(to: CGPoint(x: inset, y: y))
-                    grid.addLine(to: CGPoint(x: size.width - inset, y: y))
-                }
-                context.stroke(grid, with: .color(.secondary.opacity(0.14)), lineWidth: 1)
-
-                func trajectoryPath(for model: ProjectileMotion) -> Path {
-                    var path = Path()
-                    let samples = 100
-                    for index in 0...samples {
-                        let t = model.flightTime * Double(index) / Double(samples)
-                        let point = model.position(at: t)
-                        let plotted = location(point.x, point.y)
-                        if index == 0 { path.move(to: plotted) } else { path.addLine(to: plotted) }
-                    }
-                    return path
-                }
-
-                if comparesComplement {
-                    context.stroke(
-                        trajectoryPath(for: complement),
-                        with: .color(.orange.opacity(0.85)),
-                        style: StrokeStyle(lineWidth: 2, dash: [6, 4])
-                    )
-                }
-                context.stroke(trajectoryPath(for: motion), with: .color(.accentColor), lineWidth: 3)
-                let current = motion.position(at: elapsed)
-                let point = location(current.x, current.y)
-                context.fill(Path(ellipseIn: CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)), with: .color(.accentColor))
+            LabHeader(title: text("lab.projectile.title"), instruction: text("lab.projectile.subtitle"))
+            GeometryReader { proxy in
+                let plot = plotGeometry(proxy.size)
+                trajectoryCanvas(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in aim(at: drag.location, plot: plot) })
             }
-            .frame(height: 230)
-            .accessibilityLabel(Text(L10n.text("lab.projectile.chart", store.language)))
-
-            HStack(spacing: 16) {
-                Label(L10n.text("lab.projectile.current", store.language), systemImage: "circle.fill")
-                    .foregroundStyle(.tint)
-                if comparesComplement {
-                    Label("90° − θ", systemImage: "line.diagonal")
-                        .foregroundStyle(.orange)
-                }
+            .frame(height: 300)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.projectile.chart"))
+            .accessibilityValue(Text(verbatim: measure(launchSpeed, 0, "m/s") + ", " + L10n.number(angleDegrees, fractionDigits: 0, store.language) + "°, "
+                                     + text("lab.projectile.range") + " " + measure(motion.horizontalRange, 1, "m")))
+            HStack(spacing: 14) {
+                legendItem(.accentColor, text("lab.projectile.current"))
+                if comparesComplement { legendItem(.orange, "90° − θ") }
+                legendItem(.blue, "vx")
+                legendItem(.pink, "vy")
                 Spacer()
-                Button(L10n.text(comparesComplement ? "lab.projectile.hideCompare" : "lab.projectile.compare", store.language)) {
-                    comparesComplement.toggle()
-                }
-                .buttonStyle(.bordered)
+                Toggle(text("lab.projectile.compare"), isOn: $comparesComplement)
+                    .toggleStyle(.checkbox)
             }
             .font(.caption)
-
-            projectileSlider(title: L10n.text("lab.projectile.speed", store.language), value: $launchSpeed, range: 5...30, unit: "m/s")
-            projectileSlider(title: L10n.text("lab.projectile.angle", store.language), value: $angleDegrees, range: 15...75, unit: "°")
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.text("lab.projectile.time", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Slider(value: $elapsed, in: 0...max(motion.flightTime, 0.05), step: 0.05)
-                    .accessibilityLabel(Text(L10n.text("lab.projectile.time", store.language)))
-                Text(verbatim: "t = " + L10n.measurement(elapsed, fractionDigits: 2, unit: "s", store.language))
-                    .monospacedDigit()
-                    .font(.caption)
+            HStack(spacing: 10) {
+                Button {
+                    if reduceMotion { elapsed = motion.flightTime } else { elapsed = 0; flying = true }
+                } label: { Label(text("lab.projectile.launch"), systemImage: "paperplane.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(flying)
+                // Hundredths of a second without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { elapsed }, set: { flying = false; elapsed = ($0 * 20).rounded() / 20 }), in: 0...max(motion.flightTime, 0.05))
+                    .accessibilityLabel(Text(text("lab.projectile.time")))
+                Text(verbatim: "t = " + measure(elapsed, 2, "s"))
+                    .font(.callout.monospacedDigit())
+                    .frame(width: 92, alignment: .trailing)
             }
-
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: 12) {
-                projectileReading("lab.projectile.range", value: motion.horizontalRange, unit: "m")
-                projectileReading("lab.projectile.height", value: motion.maximumHeight, unit: "m")
-                projectileReading("lab.projectile.flight", value: motion.flightTime, unit: "s")
-                projectileReading("lab.projectile.position", value: motion.position(at: elapsed).x, unit: "m")
+            projectileSlider(title: text("lab.projectile.speed"), value: $launchSpeed, range: 5...30, unit: "m/s")
+            projectileSlider(title: text("lab.projectile.angle"), value: $angleDegrees, range: 15...75, unit: "°")
+            LabStatGrid {
+                LabStat(label: text("lab.projectile.range"), value: measure(motion.horizontalRange, 1, "m"), tint: hitsTarget ? .green : .accentColor)
+                LabStat(label: text("lab.projectile.height"), value: measure(motion.maximumHeight, 1, "m"), tint: .purple)
+                LabStat(label: text("lab.projectile.flight"), value: measure(motion.flightTime, 2, "s"), tint: .orange)
+                LabStat(label: "vx", value: measure(motion.horizontalVelocity, 1, "m/s"), tint: .blue)
+                LabStat(label: "vy(t)", value: measure(verticalVelocityNow, 1, "m/s"), tint: .pink)
             }
-            Text(L10n.text("lab.projectile.compareTask", store.language))
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.projectile.limits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.projectile.challenge"),
+                         solved: hitsTarget, solvedText: text("lab.projectile.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.projectile.hint"), text("lab.projectile.compareTask"), text("lab.projectile.limits")])
         }
         .onChange(of: angleDegrees) { _ in elapsed = min(elapsed, motion.flightTime) }
         .onChange(of: launchSpeed) { _ in elapsed = min(elapsed, motion.flightTime) }
+        .task(id: flying) {
+            guard flying else { return }
+            let start = Date()
+            while flying {
+                try? await Task.sleep(nanoseconds: 16_000_000)
+                let now = Date().timeIntervalSince(start)
+                elapsed = min(now, motion.flightTime)
+                if now >= motion.flightTime { break }
+            }
+            flying = false
+        }
+    }
+
+    /// Equal metres on both axes, so the arc has its true shape.
+    private func plotGeometry(_ size: CGSize) -> LabPlotGeometry {
+        let plotWidth = max(1, size.width - 46 - 12)
+        let plotHeight = max(1, size.height - 10 - 30)
+        return LabPlotGeometry(size: size, x: 0...Self.worldWidth, y: 0...(Self.worldWidth * Double(plotHeight / plotWidth)))
+    }
+
+    // The arc, a trace of positions every quarter second (equal horizontal steps), the velocity split into vx and vy, and the target flag.
+    private func trajectoryCanvas(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "x, " + L10n.unit("m", store.language), yLabel: "y, " + L10n.unit("m", store.language),
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            drawTarget(context, plot: plot)
+            if comparesComplement {
+                context.stroke(arc(complement, plot: plot), with: .color(.orange.opacity(0.85)), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+            }
+            context.stroke(arc(motion, plot: plot), with: .color(.accentColor), lineWidth: 3)
+            var tick = 0.0
+            while tick <= elapsed {
+                let point = motion.position(at: tick)
+                let spot = plot.point(point.x, point.y)
+                context.fill(Path(ellipseIn: CGRect(x: spot.x - 2.5, y: spot.y - 2.5, width: 5, height: 5)), with: .color(.accentColor.opacity(0.45)))
+                tick += 0.25
+            }
+            let origin = plot.point(0, 0)
+            let aimEnd = CGPoint(x: origin.x + CGFloat(cos(angleDegrees * .pi / 180)) * CGFloat(launchSpeed) * Self.aimScale,
+                                 y: origin.y - CGFloat(sin(angleDegrees * .pi / 180)) * CGFloat(launchSpeed) * Self.aimScale)
+            arrow(context, from: origin, to: aimEnd, color: .accentColor.opacity(0.75), width: 3)
+            context.stroke(Path(ellipseIn: CGRect(x: aimEnd.x - 8, y: aimEnd.y - 8, width: 16, height: 16)), with: .color(.accentColor), lineWidth: 2)
+            let now = motion.position(at: elapsed)
+            let ball = plot.point(now.x, now.y)
+            arrow(context, from: ball, to: CGPoint(x: ball.x + CGFloat(motion.horizontalVelocity) * 2.4, y: ball.y), color: .blue, width: 2)
+            arrow(context, from: ball, to: CGPoint(x: ball.x, y: ball.y - CGFloat(verticalVelocityNow) * 2.4), color: .pink, width: 2)
+            context.fill(Path(ellipseIn: CGRect(x: ball.x - 7, y: ball.y - 7, width: 14, height: 14)), with: .color(.accentColor))
+        }
+    }
+
+    private func arc(_ model: ProjectileMotion, plot: LabPlotGeometry) -> Path {
+        var path = Path()
+        for index in 0...120 {
+            let point = model.position(at: model.flightTime * Double(index) / 120)
+            let location = plot.point(point.x, point.y)
+            if index == 0 { path.move(to: location) } else { path.addLine(to: location) }
+        }
+        return path
+    }
+
+    private func drawTarget(_ context: GraphicsContext, plot: LabPlotGeometry) {
+        let base = plot.point(Self.targetDistance, 0)
+        context.fill(Path(CGRect(x: base.x - 14, y: base.y - 4, width: 28, height: 4)), with: .color(hitsTarget ? .green : .red))
+        var pole = Path()
+        pole.move(to: base)
+        pole.addLine(to: CGPoint(x: base.x, y: base.y - 30))
+        context.stroke(pole, with: .color(.secondary), lineWidth: 1.5)
+        var flag = Path()
+        flag.move(to: CGPoint(x: base.x, y: base.y - 30))
+        flag.addLine(to: CGPoint(x: base.x + 14, y: base.y - 25))
+        flag.addLine(to: CGPoint(x: base.x, y: base.y - 20))
+        flag.closeSubpath()
+        context.fill(flag, with: .color(hitsTarget ? .green : .red))
+        context.draw(Text(verbatim: measure(Self.targetDistance, 0, "m")).font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                     at: CGPoint(x: base.x + 4, y: base.y - 38))
+    }
+
+    private func arrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, color: Color, width: CGFloat) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 3 else { return }
+        let ux = dx / length, uy = dy / length
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 8 - uy * 4, y: end.y - uy * 8 + ux * 4))
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 8 + uy * 4, y: end.y - uy * 8 - ux * 4))
+        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
+    }
+
+    /// Dragging from the launcher aims: the direction sets the angle, the length sets the speed.
+    private func aim(at location: CGPoint, plot: LabPlotGeometry) {
+        let origin = plot.point(0, 0)
+        let dx = Double(location.x - origin.x), dy = Double(origin.y - location.y)
+        guard dx > 4 else { return }
+        flying = false
+        angleDegrees = min(max((atan2(dy, dx) * 180 / .pi).rounded(), 15), 75)
+        launchSpeed = min(max(((dx * dx + dy * dy).squareRoot() / Double(Self.aimScale)).rounded(), 5), 30)
+        elapsed = 0
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(verbatim: label).foregroundStyle(.secondary)
+        }
     }
 
     private func projectileSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, step: 1)
+        HStack(spacing: 12) {
+            Text(title).frame(width: 170, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { flying = false; value.wrappedValue = $0.rounded() }), in: range)
                 .accessibilityLabel(Text(title))
+            Text(verbatim: unit == "°" ? L10n.number(value.wrappedValue, fractionDigits: 0, store.language) + "°" : measure(value.wrappedValue, 0, unit))
+                .monospacedDigit()
+                .frame(width: 70, alignment: .trailing)
         }
-    }
-
-    private func projectileReading(_ key: String, value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(key, store.language)).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: L10n.measurement(value, fractionDigits: 2, unit: unit, store.language)).monospacedDigit()
-        }
-        .accessibilityElement(children: .combine)
+        .font(.callout)
     }
 }
 
@@ -6125,282 +6179,280 @@ private struct KineticEnergyLab: View {
 
 private struct MomentumCollisionLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var firstMass = 2.0
     @State private var firstVelocity = 4.0
     @State private var secondMass = 2.0
     @State private var secondVelocity = -2.0
-    @State private var showingAfter = false
     @State private var prediction: Int?
     @State private var selectedMode: CollisionOutcomeMode
+    @State private var time = 0.0
+    @State private var playing = false
+
+    private static let trackLength = 20.0
 
     init(initialMode: CollisionOutcomeMode = .perfectlyInelastic) {
         _selectedMode = State(initialValue: initialMode)
     }
 
-    private var collision: MomentumCollision {
-        MomentumCollision(
-            firstMass: firstMass,
-            firstVelocity: firstVelocity,
-            secondMass: secondMass,
-            secondVelocity: secondVelocity
-        )
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
 
+    private var collision: MomentumCollision {
+        MomentumCollision(firstMass: firstMass, firstVelocity: firstVelocity, secondMass: secondMass, secondVelocity: secondVelocity)
+    }
+    private var elasticCollision: ElasticCollision {
+        ElasticCollision(firstMass: firstMass, firstVelocity: firstVelocity, secondMass: secondMass, secondVelocity: secondVelocity)
+    }
+    private var isElastic: Bool { selectedMode == .elastic }
+    private var firstFinalVelocity: Double { isElastic ? elasticCollision.firstFinalVelocity : collision.finalVelocity }
+    private var secondFinalVelocity: Double { isElastic ? elasticCollision.secondFinalVelocity : collision.finalVelocity }
+    private var momentumBefore: Double { isElastic ? elasticCollision.momentumBefore : collision.momentumBefore }
+    private var momentumAfter: Double { isElastic ? elasticCollision.momentumAfter : collision.momentumAfter }
+    private var kineticEnergyBefore: Double { isElastic ? elasticCollision.kineticEnergyBefore : collision.kineticEnergyBefore }
+    private var kineticEnergyAfter: Double { isElastic ? elasticCollision.kineticEnergyAfter : collision.kineticEnergyAfter }
     private var correctPrediction: Int {
         if abs(firstFinalVelocity) < 0.05 { return 1 }
         return firstFinalVelocity < 0 ? 0 : 2
     }
 
-    private var elasticCollision: ElasticCollision {
-        ElasticCollision(
-            firstMass: firstMass,
-            firstVelocity: firstVelocity,
-            secondMass: secondMass,
-            secondVelocity: secondVelocity
-        )
+    // Cart widths in metres grow with mass; cart 1 starts at 5 m, cart 2 at 15 m.
+    private var firstWidth: Double { 0.9 + 0.16 * firstMass }
+    private var secondWidth: Double { 0.9 + 0.16 * secondMass }
+    /// Time when the carts touch, or nil when they never meet.
+    private var contactTime: Double? {
+        let gap = 10 - (firstWidth + secondWidth) / 2
+        let closing = firstVelocity - secondVelocity
+        return closing > 0.0001 ? gap / closing : nil
+    }
+    private var endTime: Double { (contactTime ?? 2.5) + 2.5 }
+    private var collided: Bool { contactTime.map { time >= $0 } ?? false }
+
+    private func positions(at t: Double) -> (Double, Double) {
+        guard let contact = contactTime, t > contact else { return (5 + firstVelocity * t, 15 + secondVelocity * t) }
+        let first = 5 + firstVelocity * contact, second = 15 + secondVelocity * contact
+        let after = t - contact
+        return (first + firstFinalVelocity * after, second + secondFinalVelocity * after)
     }
 
-    private var firstFinalVelocity: Double {
-        selectedMode == .elastic ? elasticCollision.firstFinalVelocity : collision.finalVelocity
-    }
-
-    private var secondFinalVelocity: Double {
-        selectedMode == .elastic ? elasticCollision.secondFinalVelocity : collision.finalVelocity
-    }
-
-    private var momentumBefore: Double {
-        selectedMode == .elastic ? elasticCollision.momentumBefore : collision.momentumBefore
-    }
-
-    private var momentumAfter: Double {
-        selectedMode == .elastic ? elasticCollision.momentumAfter : collision.momentumAfter
-    }
-
-    private var kineticEnergyBefore: Double {
-        selectedMode == .elastic ? elasticCollision.kineticEnergyBefore : collision.kineticEnergyBefore
-    }
-
-    private var kineticEnergyAfter: Double {
-        selectedMode == .elastic ? elasticCollision.kineticEnergyAfter : collision.kineticEnergyAfter
-    }
-
-    private var kineticEnergyConverted: Double {
-        max(0, kineticEnergyBefore - kineticEnergyAfter)
+    private var challengeSolved: Bool {
+        isElastic ? (abs(firstFinalVelocity) < 0.05 && abs(firstVelocity) > 0.5 && contactTime != nil)
+                  : (abs(momentumBefore) < 0.05 && abs(firstVelocity) > 0.5 && contactTime != nil)
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.MomentumCollisionLab", store.language), instruction: L10n.text("lab.momentumHint", store.language))
-
-            Canvas { context, size in
-                let baseline = size.height * 0.69
-                var track = Path()
-                track.move(to: CGPoint(x: 18, y: baseline))
-                track.addLine(to: CGPoint(x: size.width - 18, y: baseline))
-                context.stroke(track, with: .color(.secondary.opacity(0.45)), lineWidth: 2)
-
-                if showingAfter {
-                    if selectedMode == .elastic {
-                        let firstX = size.width * 0.31
-                        let secondX = size.width * 0.69
-                        drawBlock(
-                            in: &context,
-                            centerX: firstX,
-                            baseline: baseline,
-                            width: CGFloat(min(92, 34 + firstMass * 6)),
-                            height: 38,
-                            label: String(format: L10n.text("lab.momentumCart", store.language), 1, firstMass),
-                            color: .blue
-                        )
-                        drawBlock(
-                            in: &context,
-                            centerX: secondX,
-                            baseline: baseline,
-                            width: CGFloat(min(92, 34 + secondMass * 6)),
-                            height: 38,
-                            label: String(format: L10n.text("lab.momentumCart", store.language), 2, secondMass),
-                            color: .orange
-                        )
-                        drawVelocityArrow(in: &context, centerX: firstX, baseline: baseline, velocity: firstFinalVelocity, label: nil)
-                        drawVelocityArrow(in: &context, centerX: secondX, baseline: baseline, velocity: secondFinalVelocity, label: nil)
-                    } else {
-                        drawBlock(
-                            in: &context,
-                            centerX: size.width * 0.5,
-                            baseline: baseline,
-                            width: CGFloat(min(128, 42 + collision.totalMass * 5)),
-                            height: 43,
-                            label: String(format: L10n.text("lab.momentumJoinedMass", store.language), collision.totalMass),
-                            color: .purple
-                        )
-                        drawVelocityArrow(
-                            in: &context,
-                            centerX: size.width * 0.5,
-                            baseline: baseline,
-                            velocity: collision.finalVelocity,
-                            label: String(
-                                format: L10n.text("lab.momentumVelocity", store.language),
-                                L10n.measurement(collision.finalVelocity, fractionDigits: 1, unit: "m/s", store.language)
-                            )
-                        )
-                    }
-                } else {
-                    let firstX = size.width * 0.28
-                    let secondX = size.width * 0.72
-                    drawBlock(
-                        in: &context,
-                        centerX: firstX,
-                        baseline: baseline,
-                        width: CGFloat(min(92, 34 + firstMass * 6)),
-                        height: 38,
-                        label: String(format: L10n.text("lab.momentumCart", store.language), 1, firstMass),
-                        color: .blue
-                    )
-                    drawBlock(
-                        in: &context,
-                        centerX: secondX,
-                        baseline: baseline,
-                        width: CGFloat(min(92, 34 + secondMass * 6)),
-                        height: 38,
-                        label: String(format: L10n.text("lab.momentumCart", store.language), 2, secondMass),
-                        color: .orange
-                    )
-                    drawVelocityArrow(in: &context, centerX: firstX, baseline: baseline, velocity: firstVelocity, label: nil)
-                    drawVelocityArrow(in: &context, centerX: secondX, baseline: baseline, velocity: secondVelocity, label: nil)
+            LabHeader(title: text("labkit.title.MomentumCollisionLab"), instruction: text("lab.momentumSubtitle"))
+            Picker(text("lab.collisionType"), selection: $selectedMode) {
+                Text(text("lab.collisionInelastic")).tag(CollisionOutcomeMode.perfectlyInelastic)
+                Text(text("lab.collisionElastic")).tag(CollisionOutcomeMode.elastic)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            Canvas { context, size in drawTrack(context, size: size) }
+                .frame(height: 150)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.momentumCanvas"))
+                .accessibilityValue(Text(verbatim: "v₁ = " + measure(collided ? firstFinalVelocity : firstVelocity, 1, "m/s")
+                                         + ", v₂ = " + measure(collided ? secondFinalVelocity : secondVelocity, 1, "m/s")))
+            HStack(spacing: 10) {
+                Button {
+                    if reduceMotion { time = endTime } else { time = 0; playing = true }
+                } label: { Label(text("lab.momentumPlay"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(playing)
+                Button {
+                    playing = false
+                    time = 0
+                } label: { Label(text("lab.momentumResetRun"), systemImage: "arrow.counterclockwise") }
+                if contactTime == nil {
+                    Label(text("lab.momentumNoMeet"), systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
-            .frame(height: 160)
-            .accessibilityLabel(Text(L10n.text("lab.momentumCanvas", store.language)))
-
-            Picker(L10n.text("lab.momentumStage", store.language), selection: $showingAfter) {
-                Text(L10n.text("lab.momentumBefore", store.language)).tag(false)
-                Text(L10n.text("lab.momentumAfter", store.language)).tag(true)
+            Canvas { context, size in drawMomentumBars(context, size: size) }
+                .frame(height: 150)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.momentumBars"))
+                .accessibilityValue(Text(verbatim: measure(momentumBefore, 1, "kg·m/s") + " → " + measure(momentumAfter, 1, "kg·m/s")))
+            LabStatGrid {
+                LabStat(label: text("lab.momentumBeforeValue"), value: measure(momentumBefore, 1, "kg·m/s"), tint: .purple)
+                LabStat(label: text("lab.momentumAfterValue"), value: measure(momentumAfter, 1, "kg·m/s"), tint: .purple)
+                LabStat(label: text("lab.momentumEnergyBefore"), value: measure(kineticEnergyBefore, 1, "J"), tint: .orange)
+                LabStat(label: text("lab.momentumEnergyAfterFull"), value: measure(kineticEnergyAfter, 1, "J"), tint: .orange)
+                LabStat(label: text("lab.momentumEnergyConverted"), value: measure(max(0, kineticEnergyBefore - kineticEnergyAfter), 1, "J"), tint: .red)
             }
-            .pickerStyle(.segmented)
-
-            Picker(L10n.text("lab.collisionType", store.language), selection: $selectedMode) {
-                Text(L10n.text("lab.collisionInelastic", store.language)).tag(CollisionOutcomeMode.perfectlyInelastic)
-                Text(L10n.text("lab.collisionElastic", store.language)).tag(CollisionOutcomeMode.elastic)
+            VStack(alignment: .leading, spacing: 8) {
+                valueSlider(title: text("lab.momentumMassOne"), value: $firstMass, range: 1...8, unit: "kg")
+                valueSlider(title: text("lab.momentumVelocityOne"), value: $firstVelocity, range: -8...8, unit: "m/s")
+                valueSlider(title: text("lab.momentumMassTwo"), value: $secondMass, range: 1...8, unit: "kg")
+                valueSlider(title: text("lab.momentumVelocityTwo"), value: $secondVelocity, range: -8...8, unit: "m/s")
             }
-            .pickerStyle(.segmented)
-
-            Text(L10n.text(
-                selectedMode == .elastic ? "lab.collisionElasticHint" : "lab.collisionInelasticHint",
-                store.language
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Text("p = mv   ·   J = Δp = Fₙₑₜ Δt")
-                .font(.system(.headline, design: .monospaced))
-            valueSlider(title: L10n.text("lab.momentumMassOne", store.language), value: $firstMass, range: 1...8, step: 1, unit: "kg")
-            valueSlider(title: L10n.text("lab.momentumVelocityOne", store.language), value: $firstVelocity, range: -8...8, step: 1, unit: "m/s")
-            valueSlider(title: L10n.text("lab.momentumMassTwo", store.language), value: $secondMass, range: 1...8, step: 1, unit: "kg")
-            valueSlider(title: L10n.text("lab.momentumVelocityTwo", store.language), value: $secondVelocity, range: -8...8, step: 1, unit: "m/s")
-
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                readout(title: L10n.text("lab.momentumBeforeValue", store.language), value: momentumBefore, unit: "kg·m/s")
-                readout(title: L10n.text("lab.momentumAfterValue", store.language), value: momentumAfter, unit: "kg·m/s")
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text(isElastic ? "lab.momentumChallengeElastic" : "lab.momentumChallengeInelastic"),
+                         solved: challengeSolved, solvedText: text(isElastic ? "lab.momentumChallengeElasticSolved" : "lab.momentumChallengeInelasticSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                "p = mv   ·   J = Δp = Fₙₑₜ Δt",
+                text(isElastic ? "lab.collisionElasticHint" : "lab.collisionInelasticHint"),
+                text(isElastic ? "lab.collisionElasticLimit" : "lab.momentumLimit")
+            ])
+        }
+        .onChange(of: firstMass) { _ in resetRun() }
+        .onChange(of: firstVelocity) { _ in resetRun() }
+        .onChange(of: secondMass) { _ in resetRun() }
+        .onChange(of: secondVelocity) { _ in resetRun() }
+        .onChange(of: selectedMode) { _ in resetRun() }
+        .task(id: playing) {
+            guard playing else { return }
+            let start = Date()
+            while playing {
+                try? await Task.sleep(nanoseconds: 16_000_000)
+                let now = Date().timeIntervalSince(start)
+                time = min(now, endTime)
+                if now >= endTime { break }
             }
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                readout(title: L10n.text("lab.momentumEnergyBefore", store.language), value: kineticEnergyBefore, unit: "J")
-                readout(title: L10n.text("lab.momentumEnergyAfter", store.language), value: kineticEnergyAfter, unit: "J")
-                readout(title: L10n.text("lab.momentumEnergyConverted", store.language), value: kineticEnergyConverted, unit: "J")
-            }
+            playing = false
+        }
+    }
 
-            Text(L10n.text(
-                selectedMode == .elastic ? "lab.collisionPredictFirst" : "lab.momentumPredict",
-                store.language
-            ))
-                .font(.headline)
+    // A 20 m track: carts with velocity arrows, joined into one block after a sticking collision.
+    private func drawTrack(_ context: GraphicsContext, size: CGSize) {
+        let left: CGFloat = 16, right = size.width - 16
+        let scale = (right - left) / CGFloat(Self.trackLength)
+        let baseline = size.height - 34
+        var track = Path()
+        track.move(to: CGPoint(x: left, y: baseline))
+        track.addLine(to: CGPoint(x: right, y: baseline))
+        context.stroke(track, with: .color(.secondary.opacity(0.5)), lineWidth: 2)
+        for metre in stride(from: 0, through: Int(Self.trackLength), by: 5) {
+            let x = left + CGFloat(metre) * scale
+            context.draw(Text(verbatim: measure(Double(metre), 0, "m")).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x, y: baseline + 14))
+        }
+        let (first, second) = positions(at: time)
+        let joined = collided && !isElastic
+        cart(context, centre: left + CGFloat(first) * scale, width: CGFloat(firstWidth) * scale, baseline: baseline,
+             color: joined ? .purple : .blue, label: joined ? "" : "1 · " + measure(firstMass, 0, "kg"))
+        cart(context, centre: left + CGFloat(second) * scale, width: CGFloat(secondWidth) * scale, baseline: baseline,
+             color: joined ? .purple : .orange, label: joined ? "" : "2 · " + measure(secondMass, 0, "kg"))
+        if joined {
+            let middle = left + CGFloat((first + second) / 2) * scale
+            context.draw(Text(verbatim: String(format: text("lab.momentumJoinedMass"), collision.totalMass)).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         at: CGPoint(x: middle, y: baseline - 52))
+            velocityArrow(context, centre: middle, y: baseline - 70, velocity: firstFinalVelocity, scale: scale)
+        } else {
+            velocityArrow(context, centre: left + CGFloat(first) * scale, y: baseline - 70, velocity: collided ? firstFinalVelocity : firstVelocity, scale: scale)
+            velocityArrow(context, centre: left + CGFloat(second) * scale, y: baseline - 70, velocity: collided ? secondFinalVelocity : secondVelocity, scale: scale)
+        }
+        if let contact = contactTime, abs(time - contact) < 0.25 {
+            let x = left + CGFloat(5 + firstVelocity * contact + firstWidth / 2) * scale
+            var burst = Path()
+            for ray in 0..<8 {
+                let angle = Double(ray) * .pi / 4
+                burst.move(to: CGPoint(x: x + 6 * CGFloat(cos(angle)), y: baseline - 20 + 6 * CGFloat(sin(angle))))
+                burst.addLine(to: CGPoint(x: x + 16 * CGFloat(cos(angle)), y: baseline - 20 + 16 * CGFloat(sin(angle))))
+            }
+            context.stroke(burst, with: .color(.yellow), lineWidth: 2)
+        }
+    }
+
+    private func cart(_ context: GraphicsContext, centre: CGFloat, width: CGFloat, baseline: CGFloat, color: Color, label: String) {
+        let body = CGRect(x: centre - width / 2, y: baseline - 38, width: width, height: 30)
+        context.fill(Path(roundedRect: body, cornerRadius: 6), with: .color(color.opacity(0.85)))
+        for wheel in [body.minX + 8, body.maxX - 8] {
+            context.fill(Path(ellipseIn: CGRect(x: wheel - 5, y: baseline - 10, width: 10, height: 10)), with: .color(.secondary))
+        }
+        if !label.isEmpty {
+            context.draw(Text(verbatim: label).font(.caption2.weight(.bold)).foregroundColor(.white), at: CGPoint(x: body.midX, y: body.midY))
+        }
+    }
+
+    private func velocityArrow(_ context: GraphicsContext, centre: CGFloat, y: CGFloat, velocity: Double, scale: CGFloat) {
+        guard abs(velocity) > 0.05 else {
+            context.draw(Text(verbatim: "v = 0").font(.caption2.monospacedDigit()).foregroundColor(.secondary), at: CGPoint(x: centre, y: y))
+            return
+        }
+        let direction: CGFloat = velocity < 0 ? -1 : 1
+        let length = CGFloat(abs(velocity)) * scale * 0.35
+        var arrow = Path()
+        arrow.move(to: CGPoint(x: centre, y: y))
+        arrow.addLine(to: CGPoint(x: centre + direction * length, y: y))
+        arrow.move(to: CGPoint(x: centre + direction * length, y: y))
+        arrow.addLine(to: CGPoint(x: centre + direction * (length - 7), y: y - 5))
+        arrow.move(to: CGPoint(x: centre + direction * length, y: y))
+        arrow.addLine(to: CGPoint(x: centre + direction * (length - 7), y: y + 5))
+        context.stroke(arrow, with: .color(.primary), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+        context.draw(Text(verbatim: measure(velocity, 1, "m/s")).font(.caption2.monospacedDigit()).foregroundColor(.secondary),
+                     at: CGPoint(x: centre, y: y - 12))
+    }
+
+    // Signed momentum bars before and after: the carts' shares change, the purple total stays the same length.
+    private func drawMomentumBars(_ context: GraphicsContext, size: CGSize) {
+        let before = [firstMass * firstVelocity, secondMass * secondVelocity, momentumBefore]
+        let after = [firstMass * firstFinalVelocity, secondMass * secondFinalVelocity, momentumAfter]
+        let largest = max((before + after).map(abs).max() ?? 1, 4) * 1.1
+        let labelWidth: CGFloat = 110
+        let zero = labelWidth + (size.width - labelWidth - 12) / 2
+        let half = (size.width - labelWidth - 12) / 2
+        let rowHeight = (size.height - 8) / 6
+        let names = ["p₁", "p₂", "Σp"]
+        let colors: [Color] = [.blue, .orange, .purple]
+        var axis = Path()
+        axis.move(to: CGPoint(x: zero, y: 2))
+        axis.addLine(to: CGPoint(x: zero, y: size.height - 2))
+        context.stroke(axis, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+        for (group, values) in [before, after].enumerated() {
+            for (index, value) in values.enumerated() {
+                let row = CGFloat(group * 3 + index)
+                let y = 4 + row * rowHeight
+                let width = CGFloat(value / largest) * half
+                let bar = CGRect(x: min(zero, zero + width), y: y + 3, width: abs(width), height: rowHeight - 6)
+                context.fill(Path(roundedRect: bar, cornerRadius: 3), with: .color(colors[index].opacity(group == 1 && !collided ? 0.25 : 0.85)))
+                let caption = (group == 0 ? text("lab.momentumBeforeShort") : text("lab.momentumAfterShort")) + " " + names[index]
+                context.draw(Text(verbatim: caption).font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                             at: CGPoint(x: 4, y: y + rowHeight / 2), anchor: .leading)
+                context.draw(Text(verbatim: L10n.number(value, fractionDigits: 1, store.language)).font(.caption2.monospacedDigit()).foregroundColor(.primary),
+                             at: CGPoint(x: zero + width + (width < 0 ? -4 : 4), y: y + rowHeight / 2), anchor: width < 0 ? .trailing : .leading)
+            }
+        }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text(isElastic ? "lab.collisionPredictFirst" : "lab.momentumPredict"))
+                .font(.callout.weight(.medium))
             HStack {
-                predictionButton(title: L10n.text("lab.momentumLeft", store.language), tag: 0)
-                predictionButton(title: L10n.text("lab.momentumRest", store.language), tag: 1)
-                predictionButton(title: L10n.text("lab.momentumRight", store.language), tag: 2)
+                predictionButton(title: text("lab.momentumLeft"), tag: 0)
+                predictionButton(title: text("lab.momentumRest"), tag: 1)
+                predictionButton(title: text("lab.momentumRight"), tag: 2)
             }
             if let prediction {
-                Label(
-                    L10n.text(prediction == correctPrediction ? "lab.momentumCorrect" : "lab.momentumTryAgain", store.language),
-                    systemImage: prediction == correctPrediction ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .font(.callout)
-                .foregroundStyle(prediction == correctPrediction ? Color.green : Color.orange)
+                Label(text(prediction == correctPrediction ? "lab.momentumCorrect" : "lab.momentumTryAgain"),
+                      systemImage: prediction == correctPrediction ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .font(.callout)
+                    .foregroundStyle(prediction == correctPrediction ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(L10n.text(
-                selectedMode == .elastic ? "lab.collisionElasticLimit" : "lab.momentumLimit",
-                store.language
-            ))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .onChange(of: firstMass) { _ in prediction = nil }
-        .onChange(of: firstVelocity) { _ in prediction = nil }
-        .onChange(of: secondMass) { _ in prediction = nil }
-        .onChange(of: secondVelocity) { _ in prediction = nil }
-        .onChange(of: selectedMode) { _ in prediction = nil }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func drawBlock(
-        in context: inout GraphicsContext,
-        centerX: CGFloat,
-        baseline: CGFloat,
-        width: CGFloat,
-        height: CGFloat,
-        label: String,
-        color: Color
-    ) {
-        let rect = CGRect(x: centerX - width / 2, y: baseline - height, width: width, height: height)
-        context.fill(Path(roundedRect: rect, cornerRadius: 8), with: .color(color.opacity(0.78)))
-        context.draw(Text(label).font(.caption.weight(.semibold)).foregroundColor(.primary), at: CGPoint(x: centerX, y: rect.minY - 13))
-    }
-
-    private func drawVelocityArrow(
-        in context: inout GraphicsContext,
-        centerX: CGFloat,
-        baseline: CGFloat,
-        velocity: Double,
-        label: String?
-    ) {
-        let direction: CGFloat = velocity < 0 ? -1 : 1
-        let length = CGFloat(min(62, max(12, abs(velocity) * 8)))
-        let start = CGPoint(x: centerX, y: baseline + 13)
-        let end = CGPoint(x: centerX + direction * length, y: baseline + 13)
-        var arrow = Path()
-        arrow.move(to: start)
-        arrow.addLine(to: end)
-        arrow.move(to: end)
-        arrow.addLine(to: CGPoint(x: end.x - direction * 8, y: end.y - 5))
-        arrow.move(to: end)
-        arrow.addLine(to: CGPoint(x: end.x - direction * 8, y: end.y + 5))
-        context.stroke(arrow, with: .color(.primary), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-        if let label {
-            context.draw(Text(label).font(.caption.monospacedDigit()).foregroundColor(.secondary), at: CGPoint(x: centerX, y: baseline + 34))
-        }
-    }
-
-    private func valueSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, step: step)
+    private func valueSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 180, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { newValue in
+                let rounded = newValue.rounded()
+                if rounded != value.wrappedValue { value.wrappedValue = rounded }
+            }), in: range)
                 .accessibilityLabel(Text(title))
+            Text(verbatim: measure(value.wrappedValue, 0, unit))
+                .monospacedDigit()
+                .frame(width: 70, alignment: .trailing)
         }
-    }
-
-    private func readout(title: String, value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: L10n.measurement(value, fractionDigits: 1, unit: unit, store.language))
-                .font(.callout.monospacedDigit().weight(.semibold))
-        }
-        .accessibilityElement(children: .combine)
+        .font(.callout)
     }
 
     private func predictionButton(title: String, tag: Int) -> some View {
@@ -6408,6 +6460,12 @@ private struct MomentumCollisionLab: View {
             .buttonStyle(.bordered)
             .tint(prediction == tag ? .accentColor : nil)
             .accessibilityAddTraits(prediction == tag ? .isSelected : [])
+    }
+
+    private func resetRun() {
+        prediction = nil
+        playing = false
+        time = 0
     }
 }
 
@@ -8889,7 +8947,7 @@ private struct EukaryoticCellLab: View {
 
     var body: some View {
         LabCard {
-            LabHeader(title: text("lab.cell3d.title"), instruction: text("lab.cell3d.subtitle"))
+            LabHeader(title: text("lab.cell3d.title"), instruction: L10n.text("lab.cell3d.interactionHint", store.language))
             EukaryoticCellScene(
                 selectedPart: $selectedPart,
                 tapSequence: $sceneTapSequence,
@@ -8899,7 +8957,7 @@ private struct EukaryoticCellLab: View {
                 .clipShape(RoundedRectangle(cornerRadius: 14))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(text("lab.cell3d.accessibility")))
-                .accessibilityValue(Text(text("biology.cell3d.\(selectedPart)")))
+                .accessibilityValue(Text(L10n.text("biology.cell3d.\(selectedPart)", store.language)))
                 .accessibilityIdentifier("biology.cell3d.scene")
                 .overlay(alignment: .topLeading) {
                     if isCell3DUITestRoute {
@@ -8913,7 +8971,7 @@ private struct EukaryoticCellLab: View {
                             .accessibilityIdentifier("biology.cell3d.tapState")
                     }
                 }
-            Picker(text("lab.cellPart"), selection: $selectedPart) {
+            Picker(L10n.text("lab.cellPart", store.language), selection: $selectedPart) {
                 ForEach(parts, id: \.self) { part in
                     Text(text("biology.cell3d.\(part)")).tag(part)
                 }
@@ -8924,7 +8982,7 @@ private struct EukaryoticCellLab: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text(text("biology.cell3d.\(selectedPart)"))
                     .font(.headline)
-                Text(text("biology.cell3d.\(selectedPart).function"))
+                Text(L10n.text("biology.cell3d.\(selectedPart).function", store.language))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("biology.cell3d.description")
