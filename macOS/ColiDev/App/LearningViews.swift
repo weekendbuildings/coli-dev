@@ -13016,76 +13016,88 @@ private struct EnergyCouplingLab: View {
     private typealias Model = EnergyCouplingModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let total = Model.total(reaction: reaction, atpCount: atpCount)
+        let runs = Model.runs(reaction: reaction, atpCount: atpCount)
         LabCard {
-            Text(L10n.text("lab.coupling.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.coupling.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.coupling.title"), instruction: text("lab.coupling.subtitle"))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.coupling.reaction", store.language), number(reaction, 0)))
-                    .monospacedDigit()
-                // Whole kJ/mol without `step:`, which would draw a dense row of tick marks.
-                Slider(value: Binding(get: { reaction }, set: { reaction = $0.rounded() }), in: Model.reactionRange)
-                    .accessibilityLabel(L10n.text("lab.coupling.reactionLabel", store.language))
-                    .accessibilityValue(Text(verbatim: number(reaction, 0)))
-                    .accessibilityIdentifier("lab.coupling.reaction")
-            }
-            Stepper(value: $atpCount, in: Model.atpRange) {
-                Text(String(format: L10n.text("lab.coupling.atp", store.language), String(atpCount), number(Double(atpCount) * Model.atpFreeEnergy, 1)))
-                    .monospacedDigit()
-            }
-            .accessibilityLabel(Text(L10n.text("lab.coupling.atpLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(atpCount)))
-            .accessibilityIdentifier("lab.coupling.atpCount")
-
-            energyBars(total: total)
-                .frame(height: 70)
+            staircase(total: total)
+                .frame(height: 260)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.coupling.chart", store.language))
+                .accessibilityLabel(text("lab.coupling.chart"))
                 .accessibilityValue(Text(verbatim: number(total, 1)))
 
-            Text(String(format: L10n.text("lab.coupling.total", store.language), number(reaction, 0), String(atpCount), number(total, 1)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.coupling.total")
-            Text(L10n.text(Model.runs(reaction: reaction, atpCount: atpCount) ? "lab.coupling.runs" : "lab.coupling.stalls", store.language))
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.coupling.verdict")
-            Text(String(format: L10n.text("lab.coupling.minimum", store.language), String(Model.minimumATP(reaction: reaction))))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.coupling.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.coupling.reaction"), number(reaction, 0))).monospacedDigit().frame(minWidth: 290, alignment: .leading)
+                // Whole kJ/mol without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { reaction }, set: { reaction = $0.rounded() }), in: Model.reactionRange)
+                    .accessibilityLabel(text("lab.coupling.reactionLabel"))
+                    .accessibilityIdentifier("lab.coupling.reaction")
+            }
+            HStack(spacing: 10) {
+                Text(text("lab.coupling.atpLabel")).frame(minWidth: 290, alignment: .leading)
+                Button { withAnimation(.spring(response: 0.35)) { atpCount = max(atpCount - 1, Model.atpRange.lowerBound) } } label: { Image(systemName: "minus") }
+                    .accessibilityLabel(text("lab.coupling.atpLess"))
+                Text(verbatim: String(atpCount)).font(.title2.weight(.bold)).monospacedDigit().frame(minWidth: 36)
+                    .accessibilityIdentifier("lab.coupling.atpCount")
+                Button { withAnimation(.spring(response: 0.35)) { atpCount = min(atpCount + 1, Model.atpRange.upperBound) } } label: { Image(systemName: "plus") }
+                    .accessibilityLabel(text("lab.coupling.atpMore"))
+                Text(verbatim: "ATP").font(.headline).foregroundStyle(.green)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.coupling.statTotal"), value: number(total, 1), tint: runs ? .green : .red, identifier: "lab.coupling.total")
+                LabStat(label: text("lab.coupling.statMinimum"), value: String(Model.minimumATP(reaction: reaction)), tint: .accentColor)
+            }
+            LabStatusBadge(kind: runs ? .good : .bad, text: text(runs ? "lab.coupling.runs" : "lab.coupling.stalls"), identifier: "lab.coupling.verdict")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.coupling.challenge"),
+                         solved: reaction == 45 && atpCount == 2, solvedText: text("lab.coupling.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.coupling.hint"),
+                String(format: text("lab.coupling.total"), number(reaction, 0), String(atpCount), number(total, 1)),
+                text("lab.coupling.limit"),
+            ])
         }
     }
 
-    // The reaction's positive ΔG to the right of zero, each ATP's −30.5 kJ/mol to the left, and the total below.
-    private func energyBars(total: Double) -> some View {
+    // An energy staircase: the reaction climbs by +ΔG, each ATP steps down by 30.5 kJ/mol, and the last step is the total.
+    private func staircase(total: Double) -> some View {
         Canvas { context, size in
-            let scale = size.width / 2 / 160
-            let zero = size.width / 2
-            context.fill(Path(CGRect(x: zero, y: 4, width: CGFloat(reaction) * scale, height: 22)), with: .color(.red.opacity(0.7)))
-            for index in 0..<atpCount {
-                let width = CGFloat(-Model.atpFreeEnergy) * scale
-                let rect = CGRect(x: zero - CGFloat(index + 1) * width, y: 4, width: width - 2, height: 22)
-                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.green.opacity(0.7)))
+            let lowest = min(0, total) - 20, highest = max(reaction, 40) + 20
+            let plot = LabPlotGeometry(size: size, x: 0...Double(atpCount + 2), y: lowest...highest, leading: 56)
+            plot.drawAxes(in: context, xLabel: "", yLabel: text("lab.coupling.axisY"), xTicks: [], format: { number($0, 0) })
+            var zero = Path()
+            zero.move(to: plot.point(0, 0))
+            zero.addLine(to: plot.point(Double(atpCount + 2), 0))
+            context.stroke(zero, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            func step(_ index: Int, _ from: Double, _ to: Double, _ color: Color, _ label: String) {
+                let a = plot.point(Double(index) + 0.15, from), b = plot.point(Double(index) + 0.85, to)
+                var bar = Path()
+                bar.move(to: CGPoint(x: a.x, y: b.y))
+                bar.addLine(to: CGPoint(x: b.x, y: b.y))
+                context.stroke(bar, with: .color(color), lineWidth: 4)
+                var arrow = Path()
+                let x = (a.x + b.x) / 2
+                arrow.move(to: CGPoint(x: x, y: a.y))
+                arrow.addLine(to: CGPoint(x: x, y: b.y))
+                let direction: CGFloat = to > from ? 1 : -1
+                arrow.move(to: CGPoint(x: x - 6, y: b.y + 9 * direction))
+                arrow.addLine(to: CGPoint(x: x, y: b.y))
+                arrow.addLine(to: CGPoint(x: x + 6, y: b.y + 9 * direction))
+                context.stroke(arrow, with: .color(color.opacity(0.8)), lineWidth: 2)
+                context.draw(Text(verbatim: label).font(.caption.weight(.bold)).foregroundColor(color), at: CGPoint(x: x + 10, y: (a.y + b.y) / 2), anchor: .leading)
             }
-            let totalWidth = CGFloat(abs(total)) * scale
-            let totalRect = CGRect(x: total < 0 ? zero - totalWidth : zero, y: 38, width: totalWidth, height: 22)
-            context.fill(Path(roundedRect: totalRect, cornerRadius: 3), with: .color(total < 0 ? .accentColor : .orange))
-            var axis = Path()
-            axis.move(to: CGPoint(x: zero, y: 0))
-            axis.addLine(to: CGPoint(x: zero, y: size.height))
-            context.stroke(axis, with: .color(.secondary), lineWidth: 1)
+            step(0, 0, reaction, .red, "+" + number(reaction, 0))
+            var level = reaction
+            for index in 0..<atpCount {
+                step(index + 1, level, level + Model.atpFreeEnergy, .green, "ATP " + number(Model.atpFreeEnergy, 1))
+                level += Model.atpFreeEnergy
+            }
+            let final = plot.point(Double(atpCount + 1) + 0.5, total)
+            context.draw(Text(verbatim: "ΔG = " + number(total, 1)).font(.headline).foregroundColor(total < 0 ? .green : .red),
+                         at: CGPoint(x: final.x, y: final.y + (total < 0 ? 16 : -16)))
         }
     }
 }
@@ -13097,64 +13109,110 @@ private struct ReactionQuotientLab: View {
     private typealias Model = ReactionQuotientModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
-    private var directionText: String {
-        switch Model.direction(mixture) {
-        case .forward: return L10n.text("lab.quotient.forward", store.language)
-        case .reverse: return L10n.text("lab.quotient.reverse", store.language)
-        case .equilibrium: return L10n.text("lab.quotient.equilibrium", store.language)
+    var body: some View {
+        let quotient = Model.quotient(mixture)
+        let direction = Model.direction(mixture)
+        LabCard {
+            LabHeader(title: text("lab.quotient.title"), instruction: text("lab.quotient.subtitle"))
+
+            HStack(alignment: .center, spacing: 18) {
+                beaker([("CO", mixture.carbonMonoxide, Color.gray), ("H₂O", mixture.water, Color.blue)], title: text("lab.quotient.reactants"))
+                Image(systemName: direction == .forward ? "arrow.right.circle.fill" : direction == .reverse ? "arrow.left.circle.fill" : "equal.circle.fill")
+                    .font(.system(size: 44))
+                    .foregroundStyle(direction == .equilibrium ? Color.green : Color.orange)
+                    .symbolRenderingMode(.hierarchical)
+                beaker([("CO₂", mixture.carbonDioxide, Color.purple), ("H₂", mixture.hydrogen, Color.teal)], title: text("lab.quotient.products"))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 235)
+            gauge(quotient: quotient)
+                .frame(height: 70)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.quotient.gauge"))
+                .accessibilityValue(Text(verbatim: number(quotient, 3)))
+
+            LabStatGrid {
+                LabStat(label: "Q = [CO₂][H₂] / ([CO][H₂O])", value: number(quotient, 3), tint: .orange, identifier: "lab.quotient.value")
+                LabStat(label: text("lab.quotient.statK"), value: number(Model.equilibriumConstant, 2), tint: .green)
+            }
+            LabStatusBadge(kind: direction == .equilibrium ? .good : .info,
+                           text: text(direction == .forward ? "lab.quotient.forward" : direction == .reverse ? "lab.quotient.reverse" : "lab.quotient.equilibrium"),
+                           identifier: "lab.quotient.direction")
+            HStack(spacing: 10) {
+                Button { withAnimation(.easeInOut(duration: 0.8)) { mixture = Model.equilibrate(mixture) } } label: { Label(text("lab.quotient.settle"), systemImage: "scalemass") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.quotient.settle")
+                Button(text("lab.quotient.addWater")) { withAnimation { mixture.water = min(mixture.water + 0.01, Model.concentrationRange.upperBound) } }
+                    .accessibilityIdentifier("lab.quotient.addWater")
+                Button(text("lab.quotient.reset")) { withAnimation { mixture = Model.lessonMixture } }
+                    .accessibilityIdentifier("lab.quotient.reset")
+            }
+            DisclosureGroup(text("lab.quotient.manual")) {
+                VStack(alignment: .leading, spacing: 6) {
+                    concentration("CO", \.carbonMonoxide, "lab.quotient.slider.co")
+                    concentration("H₂O", \.water, "lab.quotient.slider.water")
+                    concentration("CO₂", \.carbonDioxide, "lab.quotient.slider.co2")
+                    concentration("H₂", \.hydrogen, "lab.quotient.slider.h2")
+                }
+                .padding(.top, 6)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.quotient.challenge"), solved: direction == .reverse, solvedText: text("lab.quotient.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.quotient.hint"), text("lab.quotient.limit")])
         }
     }
 
-    var body: some View {
-        LabCard {
-            Text(L10n.text("lab.quotient.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.quotient.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            concentration("CO", \.carbonMonoxide, "lab.quotient.slider.co")
-            concentration("H₂O", \.water, "lab.quotient.slider.water")
-            concentration("CO₂", \.carbonDioxide, "lab.quotient.slider.co2")
-            concentration("H₂", \.hydrogen, "lab.quotient.slider.h2")
-
-            Text(String(format: L10n.text("lab.quotient.value", store.language), number(Model.quotient(mixture), 3), number(Model.equilibriumConstant, 2)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.quotient.value")
-            Text(directionText)
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.quotient.direction")
-            HStack {
-                Button(L10n.text("lab.quotient.settle", store.language)) { mixture = Model.equilibrate(mixture) }
-                    .buttonStyle(.borderedProminent)
-                    .accessibilityIdentifier("lab.quotient.settle")
-                Button(L10n.text("lab.quotient.addWater", store.language)) {
-                    mixture.water = min(mixture.water + 0.01, Model.concentrationRange.upperBound)
+    // Columns for two substances; heights are concentrations on a shared 0–0.05 mol/L scale.
+    private func beaker(_ items: [(String, Double, Color)], title: String) -> some View {
+        VStack(spacing: 6) {
+            HStack(alignment: .bottom, spacing: 14) {
+                ForEach(items, id: \.0) { name, value, color in
+                    VStack(spacing: 4) {
+                        Text(verbatim: number(value, 4)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(color.gradient)
+                            .frame(width: 56, height: max(4, 160 * CGFloat(value / Model.concentrationRange.upperBound)))
+                        Text(verbatim: name).font(.headline)
+                    }
                 }
-                .accessibilityIdentifier("lab.quotient.addWater")
-                Button(L10n.text("lab.quotient.reset", store.language)) { mixture = Model.lessonMixture }
-                    .accessibilityIdentifier("lab.quotient.reset")
             }
-            Text(L10n.text("lab.quotient.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .frame(height: 205, alignment: .bottom)
+            Text(title).font(.caption).foregroundStyle(.secondary)
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    // A logarithmic gauge from 0.001 to 1000 with K marked in green and Q as an orange pointer.
+    private func gauge(quotient: Double) -> some View {
+        Canvas { context, size in
+            let left: CGFloat = 20, right = size.width - 20, y = size.height * 0.5
+            func x(_ value: Double) -> CGFloat { left + (right - left) * CGFloat((log10(min(max(value, 0.001), 1000)) + 3) / 6) }
+            context.fill(Path(roundedRect: CGRect(x: left, y: y - 5, width: right - left, height: 10), cornerRadius: 5), with: .color(.secondary.opacity(0.2)))
+            for power in -3...3 {
+                context.draw(Text(verbatim: power >= 0 ? number(pow(10, Double(power)), 0) : number(pow(10, Double(power)), -power)).font(.caption2).foregroundColor(.secondary),
+                             at: CGPoint(x: x(pow(10, Double(power))), y: y + 20))
+            }
+            let k = x(Model.equilibriumConstant)
+            context.fill(Path(CGRect(x: k - 2, y: y - 16, width: 4, height: 32)), with: .color(.green))
+            context.draw(Text(verbatim: "K").font(.caption.weight(.bold)).foregroundColor(.green), at: CGPoint(x: k, y: y - 24))
+            let q = x(quotient)
+            var pointer = Path()
+            pointer.move(to: CGPoint(x: q, y: y - 4))
+            pointer.addLine(to: CGPoint(x: q - 8, y: y - 18))
+            pointer.addLine(to: CGPoint(x: q + 8, y: y - 18))
+            pointer.closeSubpath()
+            context.fill(pointer, with: .color(.orange))
+            context.draw(Text(verbatim: "Q").font(.caption.weight(.bold)).foregroundColor(.orange), at: CGPoint(x: q, y: y - 26))
         }
     }
 
     private func concentration(_ formula: String, _ path: WritableKeyPath<Model.Mixture, Double>, _ identifier: String) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            Text(verbatim: "[\(formula)] = \(number(mixture[keyPath: path], 4)) " + L10n.text("lab.quotient.unit", store.language))
-                .monospacedDigit()
+        HStack(spacing: 12) {
+            Text(verbatim: "[\(formula)] = \(number(mixture[keyPath: path], 4)) " + text("lab.quotient.unit")).monospacedDigit().frame(minWidth: 220, alignment: .leading)
             // Rounds to 0.001 mol/L without `step:`, which would draw a dense row of tick marks.
-            Slider(value: Binding(get: { mixture[keyPath: path] }, set: { mixture[keyPath: path] = ($0 * 1000).rounded() / 1000 }),
-                   in: Model.concentrationRange)
+            Slider(value: Binding(get: { mixture[keyPath: path] }, set: { mixture[keyPath: path] = ($0 * 1000).rounded() / 1000 }), in: Model.concentrationRange)
                 .accessibilityLabel(Text(verbatim: formula))
-                .accessibilityValue(Text(verbatim: number(mixture[keyPath: path], 4)))
                 .accessibilityIdentifier(identifier)
         }
     }
@@ -13164,87 +13222,122 @@ private struct TimeDilationLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var speed = 0.6
     @State private var properTime = 10.0
+    @State private var flight = 1.0
+    @State private var flying = false
 
     private typealias Model = RelativityModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let gamma = Model.gamma(speed: speed)
         LabCard {
-            Text(L10n.text("lab.relativity.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.relativity.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.relativity.title"), instruction: text("lab.relativity.subtitle"))
 
-            curve
-                .frame(height: 150)
-                .clipped()
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.relativity.chart", store.language))
-                .accessibilityValue(Text(verbatim: number(gamma, 2)))
+            HStack(spacing: 20) {
+                clock(text("lab.relativity.shipClock"), seconds: properTime * flight, color: .orange)
+                clock(text("lab.relativity.earthClock"), seconds: properTime * gamma * flight, color: .accentColor)
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: 0...1, y: 0...8)
+                    curve(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            speed = min(max((plot.value(at: drag.location).x * 100).rounded() / 100, Model.speedRange.lowerBound), Model.speedRange.upperBound)
+                        })
+                }
+            }
+            .frame(height: 220)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.relativity.chart"))
+            .accessibilityValue(Text(verbatim: number(gamma, 2)))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.relativity.speed", store.language), number(speed, 2)))
-                    .monospacedDigit()
+            HStack(spacing: 12) {
+                Button {
+                    flight = 0
+                    flying = true
+                } label: { Label(text("lab.relativity.fly"), systemImage: "airplane") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.relativity.fly")
+                Text(String(format: text("lab.relativity.speed"), number(speed, 2))).monospacedDigit().frame(minWidth: 150, alignment: .leading)
                 // Rounds to hundredths of c without `step:`, which would draw a dense row of tick marks.
                 Slider(value: Binding(get: { speed }, set: { speed = ($0 * 100).rounded() / 100 }), in: Model.speedRange)
-                    .accessibilityLabel(L10n.text("lab.relativity.speedLabel", store.language))
-                    .accessibilityValue(Text(verbatim: number(speed, 2)))
+                    .accessibilityLabel(text("lab.relativity.speedLabel"))
                     .accessibilityIdentifier("lab.relativity.speed")
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.relativity.proper", store.language), number(properTime, 0)))
-                    .monospacedDigit()
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.relativity.proper"), number(properTime, 0))).monospacedDigit().frame(minWidth: 310, alignment: .leading)
                 Slider(value: Binding(get: { properTime }, set: { properTime = $0.rounded() }), in: Model.properTimeRange)
-                    .accessibilityLabel(L10n.text("lab.relativity.properLabel", store.language))
-                    .accessibilityValue(Text(verbatim: number(properTime, 0)))
+                    .accessibilityLabel(text("lab.relativity.properLabel"))
                     .accessibilityIdentifier("lab.relativity.proper")
             }
-
-            Text(String(format: L10n.text("lab.relativity.result", store.language), number(gamma, 3),
-                        number(properTime, 0), number(Model.dilatedTime(properTime: properTime, speed: speed), 2)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.relativity.result")
-            Text(String(format: L10n.text("lab.relativity.muon", store.language),
-                        number(Model.dilatedTime(properTime: Model.muonHalfLife, speed: speed), 2)))
+            LabStatGrid {
+                LabStat(label: "γ = 1 / √(1 − v²/c²)", value: number(gamma, 3), tint: .purple)
+                LabStat(label: text("lab.relativity.statShip"), value: number(properTime, 0) + " " + text("lab.relativity.unitS"), tint: .orange)
+                LabStat(label: text("lab.relativity.statEarth"), value: number(Model.dilatedTime(properTime: properTime, speed: speed), 2) + " " + text("lab.relativity.unitS"), tint: .accentColor)
+            }
+            Text(String(format: text("lab.relativity.result"), number(gamma, 3), number(properTime, 0), number(Model.dilatedTime(properTime: properTime, speed: speed), 2)))
                 .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.relativity.limit", store.language))
-                .font(.caption)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.relativity.result")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.relativity.challenge"), solved: abs(gamma - 2) < 0.035, solvedText: text("lab.relativity.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.relativity.hint"),
+                String(format: text("lab.relativity.muon"), number(Model.dilatedTime(properTime: Model.muonHalfLife, speed: speed), 2)),
+                text("lab.relativity.limit"),
+            ])
+        }
+        .task(id: flying) {
+            guard flying else { return }
+            while flight < 1 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 40_000_000)
+                flight = min(flight + 0.01, 1)
+            }
+            flying = false
         }
     }
 
-    // γ against v/c from 0 to 0.99 on a scale up to γ = 8, with the chosen speed marked.
-    private var curve: some View {
-        Canvas { context, size in
-            let maxY = 8.0
-            func position(_ x: Double, _ y: Double) -> CGPoint {
-                CGPoint(x: size.width * CGFloat(x), y: size.height * CGFloat(1 - y / maxY))
+    // A clock face whose hand makes a turn every 10 s, with the elapsed time underneath.
+    private func clock(_ title: String, seconds: Double, color: Color) -> some View {
+        VStack(spacing: 8) {
+            Canvas { context, size in
+                let radius = min(size.width, size.height) / 2 - 4
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                context.stroke(Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(color), lineWidth: 4)
+                for tick in 0..<10 {
+                    let angle = Double(tick) / 10 * 2 * .pi
+                    var mark = Path()
+                    mark.move(to: CGPoint(x: center.x + (radius - 10) * CGFloat(sin(angle)), y: center.y - (radius - 10) * CGFloat(cos(angle))))
+                    mark.addLine(to: CGPoint(x: center.x + (radius - 3) * CGFloat(sin(angle)), y: center.y - (radius - 3) * CGFloat(cos(angle))))
+                    context.stroke(mark, with: .color(.secondary), lineWidth: 2)
+                }
+                let angle = seconds.truncatingRemainder(dividingBy: 10) / 10 * 2 * .pi
+                var hand = Path()
+                hand.move(to: center)
+                hand.addLine(to: CGPoint(x: center.x + (radius - 14) * CGFloat(sin(angle)), y: center.y - (radius - 14) * CGFloat(cos(angle))))
+                context.stroke(hand, with: .color(color), style: StrokeStyle(lineWidth: 4, lineCap: .round))
             }
-            var axes = Path()
-            axes.move(to: position(0, maxY))
-            axes.addLine(to: position(0, 0))
-            axes.addLine(to: position(1, 0))
-            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
-            var one = Path()
-            one.move(to: position(0, 1))
-            one.addLine(to: position(1, 1))
-            context.stroke(one, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            .frame(width: 130, height: 130)
+            Text(verbatim: number(seconds, 1) + " " + text("lab.relativity.unitS")).font(.title3.weight(.semibold)).monospacedDigit().foregroundStyle(color)
+            Text(title).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func curve(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "v / c", yLabel: "γ", format: { number($0, $0 == $0.rounded() ? 0 : 1) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -6, dy: -6)))
             var line = Path()
             for index in 0...198 {
                 let x = Double(index) / 200
-                let point = position(x, Model.gamma(speed: x))
-                if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+                let location = plot.point(x, Model.gamma(speed: x))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
             }
-            context.stroke(line, with: .color(.accentColor), lineWidth: 2)
-            let marker = position(speed, Model.gamma(speed: speed))
-            context.fill(Path(ellipseIn: CGRect(x: marker.x - 5, y: marker.y - 5, width: 10, height: 10)), with: .color(.orange))
+            clipped.stroke(line, with: .color(.purple), lineWidth: 2.5)
+            let marker = plot.point(speed, Model.gamma(speed: speed))
+            clipped.fill(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
         }
     }
 }
@@ -13257,6 +13350,7 @@ private struct HydrogenSpectrumLab: View {
     private typealias Model = HydrogenSpectrumModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     // An approximate colour for a visible wavelength, linear between rough anchors; outside the range it is grey.
     private func lineColor(_ wavelength: Double) -> Color {
@@ -13274,70 +13368,105 @@ private struct HydrogenSpectrumLab: View {
         let region = wavelength < Model.visibleRange.lowerBound ? "lab.hydrogen.ultraviolet"
             : wavelength > Model.visibleRange.upperBound ? "lab.hydrogen.infrared" : "lab.hydrogen.visible"
         LabCard {
-            Text(L10n.text("lab.hydrogen.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.hydrogen.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            levels
-                .frame(height: 170)
+            LabHeader(title: text("lab.hydrogen.title"), instruction: text("lab.hydrogen.subtitle"))
+            HStack(alignment: .top, spacing: 18) {
+                levels
+                    .frame(width: 320, height: 260)
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.hydrogen.diagram"))
+                    .accessibilityValue(Text(verbatim: "\(upper) → \(lower)"))
+                VStack(alignment: .leading, spacing: 12) {
+                    Stepper(value: Binding(get: { upper }, set: { upper = $0; if lower >= upper { lower = upper - 1 } }), in: 2...Model.levelRange.upperBound) {
+                        Text(String(format: text("lab.hydrogen.upper"), String(upper))).font(.headline).monospacedDigit()
+                    }
+                    .accessibilityIdentifier("lab.hydrogen.upper")
+                    Stepper(value: Binding(get: { lower }, set: { lower = min($0, upper - 1) }), in: 1...(upper - 1)) {
+                        Text(String(format: text("lab.hydrogen.lower"), String(lower))).font(.headline).monospacedDigit()
+                    }
+                    .accessibilityIdentifier("lab.hydrogen.lower")
+                    LabStatGrid {
+                        LabStat(label: "ΔE, " + text("lab.hydrogen.unitEV"), value: number(Model.photonEnergy(from: upper, to: lower), 2), tint: .purple)
+                        LabStat(label: "λ, " + text("lab.hydrogen.unitNM"), value: number(wavelength, 0), tint: lineColor(wavelength))
+                    }
+                    Text(String(format: text("lab.hydrogen.photon"), number(Model.photonEnergy(from: upper, to: lower), 2), number(wavelength, 0)))
+                        .font(.callout.monospacedDigit())
+                        .foregroundStyle(.secondary)
+                        .accessibilityIdentifier("lab.hydrogen.photon")
+                    Text(text(region)).font(.callout).fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            spectrum(wavelength: wavelength)
+                .frame(height: 64)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.hydrogen.diagram", store.language))
-                .accessibilityValue(Text(verbatim: "\(upper) → \(lower)"))
-
-            Stepper(value: Binding(get: { upper }, set: { upper = $0; if lower >= upper { lower = upper - 1 } }), in: 2...Model.levelRange.upperBound) {
-                Text(String(format: L10n.text("lab.hydrogen.upper", store.language), String(upper))).monospacedDigit()
-            }
-            .accessibilityIdentifier("lab.hydrogen.upper")
-            Stepper(value: Binding(get: { lower }, set: { lower = min($0, upper - 1) }), in: 1...(upper - 1)) {
-                Text(String(format: L10n.text("lab.hydrogen.lower", store.language), String(lower))).monospacedDigit()
-            }
-            .accessibilityIdentifier("lab.hydrogen.lower")
-
-            HStack(spacing: 10) {
-                RoundedRectangle(cornerRadius: 4).fill(lineColor(wavelength)).frame(width: 36, height: 22)
-                    .accessibilityHidden(true)
-                Text(String(format: L10n.text("lab.hydrogen.photon", store.language),
-                            number(Model.photonEnergy(from: upper, to: lower), 2), number(wavelength, 0)))
-                    .font(.headline.monospacedDigit())
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityIdentifier("lab.hydrogen.photon")
-            }
-            Text(L10n.text(region, store.language))
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(String(format: L10n.text("lab.hydrogen.shell", store.language), String(upper), String(Model.shellCapacity(level: upper))))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.hydrogen.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityLabel(text("lab.hydrogen.spectrum"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.hydrogen.challenge"), solved: upper == 4 && lower == 2, solvedText: text("lab.hydrogen.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.hydrogen.hint"),
+                String(format: text("lab.hydrogen.shell"), String(upper), String(Model.shellCapacity(level: upper))),
+                text("lab.hydrogen.limit"),
+            ])
         }
     }
 
-    // Levels Eₙ = −13.6/n² drawn to scale from −13.6 eV to 0, with an arrow for the chosen transition.
+    // Levels Eₙ = −13.6/n² to scale with their energies, and the chosen transition as a coloured arrow.
     private var levels: some View {
         Canvas { context, size in
-            func y(_ energy: Double) -> CGFloat { size.height * 0.05 + size.height * 0.9 * CGFloat(-energy / 13.6) }
+            func y(_ energy: Double) -> CGFloat { 14 + (size.height - 28) * CGFloat(-energy / 13.6) }
             for level in Model.levelRange {
+                let energy = Model.energy(level: level)
                 var line = Path()
-                line.move(to: CGPoint(x: size.width * 0.1, y: y(Model.energy(level: level))))
-                line.addLine(to: CGPoint(x: size.width * 0.9, y: y(Model.energy(level: level))))
+                line.move(to: CGPoint(x: 56, y: y(energy)))
+                line.addLine(to: CGPoint(x: size.width - 70, y: y(energy)))
                 let chosen = level == upper || level == lower
-                context.stroke(line, with: .color(chosen ? .primary : .secondary.opacity(0.5)), lineWidth: chosen ? 2 : 1)
-                context.draw(Text(verbatim: "n=\(level)").font(.caption2), at: CGPoint(x: size.width * 0.05, y: y(Model.energy(level: level))))
+                context.stroke(line, with: .color(chosen ? .primary : .secondary.opacity(0.5)), lineWidth: chosen ? 2.5 : 1)
+                // Levels above n = 3 crowd near zero, so only the chosen ones among them are labelled.
+                guard level <= 3 || chosen else { continue }
+                context.draw(Text(verbatim: "n = \(level)").font(.caption.weight(chosen ? .bold : .regular)).foregroundColor(.secondary), at: CGPoint(x: 4, y: y(energy)), anchor: .leading)
+                context.draw(Text(verbatim: number(energy, 2) + " " + text("lab.hydrogen.unitEV")).font(.caption2).foregroundColor(.secondary),
+                             at: CGPoint(x: size.width - 2, y: y(energy)), anchor: .trailing)
             }
-            let x = size.width * 0.6
+            let color = lineColor(Model.wavelength(from: upper, to: lower))
+            let x = size.width * 0.5
+            let from = CGPoint(x: x, y: y(Model.energy(level: upper))), to = CGPoint(x: x, y: y(Model.energy(level: lower)))
             var arrow = Path()
-            arrow.move(to: CGPoint(x: x, y: y(Model.energy(level: upper))))
-            arrow.addLine(to: CGPoint(x: x, y: y(Model.energy(level: lower))))
-            arrow.move(to: CGPoint(x: x - 6, y: y(Model.energy(level: lower)) - 8))
-            arrow.addLine(to: CGPoint(x: x, y: y(Model.energy(level: lower))))
-            arrow.addLine(to: CGPoint(x: x + 6, y: y(Model.energy(level: lower)) - 8))
-            context.stroke(arrow, with: .color(lineColor(Model.wavelength(from: upper, to: lower))), lineWidth: 2.5)
+            arrow.move(to: from)
+            arrow.addLine(to: to)
+            arrow.move(to: CGPoint(x: x - 8, y: to.y - 11))
+            arrow.addLine(to: to)
+            arrow.addLine(to: CGPoint(x: x + 8, y: to.y - 11))
+            context.stroke(arrow, with: .color(color), style: StrokeStyle(lineWidth: 4, lineCap: .round))
+            var wave = Path()
+            for index in 0...60 {
+                let t = CGFloat(index) / 60
+                let point = CGPoint(x: x + 14 + t * 60, y: (from.y + to.y) / 2 + 7 * CGFloat(sin(Double(t) * 6 * .pi)))
+                if index == 0 { wave.move(to: point) } else { wave.addLine(to: point) }
+            }
+            context.stroke(wave, with: .color(color), lineWidth: 2)
+        }
+    }
+
+    // The visible band as a rainbow from 380 to 760 nm with the emitted line marked; lines outside are labelled at the edge.
+    private func spectrum(wavelength: Double) -> some View {
+        Canvas { context, size in
+            let band = CGRect(x: 40, y: 8, width: size.width - 80, height: 30)
+            let steps = 120
+            for index in 0..<steps {
+                let lambda = Model.visibleRange.lowerBound + (Model.visibleRange.upperBound - Model.visibleRange.lowerBound) * Double(index) / Double(steps)
+                context.fill(Path(CGRect(x: band.minX + band.width * CGFloat(index) / CGFloat(steps), y: band.minY, width: band.width / CGFloat(steps) + 0.5, height: band.height)),
+                             with: .color(lineColor(lambda).opacity(0.55)))
+            }
+            for lambda in [400.0, 500, 600, 700] {
+                let x = band.minX + band.width * CGFloat((lambda - Model.visibleRange.lowerBound) / (Model.visibleRange.upperBound - Model.visibleRange.lowerBound))
+                context.draw(Text(verbatim: number(lambda, 0)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x, y: band.maxY + 10))
+            }
+            if Model.visibleRange.contains(wavelength) {
+                let x = band.minX + band.width * CGFloat((wavelength - Model.visibleRange.lowerBound) / (Model.visibleRange.upperBound - Model.visibleRange.lowerBound))
+                context.fill(Path(CGRect(x: x - 2.5, y: band.minY - 4, width: 5, height: band.height + 8)), with: .color(.white))
+            } else {
+                let left = wavelength < Model.visibleRange.lowerBound
+                context.draw(Text(verbatim: (left ? "◀ " : "") + number(wavelength, 0) + " " + text("lab.hydrogen.unitNM") + (left ? "" : " ▶")).font(.caption.weight(.bold)).foregroundColor(.secondary),
+                             at: CGPoint(x: left ? 2 : size.width - 2, y: band.midY), anchor: left ? .leading : .trailing)
+            }
         }
     }
 }
@@ -13349,6 +13478,7 @@ private struct ElectromagneticWaveLab: View {
     private typealias Model = ElectromagneticWaveModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     // Scientific notation such as 3,00 · 10⁸, written with superscript digits.
     private func scientific(_ value: Double) -> String {
@@ -13362,35 +13492,73 @@ private struct ElectromagneticWaveLab: View {
         let frequency = pow(10, exponent)
         let wavelength = Model.wavelength(frequency: frequency)
         LabCard {
-            Text(L10n.text("lab.emwave.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.emwave.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.emwave.frequency", store.language), scientific(frequency)))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.emwave.title"), instruction: text("lab.emwave.subtitle"))
+            wave
+                .frame(height: 150)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.emwave.waveChart"))
+            scale
+                .frame(height: 70)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.emwave.scale"))
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.emwave.frequency"), scientific(frequency))).monospacedDigit().frame(minWidth: 230, alignment: .leading)
                 // Tenths of an order of magnitude without `step:`, which would draw a dense row of tick marks.
                 Slider(value: Binding(get: { exponent }, set: { exponent = ($0 * 10).rounded() / 10 }), in: Model.exponentRange)
-                    .accessibilityLabel(L10n.text("lab.emwave.frequencyLabel", store.language))
+                    .accessibilityLabel(text("lab.emwave.frequencyLabel"))
                     .accessibilityValue(Text(verbatim: scientific(frequency)))
                     .accessibilityIdentifier("lab.emwave.frequency")
             }
-            Text(String(format: L10n.text("lab.emwave.wavelength", store.language), scientific(wavelength)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.emwave.wavelength")
-            Text(String(format: L10n.text("lab.emwave.compareRadio", store.language), scientific(frequency / Model.radioFrequency)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(String(format: L10n.text("lab.emwave.compareGreen", store.language), scientific(wavelength / Model.greenWavelength)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.emwave.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabStatGrid {
+                LabStat(label: text("lab.emwave.statFrequency"), value: scientific(frequency), tint: .purple)
+                LabStat(label: text("lab.emwave.statWavelength"), value: scientific(wavelength), tint: .orange, identifier: "lab.emwave.wavelength")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.emwave.challenge"),
+                         solved: abs(wavelength - Model.greenWavelength) / Model.greenWavelength < 0.1, solvedText: text("lab.emwave.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.emwave.hint"),
+                String(format: text("lab.emwave.compareRadio"), scientific(frequency / Model.radioFrequency)),
+                String(format: text("lab.emwave.compareGreen"), scientific(wavelength / Model.greenWavelength)),
+                text("lab.emwave.limit"),
+            ])
+        }
+    }
+
+    // A sine wave whose drawn wavelength shrinks by the same step for every tenfold rise in frequency.
+    private var wave: some View {
+        Canvas { context, size in
+            let share = (exponent - Model.exponentRange.lowerBound) / (Model.exponentRange.upperBound - Model.exponentRange.lowerBound)
+            let pixels = CGFloat(pow(10, 2.6 - 2.2 * share))
+            var path = Path()
+            for index in 0...Int(size.width) {
+                let x = CGFloat(index)
+                let point = CGPoint(x: x, y: size.height / 2 - (size.height * 0.38) * CGFloat(sin(Double(x / pixels) * 2 * .pi)))
+                if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+            }
+            context.stroke(path, with: .color(.purple), lineWidth: 2)
+        }
+    }
+
+    // A log scale of frequency from 10⁶ to 10¹⁸ Hz with the two lesson examples and the current frequency marked.
+    private var scale: some View {
+        Canvas { context, size in
+            let left: CGFloat = 24, right = size.width - 24, y = size.height * 0.45
+            func x(_ power: Double) -> CGFloat { left + (right - left) * CGFloat((power - 6) / 12) }
+            context.fill(Path(roundedRect: CGRect(x: left, y: y - 5, width: right - left, height: 10), cornerRadius: 5), with: .color(.secondary.opacity(0.2)))
+            for power in stride(from: 6, through: 18, by: 2) {
+                context.draw(Text(verbatim: scientific(pow(10, Double(power))).replacingOccurrences(of: number(1, 2) + " · ", with: "")).font(.caption2).foregroundColor(.secondary),
+                             at: CGPoint(x: x(Double(power)), y: y + 20))
+            }
+            for (power, key) in [(8.0, "lab.emwave.radioMark"), (log10(Model.frequency(wavelength: Model.greenWavelength)), "lab.emwave.greenMark")] {
+                context.fill(Path(CGRect(x: x(power) - 1.5, y: y - 14, width: 3, height: 28)), with: .color(.green))
+                context.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(.green), at: CGPoint(x: x(power), y: y - 22))
+            }
+            var pointer = Path()
+            pointer.move(to: CGPoint(x: x(exponent), y: y + 6))
+            pointer.addLine(to: CGPoint(x: x(exponent) - 8, y: y + 20))
+            pointer.addLine(to: CGPoint(x: x(exponent) + 8, y: y + 20))
+            pointer.closeSubpath()
+            context.fill(pointer, with: .color(.orange))
         }
     }
 }
