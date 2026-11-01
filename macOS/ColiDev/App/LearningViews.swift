@@ -2513,114 +2513,123 @@ private struct GeometryMeasureLab: View {
     @State private var base = 6.0
     @State private var height = 4.0
 
-    private var measure: GeometryMeasure {
-        GeometryMeasure(base: base, height: height, shape: shape)
-    }
+    private static let maxSide = 10.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measureText(_ value: Double, _ unit: String) -> String { L10n.measurement(value, fractionDigits: 1, unit: unit, store.language) }
+    private var measure: GeometryMeasure { GeometryMeasure(base: base, height: height, shape: shape) }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.GeometryMeasureLab", store.language), instruction: L10n.text("lab.geometryHint", store.language))
-            Picker(L10n.text("lab.geometryShape", store.language), selection: $shape) {
-                Text(L10n.text("lab.geometryRectangle", store.language)).tag(GeometryShape.rectangle)
-                Text(L10n.text("lab.geometryTriangle", store.language)).tag(GeometryShape.rightTriangle)
+            LabHeader(title: text("labkit.title.GeometryMeasureLab"), instruction: text("lab.geometrySubtitle"))
+            Picker(text("lab.geometryShape"), selection: $shape) {
+                Text(text("lab.geometryRectangle")).tag(GeometryShape.rectangle)
+                Text(text("lab.geometryTriangle")).tag(GeometryShape.rightTriangle)
             }
             .pickerStyle(.segmented)
-
-            Canvas { context, size in
-                let inset: CGFloat = 24
-                let availableWidth = max(size.width - 2 * inset, 0)
-                let availableHeight = max(size.height - 2 * inset, 0)
-                guard availableWidth > 0, availableHeight > 0 else { return }
-                let scale = min(availableWidth / CGFloat(base), availableHeight / CGFloat(height))
-                let width = CGFloat(base) * scale
-                let drawnHeight = CGFloat(height) * scale
-                let left = (size.width - width) / 2
-                let bottom = size.height - (size.height - drawnHeight) / 2
-                var path = Path()
-                if shape == .rectangle {
-                    path.addRect(CGRect(x: left, y: bottom - drawnHeight, width: width, height: drawnHeight))
-                } else {
-                    path.move(to: CGPoint(x: left, y: bottom))
-                    path.addLine(to: CGPoint(x: left, y: bottom - drawnHeight))
-                    path.addLine(to: CGPoint(x: left + width, y: bottom))
-                    path.closeSubpath()
-                    var rightAngle = Path()
-                    let mark: CGFloat = min(12, scale * 0.2)
-                    rightAngle.move(to: CGPoint(x: left, y: bottom - mark))
-                    rightAngle.addLine(to: CGPoint(x: left + mark, y: bottom - mark))
-                    rightAngle.addLine(to: CGPoint(x: left + mark, y: bottom))
-                    context.stroke(rightAngle, with: .color(.secondary), lineWidth: 1.5)
-                }
-                context.fill(path, with: .color(Color.accentColor.opacity(0.18)))
-                context.stroke(path, with: .color(.accentColor), lineWidth: 3)
+            .labelsHidden()
+            GeometryReader { proxy in
+                figure(size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in resize(to: drag.location, size: proxy.size) })
             }
-            .frame(height: 220)
+            .frame(height: 280)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(L10n.text("lab.geometryDiagram", store.language)))
-            .accessibilityValue(Text(verbatim: "\(L10n.text(shape == .rectangle ? "lab.geometryRectangle" : "lab.geometryTriangle", store.language)); b = \(L10n.measurement(base, fractionDigits: 1, unit: "m", store.language)); h = \(L10n.measurement(height, fractionDigits: 1, unit: "m", store.language))"))
-
-            HStack {
-                Text(verbatim: "b = " + L10n.measurement(base, fractionDigits: 1, unit: "m", store.language))
-                Spacer()
-                Text(verbatim: "h = " + L10n.measurement(height, fractionDigits: 1, unit: "m", store.language))
-            }
-            .font(.callout.monospacedDigit())
-
+            .accessibilityLabel(Text(text("lab.geometryDiagram")))
+            .accessibilityValue(Text(verbatim: text(shape == .rectangle ? "lab.geometryRectangle" : "lab.geometryTriangle")
+                                     + "; b = " + measureText(base, "m") + ", h = " + measureText(height, "m")))
             slider("lab.geometryBase", value: $base)
             slider("lab.geometryHeight", value: $height)
-
-            HStack(spacing: 20) {
-                metric(
-                    "lab.geometryArea",
-                    value: measure.area,
-                    unit: "m²",
-                    isApproximate: measure.areaNeedsRoundingForDisplay
-                )
-                metric(
-                    "lab.geometryPerimeter",
-                    value: measure.perimeter,
-                    unit: "m",
-                    isApproximate: measure.perimeterNeedsRoundingForDisplay
-                )
+            LabStatGrid {
+                LabStat(label: text("lab.geometryArea"), value: (measure.areaNeedsRoundingForDisplay ? "≈ " : "")
+                        + L10n.measurement(measure.area, fractionDigits: 2, unit: "m²", store.language), tint: .accentColor)
+                LabStat(label: text("lab.geometryPerimeter"), value: (measure.perimeterNeedsRoundingForDisplay ? "≈ " : "")
+                        + L10n.measurement(measure.perimeter, fractionDigits: 2, unit: "m", store.language), tint: .orange)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(L10n.text("lab.geometryRounding", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text(L10n.text("lab.geometryScaling", store.language))
-                .font(.callout)
-            Text(L10n.text("lab.geometryLimits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.geometryChallenge"),
+                         solved: shape == .rectangle && abs(measure.area - 24) < 0.001 && abs(measure.perimeter - 20) < 0.001,
+                         solvedText: text("lab.geometryChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.geometryHint"), text("lab.geometryScaling"),
+                                                                 text("lab.geometryRounding"), text("lab.geometryLimits")])
         }
+    }
+
+    /// One fixed scale for every size, so a bigger figure really looks bigger.
+    private func scale(_ size: CGSize) -> CGFloat {
+        min((size.width - 60) / CGFloat(Self.maxSide), (size.height - 40) / CGFloat(Self.maxSide))
+    }
+
+    // A 1 m grid inside the figure: the area is the number of whole squares (halves along a triangle's slope).
+    private func figure(size: CGSize) -> some View {
+        Canvas { context, size in
+            let unit = scale(size)
+            let left: CGFloat = 40
+            let bottom = size.height - 24
+            let width = CGFloat(base) * unit, tall = CGFloat(height) * unit
+            var outline = Path()
+            if shape == .rectangle {
+                outline.addRect(CGRect(x: left, y: bottom - tall, width: width, height: tall))
+            } else {
+                outline.move(to: CGPoint(x: left, y: bottom))
+                outline.addLine(to: CGPoint(x: left, y: bottom - tall))
+                outline.addLine(to: CGPoint(x: left + width, y: bottom))
+                outline.closeSubpath()
+            }
+            context.fill(outline, with: .color(Color.accentColor.opacity(0.16)))
+            var grid = Path()
+            for column in 1..<Int(base.rounded(.up)) {
+                grid.move(to: CGPoint(x: left + CGFloat(column) * unit, y: bottom))
+                grid.addLine(to: CGPoint(x: left + CGFloat(column) * unit, y: bottom - tall))
+            }
+            for row in 1..<Int(height.rounded(.up)) {
+                grid.move(to: CGPoint(x: left, y: bottom - CGFloat(row) * unit))
+                grid.addLine(to: CGPoint(x: left + width, y: bottom - CGFloat(row) * unit))
+            }
+            var clipped = context
+            clipped.clip(to: outline)
+            clipped.stroke(grid, with: .color(.accentColor.opacity(0.35)), lineWidth: 1)
+            context.stroke(outline, with: .color(.accentColor), lineWidth: 3)
+            if shape == .rightTriangle {
+                var rightAngle = Path()
+                rightAngle.move(to: CGPoint(x: left, y: bottom - 12))
+                rightAngle.addLine(to: CGPoint(x: left + 12, y: bottom - 12))
+                rightAngle.addLine(to: CGPoint(x: left + 12, y: bottom))
+                context.stroke(rightAngle, with: .color(.secondary), lineWidth: 1.5)
+                let hypotenuse = (base * base + height * height).squareRoot()
+                context.draw(Text(verbatim: "c ≈ " + L10n.measurement(hypotenuse, fractionDigits: 2, unit: "m", store.language))
+                                .font(.caption.weight(.semibold)).foregroundColor(.orange),
+                             at: CGPoint(x: left + width / 2 + 10, y: bottom - tall / 2 - 10), anchor: .leading)
+            }
+            context.draw(Text(verbatim: "b = " + measureText(base, "m")).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         at: CGPoint(x: left + width / 2, y: bottom + 12))
+            context.draw(Text(verbatim: "h = " + measureText(height, "m")).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         at: CGPoint(x: left - 6, y: bottom - tall / 2), anchor: .trailing)
+            let handle = CGPoint(x: left + width, y: bottom - tall)
+            context.fill(Path(ellipseIn: CGRect(x: handle.x - 8, y: handle.y - 8, width: 16, height: 16)), with: .color(.accentColor))
+            context.draw(Text(verbatim: measureText(1, "m") + " = □").font(.caption2).foregroundColor(.secondary),
+                         at: CGPoint(x: size.width - 8, y: 10), anchor: .trailing)
+        }
+    }
+
+    /// Dragging the corner sets base and height in half-metre steps.
+    private func resize(to location: CGPoint, size: CGSize) {
+        let unit = scale(size)
+        base = min(max((Double((location.x - 40) / unit) * 2).rounded() / 2, 1), Self.maxSide)
+        height = min(max((Double((size.height - 24 - location.y) / unit) * 2).rounded() / 2, 1), Self.maxSide)
     }
 
     private func slider(_ key: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(L10n.text(key, store.language))
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 1, unit: "m", store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 1...10, step: 0.5)
-                .accessibilityLabel(Text(L10n.text(key, store.language)))
-                .accessibilityValue(Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 1, unit: "m", store.language)))
+        HStack(spacing: 12) {
+            Text(text(key)).frame(width: 150, alignment: .leading)
+            // Half-metre steps without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 * 2).rounded() / 2 }), in: 1...10)
+                .accessibilityLabel(Text(text(key)))
+                .accessibilityValue(Text(verbatim: measureText(value.wrappedValue, "m")))
+            Text(verbatim: measureText(value.wrappedValue, "m"))
+                .monospacedDigit()
+                .frame(width: 64, alignment: .trailing)
         }
-    }
-
-    private func metric(_ key: String, value: Double, unit: String, isApproximate: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(key, store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(verbatim: (isApproximate ? "≈ " : "") + L10n.measurement(value, fractionDigits: 2, unit: unit, store.language))
-                .font(.title3.monospacedDigit())
-        }
-        .accessibilityElement(children: .combine)
+        .font(.callout)
     }
 }
 
@@ -2978,72 +2987,81 @@ private struct RationalExpressionLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var input = 0.0
 
-    private var originalValue: Double? {
-        RationalExpressionPractice.originalValue(at: input)
-    }
-
-    private var simplifiedValue: Double {
-        RationalExpressionPractice.simplifiedValue(at: input)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double) -> String { L10n.number(value, fractionDigits: 2, store.language) }
+    private var originalValue: Double? { RationalExpressionPractice.originalValue(at: input) }
+    private var simplifiedValue: Double { RationalExpressionPractice.simplifiedValue(at: input) }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.RationalExpressionLab", store.language), instruction: L10n.text("lab.rationalHint", store.language))
-
+            LabHeader(title: text("labkit.title.RationalExpressionLab"), instruction: text("lab.rationalSubtitle"))
             Text("f(x) = (x² − 9) / (x − 3)")
                 .font(.title3.monospaced().weight(.semibold))
-                .accessibilityLabel(L10n.text("lab.rationalFormula", store.language))
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("−5")
-                    Spacer()
-                    Text(String(format: L10n.text("lab.rationalSelectedInput", store.language), L10n.number(input, fractionDigits: 2, store.language)))
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                    Spacer()
-                    Text("5")
-                }
-                Slider(value: $input, in: -5...5, step: 0.25)
-                    .accessibilityLabel(L10n.text("lab.rationalInput", store.language))
-                    .accessibilityValue(L10n.number(input, fractionDigits: 2, store.language))
+                .accessibilityLabel(text("lab.rationalFormula"))
+            GeometryReader { proxy in
+                let plot = LabPlotGeometry(size: proxy.size, x: -5...5, y: -3...9, leading: 34, bottom: 26)
+                graph(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        input = min(max((plot.value(at: drag.location).x * 4).rounded() / 4, -5), 5)
+                    })
             }
-
-            HStack(alignment: .top, spacing: 12) {
-                valueCard(
-                    title: L10n.text("lab.rationalOriginal", store.language),
-                    value: originalValue.map { L10n.number($0, fractionDigits: 2, store.language) }
-                        ?? L10n.text("lab.rationalUndefined", store.language),
-                    emphasized: originalValue == nil
-                )
-                valueCard(
-                    title: L10n.text("lab.rationalReduced", store.language),
-                    value: L10n.number(simplifiedValue, fractionDigits: 2, store.language),
-                    emphasized: false
-                )
+            .frame(height: 260)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.rationalGraph"))
+            .accessibilityValue(Text(verbatim: "x = " + number(input) + ", f(x) = " + (originalValue.map(number) ?? text("lab.rationalUndefined"))))
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.rationalSelectedInput"), number(input)))
+                    .font(.callout.monospacedDigit().weight(.semibold))
+                    .frame(width: 160, alignment: .leading)
+                // Quarter steps without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { input }, set: { input = ($0 * 4).rounded() / 4 }), in: -5...5)
+                    .accessibilityLabel(text("lab.rationalInput"))
+                    .accessibilityValue(number(input))
             }
-
-            Label(
-                L10n.text(originalValue == nil ? "lab.rationalExcluded" : "lab.rationalDefined", store.language),
-                systemImage: originalValue == nil ? "xmark.circle.fill" : "equal.circle.fill"
-            )
-            .foregroundStyle(originalValue == nil ? Color.orange : Color.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+            LabStatGrid {
+                LabStat(label: text("lab.rationalOriginal"), value: originalValue.map(number) ?? text("lab.rationalUndefined"),
+                        tint: originalValue == nil ? .orange : .accentColor)
+                LabStat(label: text("lab.rationalReduced"), value: number(simplifiedValue), tint: .purple)
+            }
+            Label(text(originalValue == nil ? "lab.rationalExcluded" : "lab.rationalDefined"),
+                  systemImage: originalValue == nil ? "xmark.circle.fill" : "equal.circle.fill")
+                .foregroundStyle(originalValue == nil ? Color.orange : Color.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.rationalChallenge"),
+                         solved: originalValue == nil, solvedText: text("lab.rationalChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.rationalHint"), text("lab.rationalHoleNote")])
         }
     }
 
-    private func valueCard(title: String, value: String, emphasized: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title2.monospacedDigit().weight(.semibold))
-                .foregroundStyle(emphasized ? Color.orange : Color.primary)
+    // f equals x + 3 everywhere except x = 3, where the original fraction divides by zero: an open circle marks the hole.
+    private func graph(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "y", xTicks: [-4, -2, 0, 2, 4], yTicks: [0, 3, 6, 9],
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            var line = Path()
+            line.move(to: plot.point(-5, -2))
+            line.addLine(to: plot.point(5, 8))
+            context.stroke(line, with: .color(.accentColor), lineWidth: 3)
+            let hole = plot.point(3, 6)
+            context.fill(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(Color(nsColor: .windowBackgroundColor)))
+            context.stroke(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(.orange), lineWidth: 2.5)
+            var asymptote = Path()
+            asymptote.move(to: plot.point(3, -3))
+            asymptote.addLine(to: plot.point(3, 9))
+            context.stroke(asymptote, with: .color(.orange.opacity(0.4)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            let marker = plot.point(input, simplifiedValue)
+            if originalValue == nil {
+                context.draw(Text(verbatim: "x = 3 ?").font(.callout.weight(.bold)).foregroundColor(.orange),
+                             at: CGPoint(x: hole.x + 12, y: hole.y + 18), anchor: .leading)
+            } else {
+                var guide = Path()
+                guide.move(to: plot.point(input, 0))
+                guide.addLine(to: marker)
+                context.stroke(guide, with: .color(.secondary.opacity(0.6)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(.accentColor))
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -3168,6 +3186,11 @@ private struct ConstrainedOptimizationLab: View {
             ConstrainedOptimizationPoint(angleRadians: 0)!
     }
 
+    private var isAtMaximum: Bool {
+        if case .maximum = point.extremum { return true }
+        return false
+    }
+
     private var statusKey: String {
         switch point.extremum {
         case .maximum: "lab.optimization.maximum"
@@ -3178,13 +3201,9 @@ private struct ConstrainedOptimizationLab: View {
 
     var body: some View {
         LabCard {
+            LabHeader(title: L10n.text("lab.optimization.title", store.language), instruction: L10n.text("lab.optimization.hint", store.language))
             Text("f(x, y) = xy     subject to     x² + y² = 1")
                 .font(.system(.headline, design: .monospaced))
-
-            Text(L10n.text("lab.optimization.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
 
             Picker(L10n.text("lab.optimization.viewMode", store.language), selection: $showsSurface) {
                 Text(L10n.text("lab.optimization.view2D", store.language)).tag(false)
@@ -3332,11 +3351,13 @@ private struct ConstrainedOptimizationLab: View {
                 }
             }
             .font(.callout.monospacedDigit())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
 
-            Text(L10n.text("lab.optimization.limits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.optimization.challenge", store.language),
+                         solved: isAtMaximum, solvedText: L10n.text("lab.optimization.challengeSolved", store.language))
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.optimization.limits", store.language)])
         }
     }
 }
@@ -3345,14 +3366,13 @@ private struct DomainRangeLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var selectedScenario = 0
     @State private var bound = 4.0
+    @State private var probe = 0.6
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 1) -> String { L10n.number(value, fractionDigits: digits, store.language) }
     private var integerBound: Int { Int(bound) }
-    private var inputLowerBound: Double {
-        selectedScenario == 1 ? -bound : 0
-    }
-    private var inputUpperBound: Double {
-        selectedScenario == 2 ? bound * bound : bound
-    }
+    private var inputLowerBound: Double { selectedScenario == 1 ? -bound : 0 }
+    private var inputUpperBound: Double { selectedScenario == 2 ? bound * bound : bound }
     private var outputUpperBound: Double {
         switch selectedScenario {
         case 0: return 2 + 3 * bound
@@ -3360,6 +3380,7 @@ private struct DomainRangeLab: View {
         default: return bound
         }
     }
+    private var outputLowerBound: Double { selectedScenario == 0 ? 2 : 0 }
     private var equation: String {
         switch selectedScenario {
         case 0: return "C(k) = 2 + 3k"
@@ -3381,96 +3402,102 @@ private struct DomainRangeLab: View {
         default: return "0 ≤ g(x) ≤ \(integerBound)"
         }
     }
+    private var probeInput: Double { inputLowerBound + probe * (inputUpperBound - inputLowerBound) }
+    private func output(_ input: Double) -> Double {
+        switch selectedScenario {
+        case 0: return 2 + 3 * input
+        case 1: return input * input
+        default: return max(input, 0).squareRoot()
+        }
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.DomainRangeLab", store.language), instruction: L10n.text("lab.domainHint", store.language))
-
-            Picker("", selection: $selectedScenario) {
-                Text(L10n.text("lab.domainTaxi", store.language)).tag(0)
-                Text(L10n.text("lab.domainSquare", store.language)).tag(1)
-                Text(L10n.text("lab.domainRoot", store.language)).tag(2)
+            LabHeader(title: text("labkit.title.DomainRangeLab"), instruction: text("lab.domainSubtitle"))
+            Picker(text("session.lab"), selection: $selectedScenario) {
+                Text(text("lab.domainTaxi")).tag(0)
+                Text(text("lab.domainSquare")).tag(1)
+                Text(text("lab.domainRoot")).tag(2)
             }
             .pickerStyle(.segmented)
-            .accessibilityLabel(Text(L10n.text("session.lab", store.language)))
-
+            .labelsHidden()
             Text(equation)
-                .font(.system(.headline, design: .monospaced))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(L10n.text("lab.domainInput", store.language)): \(inputInterval)")
-                Text("\(L10n.text("lab.domainOutput", store.language)): \(outputInterval)")
+                .font(.system(.title3, design: .monospaced, weight: .semibold))
+            GeometryReader { proxy in
+                let plot = plotGeometry(proxy.size)
+                graph(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        let x = plot.value(at: drag.location).x
+                        probe = min(max((x - inputLowerBound) / max(inputUpperBound - inputLowerBound, 0.001), 0), 1)
+                    })
             }
-            .font(.callout.monospacedDigit())
-            .foregroundStyle(.secondary)
-
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0, inputUpperBound > inputLowerBound else { return }
-
-                var grid = Path()
-                for step in 0...4 {
-                    let fraction = CGFloat(step) / 4
-                    let x = size.width * fraction
-                    let y = size.height * fraction
-                    grid.move(to: CGPoint(x: x, y: 0))
-                    grid.addLine(to: CGPoint(x: x, y: size.height))
-                    grid.move(to: CGPoint(x: 0, y: y))
-                    grid.addLine(to: CGPoint(x: size.width, y: y))
-                }
-                context.stroke(grid, with: .color(.secondary.opacity(0.14)), lineWidth: 1)
-
-                var axes = Path()
-                axes.move(to: CGPoint(x: 0, y: size.height))
-                axes.addLine(to: CGPoint(x: size.width, y: size.height))
-                let zeroXFraction = (0 - inputLowerBound) / (inputUpperBound - inputLowerBound)
-                let zeroX = CGFloat(zeroXFraction) * size.width
-                axes.move(to: CGPoint(x: zeroX, y: 0))
-                axes.addLine(to: CGPoint(x: zeroX, y: size.height))
-                context.stroke(axes, with: .color(.secondary.opacity(0.55)), lineWidth: 1)
-
-                var curve = Path()
-                for sample in 0...80 {
-                    let fraction = Double(sample) / 80
-                    let input = inputLowerBound + fraction * (inputUpperBound - inputLowerBound)
-                    let output: Double
-                    switch selectedScenario {
-                    case 0: output = 2 + 3 * input
-                    case 1: output = input * input
-                    default: output = input.squareRoot()
-                    }
-                    let yFraction = min(max(output / outputUpperBound, 0), 1)
-                    let point = CGPoint(
-                        x: CGFloat(fraction) * size.width,
-                        y: size.height * (1 - CGFloat(yFraction))
-                    )
-                    if sample == 0 {
-                        curve.move(to: point)
-                    } else {
-                        curve.addLine(to: point)
-                    }
-                }
-                context.stroke(curve, with: .color(.indigo), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            }
-            .frame(height: 150)
+            .frame(height: 260)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(String(
-                format: L10n.text("lab.domainGraphLabel", store.language),
-                inputInterval,
-                outputInterval
-            )))
-
-            HStack {
-                Text("\(L10n.text("lab.domainBound", store.language)): N = \(integerBound)")
+            .accessibilityLabel(Text(String(format: text("lab.domainGraphLabel"), inputInterval, outputInterval)))
+            .accessibilityValue(Text(verbatim: number(probeInput) + " → " + number(output(probeInput))))
+            HStack(spacing: 12) {
+                Text(verbatim: text("lab.domainBound") + ": N = \(integerBound)")
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("1…8")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.tertiary)
+                    .frame(width: 150, alignment: .leading)
+                // Whole numbers without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { bound }, set: { bound = $0.rounded() }), in: 1...8)
+                    .accessibilityLabel(Text(text("lab.domainBound")))
             }
-            Slider(value: $bound, in: 1...8, step: 1)
-                .accessibilityLabel(Text(L10n.text("lab.domainBound", store.language)))
+            LabStatGrid {
+                LabStat(label: text("lab.domainInput"), value: inputInterval, tint: .teal)
+                LabStat(label: text("lab.domainOutput"), value: outputInterval, tint: .orange)
+                LabStat(label: text("lab.domainProbe"), value: number(probeInput) + " → " + number(output(probeInput)), tint: .indigo)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.domainChallenge"),
+                         solved: selectedScenario == 2 && integerBound == 5, solvedText: text("lab.domainChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.domainHint"), text("lab.domainNote")])
+        }
+    }
+
+    private func plotGeometry(_ size: CGSize) -> LabPlotGeometry {
+        let xPad = (inputUpperBound - inputLowerBound) * 0.08
+        return LabPlotGeometry(size: size, x: (inputLowerBound - xPad)...(inputUpperBound + xPad),
+                               y: -outputUpperBound * 0.08...(outputUpperBound * 1.1), leading: 40, bottom: 28)
+    }
+
+    // The teal bar on the x-axis is the domain, the orange bar on the y-axis is the range; the probe maps one input to its output.
+    private func graph(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: selectedScenario == 0 ? "k" : "x", yLabel: "y", format: { number($0, 0) })
+            var zeroAxes = Path()
+            zeroAxes.move(to: plot.point(plot.x.lowerBound, 0))
+            zeroAxes.addLine(to: plot.point(plot.x.upperBound, 0))
+            if plot.x.contains(0) {
+                zeroAxes.move(to: plot.point(0, plot.y.lowerBound))
+                zeroAxes.addLine(to: plot.point(0, plot.y.upperBound))
+            }
+            context.stroke(zeroAxes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            let domainStart = plot.point(inputLowerBound, 0), domainEnd = plot.point(inputUpperBound, 0)
+            context.fill(Path(roundedRect: CGRect(x: domainStart.x, y: domainStart.y - 4, width: domainEnd.x - domainStart.x, height: 8), cornerRadius: 4),
+                         with: .color(.teal.opacity(0.75)))
+            let rangeLow = plot.point(plot.x.lowerBound, outputLowerBound), rangeHigh = plot.point(plot.x.lowerBound, outputUpperBound)
+            context.fill(Path(roundedRect: CGRect(x: rangeLow.x - 4, y: rangeHigh.y, width: 8, height: rangeLow.y - rangeHigh.y), cornerRadius: 4),
+                         with: .color(.orange.opacity(0.75)))
+            var curve = Path()
+            for sample in 0...120 {
+                let input = inputLowerBound + Double(sample) / 120 * (inputUpperBound - inputLowerBound)
+                let point = plot.point(input, output(input))
+                if sample == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+            }
+            context.stroke(curve, with: .color(.indigo), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            let value = output(probeInput)
+            let onCurve = plot.point(probeInput, value)
+            var mapping = Path()
+            mapping.move(to: plot.point(probeInput, 0))
+            mapping.addLine(to: onCurve)
+            mapping.addLine(to: plot.point(plot.x.lowerBound, value))
+            context.stroke(mapping, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            context.fill(Path(ellipseIn: CGRect(x: onCurve.x - 7, y: onCurve.y - 7, width: 14, height: 14)), with: .color(.indigo))
+            if selectedScenario == 1, abs(probeInput) > 0.05 {
+                let mirror = plot.point(-probeInput, value)
+                context.stroke(Path(ellipseIn: CGRect(x: mirror.x - 6, y: mirror.y - 6, width: 12, height: 12)), with: .color(.indigo), lineWidth: 2)
+            }
         }
     }
 }
