@@ -13573,54 +13573,118 @@ private struct CircuitLab: View {
     private typealias Model = CircuitModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
+        let total = Model.totalCurrent(voltage: voltage, first, second, parallel: parallel)
         LabCard {
-            Text(L10n.text("lab.circuit.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.circuit.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Picker(L10n.text("lab.circuit.mode", store.language), selection: $parallel) {
-                Text(L10n.text("lab.circuit.series", store.language)).tag(false)
-                Text(L10n.text("lab.circuit.parallel", store.language)).tag(true)
+            LabHeader(title: text("lab.circuit.title"), instruction: text("lab.circuit.subtitle"))
+            Picker(text("lab.circuit.mode"), selection: $parallel.animation()) {
+                Text(text("lab.circuit.series")).tag(false)
+                Text(text("lab.circuit.parallel")).tag(true)
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("lab.circuit.mode")
-            slider(String(format: L10n.text("lab.circuit.first", store.language), number(first, 0)), "lab.circuit.first", $first, Model.resistanceRange)
-            slider(String(format: L10n.text("lab.circuit.second", store.language), number(second, 0)), "lab.circuit.second", $second, Model.resistanceRange)
-            slider(String(format: L10n.text("lab.circuit.voltage", store.language), number(voltage, 0)), "lab.circuit.voltage", $voltage, Model.voltageRange)
 
-            Text(String(format: L10n.text("lab.circuit.total", store.language),
-                        number(Model.totalResistance(first, second, parallel: parallel), 2),
-                        number(Model.totalCurrent(voltage: voltage, first, second, parallel: parallel), 2)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.circuit.total")
-            ForEach([(first, second, "R₁"), (second, first, "R₂")], id: \.2) { resistor, other, name in
-                Text(String(format: L10n.text("lab.circuit.branch", store.language), name,
-                            number(Model.branchCurrent(voltage: voltage, resistor: resistor, other: other, parallel: parallel), 2),
-                            number(Model.branchVoltage(voltage: voltage, resistor: resistor, other: other, parallel: parallel), 2)))
-                    .font(.callout.monospacedDigit())
+            TimelineView(.animation) { timeline in
+                schematic(time: timeline.date.timeIntervalSinceReferenceDate)
             }
-            Text(L10n.text(parallel ? "lab.circuit.parallelNote" : "lab.circuit.seriesNote", store.language))
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.circuit.limit", store.language))
-                .font(.caption)
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.circuit.diagram"))
+            .accessibilityValue(Text(verbatim: number(total, 2)))
+
+            slider(String(format: text("lab.circuit.first"), number(first, 0)), "lab.circuit.first", $first, Model.resistanceRange)
+            slider(String(format: text("lab.circuit.second"), number(second, 0)), "lab.circuit.second", $second, Model.resistanceRange)
+            slider(String(format: text("lab.circuit.voltage"), number(voltage, 0)), "lab.circuit.voltage", $voltage, Model.voltageRange)
+
+            LabStatGrid {
+                LabStat(label: text("lab.circuit.statResistance"), value: number(Model.totalResistance(first, second, parallel: parallel), 2), tint: .purple)
+                LabStat(label: text("lab.circuit.statCurrent"), value: number(total, 2), tint: .orange)
+            }
+            Text(String(format: text("lab.circuit.total"), number(Model.totalResistance(first, second, parallel: parallel), 2), number(total, 2)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.circuit.total")
+            LabStatusBadge(kind: .info, text: text(parallel ? "lab.circuit.parallelNote" : "lab.circuit.seriesNote"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.circuit.challenge"),
+                         solved: parallel && voltage == 12 && abs(total - 6) < 0.01, solvedText: text("lab.circuit.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.circuit.hint"), text("lab.circuit.limit")])
         }
     }
 
     private func slider(_ title: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).monospacedDigit()
+        HStack(spacing: 12) {
+            Text(title).monospacedDigit().frame(minWidth: 230, alignment: .leading)
             // Whole units without `step:`, which would draw a dense row of tick marks.
             Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = $0.rounded() }), in: range)
                 .accessibilityLabel(Text(verbatim: title))
                 .accessibilityIdentifier(identifier)
+        }
+    }
+
+    // A battery and two resistors in series or parallel. Dots move along each wire at a speed proportional to its
+    // current, so a larger current visibly flows faster; each resistor shows its current and voltage.
+    private func schematic(time: Double) -> some View {
+        Canvas { context, size in
+            let left: CGFloat = 70, right = size.width - 70, top: CGFloat = 40, bottom = size.height - 30
+            let wire = GraphicsContext.Shading.color(.secondary)
+            func flow(_ path: [CGPoint], current: Double) {
+                var line = Path()
+                line.addLines(path)
+                context.stroke(line, with: wire, lineWidth: 2.5)
+                let lengths = zip(path, path.dropFirst()).map { hypot($1.x - $0.x, $1.y - $0.y) }
+                let total = lengths.reduce(0, +)
+                guard total > 0, current > 0 else { return }
+                let spacing: CGFloat = 26
+                let offset = CGFloat((time * current * 14).truncatingRemainder(dividingBy: Double(spacing)))
+                var distance = offset
+                while distance < total {
+                    var remaining = distance
+                    for (index, length) in lengths.enumerated() {
+                        if remaining <= length {
+                            let a = path[index], b = path[index + 1], t = remaining / length
+                            let point = CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
+                            context.fill(Path(ellipseIn: CGRect(x: point.x - 3.5, y: point.y - 3.5, width: 7, height: 7)), with: .color(.yellow))
+                            break
+                        }
+                        remaining -= length
+                    }
+                    distance += spacing
+                }
+            }
+            func resistor(at center: CGPoint, name: String, resistance: Double, current: Double, voltage: Double) {
+                let body = CGRect(x: center.x - 42, y: center.y - 14, width: 84, height: 28)
+                context.fill(Path(roundedRect: body, cornerRadius: 6), with: .color(.orange.opacity(0.85)))
+                context.draw(Text(verbatim: "\(name) = \(number(resistance, 0)) " + text("lab.circuit.unitOhm")).font(.caption.weight(.bold)).foregroundColor(.white), at: center)
+                context.draw(Text(verbatim: "\(number(current, 2)) " + text("lab.circuit.unitA") + " · \(number(voltage, 2)) " + text("lab.circuit.unitV"))
+                    .font(.caption2.weight(.semibold)).foregroundColor(.secondary), at: CGPoint(x: center.x, y: center.y + 26))
+            }
+            let battery = CGPoint(x: left, y: (top + bottom) / 2)
+            let total = Model.totalCurrent(voltage: voltage, first, second, parallel: parallel)
+            if parallel {
+                let upperY = top, lowerY = (top + bottom) / 2 + 30
+                flow([CGPoint(x: left, y: battery.y - 20), CGPoint(x: left, y: top), CGPoint(x: left + 60, y: top)], current: total)
+                flow([CGPoint(x: left + 60, y: upperY), CGPoint(x: right - 60, y: upperY)], current: Model.branchCurrent(voltage: voltage, resistor: first, other: second, parallel: true))
+                flow([CGPoint(x: left + 60, y: upperY), CGPoint(x: left + 60, y: lowerY), CGPoint(x: right - 60, y: lowerY), CGPoint(x: right - 60, y: upperY)],
+                     current: Model.branchCurrent(voltage: voltage, resistor: second, other: first, parallel: true))
+                flow([CGPoint(x: right - 60, y: upperY), CGPoint(x: right, y: upperY), CGPoint(x: right, y: bottom), CGPoint(x: left, y: bottom), CGPoint(x: left, y: battery.y + 20)], current: total)
+                resistor(at: CGPoint(x: (left + right) / 2, y: upperY), name: "R₁", resistance: first,
+                         current: Model.branchCurrent(voltage: voltage, resistor: first, other: second, parallel: true), voltage: voltage)
+                resistor(at: CGPoint(x: (left + right) / 2, y: lowerY), name: "R₂", resistance: second,
+                         current: Model.branchCurrent(voltage: voltage, resistor: second, other: first, parallel: true), voltage: voltage)
+            } else {
+                flow([CGPoint(x: left, y: battery.y - 20), CGPoint(x: left, y: top), CGPoint(x: right, y: top), CGPoint(x: right, y: bottom),
+                      CGPoint(x: left, y: bottom), CGPoint(x: left, y: battery.y + 20)], current: total)
+                resistor(at: CGPoint(x: left + (right - left) * 0.33, y: top), name: "R₁", resistance: first, current: total,
+                         voltage: Model.branchVoltage(voltage: voltage, resistor: first, other: second, parallel: false))
+                resistor(at: CGPoint(x: left + (right - left) * 0.67, y: top), name: "R₂", resistance: second, current: total,
+                         voltage: Model.branchVoltage(voltage: voltage, resistor: second, other: first, parallel: false))
+            }
+            context.fill(Path(CGRect(x: battery.x - 18, y: battery.y - 20, width: 36, height: 5)), with: .color(.primary))
+            context.fill(Path(CGRect(x: battery.x - 10, y: battery.y + 15, width: 20, height: 5)), with: .color(.primary))
+            context.draw(Text(verbatim: "\(number(voltage, 0)) " + text("lab.circuit.unitV")).font(.headline).foregroundColor(.primary), at: CGPoint(x: battery.x - 26, y: battery.y), anchor: .trailing)
+            context.draw(Text(verbatim: "I = \(number(total, 2)) " + text("lab.circuit.unitA")).font(.headline).foregroundColor(.orange), at: CGPoint(x: (left + right) / 2, y: bottom + 16))
         }
     }
 }
@@ -13632,86 +13696,112 @@ private struct RefractionLab: View {
     @State private var incidence = 30.0
 
     private typealias Model = RefractionModel
+    private let mediumKeys = ["lab.refraction.air", "lab.refraction.water", "lab.refraction.glass", "lab.refraction.diamond"]
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
-    private let mediumKeys = ["lab.refraction.air", "lab.refraction.water", "lab.refraction.glass", "lab.refraction.diamond"]
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let first = Model.media[firstIndex], second = Model.media[secondIndex]
         let refracted = Model.refractionAngle(incidence: incidence, from: first, to: second)
         LabCard {
-            Text(L10n.text("lab.refraction.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.refraction.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.refraction.title"), instruction: text("lab.refraction.subtitle"))
             mediumPicker("lab.refraction.from", $firstIndex, "lab.refraction.picker.first")
             mediumPicker("lab.refraction.to", $secondIndex, "lab.refraction.picker.second")
 
-            rays(refracted: refracted)
-                .frame(height: 170)
-                .clipped()
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.refraction.diagram", store.language))
-                .accessibilityValue(Text(verbatim: refracted.map { number($0, 1) } ?? "—"))
+            GeometryReader { proxy in
+                rays(refracted: refracted, size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        let center = CGPoint(x: proxy.size.width / 2, y: proxy.size.height / 2)
+                        let dx = Double(center.x - drag.location.x), dy = Double(center.y - drag.location.y)
+                        guard dy > 0 else { return }
+                        incidence = min(max((atan2(abs(dx), dy) * 180 / .pi).rounded(), Model.angleRange.lowerBound), Model.angleRange.upperBound)
+                    })
+            }
+            .frame(height: 280)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.refraction.diagram"))
+            .accessibilityValue(Text(verbatim: refracted.map { number($0, 1) } ?? "—"))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.refraction.incidence", store.language), number(incidence, 0))).monospacedDigit()
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.refraction.incidence"), number(incidence, 0))).monospacedDigit().frame(minWidth: 190, alignment: .leading)
                 // Whole degrees without `step:`, which would draw a dense row of tick marks.
                 Slider(value: Binding(get: { incidence }, set: { incidence = $0.rounded() }), in: Model.angleRange)
-                    .accessibilityLabel(L10n.text("lab.refraction.incidenceLabel", store.language))
-                    .accessibilityValue(Text(verbatim: number(incidence, 0)))
+                    .accessibilityLabel(text("lab.refraction.incidenceLabel"))
                     .accessibilityIdentifier("lab.refraction.incidence")
             }
-            Text(refracted.map { String(format: L10n.text("lab.refraction.angle", store.language), number($0, 1)) }
-                 ?? String(format: L10n.text("lab.refraction.total", store.language), number(Model.criticalAngle(from: first, to: second) ?? 90, 1)))
-                .font(.headline.monospacedDigit())
+            LabStatGrid {
+                LabStat(label: "θ₁", value: number(incidence, 0) + "°", tint: .orange)
+                LabStat(label: "θ₂", value: refracted.map { number($0, 1) + "°" } ?? "—", tint: refracted == nil ? .red : .accentColor)
+                LabStat(label: text("lab.refraction.statSpeed"), value: number(Model.speed(in: second) / 1e8, 2) + " · 10⁸", tint: .purple)
+            }
+            Text(refracted.map { String(format: text("lab.refraction.angle"), number($0, 1)) }
+                 ?? String(format: text("lab.refraction.total"), number(Model.criticalAngle(from: first, to: second) ?? 90, 1)))
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(refracted == nil ? Color.red : Color.secondary)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("lab.refraction.angle")
-            Text(String(format: L10n.text("lab.refraction.speed", store.language), number(Model.speed(in: second) / 1e8, 2)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.refraction.speed")
-            Text(L10n.text("lab.refraction.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.refraction.challenge"),
+                         solved: firstIndex == 2 && secondIndex == 0 && refracted == nil && incidence <= 42, solvedText: text("lab.refraction.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.refraction.hint"),
+                String(format: text("lab.refraction.speed"), number(Model.speed(in: second) / 1e8, 2)),
+                text("lab.refraction.limit"),
+            ])
         }
     }
 
     private func mediumPicker(_ titleKey: String, _ selection: Binding<Int>, _ identifier: String) -> some View {
-        Picker(L10n.text(titleKey, store.language), selection: selection) {
-            ForEach(mediumKeys.indices, id: \.self) { index in Text(L10n.text(mediumKeys[index], store.language)).tag(index) }
+        Picker(text(titleKey), selection: selection.animation()) {
+            ForEach(mediumKeys.indices, id: \.self) { index in Text(text(mediumKeys[index])).tag(index) }
         }
         .pickerStyle(.segmented)
         .accessibilityIdentifier(identifier)
     }
 
-    // The boundary, the dashed normal, the incident ray from above, and the refracted (or reflected) ray below.
-    private func rays(refracted: Double?) -> some View {
-        Canvas { context, size in
+    // Two media (darker means optically denser), the dashed normal, the draggable incident ray with θ₁, and the
+    // refracted ray with θ₂ or the reflected ray in red when the light is totally internally reflected.
+    private func rays(refracted: Double?, size: CGSize) -> some View {
+        Canvas { context, _ in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
-            let length = min(size.width, size.height) * 0.48
-            context.fill(Path(CGRect(x: 0, y: center.y, width: size.width, height: size.height / 2)), with: .color(.blue.opacity(0.08 + 0.06 * Double(secondIndex))))
+            let length = min(size.width * 0.45, size.height * 0.48)
+            let shade = [0.04, 0.16, 0.26, 0.38]
+            context.fill(Path(CGRect(x: 0, y: 0, width: size.width, height: center.y)), with: .color(.blue.opacity(shade[firstIndex])))
+            context.fill(Path(CGRect(x: 0, y: center.y, width: size.width, height: size.height - center.y)), with: .color(.blue.opacity(shade[secondIndex])))
+            context.draw(Text(text(mediumKeys[firstIndex])).font(.caption.weight(.semibold)).foregroundColor(.secondary), at: CGPoint(x: 10, y: 10), anchor: .topLeading)
+            context.draw(Text(text(mediumKeys[secondIndex])).font(.caption.weight(.semibold)).foregroundColor(.secondary), at: CGPoint(x: 10, y: size.height - 10), anchor: .bottomLeading)
             var normal = Path()
             normal.move(to: CGPoint(x: center.x, y: 0))
             normal.addLine(to: CGPoint(x: center.x, y: size.height))
             context.stroke(normal, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
             let incoming = incidence * .pi / 180
+            let source = CGPoint(x: center.x - length * CGFloat(sin(incoming)), y: center.y - length * CGFloat(cos(incoming)))
             var incident = Path()
-            incident.move(to: CGPoint(x: center.x - length * CGFloat(sin(incoming)), y: center.y - length * CGFloat(cos(incoming))))
+            incident.move(to: source)
             incident.addLine(to: center)
-            context.stroke(incident, with: .color(.orange), lineWidth: 2.5)
+            context.stroke(incident, with: .color(.orange), lineWidth: 3.5)
+            context.fill(Path(ellipseIn: CGRect(x: source.x - 9, y: source.y - 9, width: 18, height: 18)), with: .color(.orange))
+            var arc1 = Path()
+            arc1.addArc(center: center, radius: 46, startAngle: .degrees(-90), endAngle: .degrees(-90 - incidence), clockwise: true)
+            context.stroke(arc1, with: .color(.orange), lineWidth: 1.5)
+            context.draw(Text(verbatim: "θ₁ = " + number(incidence, 0) + "°").font(.caption.weight(.bold)).foregroundColor(.orange),
+                         at: CGPoint(x: center.x - 60 * CGFloat(sin(incoming / 2)) - 6, y: center.y - 60 * CGFloat(cos(incoming / 2))), anchor: .trailing)
             var outgoing = Path()
             outgoing.move(to: center)
             if let refracted {
                 let angle = refracted * .pi / 180
                 outgoing.addLine(to: CGPoint(x: center.x + length * CGFloat(sin(angle)), y: center.y + length * CGFloat(cos(angle))))
+                context.stroke(outgoing, with: .color(.accentColor), lineWidth: 3.5)
+                var arc2 = Path()
+                arc2.addArc(center: center, radius: 46, startAngle: .degrees(90), endAngle: .degrees(90 - refracted), clockwise: true)
+                context.stroke(arc2, with: .color(.accentColor), lineWidth: 1.5)
+                context.draw(Text(verbatim: "θ₂ = " + number(refracted, 1) + "°").font(.caption.weight(.bold)).foregroundColor(.accentColor),
+                             at: CGPoint(x: center.x + 60 * CGFloat(sin(angle / 2)) + 6, y: center.y + 60 * CGFloat(cos(angle / 2))), anchor: .leading)
             } else {
                 outgoing.addLine(to: CGPoint(x: center.x + length * CGFloat(sin(incoming)), y: center.y - length * CGFloat(cos(incoming))))
+                context.stroke(outgoing, with: .color(.red), lineWidth: 3.5)
             }
-            context.stroke(outgoing, with: .color(refracted == nil ? .red : .accentColor), lineWidth: 2.5)
         }
     }
 }
@@ -13726,84 +13816,88 @@ private struct SeesawLab: View {
     private typealias Model = SeesawModel
 
     private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let net = Model.netTorque(leftMass: leftMass, leftDistance: leftDistance, rightMass: rightMass, rightDistance: rightDistance)
+        let balanced = abs(net) < 0.5
         LabCard {
-            Text(L10n.text("lab.seesaw.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.seesaw.hint", store.language))
-                .font(.callout)
+            LabHeader(title: text("lab.seesaw.title"), instruction: text("lab.seesaw.subtitle"))
+
+            GeometryReader { proxy in
+                board(net: net, size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        let half = proxy.size.width * 0.45
+                        let distance = Double(abs(drag.location.x - proxy.size.width / 2) / half) * Model.distanceRange.upperBound
+                        let rounded = min(max((distance * 20).rounded() / 20, Model.distanceRange.lowerBound), Model.distanceRange.upperBound)
+                        withAnimation(.interactiveSpring()) {
+                            if drag.location.x < proxy.size.width / 2 { leftDistance = rounded } else { rightDistance = rounded }
+                        }
+                    })
+            }
+            .frame(height: 200)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.seesaw.diagram"))
+            .accessibilityValue(Text(verbatim: number(net, 0)))
+
+            HStack(spacing: 16) {
+                massStepper(String(format: text("lab.seesaw.leftMass"), number(leftMass, 0)), $leftMass, "lab.seesaw.leftMass")
+                massStepper(String(format: text("lab.seesaw.rightMass"), number(rightMass, 0)), $rightMass, "lab.seesaw.rightMass")
+            }
+            LabStatGrid {
+                LabStat(label: String(format: text("lab.seesaw.statLeft"), number(leftDistance, 2)), value: number(Model.torque(mass: leftMass, distance: leftDistance), 0) + " " + text("lab.seesaw.unitNm"), tint: .orange)
+                LabStat(label: String(format: text("lab.seesaw.statRight"), number(rightDistance, 2)), value: number(Model.torque(mass: rightMass, distance: rightDistance), 0) + " " + text("lab.seesaw.unitNm"), tint: .accentColor)
+            }
+            LabStatusBadge(kind: balanced ? .good : .warning, text: text(balanced ? "lab.seesaw.balanced" : (net > 0 ? "lab.seesaw.rightDown" : "lab.seesaw.leftDown")))
+            Text(String(format: text("lab.seesaw.balance"), number(Model.balancingDistance(mass: leftMass, distance: leftDistance, otherMass: rightMass), 2)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            board(net: net)
-                .frame(height: 110)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.seesaw.diagram", store.language))
-                .accessibilityValue(Text(verbatim: number(net, 0)))
-
-            slider(String(format: L10n.text("lab.seesaw.leftMass", store.language), number(leftMass, 0)), "lab.seesaw.leftMass",
-                   Binding(get: { leftMass }, set: { leftMass = $0.rounded() }), Model.massRange)
-            slider(String(format: L10n.text("lab.seesaw.leftDistance", store.language), number(leftDistance, 2)), "lab.seesaw.leftDistance",
-                   Binding(get: { leftDistance }, set: { leftDistance = ($0 * 20).rounded() / 20 }), Model.distanceRange)
-            slider(String(format: L10n.text("lab.seesaw.rightMass", store.language), number(rightMass, 0)), "lab.seesaw.rightMass",
-                   Binding(get: { rightMass }, set: { rightMass = $0.rounded() }), Model.massRange)
-            slider(String(format: L10n.text("lab.seesaw.rightDistance", store.language), number(rightDistance, 2)), "lab.seesaw.rightDistance",
-                   Binding(get: { rightDistance }, set: { rightDistance = ($0 * 20).rounded() / 20 }), Model.distanceRange)
-
-            Text(String(format: L10n.text("lab.seesaw.torques", store.language),
-                        number(Model.torque(mass: leftMass, distance: leftDistance), 0), number(Model.torque(mass: rightMass, distance: rightDistance), 0)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text(abs(net) < 0.5 ? "lab.seesaw.balanced" : (net > 0 ? "lab.seesaw.rightDown" : "lab.seesaw.leftDown"), store.language))
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(String(format: L10n.text("lab.seesaw.balance", store.language),
-                        number(Model.balancingDistance(mass: leftMass, distance: leftDistance, otherMass: rightMass), 2)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("lab.seesaw.balance")
-            Text(L10n.text("lab.seesaw.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.seesaw.challenge"), solved: balanced, solvedText: text("lab.seesaw.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.seesaw.hint"), text("lab.seesaw.limit")])
         }
     }
 
-    private func slider(_ title: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).monospacedDigit()
-            // Rounded values without `step:`, which would draw a dense row of tick marks.
-            Slider(value: value, in: range)
-                .accessibilityLabel(Text(verbatim: title))
-                .accessibilityIdentifier(identifier)
-        }
+    private func massStepper(_ title: String, _ value: Binding<Double>, _ identifier: String) -> some View {
+        Stepper(value: value.animation(.spring(response: 0.4, dampingFraction: 0.6)), in: Model.massRange, step: 5) { Text(title).monospacedDigit() }
+            .accessibilityLabel(Text(verbatim: title))
+            .accessibilityIdentifier(identifier)
     }
 
-    // The board tilts toward the side with the larger torque (capped at 12°); masses are drawn at their distances.
-    private func board(net: Double) -> some View {
-        Canvas { context, size in
-            let pivot = CGPoint(x: size.width / 2, y: size.height * 0.7)
+    // The board tilts toward the larger torque (capped at 12°); each child is a block sized by mass that can be
+    // dragged along the board, with distance marks every half metre.
+    private func board(net: Double, size: CGSize) -> some View {
+        Canvas { context, _ in
+            let pivot = CGPoint(x: size.width / 2, y: size.height * 0.68)
             let tilt = CGFloat(max(-12, min(12, net / 20))) * .pi / 180
             let half = size.width * 0.45
             let scale = half / CGFloat(Model.distanceRange.upperBound)
-            func point(_ offset: CGFloat) -> CGPoint { CGPoint(x: pivot.x + offset * cos(tilt), y: pivot.y + offset * sin(tilt)) }
+            func point(_ offset: CGFloat, lift: CGFloat = 0) -> CGPoint {
+                CGPoint(x: pivot.x + offset * cos(tilt) + lift * sin(tilt), y: pivot.y + offset * sin(tilt) - lift * cos(tilt))
+            }
             var plank = Path()
             plank.move(to: point(-half))
             plank.addLine(to: point(half))
-            context.stroke(plank, with: .color(.primary), lineWidth: 4)
+            context.stroke(plank, with: .color(.brown), style: StrokeStyle(lineWidth: 8, lineCap: .round))
+            for mark in stride(from: 0.5, through: 3.0, by: 0.5) {
+                for side in [-1.0, 1.0] {
+                    let location = point(CGFloat(side * mark) * scale, lift: -14)
+                    context.draw(Text(verbatim: number(mark, 1)).font(.caption2).foregroundColor(.secondary), at: location)
+                }
+            }
             var triangle = Path()
-            triangle.move(to: pivot)
-            triangle.addLine(to: CGPoint(x: pivot.x - 12, y: pivot.y + 24))
-            triangle.addLine(to: CGPoint(x: pivot.x + 12, y: pivot.y + 24))
+            triangle.move(to: CGPoint(x: pivot.x, y: pivot.y + 4))
+            triangle.addLine(to: CGPoint(x: pivot.x - 18, y: pivot.y + 40))
+            triangle.addLine(to: CGPoint(x: pivot.x + 18, y: pivot.y + 40))
             triangle.closeSubpath()
             context.fill(triangle, with: .color(.secondary))
-            for (offset, mass) in [(-CGFloat(leftDistance) * scale, leftMass), (CGFloat(rightDistance) * scale, rightMass)] {
-                let side = CGFloat(10 + mass / 4)
-                let base = point(offset)
-                context.fill(Path(roundedRect: CGRect(x: base.x - side / 2, y: base.y - side - 2, width: side, height: side), cornerRadius: 3),
-                             with: .color(offset < 0 ? .orange : .accentColor))
+            for (offset, mass, color) in [(-CGFloat(leftDistance) * scale, leftMass, Color.orange), (CGFloat(rightDistance) * scale, rightMass, Color.accentColor)] {
+                let side = CGFloat(22 + mass * 0.7)
+                let base = point(offset, lift: side / 2 + 4)
+                let rect = CGRect(x: base.x - side / 2, y: base.y - side / 2, width: side, height: side)
+                context.fill(Path(roundedRect: rect, cornerRadius: 8), with: .color(color))
+                context.draw(Text(verbatim: number(mass, 0) + " " + text("lab.seesaw.unitKg")).font(.caption.weight(.bold)).foregroundColor(.white), at: base)
             }
         }
     }
