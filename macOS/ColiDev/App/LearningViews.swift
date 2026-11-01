@@ -4247,10 +4247,12 @@ private struct ReportedSpeechLab: View {
 
 private struct OsmosisLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var insideConcentration = 4.0
     @State private var outsideConcentration = 6.0
     @State private var prediction: InteractivePredictionAttempt
     @State private var selectedDisplayIndex = -1
+    @State private var revealStart: Date?
 
     private let predictionOptionKeys = [
         "lab.osmosisOptionEnters",
@@ -4258,101 +4260,179 @@ private struct OsmosisLab: View {
         "lab.osmosisOptionBalanced"
     ]
     private static let predictionItemID = "biology.passive_transport_osmosis.water_flow"
+    private static let solutePoints = scatter(600, seed: 7)
+    private static let waterMolecules = 16
 
     init() {
         _prediction = State(initialValue: Self.makePrediction(insideSolute: 4, outsideSolute: 6))
     }
 
-    private var flow: OsmosisWaterFlow {
-        OsmosisWaterFlow.predict(
-            insideSolute: Int(insideConcentration.rounded()),
-            outsideSolute: Int(outsideConcentration.rounded())
-        )
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var inside: Int { Int(insideConcentration.rounded()) }
+    private var outside: Int { Int(outsideConcentration.rounded()) }
+    private var flow: OsmosisWaterFlow { OsmosisWaterFlow.predict(insideSolute: inside, outsideSolute: outside) }
+    private var revealed: Bool { prediction.hasAnswered && prediction.isCorrect }
+
+    /// Tonicity of the outside solution relative to the cell.
+    private var tonicityKey: String {
+        if outside < inside { return "lab.osmosisHypotonic" }
+        if outside > inside { return "lab.osmosisHypertonic" }
+        return "lab.osmosisIsotonic"
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.OsmosisLab", store.language), instruction: L10n.text("lab.osmosisHint", store.language))
-
-            HStack(alignment: .center, spacing: 14) {
-                concentrationDisplay(
-                    title: L10n.text("lab.osmosisOutside", store.language),
-                    value: outsideConcentration
-                )
-                Image(systemName: prediction.hasAnswered && prediction.isCorrect ? flow.arrowSymbol : "questionmark.circle")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.blue)
-                    .accessibilityLabel(Text(L10n.text(
-                        prediction.hasAnswered && prediction.isCorrect ? flow.explanationKey : "lab.osmosisArrowHidden",
-                        store.language
-                    )))
-                ZStack {
-                    Circle()
-                        .fill(Color.cyan.opacity(0.12))
-                        .frame(width: 118, height: 118)
-                    Circle()
-                        .strokeBorder(Color.cyan.opacity(0.75), lineWidth: 3)
-                        .frame(width: 118, height: 118)
-                    VStack(spacing: 5) {
-                        Text(L10n.text("lab.osmosisInside", store.language))
-                            .font(.caption.weight(.semibold))
-                        Text("\(insideConcentration, specifier: "%.0f")")
-                            .font(.title2.monospacedDigit().weight(.bold))
-                        soluteDots(insideConcentration)
-                    }
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text(L10n.text("lab.osmosisInside", store.language) + ", \(Int(insideConcentration))"))
+            LabHeader(title: text("labkit.title.OsmosisLab"), instruction: text("lab.osmosisSubtitle"))
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: revealStart == nil || reduceMotion)) { timeline in
+                cellScene(elapsed: revealStart.map { timeline.date.timeIntervalSince($0) } ?? 0)
             }
-            .frame(maxWidth: .infinity)
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.osmosisCanvas"))
+            .accessibilityValue(Text(verbatim: text("lab.osmosisInside") + " \(inside), " + text("lab.osmosisOutside") + " \(outside). "
+                                     + text(revealed ? flow.explanationKey : "lab.osmosisArrowHidden")))
+            HStack(spacing: 16) {
+                legendItem(.purple, text("lab.osmosisLegendSolute"))
+                legendItem(.blue, text("lab.osmosisLegendWater"))
+            }
+            .font(.caption)
+            LabStatGrid {
+                LabStat(label: text("lab.osmosisInside"), value: "\(inside)", tint: .purple)
+                LabStat(label: text("lab.osmosisOutside"), value: "\(outside)", tint: .purple)
+                LabStat(label: text("lab.osmosisStatFlow"), value: revealed ? text(predictionOptionKeys[flow.answerOriginalIndex]) : "?", tint: .blue)
+                LabStat(label: text("lab.osmosisStatTonicity"), value: revealed ? text(tonicityKey) : "?", tint: .cyan)
+            }
+            concentrationSlider(title: text("lab.osmosisOutside"), value: $outsideConcentration)
+            concentrationSlider(title: text("lab.osmosisInside"), value: $insideConcentration)
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.osmosisChallenge"),
+                         solved: revealed && flow == .waterEntersCell, solvedText: text("lab.osmosisChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.osmosisHint"), text("lab.osmosisTonicity"), text("lab.osmosisLimit")])
+        }
+        .onChange(of: insideConcentration) { _ in startNewPrediction() }
+        .onChange(of: outsideConcentration) { _ in startNewPrediction() }
+    }
 
-            concentrationSlider(title: L10n.text("lab.osmosisOutside", store.language), value: $outsideConcentration)
-                .onChange(of: outsideConcentration) { _ in startNewPrediction() }
-            concentrationSlider(title: L10n.text("lab.osmosisInside", store.language), value: $insideConcentration)
-                .onChange(of: insideConcentration) { _ in startNewPrediction() }
+    // A cell in a beaker. Purple dots are solute that cannot cross; blue dots are water molecules crossing the membrane.
+    // The cell keeps its solute, so when it swells the same dots spread thinner.
+    private func cellScene(elapsed: Double) -> some View {
+        let progress = revealed ? (reduceMotion ? 1 : min(1, elapsed / 2.4)) : 0
+        let eased = progress * progress * (3 - 2 * progress)
+        let swell = Double(min(max(inside - outside, -6), 6)) / 6
+        return Canvas { context, size in
+            let beaker = CGRect(origin: .zero, size: size).insetBy(dx: 6, dy: 6)
+            let centre = CGPoint(x: beaker.midX, y: beaker.midY)
+            let baseRadius = min(beaker.width, beaker.height) * 0.3
+            let radius = baseRadius * CGFloat(1 + 0.22 * swell * eased)
+            context.fill(Path(roundedRect: beaker, cornerRadius: 18), with: .color(.blue.opacity(0.06)))
+            context.stroke(Path(roundedRect: beaker, cornerRadius: 18), with: .color(.secondary.opacity(0.5)), lineWidth: 1.5)
+            drawOutsideSolute(context: context, beaker: beaker, centre: centre, radius: radius, baseRadius: baseRadius)
+            let cell = Path(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2))
+            context.fill(cell, with: .color(.cyan.opacity(0.12)))
+            context.stroke(cell, with: .color(.cyan.opacity(0.85)), lineWidth: 3)
+            drawInsideSolute(context: context, centre: centre, radius: radius)
+            if revealed {
+                drawWater(context: context, centre: centre, radius: radius, elapsed: elapsed, settled: progress >= 1)
+            }
+            context.draw(Text(text("lab.osmosisOutside")).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: beaker.minX + 12, y: beaker.minY + 10), anchor: .topLeading)
+            context.draw(Text(text("lab.osmosisInside")).font(.caption.weight(.semibold)).foregroundColor(.cyan),
+                         at: CGPoint(x: centre.x, y: centre.y - radius - 10))
+        }
+    }
 
-            Text(L10n.text("lab.osmosisPredictionPrompt", store.language))
+    // Outside dots get the same density per unit of concentration as the cell at its starting size.
+    private func drawOutsideSolute(context: GraphicsContext, beaker: CGRect, centre: CGPoint, radius: CGFloat, baseRadius: CGFloat) {
+        let cellArea = Double.pi * Double(baseRadius * baseRadius)
+        let perUnit = 2 * (Double(beaker.width * beaker.height) - cellArea) / cellArea
+        let count = min(Self.solutePoints.count, Int((Double(outside) * perUnit).rounded()))
+        for unit in Self.solutePoints.prefix(count) {
+            let point = CGPoint(x: beaker.minX + 8 + unit.x * (beaker.width - 16), y: beaker.minY + 8 + unit.y * (beaker.height - 16))
+            guard hypot(point.x - centre.x, point.y - centre.y) > radius + 6 else { continue }
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 2.5, y: point.y - 2.5, width: 5, height: 5)), with: .color(.purple.opacity(0.7)))
+        }
+    }
+
+    private func drawInsideSolute(context: GraphicsContext, centre: CGPoint, radius: CGFloat) {
+        for unit in Self.solutePoints.suffix(inside * 2) {
+            let distance = sqrt(unit.x) * 0.82 * radius
+            let angle = unit.y * 2 * .pi
+            let point = CGPoint(x: centre.x + distance * cos(angle), y: centre.y + distance * sin(angle))
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 2.5, y: point.y - 2.5, width: 5, height: 5)), with: .color(.purple.opacity(0.85)))
+        }
+    }
+
+    // Water crosses both ways all the time; while the cell changes size more molecules go the net way, then the two directions even out.
+    private func drawWater(context: GraphicsContext, centre: CGPoint, radius: CGFloat, elapsed: Double, settled: Bool) {
+        let total = Self.waterMolecules
+        let inward: Int
+        switch flow {
+        case .waterEntersCell: inward = settled ? 8 : 13
+        case .waterLeavesCell: inward = settled ? 8 : 3
+        case .dynamicEquilibrium: inward = 8
+        }
+        let outer = Double(radius) + 30
+        let inner = Double(radius) - 24
+        for index in 0..<total {
+            let goesIn = (index * inward) / total != ((index + 1) * inward) / total
+            let angle = Double(index) / Double(total) * 2 * .pi + 0.2
+            func spot(_ distance: Double) -> CGPoint {
+                CGPoint(x: centre.x + CGFloat(distance * cos(angle)), y: centre.y + CGFloat(distance * sin(angle)))
+            }
+            let start = goesIn ? outer : inner
+            let end = goesIn ? inner : outer
+            if reduceMotion {
+                var arrow = Path()
+                arrow.move(to: spot(start))
+                arrow.addLine(to: spot(end))
+                context.stroke(arrow, with: .color(.blue.opacity(0.6)), lineWidth: 1.5)
+                let head = spot(end)
+                context.fill(Path(ellipseIn: CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)), with: .color(.blue))
+            } else {
+                let phase = (elapsed * 0.45 + Double(index) * 0.37).truncatingRemainder(dividingBy: 1)
+                let point = spot(start + (end - start) * phase)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)),
+                             with: .color(.blue.opacity(sin(.pi * phase))))
+            }
+        }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.osmosisPredictionPrompt"))
                 .font(.callout.weight(.medium))
                 .fixedSize(horizontal: false, vertical: true)
-
-            Picker(L10n.text("lab.osmosisPredictionPrompt", store.language), selection: $selectedDisplayIndex) {
+            Picker(text("lab.osmosisPredictionPrompt"), selection: $selectedDisplayIndex) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(predictionOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(predictionOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
-
-            Button(L10n.text("lab.osmosisCheckPrediction", store.language)) {
-                prediction.select(displayedIndex: selectedDisplayIndex)
-                guard let evidence = prediction.currentAnswerEventEvidence() else { return }
-                store.recordStudyAssessment(lessonID: "biology.passive_transport_osmosis", evidence: evidence)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(prediction.hasAnswered || selectedDisplayIndex < 0)
-
+            Button(text("lab.osmosisCheckPrediction"), action: checkPrediction)
+                .buttonStyle(.borderedProminent)
+                .disabled(prediction.hasAnswered || selectedDisplayIndex < 0)
             if prediction.hasAnswered {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.osmosisCorrect", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.osmosisCorrect"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.green)
-                    Label(L10n.text(flow.explanationKey, store.language), systemImage: flow.arrowSymbol)
+                    Label(text(flow.explanationKey), systemImage: flow.arrowSymbol)
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.blue)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.osmosisNewPrediction", store.language)) {
-                        startNewPrediction()
-                    }
-                    .buttonStyle(.link)
+                    Button(text("lab.osmosisNewPrediction"), action: startNewPrediction)
+                        .buttonStyle(.link)
                 } else {
-                    Label(L10n.text("lab.osmosisIncorrect", store.language), systemImage: "arrow.uturn.backward.circle")
+                    Label(text("lab.osmosisIncorrect"), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.orange)
-                    Text(L10n.text("lab.osmosisHintAfterWrong", store.language))
+                    Text(text("lab.osmosisHintAfterWrong"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.osmosisRetry", store.language)) {
+                    Button(text("lab.osmosisRetry")) {
                         prediction.retry()
                         selectedDisplayIndex = -1
                     }
@@ -4360,6 +4440,38 @@ private struct OsmosisLab: View {
                 }
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
+        }
+    }
+
+    private func concentrationSlider(title: String, value: Binding<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 190, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { newValue in
+                let rounded = newValue.rounded()
+                if rounded != value.wrappedValue { value.wrappedValue = rounded }
+            }), in: 0...10)
+                .accessibilityLabel(Text(title))
+            Text(verbatim: "\(Int(value.wrappedValue))")
+                .monospacedDigit()
+                .frame(width: 28, alignment: .trailing)
+        }
+        .font(.callout)
+    }
+
+    private func checkPrediction() {
+        prediction.select(displayedIndex: selectedDisplayIndex)
+        if prediction.isCorrect { revealStart = Date() }
+        guard let evidence = prediction.currentAnswerEventEvidence() else { return }
+        store.recordStudyAssessment(lessonID: "biology.passive_transport_osmosis", evidence: evidence)
     }
 
     private static func makePrediction(insideSolute: Int, outsideSolute: Int) -> InteractivePredictionAttempt {
@@ -4374,46 +4486,19 @@ private struct OsmosisLab: View {
     }
 
     private func startNewPrediction() {
-        prediction = Self.makePrediction(
-            insideSolute: Int(insideConcentration.rounded()),
-            outsideSolute: Int(outsideConcentration.rounded())
-        )
+        prediction = Self.makePrediction(insideSolute: inside, outsideSolute: outside)
         selectedDisplayIndex = -1
+        revealStart = nil
     }
 
-    private func concentrationDisplay(title: String, value: Double) -> some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .multilineTextAlignment(.center)
-            Text("\(value, specifier: "%.0f")")
-                .font(.title2.monospacedDigit().weight(.bold))
-            soluteDots(value)
+    /// Fixed pseudo-random points in the unit square, so the dots stay put while the sliders move.
+    private static func scatter(_ count: Int, seed: UInt64) -> [CGPoint] {
+        var state = seed
+        func next() -> CGFloat {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return CGFloat(state >> 33) / CGFloat(UInt64(1) << 31)
         }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func soluteDots(_ value: Double) -> some View {
-        HStack(spacing: 3) {
-            ForEach(0..<Int(value), id: \.self) { _ in
-                Circle().fill(Color.purple.opacity(0.78)).frame(width: 6, height: 6)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func concentrationSlider(title: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(value.wrappedValue, format: .number.precision(.fractionLength(0)))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 0...10, step: 1)
-        }
+        return (0..<count).map { _ in CGPoint(x: next(), y: next()) }
     }
 }
 
@@ -6532,124 +6617,148 @@ private struct GeneRegulationLab: View {
         signalPresent: true
     )
 
-    private var productMade: Bool {
-        GeneRegulationPractice.isProductMade(variant: variant, signalPresent: signalPresent)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var productMade: Bool { GeneRegulationPractice.isProductMade(variant: variant, signalPresent: signalPresent) }
+    private var revealed: Bool { prediction.isCorrect }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.GeneRegulationLab", store.language), instruction: L10n.text("lab.dnaModelHint", store.language))
-
-            Picker(L10n.text("lab.dnaVariant", store.language), selection: $variant) {
-                Text(L10n.text("lab.dnaVariant0", store.language)).tag(0)
-                Text(L10n.text("lab.dnaVariant1", store.language)).tag(1)
+            LabHeader(title: text("labkit.title.GeneRegulationLab"), instruction: text("lab.dnaSubtitle"))
+            Picker(text("lab.dnaVariant"), selection: $variant) {
+                Text(text("lab.dnaVariant0")).tag(0)
+                Text(text("lab.dnaVariant1")).tag(1)
             }
             .pickerStyle(.segmented)
             .onChange(of: variant) { _ in resetPrediction() }
-
-            DNAHelixVisualization(variant: variant)
-                .frame(height: 230)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .accessibilityLabel(Text(L10n.text("lab.dna3DHint", store.language)))
-            Text(L10n.text("lab.dna3DHint", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(L10n.text(variant == 0 ? "lab.dnaPairAT" : "lab.dnaPairCG", store.language))
-                .font(.callout.weight(.medium))
-                .accessibilityLabel(Text(L10n.text(variant == 0 ? "lab.dnaPairAT" : "lab.dnaPairCG", store.language)))
-
-            Toggle(L10n.text("lab.dnaSignal", store.language), isOn: $signalPresent)
+            Toggle(text("lab.dnaSignal"), isOn: $signalPresent)
                 .onChange(of: signalPresent) { _ in resetPrediction() }
-
-            let outcomeRevealed = prediction.isCorrect
-
-            HStack(spacing: 8) {
-                flowNode(title: L10n.text("lab.dnaSequence", store.language), value: "A · T · C · G")
-                Image(systemName: "arrow.right").foregroundStyle(.secondary)
-                flowNode(
-                    title: L10n.text("lab.dnaGeneActivity", store.language),
-                    value: L10n.text(
-                        GeneRegulationPractice.geneActivityKey(
-                            productMade: productMade,
-                            outcomeRevealed: outcomeRevealed
-                        ),
-                        store.language
-                    )
-                )
-                Image(systemName: "arrow.right").foregroundStyle(.secondary)
-                flowNode(
-                    title: L10n.text("lab.dnaProduct", store.language),
-                    value: L10n.text(
-                        GeneRegulationPractice.productKey(
-                            productMade: productMade,
-                            outcomeRevealed: outcomeRevealed
-                        ),
-                        store.language
-                    )
-                )
+            Canvas { context, size in drawSwitch(context: context, size: size) }
+                .frame(height: 160)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.dnaSwitchDiagram"))
+                .accessibilityValue(Text(verbatim: text(variant == 0 ? "lab.dnaVariant0" : "lab.dnaVariant1") + ", "
+                                         + text(signalPresent ? "lab.dnaSignalOn" : "lab.dnaSignalOff") + ", "
+                                         + text(GeneRegulationPractice.productKey(productMade: productMade, outcomeRevealed: revealed))))
+            HStack(spacing: 16) {
+                legendItem(.green, text("lab.dnaLegendSite"))
+                legendItem(.orange, text("lab.dnaLegendSignal"))
+                legendItem(.teal, text("lab.dnaLegendProduct"))
             }
-            .accessibilityElement(children: .combine)
+            .font(.caption)
+            predictionPanel
+            LabStatGrid {
+                LabStat(label: text("lab.dnaGeneActivity"),
+                        value: revealed ? text(GeneRegulationPractice.geneActivityKey(productMade: productMade, outcomeRevealed: true)) : "?", tint: .purple)
+                LabStat(label: text("lab.dnaProduct"),
+                        value: revealed ? text(GeneRegulationPractice.productKey(productMade: productMade, outcomeRevealed: true)) : "?", tint: .teal)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.dnaChallenge"),
+                         solved: revealed && productMade, solvedText: text("lab.dnaChallengeSolved"))
+            DNAHelixVisualization(variant: variant)
+                .frame(height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .accessibilityLabel(Text(text("lab.dna3DHint")))
+            Text(text(variant == 0 ? "lab.dnaPairAT" : "lab.dnaPairCG"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.dnaModelHint"), text("lab.dna3DHint")])
+        }
+    }
 
-            Text(L10n.text("lab.dnaPredict", store.language))
+    // DNA as a line: the regulatory site on the left, the gene box on the right. A bound signal switches the gene on;
+    // variant B's changed site cannot hold the signal. Products appear only after a correct prediction.
+    private func drawSwitch(context: GraphicsContext, size: CGSize) {
+        let lineY = size.height * 0.55
+        var strand = Path()
+        strand.move(to: CGPoint(x: 16, y: lineY))
+        strand.addLine(to: CGPoint(x: size.width - 16, y: lineY))
+        context.stroke(strand, with: .color(.secondary.opacity(0.7)), lineWidth: 4)
+
+        let site = CGRect(x: size.width * 0.12, y: lineY - 14, width: size.width * 0.16, height: 28)
+        let siteIntact = variant == 0
+        context.fill(Path(roundedRect: site, cornerRadius: 6), with: .color(siteIntact ? .green.opacity(0.8) : .red.opacity(0.7)))
+        context.draw(Text(text("lab.dnaSiteLabel")).font(.caption2.weight(.semibold)).foregroundColor(.white), at: CGPoint(x: site.midX, y: site.midY))
+        if !siteIntact {
+            context.draw(Text(verbatim: "✕").font(.title3.weight(.bold)).foregroundColor(.red), at: CGPoint(x: site.midX, y: site.maxY + 14))
+        }
+
+        let gene = CGRect(x: size.width * 0.36, y: lineY - 18, width: size.width * 0.3, height: 36)
+        let geneOn = revealed && productMade
+        context.fill(Path(roundedRect: gene, cornerRadius: 8), with: .color(geneOn ? .purple : .purple.opacity(0.35)))
+        context.draw(Text(text("lab.dnaGeneLabel")).font(.caption.weight(.bold)).foregroundColor(.white), at: CGPoint(x: gene.midX, y: gene.midY))
+
+        if signalPresent {
+            let bound = siteIntact
+            let centre = bound ? CGPoint(x: site.midX, y: site.minY - 16) : CGPoint(x: site.midX - 6, y: site.minY - 52)
+            context.fill(Path(ellipseIn: CGRect(x: centre.x - 14, y: centre.y - 14, width: 28, height: 28)), with: .color(.orange))
+            context.draw(Text(verbatim: "S").font(.callout.weight(.bold)).foregroundColor(.white), at: centre)
+            if !bound {
+                context.draw(Text(text("lab.dnaSignalCannotBind")).font(.caption2).foregroundColor(.secondary),
+                             at: CGPoint(x: centre.x + 22, y: centre.y), anchor: .leading)
+            }
+        }
+
+        let productArea = CGRect(x: size.width * 0.72, y: 14, width: size.width * 0.25, height: size.height - 28)
+        if !revealed {
+            context.draw(Text(verbatim: "?").font(.largeTitle.weight(.bold)).foregroundColor(.secondary),
+                         at: CGPoint(x: productArea.midX, y: productArea.midY))
+        } else if productMade {
+            var arrow = Path()
+            arrow.move(to: CGPoint(x: gene.maxX + 4, y: lineY))
+            arrow.addLine(to: CGPoint(x: productArea.minX + 4, y: lineY))
+            context.stroke(arrow, with: .color(.teal), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+            for index in 0..<6 {
+                let column = CGFloat(index % 3), row = CGFloat(index / 3)
+                let centre = CGPoint(x: productArea.minX + 18 + column * 26, y: lineY - 26 + row * 30)
+                context.fill(Path(roundedRect: CGRect(x: centre.x - 10, y: centre.y - 8, width: 20, height: 16), cornerRadius: 5), with: .color(.teal))
+            }
+        } else {
+            context.draw(Text(text("lab.dnaNoProduct")).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: productArea.midX, y: lineY))
+        }
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
+        }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.dnaPredict"))
                 .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
             HStack {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    answerButton(
-                        displayIndex: displayIndex,
-                        originalIndex: originalIndex,
-                        key: originalIndex == 0 ? "lab.dnaPredictOption0" : "lab.dnaPredictOption1"
-                    )
+                    answerButton(displayIndex: displayIndex, originalIndex: originalIndex,
+                                 key: originalIndex == 0 ? "lab.dnaPredictOption0" : "lab.dnaPredictOption1")
                 }
             }
-
             if prediction.hasAnswered {
                 let isCorrect = prediction.isCorrect
-                Label(
-                    L10n.text(
-                        isCorrect ? "lab.dnaPredictCorrect" : "lab.dnaPredictIncorrect",
-                        store.language
-                    ),
-                    systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.clockwise.circle"
-                )
-                .font(.callout)
-                .foregroundStyle(isCorrect ? Color.green : Color.secondary)
-
-                Text(L10n.text(GeneRegulationPractice.explanationKey(isCorrect: isCorrect), store.language))
+                Label(text(isCorrect ? "lab.dnaPredictCorrect" : "lab.dnaPredictIncorrect"),
+                      systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.clockwise.circle")
+                    .font(.callout)
+                    .foregroundStyle(isCorrect ? Color.green : Color.secondary)
+                Text(text(GeneRegulationPractice.explanationKey(isCorrect: isCorrect)))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
                 if prediction.canRetry {
-                    Button(L10n.text("lab.dnaRetry", store.language)) {
-                        prediction.retry()
-                    }
-                    .buttonStyle(.bordered)
+                    Button(text("lab.dnaRetry")) { prediction.retry() }
+                        .buttonStyle(.bordered)
                 }
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func resetPrediction() {
-        prediction = GeneRegulationPractice.makePredictionAttempt(
-            variant: variant,
-            signalPresent: signalPresent
-        )
-    }
-
-    private func flowNode(title: String, value: String) -> some View {
-        VStack(spacing: 5) {
-            Text(title)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text(value)
-                .font(.callout.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 42)
-        }
-        .padding(8)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-        .frame(maxWidth: .infinity)
+        prediction = GeneRegulationPractice.makePredictionAttempt(variant: variant, signalPresent: signalPresent)
     }
 
     private func answerButton(displayIndex: Int, originalIndex: Int, key: String) -> some View {
@@ -6658,7 +6767,7 @@ private struct GeneRegulationLab: View {
             guard let evidence = prediction.currentAnswerEventEvidence() else { return }
             store.recordStudyAssessment(lessonID: "biology.dna_genes_and_traits", evidence: evidence)
         } label: {
-            Text(L10n.text(key, store.language))
+            Text(text(key))
                 .frame(maxWidth: .infinity, minHeight: 34)
         }
         .buttonStyle(.bordered)
@@ -6670,8 +6779,10 @@ private struct GeneRegulationLab: View {
 
 private struct GeneExpressionLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var transcriptionEnabled = true
-    @State private var selectedStage = 0
+    @State private var step = 0
+    @State private var playing = false
     @State private var selectedAnswer = -1
     @State private var didCheckAnswer = false
     @State private var prediction = GeneExpressionPractice.makeStopCodonAttempt()
@@ -6681,112 +6792,250 @@ private struct GeneExpressionLab: View {
         "lab.geneExpressionOptionB",
         "lab.geneExpressionOptionC"
     ]
+    private static let baseCount = 9
+    private static let finalStep = 12
+    private static let tileWidth: CGFloat = 34
 
-    private var snapshot: GeneExpressionSnapshot {
-        GeneExpressionPractice.snapshot(promoterIsActive: transcriptionEnabled)
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var snapshot: GeneExpressionSnapshot { GeneExpressionPractice.snapshot(promoterIsActive: transcriptionEnabled) }
+    private var templateBases: [Character] { Array(GeneExpressionPractice.templateStrand.filter { !$0.isWhitespace }) }
+    private var messengerBases: [Character] { Array((snapshot.messengerRNA ?? "").filter { !$0.isWhitespace }) }
+    private var peptide: [String] { snapshot.peptide ?? [] }
+    /// Steps 1–9 copy one base each; steps 10–12 let the ribosome read one codon each.
+    private var transcribed: Int { min(step, Self.baseCount) }
+    private var codonsRead: Int { max(0, step - Self.baseCount) }
+    private var aminoAcidCount: Int { peptide.prefix(codonsRead).filter { $0 != "Stop" }.count }
+
+    private var phaseKey: String {
+        if !transcriptionEnabled { return "lab.geneExpressionPhaseBlocked" }
+        if step == 0 { return "lab.geneExpressionPhaseIdle" }
+        if step <= Self.baseCount { return "lab.geneExpressionPhaseTranscription" }
+        return step >= Self.finalStep ? "lab.geneExpressionPhaseDone" : "lab.geneExpressionPhaseTranslation"
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.GeneExpressionLab", store.language), instruction: L10n.text("lab.geneExpressionHint", store.language))
-
-            Toggle(L10n.text("lab.geneExpressionRegulator", store.language), isOn: $transcriptionEnabled)
+            LabHeader(title: text("labkit.title.GeneExpressionLab"), instruction: text("lab.geneExpressionSubtitle"))
+            Toggle(text("lab.geneExpressionRegulator"), isOn: $transcriptionEnabled)
                 .onChange(of: transcriptionEnabled) { _ in
+                    playing = false
+                    step = 0
                     resetPrediction()
                 }
-
-            Picker(L10n.text("lab.geneExpressionStage", store.language), selection: $selectedStage) {
-                Text(L10n.text("lab.geneExpressionDNA", store.language)).tag(0)
-                Text(L10n.text("lab.geneExpressionRNA", store.language)).tag(1)
-                Text(L10n.text("lab.geneExpressionProtein", store.language)).tag(2)
+            ScrollView(.horizontal, showsIndicators: false) {
+                diagram.padding(.vertical, 6)
             }
-            .pickerStyle(.segmented)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text(stageTitleKey, store.language))
-                    .font(.headline)
-                Text(stageValue)
-                    .font(.title3.monospaced())
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(stageExplanationKey, store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.geneExpressionDiagram"))
+            .accessibilityValue(Text(verbatim: accessibilitySummary))
+            HStack(spacing: 10) {
+                Button {
+                    if step >= Self.finalStep { step = 0 }
+                    if reduceMotion { step = Self.finalStep } else { playing = true }
+                } label: { Label(text("lab.geneExpressionPlay"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!transcriptionEnabled || playing)
+                Button {
+                    withAnimation(.easeOut(duration: 0.25)) { step = min(step + 1, Self.finalStep) }
+                } label: { Label(text("lab.geneExpressionStep"), systemImage: "forward.frame.fill") }
+                    .disabled(!transcriptionEnabled || playing || step >= Self.finalStep)
+                Button {
+                    playing = false
+                    step = 0
+                } label: { Label(text("lab.geneExpressionReset"), systemImage: "arrow.counterclockwise") }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.geneExpressionStatPhase"), value: text(phaseKey), tint: transcriptionEnabled ? .purple : .red)
+                LabStat(label: text("lab.geneExpressionStatRNA"), value: "\(transcriptionEnabled ? transcribed : 0) / \(Self.baseCount)", tint: .orange)
+                LabStat(label: text("lab.geneExpressionStatAmino"), value: "\(aminoAcidCount)", tint: .teal)
+            }
+            quizPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.geneExpressionChallenge"),
+                         solved: transcriptionEnabled && step >= Self.finalStep && prediction.isCorrect,
+                         solvedText: text("lab.geneExpressionChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.geneExpressionDNAExplain"), text("lab.geneExpressionRNAExplain"),
+                                                                 text("lab.geneExpressionProteinExplain"), text("lab.geneExpressionLimit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && step < Self.finalStep {
+                try? await Task.sleep(nanoseconds: 420_000_000)
+                guard playing else { return }
+                withAnimation(.easeOut(duration: 0.25)) { step += 1 }
+            }
+            playing = false
+        }
+    }
 
-            Text(L10n.text("lab.geneExpressionQuiz", store.language))
+    // DNA template on top, the growing mRNA under it, then the peptide the ribosome builds codon by codon.
+    private var diagram: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 0) {
+                rowLabel(text("lab.geneExpressionPolymerase"))
+                ForEach(0..<Self.baseCount, id: \.self) { index in
+                    ZStack {
+                        if transcriptionEnabled && step > 0 && step <= Self.baseCount && index == step - 1 {
+                            Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.purple)
+                        }
+                    }
+                    .frame(width: Self.tileWidth, height: 14)
+                    .padding(.trailing, gap(after: index))
+                }
+            }
+            baseRow(label: text("lab.geneExpressionTemplate"), ends: ("3′", "5′"), bases: templateBases, visible: Self.baseCount)
+            HStack(spacing: 0) {
+                rowLabel("")
+                ForEach(0..<Self.baseCount, id: \.self) { index in
+                    Rectangle()
+                        .fill(index < transcribed && transcriptionEnabled ? Color.secondary.opacity(0.6) : Color.clear)
+                        .frame(width: 2, height: 12)
+                        .frame(width: Self.tileWidth)
+                        .padding(.trailing, gap(after: index))
+                }
+            }
+            if transcriptionEnabled {
+                baseRow(label: text("lab.geneExpressionRNA"), ends: ("5′", "3′"), bases: messengerBases, visible: transcribed)
+                    .overlay(alignment: .leading) { ribosome }
+                peptideRow
+            } else {
+                Label(text("lab.geneExpressionBlocked"), systemImage: "xmark.octagon.fill")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+            }
+        }
+    }
+
+    // The ribosome sits over the codon it is reading.
+    @ViewBuilder
+    private var ribosome: some View {
+        if codonsRead > 0 {
+            let codon = codonsRead - 1
+            let codonWidth = Self.tileWidth * 3 + 6
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.purple, lineWidth: 3)
+                .frame(width: codonWidth + 8, height: 46)
+                .offset(x: 116 + CGFloat(codon) * (codonWidth + 12) - 4)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var peptideRow: some View {
+        HStack(spacing: 0) {
+            rowLabel(text("lab.geneExpressionPeptide"))
+            ForEach(0..<3, id: \.self) { codon in
+                ZStack {
+                    if codon < codonsRead, codon < peptide.count {
+                        let isStop = peptide[codon] == "Stop"
+                        Text(verbatim: isStop ? text("lab.geneExpressionStop") : peptide[codon])
+                            .font(.callout.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(isStop ? Color.red : Color.teal, in: isStop ? AnyShape(RoundedRectangle(cornerRadius: 4)) : AnyShape(Capsule()))
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .frame(width: Self.tileWidth * 3 + 6, height: 36)
+                .padding(.trailing, 12)
+            }
+        }
+    }
+
+    private func baseRow(label: String, ends: (String, String), bases: [Character], visible: Int) -> some View {
+        HStack(spacing: 0) {
+            rowLabel(label)
+            ForEach(0..<Self.baseCount, id: \.self) { index in
+                Group {
+                    if index < visible, index < bases.count {
+                        Text(String(bases[index]))
+                            .font(.title3.monospaced().weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: Self.tileWidth, height: 38)
+                            .background(Self.color(for: bases[index]), in: RoundedRectangle(cornerRadius: 7))
+                            .transition(.scale.combined(with: .opacity))
+                    } else {
+                        RoundedRectangle(cornerRadius: 7)
+                            .strokeBorder(Color.secondary.opacity(0.35), style: StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
+                            .frame(width: Self.tileWidth, height: 38)
+                    }
+                }
+                .padding(.trailing, gap(after: index))
+            }
+            Text(verbatim: ends.1).font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.leading, 2)
+        }
+        .overlay(alignment: .leading) {
+            Text(verbatim: ends.0).font(.caption.weight(.semibold)).foregroundStyle(.secondary).offset(x: 100)
+        }
+    }
+
+    private func rowLabel(_ label: String) -> some View {
+        Text(label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .frame(width: 96, alignment: .leading)
+            .frame(width: 116, alignment: .leading)
+    }
+
+    /// Extra space after every third base separates the codons.
+    private func gap(after index: Int) -> CGFloat { index % 3 == 2 ? 12 : 3 }
+
+    private static func color(for base: Character) -> Color {
+        switch base {
+        case "A": return .green
+        case "T": return .red
+        case "U": return .orange
+        case "C": return .blue
+        default: return Color(red: 0.85, green: 0.6, blue: 0.05)
+        }
+    }
+
+    private var accessibilitySummary: String {
+        let rna = String(messengerBases.prefix(transcribed))
+        let protein = peptide.prefix(codonsRead).joined(separator: "–")
+        return text(phaseKey) + ". " + text("lab.geneExpressionRNA") + ": " + (rna.isEmpty ? "—" : rna) + ". "
+            + text("lab.geneExpressionPeptide") + ": " + (protein.isEmpty ? "—" : protein)
+    }
+
+    private var quizPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.geneExpressionQuiz"))
                 .font(.callout.weight(.medium))
-            Picker(L10n.text("lab.geneExpressionQuiz", store.language), selection: $selectedAnswer) {
+            Picker(text("lab.geneExpressionQuiz"), selection: $selectedAnswer) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(answerOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(answerOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.radioGroup)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
             .onChange(of: selectedAnswer) { _ in didCheckAnswer = false }
-
-            Button(L10n.text("lab.geneExpressionCheck", store.language)) {
+            Button(text("lab.geneExpressionCheck")) {
                 prediction.select(displayedIndex: selectedAnswer)
                 guard let evidence = prediction.currentAnswerEventEvidence() else { return }
-                store.recordStudyAssessment(
-                    lessonID: "biology.gene_expression_and_regulation",
-                    evidence: evidence
-                )
+                store.recordStudyAssessment(lessonID: "biology.gene_expression_and_regulation", evidence: evidence)
                 didCheckAnswer = true
             }
             .buttonStyle(.borderedProminent)
             .disabled(selectedAnswer < 0 || prediction.hasAnswered)
-
             if didCheckAnswer {
-                Label(
-                    L10n.text(prediction.isCorrect ? "lab.geneExpressionCorrect" : "lab.geneExpressionReview", store.language),
-                    systemImage: prediction.isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                )
-                .font(.callout.weight(.medium))
-                .foregroundStyle(prediction.isCorrect ? .green : .orange)
-                .fixedSize(horizontal: false, vertical: true)
-
+                Label(text(prediction.isCorrect ? "lab.geneExpressionCorrect" : "lab.geneExpressionReview"),
+                      systemImage: prediction.isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(prediction.isCorrect ? .green : .orange)
+                    .fixedSize(horizontal: false, vertical: true)
                 if prediction.canRetry {
-                    Button(L10n.text("lab.geneExpressionRetry", store.language), action: retryPrediction)
+                    Button(text("lab.geneExpressionRetry"), action: retryPrediction)
                         .buttonStyle(.link)
                 }
             }
-
-            Text(L10n.text("lab.geneExpressionLimit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var stageTitleKey: String {
-        ["lab.geneExpressionDNA", "lab.geneExpressionRNA", "lab.geneExpressionProtein"][selectedStage]
-    }
-
-    private var stageExplanationKey: String {
-        ["lab.geneExpressionDNAExplain", "lab.geneExpressionRNAExplain", "lab.geneExpressionProteinExplain"][selectedStage]
-    }
-
-    private var stageValue: String {
-        switch selectedStage {
-        case 0:
-            return "3′ \(GeneExpressionPractice.templateStrand) 5′"
-        case 1:
-            guard let messengerRNA = snapshot.messengerRNA else {
-                return L10n.text("lab.geneExpressionNoTranscript", store.language)
-            }
-            return "5′ \(messengerRNA) 3′"
-        default:
-            guard let peptide = snapshot.peptide else {
-                return L10n.text("lab.geneExpressionNoProtein", store.language)
-            }
-            return peptide.joined(separator: " – ")
-        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func retryPrediction() {
@@ -6804,7 +7053,9 @@ private struct GeneExpressionLab: View {
 
 private struct CellCycleLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedStage: CellCycleStage = .g1
+    @State private var playing = false
     @State private var selectedAnswer = -1
     @State private var didCheckAnswer = false
     @State private var prediction = CellCyclePractice.makeKnowledgeCheckAttempt()
@@ -6814,100 +7065,383 @@ private struct CellCycleLab: View {
         "lab.cellCycle.optionAnaphase",
         "lab.cellCycle.optionCytokinesis"
     ]
+    private static let stages = CellCycleStage.allCases
+    /// Wheel sectors in degrees from the top, clockwise. Interphase is roughly to scale; mitosis is enlarged so its five stages can be clicked.
+    private static let sectors: [(start: Double, end: Double)] = [
+        (0, 120), (120, 210), (210, 270), (270, 288), (288, 306), (306, 324), (324, 342), (342, 360)
+    ]
+    private static let sectorColors: [Color] = [.teal, .orange, .blue, .purple, .purple, .purple, .purple, .purple]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var stageIndex: Int { Self.stages.firstIndex(of: selectedStage) ?? 0 }
+    private var isMitosis: Bool { stageIndex >= 3 }
+
+    private var dnaLabel: String {
+        switch selectedStage {
+        case .g1: return "2C"
+        case .s: return "2C → 4C"
+        default: return "4C"
+        }
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.CellCycleLab", store.language), instruction: L10n.text("lab.cellCycle.hint", store.language))
-
-            Picker(L10n.text("lab.cellCycle.chooseStage", store.language), selection: $selectedStage) {
-                ForEach(CellCycleStage.allCases) { stage in
-                    Text(L10n.text(stage.localizationKey, store.language)).tag(stage)
+            LabHeader(title: text("labkit.title.CellCycleLab"), instruction: text("lab.cellCycle.subtitle"))
+            HStack(alignment: .center, spacing: 16) {
+                GeometryReader { proxy in
+                    wheel(size: proxy.size)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onEnded { drag in select(at: drag.location, size: proxy.size) })
                 }
+                .frame(width: 210, height: 210)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.cellCycle.wheel"))
+                .accessibilityValue(Text(text(selectedStage.localizationKey)))
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: move(by: 1)
+                    case .decrement: move(by: -1)
+                    @unknown default: break
+                    }
+                }
+                Canvas { context, size in drawCell(context, size: size) }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 210)
+                    .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.cellCycle.cellDrawing"))
+                    .accessibilityValue(Text(text("lab.cellCycle.explain.\(selectedStage.rawValue)")))
             }
-            .pickerStyle(.menu)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text(selectedStage.localizationKey, store.language))
-                    .font(.headline)
-                Text(L10n.text("lab.cellCycle.explain.\(selectedStage.rawValue)", store.language))
+            Text(text("lab.cellCycle.wheelNote") + " " + text("lab.cellCycle.legend"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text(selectedStage.localizationKey)).font(.headline)
+                Text(text("lab.cellCycle.explain.\(selectedStage.rawValue)"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(statusKey, store.language))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.tint)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
-            HStack {
-                Button(L10n.text("lab.cellCycle.previous", store.language)) {
-                    move(by: -1)
-                }
-                .disabled(selectedStage == CellCycleStage.allCases.first)
-                Spacer()
-                Text("\((CellCycleStage.allCases.firstIndex(of: selectedStage) ?? 0) + 1) / \(CellCycleStage.allCases.count)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel(L10n.text("lab.cellCycle.position", store.language))
-                Spacer()
-                Button(L10n.text("lab.cellCycle.next", store.language)) {
-                    move(by: 1)
-                }
-                .disabled(selectedStage == CellCycleStage.allCases.last)
+            .background(Self.sectorColors[stageIndex].opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+            HStack(spacing: 10) {
+                Button { move(by: -1) } label: { Label(text("lab.cellCycle.previous"), systemImage: "chevron.left") }
+                    .disabled(stageIndex == 0 || playing)
+                Button {
+                    if stageIndex == Self.stages.count - 1 { selectedStage = Self.stages[0] }
+                    playing = true
+                } label: { Label(text("lab.cellCycle.play"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(playing)
+                Button { move(by: 1) } label: { Label(text("lab.cellCycle.next"), systemImage: "chevron.right") }
+                    .disabled(stageIndex == Self.stages.count - 1 || playing)
             }
-
-            VStack(alignment: .leading, spacing: 10) {
-                conceptCard(
-                    titleKey: "lab.cellCycle.cytokinesisTitle",
-                    descriptionKey: "lab.cellCycle.cytokinesisDescription",
-                    systemImage: "arrow.left.and.right"
-                )
-                conceptCard(
-                    titleKey: "lab.cellCycle.differentiationTitle",
-                    descriptionKey: "lab.cellCycle.differentiationDescription",
-                    systemImage: "sparkles"
-                )
+            Canvas { context, size in drawDNAChart(context, size: size) }
+                .frame(height: 130)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.cellCycle.dnaChart"))
+                .accessibilityValue(Text(verbatim: dnaLabel))
+            LabStatGrid {
+                LabStat(label: text("lab.cellCycle.statStage"), value: "\(stageIndex + 1) / \(Self.stages.count)", tint: Self.sectorColors[stageIndex])
+                LabStat(label: text("lab.cellCycle.statPeriod"), value: text(isMitosis ? "lab.cellCycle.mitosis" : "lab.cellCycle.interphase"), tint: .purple)
+                LabStat(label: text("lab.cellCycle.dnaChart"), value: dnaLabel, tint: .orange)
             }
+            quizPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.cellCycle.challenge"),
+                         solved: selectedStage == .metaphase, solvedText: text("lab.cellCycle.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.cellCycle.cytokinesisDescription"),
+                                                                 text("lab.cellCycle.differentiationDescription"),
+                                                                 text("lab.cellCycle.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && stageIndex < Self.stages.count - 1 {
+                try? await Task.sleep(nanoseconds: 1_100_000_000)
+                guard playing else { return }
+                if reduceMotion { move(by: 1) } else { withAnimation(.easeInOut(duration: 0.3)) { move(by: 1) } }
+            }
+            playing = false
+        }
+    }
 
-            Text(L10n.text("lab.cellCycle.quiz", store.language))
+    // MARK: Wheel
+
+    private func wheel(size: CGSize) -> some View {
+        Canvas { context, size in
+            let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+            let outer = min(size.width, size.height) / 2 - 10
+            let inner = outer * 0.58
+            for (index, sector) in Self.sectors.enumerated() {
+                let selected = index == stageIndex
+                let path = ring(centre, inner: inner, outer: selected ? outer + 8 : outer, from: sector.start + 0.8, to: sector.end - 0.8)
+                context.fill(path, with: .color(Self.sectorColors[index].opacity(selected ? 1 : (index >= 3 ? 0.35 + Double(index - 3) * 0.1 : 0.45))))
+            }
+            for (index, label) in ["G₁", "S", "G₂"].enumerated() {
+                let middle = (Self.sectors[index].start + Self.sectors[index].end) / 2
+                context.draw(Text(verbatim: label).font(.callout.weight(.bold)).foregroundColor(.white),
+                             at: polar(centre, radius: (inner + outer) / 2, degrees: middle))
+            }
+            context.draw(Text(verbatim: "M").font(.callout.weight(.bold)).foregroundColor(.purple),
+                         at: polar(centre, radius: outer + 2, degrees: 315).applying(CGAffineTransform(translationX: -14, y: -14)))
+            let title = text(selectedStage.localizationKey)
+            context.draw(Text(verbatim: title).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         in: CGRect(x: centre.x - inner * 0.72, y: centre.y - 18, width: inner * 1.44, height: 40))
+        }
+    }
+
+    private func ring(_ centre: CGPoint, inner: CGFloat, outer: CGFloat, from start: Double, to end: Double) -> Path {
+        var path = Path()
+        path.addArc(center: centre, radius: outer, startAngle: .degrees(start - 90), endAngle: .degrees(end - 90), clockwise: false)
+        path.addArc(center: centre, radius: inner, startAngle: .degrees(end - 90), endAngle: .degrees(start - 90), clockwise: true)
+        path.closeSubpath()
+        return path
+    }
+
+    private func polar(_ centre: CGPoint, radius: CGFloat, degrees: Double) -> CGPoint {
+        let radians = (degrees - 90) * .pi / 180
+        return CGPoint(x: centre.x + radius * CGFloat(cos(radians)), y: centre.y + radius * CGFloat(sin(radians)))
+    }
+
+    private func select(at location: CGPoint, size: CGSize) {
+        let dx = Double(location.x - size.width / 2), dy = Double(location.y - size.height / 2)
+        guard (dx * dx + dy * dy).squareRoot() > Double(min(size.width, size.height)) * 0.2 else { return }
+        var degrees = atan2(dy, dx) * 180 / .pi + 90
+        if degrees < 0 { degrees += 360 }
+        guard let index = Self.sectors.firstIndex(where: { degrees >= $0.start && degrees < $0.end }) else { return }
+        playing = false
+        selectedStage = Self.stages[index]
+    }
+
+    // MARK: Cell drawing
+
+    // Two chromosome pairs (2n = 4): red from one parent, blue from the other; long and short pairs.
+    private func drawCell(_ context: GraphicsContext, size: CGSize) {
+        let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+        let r = min(size.width * 0.32, size.height * 0.42)
+        let colors: [Color] = [.red, .blue, .red, .blue]
+        let lengths: [CGFloat] = [r * 0.36, r * 0.36, r * 0.22, r * 0.22]
+        switch selectedStage {
+        case .g1, .s, .g2:
+            let grow: CGFloat = selectedStage == .g1 ? 0.86 : (selectedStage == .s ? 0.93 : 1)
+            membrane(context, ellipse(centre, rx: r * grow, ry: r * grow * 0.86))
+            let nucleus = r * 0.52
+            context.fill(ellipse(centre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.12)))
+            context.stroke(ellipse(centre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.6)), lineWidth: 1.5)
+            let spots: [CGPoint] = [CGPoint(x: -0.5, y: -0.32), CGPoint(x: 0.1, y: -0.55), CGPoint(x: -0.35, y: 0.4), CGPoint(x: 0.2, y: 0.25)]
+            for index in 0..<4 {
+                let start = CGPoint(x: centre.x + spots[index].x * nucleus, y: centre.y + spots[index].y * nucleus)
+                let doubled = selectedStage == .g2 || (selectedStage == .s && index < 2)
+                looseChromosome(context, start: start, length: lengths[index] * 1.3, color: colors[index], doubled: doubled)
+            }
+        case .prophase:
+            membrane(context, ellipse(centre, rx: r, ry: r * 0.86))
+            let nucleus = r * 0.55
+            context.stroke(ellipse(centre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.4)), lineWidth: 1.5)
+            pole(context, CGPoint(x: centre.x - nucleus - 12, y: centre.y - 10))
+            pole(context, CGPoint(x: centre.x + nucleus + 12, y: centre.y + 10))
+            let spots: [CGPoint] = [CGPoint(x: -0.35, y: -0.3), CGPoint(x: 0.3, y: -0.25), CGPoint(x: -0.25, y: 0.35), CGPoint(x: 0.35, y: 0.3)]
+            for index in 0..<4 {
+                let point = CGPoint(x: centre.x + spots[index].x * nucleus, y: centre.y + spots[index].y * nucleus)
+                duplicated(context, centre: point, length: lengths[index], color: colors[index], angle: Double(index) * 0.7)
+            }
+        case .prometaphase:
+            membrane(context, ellipse(centre, rx: r, ry: r * 0.86))
+            context.stroke(ellipse(centre, rx: r * 0.55, ry: r * 0.55), with: .color(.purple.opacity(0.35)),
+                           style: StrokeStyle(lineWidth: 1.5, dash: [3, 7]))
+            let left = CGPoint(x: centre.x - r * 0.82, y: centre.y), right = CGPoint(x: centre.x + r * 0.82, y: centre.y)
+            let spots: [CGPoint] = [CGPoint(x: -0.2, y: -0.3), CGPoint(x: 0.22, y: -0.12), CGPoint(x: -0.15, y: 0.3), CGPoint(x: 0.18, y: 0.32)]
+            for index in 0..<4 {
+                let point = CGPoint(x: centre.x + spots[index].x * r, y: centre.y + spots[index].y * r)
+                fiber(context, from: index % 2 == 0 ? left : right, to: point)
+                duplicated(context, centre: point, length: lengths[index], color: colors[index], angle: 0.4 + Double(index) * 0.5)
+            }
+            pole(context, left)
+            pole(context, right)
+        case .metaphase:
+            membrane(context, ellipse(centre, rx: r, ry: r * 0.86))
+            let left = CGPoint(x: centre.x - r * 0.85, y: centre.y), right = CGPoint(x: centre.x + r * 0.85, y: centre.y)
+            let rows: [CGFloat] = [-0.5, -0.17, 0.15, 0.45]
+            for index in 0..<4 {
+                let point = CGPoint(x: centre.x, y: centre.y + rows[index] * r)
+                fiber(context, from: left, to: CGPoint(x: point.x - 3, y: point.y))
+                fiber(context, from: right, to: CGPoint(x: point.x + 3, y: point.y))
+                duplicated(context, centre: point, length: lengths[index], color: colors[index], angle: .pi / 2)
+            }
+            pole(context, left)
+            pole(context, right)
+        case .anaphase:
+            membrane(context, ellipse(centre, rx: r * 1.12, ry: r * 0.78))
+            let left = CGPoint(x: centre.x - r * 0.98, y: centre.y), right = CGPoint(x: centre.x + r * 0.98, y: centre.y)
+            let rows: [CGFloat] = [-0.42, -0.14, 0.14, 0.42]
+            for index in 0..<4 {
+                for side in [-1.0, 1.0] {
+                    let lead = CGPoint(x: centre.x + CGFloat(side) * r * 0.5, y: centre.y + rows[index] * r * 0.8)
+                    fiber(context, from: side < 0 ? left : right, to: lead)
+                    trailingChromatid(context, lead: lead, length: lengths[index], color: colors[index], towardCentre: CGFloat(-side))
+                }
+            }
+            pole(context, left)
+            pole(context, right)
+        case .telophase:
+            membrane(context, peanut(centre, halfWidth: r * 1.18, height: r * 0.8))
+            for side in [-1.0, 1.0] {
+                let nucleusCentre = CGPoint(x: centre.x + CGFloat(side) * r * 0.6, y: centre.y)
+                let nucleus = r * 0.3
+                context.fill(ellipse(nucleusCentre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.12)))
+                context.stroke(ellipse(nucleusCentre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.6)), lineWidth: 1.5)
+                for index in 0..<4 {
+                    let start = CGPoint(x: nucleusCentre.x - nucleus * 0.6, y: nucleusCentre.y + (CGFloat(index) - 1.5) * nucleus * 0.42)
+                    looseChromosome(context, start: start, length: lengths[index] * 0.9, color: colors[index], doubled: false)
+                }
+            }
+        }
+    }
+
+    private func ellipse(_ centre: CGPoint, rx: CGFloat, ry: CGFloat) -> Path {
+        Path(ellipseIn: CGRect(x: centre.x - rx, y: centre.y - ry, width: rx * 2, height: ry * 2))
+    }
+
+    private func membrane(_ context: GraphicsContext, _ path: Path) {
+        context.fill(path, with: .color(.green.opacity(0.08)))
+        context.stroke(path, with: .color(.green.opacity(0.7)), lineWidth: 2.5)
+    }
+
+    /// A cell pinching in the middle: the cleavage furrow of late telophase and cytokinesis.
+    private func peanut(_ centre: CGPoint, halfWidth: CGFloat, height: CGFloat) -> Path {
+        let waist = height * 0.55
+        var path = Path()
+        path.move(to: CGPoint(x: centre.x, y: centre.y - waist))
+        path.addCurve(to: CGPoint(x: centre.x + halfWidth, y: centre.y),
+                      control1: CGPoint(x: centre.x + halfWidth * 0.4, y: centre.y - height * 1.15),
+                      control2: CGPoint(x: centre.x + halfWidth, y: centre.y - height * 0.9))
+        path.addCurve(to: CGPoint(x: centre.x, y: centre.y + waist),
+                      control1: CGPoint(x: centre.x + halfWidth, y: centre.y + height * 0.9),
+                      control2: CGPoint(x: centre.x + halfWidth * 0.4, y: centre.y + height * 1.15))
+        path.addCurve(to: CGPoint(x: centre.x - halfWidth, y: centre.y),
+                      control1: CGPoint(x: centre.x - halfWidth * 0.4, y: centre.y + height * 1.15),
+                      control2: CGPoint(x: centre.x - halfWidth, y: centre.y + height * 0.9))
+        path.addCurve(to: CGPoint(x: centre.x, y: centre.y - waist),
+                      control1: CGPoint(x: centre.x - halfWidth, y: centre.y - height * 0.9),
+                      control2: CGPoint(x: centre.x - halfWidth * 0.4, y: centre.y - height * 1.15))
+        path.closeSubpath()
+        return path
+    }
+
+    /// Uncondensed chromatin: a thin wavy thread; after S phase it is doubled.
+    private func looseChromosome(_ context: GraphicsContext, start: CGPoint, length: CGFloat, color: Color, doubled: Bool) {
+        for copy in 0..<(doubled ? 2 : 1) {
+            var thread = Path()
+            for step in 0...20 {
+                let t = CGFloat(step) / 20
+                let point = CGPoint(x: start.x + t * length, y: start.y + CGFloat(copy) * 4 + 3 * CGFloat(sin(Double(t) * 4 * .pi)))
+                if step == 0 { thread.move(to: point) } else { thread.addLine(to: point) }
+            }
+            context.stroke(thread, with: .color(color.opacity(0.85)), lineWidth: 1.6)
+        }
+    }
+
+    /// A condensed duplicated chromosome: two sister chromatids joined at the centromere.
+    private func duplicated(_ context: GraphicsContext, centre: CGPoint, length: CGFloat, color: Color, angle: Double) {
+        let along = CGPoint(x: CGFloat(cos(angle)) * length / 2, y: CGFloat(sin(angle)) * length / 2)
+        let across = CGPoint(x: CGFloat(-sin(angle)) * 3.2, y: CGFloat(cos(angle)) * 3.2)
+        for side in [-1.0, 1.0] {
+            var chromatid = Path()
+            chromatid.move(to: CGPoint(x: centre.x - along.x + across.x * CGFloat(side), y: centre.y - along.y + across.y * CGFloat(side)))
+            chromatid.addLine(to: CGPoint(x: centre.x + along.x + across.x * CGFloat(side), y: centre.y + along.y + across.y * CGFloat(side)))
+            context.stroke(chromatid, with: .color(color), style: StrokeStyle(lineWidth: 5.5, lineCap: .round))
+        }
+        context.fill(Path(ellipseIn: CGRect(x: centre.x - 3, y: centre.y - 3, width: 6, height: 6)), with: .color(.white.opacity(0.9)))
+    }
+
+    /// A separated chromatid pulled by its centromere, arms trailing back toward the cell's middle.
+    private func trailingChromatid(_ context: GraphicsContext, lead: CGPoint, length: CGFloat, color: Color, towardCentre: CGFloat) {
+        var shape = Path()
+        shape.move(to: CGPoint(x: lead.x + towardCentre * length * 0.45, y: lead.y - length * 0.35))
+        shape.addLine(to: lead)
+        shape.addLine(to: CGPoint(x: lead.x + towardCentre * length * 0.45, y: lead.y + length * 0.35))
+        context.stroke(shape, with: .color(color), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+    }
+
+    private func pole(_ context: GraphicsContext, _ point: CGPoint) {
+        var aster = Path()
+        for ray in 0..<8 {
+            let angle = Double(ray) * .pi / 4
+            aster.move(to: point)
+            aster.addLine(to: CGPoint(x: point.x + 10 * CGFloat(cos(angle)), y: point.y + 10 * CGFloat(sin(angle))))
+        }
+        context.stroke(aster, with: .color(.orange.opacity(0.6)), lineWidth: 1)
+        context.fill(Path(ellipseIn: CGRect(x: point.x - 4.5, y: point.y - 4.5, width: 9, height: 9)), with: .color(.orange))
+    }
+
+    private func fiber(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint) {
+        var line = Path()
+        line.move(to: start)
+        line.addLine(to: end)
+        context.stroke(line, with: .color(.secondary.opacity(0.45)), lineWidth: 1)
+    }
+
+    // MARK: DNA chart
+
+    // DNA per cell: 2C in G1, doubling through S, 4C until cytokinesis makes two 2C cells.
+    private func drawDNAChart(_ context: GraphicsContext, size: CGSize) {
+        let plot = LabPlotGeometry(size: size, x: 0...9, y: 0...5, leading: 40, bottom: 26)
+        plot.drawAxes(in: context, xLabel: text("lab.cellCycle.axisStage"), yLabel: text("lab.cellCycle.dnaChart"),
+                      xTicks: [], yTicks: [2, 4], format: { "\(Int($0))C" })
+        let band = CGRect(x: plot.point(Double(stageIndex), 0).x, y: plot.rect.minY,
+                          width: plot.rect.width / 9, height: plot.rect.height)
+        context.fill(Path(band), with: .color(Self.sectorColors[stageIndex].opacity(0.18)))
+        let points: [(Double, Double)] = [(0, 2), (1, 2), (2, 4), (8, 4), (8, 2), (9, 2)]
+        var line = Path()
+        for (index, point) in points.enumerated() {
+            let location = plot.point(point.0, point.1)
+            if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+        }
+        context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        let labels: [(String, Double)] = [("G₁", 0.5), ("S", 1.5), ("G₂", 2.5), ("M", 5.5), (text("lab.cellCycle.twoCells"), 8.5)]
+        for label in labels {
+            context.draw(Text(verbatim: label.0).font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: plot.point(label.1, 0).x, y: plot.rect.maxY + 9))
+        }
+    }
+
+    // MARK: Quiz
+
+    private var quizPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.cellCycle.quiz"))
                 .font(.callout.weight(.medium))
-            Picker(L10n.text("lab.cellCycle.quiz", store.language), selection: $selectedAnswer) {
+            Picker(text("lab.cellCycle.quiz"), selection: $selectedAnswer) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(answerOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(answerOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.radioGroup)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
             .onChange(of: selectedAnswer) { _ in didCheckAnswer = false }
-
-            Button(L10n.text("lab.cellCycle.check", store.language)) {
+            Button(text("lab.cellCycle.check")) {
                 prediction.select(displayedIndex: selectedAnswer)
                 didCheckAnswer = true
                 if let evidence = prediction.currentAnswerEventEvidence() {
-                    store.recordStudyAssessment(
-                        lessonID: "biology.cell_cycle_and_differentiation",
-                        evidence: evidence
-                    )
+                    store.recordStudyAssessment(lessonID: "biology.cell_cycle_and_differentiation", evidence: evidence)
                 }
             }
             .buttonStyle(.borderedProminent)
             .disabled(selectedAnswer < 0 || prediction.hasAnswered)
-
             if didCheckAnswer {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.cellCycle.correct", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.cellCycle.correct"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.green)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Label(L10n.text("lab.cellCycle.review", store.language), systemImage: "arrow.uturn.backward.circle")
+                    Label(text("lab.cellCycle.review"), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.cellCycle.retry", store.language)) {
+                    Button(text("lab.cellCycle.retry")) {
                         prediction.retry()
                         selectedAnswer = -1
                         didCheckAnswer = false
@@ -6915,37 +7449,15 @@ private struct CellCycleLab: View {
                     .buttonStyle(.link)
                 }
             }
-
-            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.cellCycle.limit", store.language)])
         }
-    }
-
-    private var statusKey: String {
-        if CellCyclePractice.isDNAReplicationStage(selectedStage) { return "lab.cellCycle.statusDNA" }
-        if CellCyclePractice.isNuclearDivision(selectedStage) { return "lab.cellCycle.statusNucleus" }
-        return "lab.cellCycle.statusPrepare"
-    }
-
-    private func conceptCard(titleKey: String, descriptionKey: String, systemImage: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(L10n.text(titleKey, store.language), systemImage: systemImage)
-                .font(.headline)
-            Text(L10n.text(descriptionKey, store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func move(by offset: Int) {
-        guard let index = CellCycleStage.allCases.firstIndex(of: selectedStage) else { return }
-        let nextIndex = index + offset
-        guard CellCycleStage.allCases.indices.contains(nextIndex) else { return }
-        selectedStage = CellCycleStage.allCases[nextIndex]
+        let next = stageIndex + offset
+        guard Self.stages.indices.contains(next) else { return }
+        selectedStage = Self.stages[next]
     }
 }
 
@@ -7522,136 +8034,234 @@ private struct CellLab: View {
 
 private struct BiomoleculeLab: View {
     @EnvironmentObject private var store: LearningStore
-    @State private var selectedExample: BiomoleculeExample = .enzyme
+    @State private var selectedExample: BiomoleculeExample = .starch
+    @State private var units = 3
     @State private var selectedGroup: BiomoleculeGroup? = nil
     @State private var checkedGroup: BiomoleculeGroup?
-    @State private var reactionJoins = true
     @State private var assessmentTracker = BiomoleculeAssessmentTracker()
+    @State private var puffID = 0
+    @State private var puffReleases = true
+    @State private var showPuff = false
 
-    private var exampleInfoKey: String {
-        "biology.moleculeLab.info.\(selectedExample.rawValue)"
-    }
+    private static let aminoAcids = ["Gly", "Ala", "Ser", "Lys", "Val", "Leu", "Cys", "Asp"]
+    private static let aminoColors: [Color] = [.teal, .orange, .pink, .blue, .green, .purple, .yellow, .red]
+    private static let dnaBases: [Character] = Array("ATGCGTAC")
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var isLipid: Bool { selectedExample == .triglyceride }
+    private var range: ClosedRange<Int> { isLipid ? 0...3 : 1...8 }
+    /// Each condensation bond releases one water molecule: n monomers need n − 1 bonds; a triglyceride has one ester bond per fatty acid.
+    private var bonds: Int { isLipid ? units : max(0, units - 1) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.teal)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(L10n.text("biology.moleculeLab.title", store.language))
-                            .font(.headline)
-                        Text(L10n.text("biology.moleculeLab.subtitle", store.language))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            LabHeader(title: text("biology.moleculeLab.title2"), instruction: text("biology.moleculeLab.subtitle2"))
+            Picker(text("biology.moleculeLab.example"), selection: $selectedExample) {
+                ForEach(BiomoleculeExample.allCases, id: \.self) { example in
+                    Text(text("biology.moleculeLab.\(example.rawValue)")).tag(example)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .onChange(of: selectedExample) { example in
+                units = example == .triglyceride ? 1 : 3
+                selectedGroup = nil
+                checkedGroup = nil
+            }
+            ZStack(alignment: .top) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Group {
+                        if isLipid { triglyceride } else { chain }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 36)
+                    .padding(.bottom, 12)
+                    .frame(minWidth: 520, alignment: .leading)
+                }
+                if showPuff {
+                    Text(verbatim: "H₂O")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.blue, in: Capsule())
+                        .padding(.top, 4)
+                        .transition(.asymmetric(insertion: .move(edge: puffReleases ? .bottom : .top).combined(with: .opacity),
+                                                removal: .move(edge: puffReleases ? .top : .bottom).combined(with: .opacity)))
+                        .id(puffID)
+                }
+            }
+            .frame(height: 170)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("biology.moleculeLab.chain"))
+            .accessibilityValue(Text(verbatim: "\(units), " + text("biology.moleculeLab.bond.\(selectedExample.rawValue)")))
+            Text(text("biology.moleculeLab.bond.\(selectedExample.rawValue)"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Button { change(by: 1) } label: { Label(text("biology.moleculeLab.joinOne"), systemImage: "plus.circle.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(units >= range.upperBound)
+                Button { change(by: -1) } label: { Label(text("biology.moleculeLab.splitOne"), systemImage: "scissors") }
+                    .disabled(units <= range.lowerBound)
+                Text(verbatim: text(puffReleases ? "biology.moleculeLab.waterOut" : "biology.moleculeLab.waterIn"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
+                    .opacity(showPuff ? 1 : 0)
+            }
+            LabStatGrid {
+                LabStat(label: text(isLipid ? "biology.moleculeLab.statFattyAcids" : "biology.moleculeLab.statUnits"), value: "\(units)", tint: .teal)
+                LabStat(label: text("biology.moleculeLab.statBonds"), value: "\(bonds)", tint: .purple)
+                LabStat(label: text("biology.moleculeLab.statWater"), value: "\(bonds)", tint: .blue)
+            }
+            groupPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("biology.moleculeLab.challenge"),
+                         solved: selectedExample == .starch && units == 6, solvedText: text("biology.moleculeLab.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("biology.moleculeLab.info.\(selectedExample.rawValue)"),
+                                                                 text(selectedExample.isPolymer ? "biology.moleculeLab.polymerExample" : "biology.moleculeLab.nonPolymerExample"),
+                                                                 text("biology.moleculeLab.caveat")])
+        }
+        .task(id: puffID) {
+            guard puffID > 0 else { return }
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            withAnimation(.easeIn(duration: 0.4)) { showPuff = false }
+        }
+    }
+
+    // Monomers in a row joined by bonds; each new link appears with a released water molecule.
+    private var chain: some View {
+        HStack(spacing: 0) {
+            ForEach(0..<units, id: \.self) { index in
+                if index > 0 {
+                    Rectangle().fill(Color.secondary.opacity(0.7)).frame(width: 14, height: 4)
+                }
+                monomer(index)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func monomer(_ index: Int) -> some View {
+        switch selectedExample {
+        case .enzyme:
+            Text(verbatim: Self.aminoAcids[index % Self.aminoAcids.count])
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 46, height: 46)
+                .background(Self.aminoColors[index % Self.aminoColors.count], in: Circle())
+        case .starch:
+            ZStack {
+                Image(systemName: "hexagon.fill").font(.system(size: 50)).foregroundStyle(.orange)
+                Text(verbatim: "Glc").font(.caption.weight(.bold)).foregroundStyle(.white)
+            }
+        case .dna:
+            let base = Self.dnaBases[index % Self.dnaBases.count]
+            VStack(spacing: 2) {
+                Text(verbatim: "P").font(.caption2.weight(.bold)).foregroundStyle(.black)
+                    .frame(width: 20, height: 20).background(Color.yellow, in: Circle())
+                Image(systemName: "pentagon.fill").font(.system(size: 26)).foregroundStyle(.gray)
+                Text(String(base)).font(.callout.monospaced().weight(.bold)).foregroundStyle(.white)
+                    .frame(width: 30, height: 30).background(baseColor(base), in: RoundedRectangle(cornerRadius: 6))
+            }
+        case .triglyceride:
+            EmptyView()
+        }
+    }
+
+    private func baseColor(_ base: Character) -> Color {
+        switch base {
+        case "A": return .green
+        case "T": return .red
+        case "C": return .blue
+        default: return Color(red: 0.85, green: 0.6, blue: 0.05)
+        }
+    }
+
+    // One glycerol with up to three fatty acids, each attached by an ester bond.
+    private var triglyceride: some View {
+        HStack(alignment: .center, spacing: 0) {
+            Text(text("biology.moleculeLab.glycerol"))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 84, height: 108)
+                .background(Color.indigo, in: RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(0..<3, id: \.self) { slot in
+                    HStack(spacing: 0) {
+                        Rectangle().fill(slot < units ? Color.secondary.opacity(0.7) : Color.clear).frame(width: 14, height: 4)
+                        if slot < units {
+                            Canvas { context, size in
+                                var zigzag = Path()
+                                for step in 0...14 {
+                                    let point = CGPoint(x: CGFloat(step) / 14 * size.width, y: step.isMultiple(of: 2) ? size.height * 0.2 : size.height * 0.8)
+                                    if step == 0 { zigzag.move(to: point) } else { zigzag.addLine(to: point) }
+                                }
+                                context.stroke(zigzag, with: .color(.yellow), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                            }
+                            .frame(width: 180, height: 22)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                        } else {
+                            Text(text("biology.moleculeLab.fattyAcid"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 180, height: 22, alignment: .leading)
+                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                        }
                     }
                 }
+            }
+        }
+    }
 
-                Picker(L10n.text("biology.moleculeLab.example", store.language), selection: $selectedExample) {
-                    ForEach(BiomoleculeExample.allCases, id: \.self) { example in
-                        Text(L10n.text("biology.moleculeLab.\(example.rawValue)", store.language)).tag(example)
-                    }
+    private var groupPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("biology.moleculeLab.chooseGroup"))
+                .font(.callout.weight(.medium))
+            Picker(text("biology.moleculeLab.chooseGroup"), selection: $selectedGroup) {
+                Text(text("biology.moleculeLab.chooseGroupPrompt")).tag(nil as BiomoleculeGroup?)
+                ForEach(BiomoleculeGroup.allCases, id: \.self) { group in
+                    Text(text("biology.moleculeLab.group.\(group.rawValue)")).tag(Optional(group))
                 }
-                .pickerStyle(.menu)
-                .onChange(of: selectedExample) { _ in
-                    selectedGroup = nil
-                    checkedGroup = nil
-                }
-
-                Picker(L10n.text("biology.moleculeLab.chooseGroup", store.language), selection: $selectedGroup) {
-                    Text(L10n.text("biology.moleculeLab.chooseGroupPrompt", store.language))
-                        .tag(nil as BiomoleculeGroup?)
-                    ForEach(BiomoleculeGroup.allCases, id: \.self) { group in
-                        Text(L10n.text("biology.moleculeLab.group.\(group.rawValue)", store.language))
-                            .tag(Optional(group))
-                    }
-                }
-                .pickerStyle(.menu)
-                .onChange(of: selectedGroup) { _ in checkedGroup = nil }
-
-                Button {
-                    guard let selectedGroup,
-                          let evidence = assessmentTracker.recordSubmission(
-                            group: selectedGroup,
-                            for: selectedExample
-                          ) else { return }
-                    store.recordStudyAssessment(
-                        lessonID: "biology.biomolecules_and_building_blocks",
-                        evidence: evidence
-                    )
-                    checkedGroup = selectedGroup
-                } label: {
-                    Label(L10n.text("biology.moleculeLab.check", store.language), systemImage: "checkmark.circle")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedGroup == nil || selectedGroup == checkedGroup)
-
-                if let checkedGroup {
-                    let isCorrect = checkedGroup == selectedExample.correctGroup
-                    Label(
-                        L10n.text(isCorrect ? "biology.moleculeLab.correct" : "biology.moleculeLab.tryAgain", store.language),
-                        systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                    )
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(maxWidth: 260)
+            .onChange(of: selectedGroup) { _ in checkedGroup = nil }
+            Button {
+                guard let selectedGroup,
+                      let evidence = assessmentTracker.recordSubmission(group: selectedGroup, for: selectedExample) else { return }
+                store.recordStudyAssessment(lessonID: "biology.biomolecules_and_building_blocks", evidence: evidence)
+                checkedGroup = selectedGroup
+            } label: {
+                Label(text("biology.moleculeLab.check"), systemImage: "checkmark.circle")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(selectedGroup == nil || selectedGroup == checkedGroup)
+            if let checkedGroup {
+                let isCorrect = checkedGroup == selectedExample.correctGroup
+                Label(text(isCorrect ? "biology.moleculeLab.correct" : "biology.moleculeLab.tryAgain"),
+                      systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
                     .font(.callout.weight(.medium))
                     .foregroundStyle(isCorrect ? .green : .orange)
-                }
-
-                Text(L10n.text(exampleInfoKey, store.language))
-                    .font(.callout)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 9))
-
-                Divider()
-
-                HStack {
-                    Text(L10n.text("biology.moleculeLab.reaction", store.language))
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Picker("", selection: $reactionJoins) {
-                        Text(L10n.text("biology.moleculeLab.join", store.language)).tag(true)
-                        Text(L10n.text("biology.moleculeLab.split", store.language)).tag(false)
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 220)
-                }
-
-                HStack(spacing: 10) {
-                    Text(L10n.text(reactionJoins ? "biology.moleculeLab.components" : "biology.moleculeLab.polymer", store.language))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 9))
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                    Text(L10n.text(reactionJoins ? "biology.moleculeLab.polymer" : "biology.moleculeLab.components", store.language))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 9))
-                    Text(L10n.text(reactionJoins ? "biology.moleculeLab.waterOut" : "biology.moleculeLab.waterIn", store.language))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.teal)
-                }
-                .font(.caption)
-
-                Text(L10n.text(
-                    selectedExample.isPolymer
-                        ? "biology.moleculeLab.polymerExample"
-                        : "biology.moleculeLab.nonPolymerExample",
-                    store.language
-                ))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-                Text(L10n.text("biology.moleculeLab.caveat", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func change(by delta: Int) {
+        let next = units + delta
+        guard range.contains(next) else { return }
+        puffReleases = delta > 0
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            units = next
+            showPuff = true
+        }
+        puffID += 1
     }
 }
 
@@ -7664,113 +8274,189 @@ private struct NaturalSelectionLab: View {
     @State private var population = NaturalSelectionPopulation(traitMean: 35, traitSpread: 20, generation: 0)
     @State private var prediction = NaturalSelectionPractice.makePredictionAttempt(for: .increase)
     @State private var selectedDisplayIndex = -1
-    @State private var previousMean: Double?
+    @State private var previousPopulation: NaturalSelectionPopulation?
+    @State private var meanHistory: [Double] = [35]
 
     private let trendOptionKeys = [
         "lab.naturalSelection.option.decrease",
         "lab.naturalSelection.option.noChange",
         "lab.naturalSelection.option.increase"
     ]
+    private static let binWidth = 4.0
+    private static let binCount = 25
+    private static let individuals = 80.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var gap: Double { abs(environmentOptimum - population.traitMean) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                header
-                distributionChart
-                chartLegend
-                populationSummary
-                controls
-                predictionPrompt
-                predictionFeedback
-                actions
-                generationOutcome
-                modelRule
-                limitations
+            LabHeader(title: text("lab.naturalSelection.title"), instruction: text("lab.naturalSelection.subtitle"))
+            GeometryReader { proxy in
+                let plot = LabPlotGeometry(size: proxy.size, x: 0...100, y: 0...1, leading: 18)
+                populationChart(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { drag in environmentOptimum = min(max(plot.value(at: drag.location).x.rounded(), 0), 100) }
+                        .onEnded { _ in startNewPrediction() })
             }
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.naturalSelection.chart"))
+            .accessibilityValue(Text(verbatim: text("lab.naturalSelection.meanValue") + " " + number(population.traitMean, 1) + ", "
+                                     + text("lab.naturalSelection.environment") + " " + number(environmentOptimum, 0)))
+            .accessibilityAdjustableAction(moveEnvironment)
+            legend
+            LabStatGrid {
+                LabStat(label: text("lab.naturalSelection.generation"), value: "\(population.generation)", tint: .secondary)
+                LabStat(label: text("lab.naturalSelection.meanValue"), value: number(population.traitMean, 1), tint: .teal)
+                LabStat(label: text("lab.naturalSelection.statGap"), value: number(gap, 1), tint: .orange)
+                LabStat(label: text("lab.naturalSelection.statSpread"), value: "± " + number(population.traitSpread, 1), tint: .purple)
+            }
+            if meanHistory.count > 1 { historyChart }
+            VStack(alignment: .leading, spacing: 8) {
+                parameterSlider("lab.naturalSelection.strength", value: $selectionStrength)
+                parameterSlider("lab.naturalSelection.heritable", value: $heritability)
+            }
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.naturalSelection.challenge"),
+                         solved: population.generation > 0 && gap < 3, solvedText: text("lab.naturalSelection.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.naturalSelection.rule"),
+                                                                 text("lab.naturalSelection.heritabilityNote"),
+                                                                 text("lab.naturalSelection.limit")])
         }
     }
 
-    private var header: some View {
-        Label(L10n.text("lab.naturalSelection.title", store.language), systemImage: "chart.xyaxis.line")
-            .font(.headline)
+    // Eighty individuals stacked in bins four trait units wide form the bell of the population; green ones sit near the favoured value.
+    private func populationChart(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text("lab.naturalSelection.axisTrait"), yLabel: text("lab.naturalSelection.axisCount"),
+                          xTicks: [0, 25, 50, 75, 100], yTicks: [], format: { number($0, 0) })
+            let counts = Self.binCounts(population)
+            let tallest = CGFloat(max(counts.max() ?? 1, 8))
+            let step = min(plot.rect.width / CGFloat(Self.binCount), (plot.rect.height - 22) / tallest)
+            if let previousPopulation {
+                context.stroke(outline(previousPopulation, plot: plot, step: step), with: .color(.secondary),
+                               style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            }
+            for (index, count) in counts.enumerated() where count > 0 {
+                let centre = (Double(index) + 0.5) * Self.binWidth
+                let tint: Color = abs(centre - environmentOptimum) <= 10 ? .green : Color.teal.opacity(0.5)
+                let x = plot.point(centre, 0).x
+                for level in 0..<count {
+                    let y = plot.rect.maxY - step * (CGFloat(level) + 0.5)
+                    let dot = CGRect(x: x - step * 0.41, y: y - step * 0.41, width: step * 0.82, height: step * 0.82)
+                    context.fill(Path(ellipseIn: dot), with: .color(tint))
+                }
+            }
+            let meanX = plot.point(population.traitMean, 0).x
+            drawMarker(at: meanX, color: .teal, dashed: false, plot: plot, context: context)
+            context.draw(Text(verbatim: "x̄").font(.callout.weight(.bold)).foregroundColor(.teal),
+                         at: CGPoint(x: meanX + 10, y: plot.rect.minY + 8))
+            let optimumX = plot.point(environmentOptimum, 0).x
+            drawMarker(at: optimumX, color: .orange, dashed: true, plot: plot, context: context)
+            let handle = CGRect(x: optimumX - 10, y: plot.rect.minY, width: 20, height: 20)
+            context.fill(Path(ellipseIn: handle), with: .color(.orange))
+            context.draw(Text(verbatim: "↔").font(.caption.weight(.bold)).foregroundColor(.white), at: CGPoint(x: handle.midX, y: handle.midY))
+        }
     }
 
-    private var distributionChart: some View {
+    // The mean across generations climbing toward the favoured value (dashed).
+    private var historyChart: some View {
         Canvas { context, size in
-            var curve = Path()
-            for step in 0...100 {
-                let trait = Double(step)
-                let distance = (trait - population.traitMean) / max(population.traitSpread, 1)
-                let height = exp(-0.5 * distance * distance)
-                let point = CGPoint(
-                    x: CGFloat(step) / 100 * size.width,
-                    y: size.height - 8 - CGFloat(height) * max(0, size.height - 18)
-                )
-                if step == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+            let last = Double(max(meanHistory.count - 1, 4))
+            let plot = LabPlotGeometry(size: size, x: 0...last, y: 0...100, leading: 34, bottom: 28)
+            plot.drawAxes(in: context, xLabel: text("lab.naturalSelection.generation"), yLabel: text("lab.naturalSelection.meanValue"),
+                          yTicks: [0, 50, 100], format: { number($0, 0) })
+            var target = Path()
+            target.move(to: plot.point(0, environmentOptimum))
+            target.addLine(to: plot.point(last, environmentOptimum))
+            context.stroke(target, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            var trace = Path()
+            for (generation, mean) in meanHistory.enumerated() {
+                let point = plot.point(Double(generation), mean)
+                if generation == 0 { trace.move(to: point) } else { trace.addLine(to: point) }
             }
-            context.stroke(curve, with: .color(.teal), lineWidth: 2.5)
-            drawMarker(population.traitMean, color: .teal, context: context, size: size)
-            drawMarker(environmentOptimum, color: .orange, context: context, size: size)
+            context.stroke(trace, with: .color(.teal), lineWidth: 2)
+            for (generation, mean) in meanHistory.enumerated() {
+                let point = plot.point(Double(generation), mean)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3.5, y: point.y - 3.5, width: 7, height: 7)), with: .color(.teal))
+            }
         }
-        .frame(height: 116)
-        .padding(.horizontal, 4)
-        .accessibilityLabel(Text(L10n.text("lab.naturalSelection.chart", store.language)))
+        .frame(height: 130)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.naturalSelection.history"))
+        .accessibilityValue(Text(verbatim: meanHistory.map { number($0, 1) }.joined(separator: ", ")))
     }
 
-    private var chartLegend: some View {
-        HStack {
-            Label(L10n.text("lab.naturalSelection.mean", store.language), systemImage: "line.diagonal")
-                .foregroundStyle(.teal)
-            Spacer()
-            Label(L10n.text("lab.naturalSelection.environment", store.language), systemImage: "line.diagonal")
-                .foregroundStyle(.orange)
+    private var legend: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 14) {
+                legendItem(.teal, text("lab.naturalSelection.mean"))
+                legendItem(.orange, text("lab.naturalSelection.environment"))
+                if previousPopulation != nil { legendItem(.secondary, text("lab.naturalSelection.legendPrevious")) }
+            }
+            legendItem(.green, text("lab.naturalSelection.legendFavoured"))
         }
         .font(.caption)
     }
 
-    private var populationSummary: some View {
-        HStack {
-            Text("\(L10n.text("lab.naturalSelection.generation", store.language)) \(population.generation)")
-            Spacer()
-            Text(verbatim: L10n.text("lab.naturalSelection.meanValue", store.language) + " " + L10n.number(population.traitMean, fractionDigits: 1, store.language))
-        }
-        .font(.subheadline.monospacedDigit())
-    }
-
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            parameterSlider(
-                "lab.naturalSelection.environment",
-                value: $environmentOptimum,
-                range: 0...100,
-                onChange: { startNewPrediction() }
-            )
-            parameterSlider(
-                "lab.naturalSelection.strength",
-                value: $selectionStrength,
-                onChange: { startNewPrediction() }
-            )
-            parameterSlider(
-                "lab.naturalSelection.heritable",
-                value: $heritability,
-                onChange: { startNewPrediction() }
-            )
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
         }
     }
 
-    private var predictionPrompt: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.text("lab.naturalSelection.predictionPrompt", store.language))
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.naturalSelection.predictionPrompt"))
                 .font(.callout.weight(.medium))
                 .fixedSize(horizontal: false, vertical: true)
-
-            Picker(L10n.text("lab.naturalSelection.predictionPrompt", store.language), selection: $selectedDisplayIndex) {
+            Picker(text("lab.naturalSelection.predictionPrompt"), selection: $selectedDisplayIndex) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(trendOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(trendOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
+            actions
+            predictionFeedback
+            if let previousPopulation {
+                Text(verbatim: text("lab.naturalSelection.outcome") + " " + number(previousPopulation.traitMean, 1) + " → " + number(population.traitMean, 1))
+                    .font(.caption.weight(.medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var actions: some View {
+        HStack {
+            if !prediction.hasAnswered {
+                Button(action: checkPrediction) {
+                    Label(text("lab.naturalSelection.check"), systemImage: "checkmark")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedDisplayIndex < 0)
+            } else if prediction.canRetry {
+                Button(action: retryPrediction) {
+                    Label(text("lab.naturalSelection.retry"), systemImage: "arrow.uturn.backward")
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button(action: advanceGeneration) {
+                    Label(text("lab.naturalSelection.next"), systemImage: "forward.end.fill")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            Button(action: resetSimulation) {
+                Label(text("lab.naturalSelection.reset"), systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bordered)
         }
     }
 
@@ -7778,76 +8464,64 @@ private struct NaturalSelectionLab: View {
     private var predictionFeedback: some View {
         if prediction.hasAnswered {
             if prediction.isCorrect {
-                Label(L10n.text("lab.naturalSelection.correct", store.language), systemImage: "checkmark.circle.fill")
+                Label(text("lab.naturalSelection.correct"), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text(L10n.text(expectedTrend.explanationKey, store.language))
+                Text(text(expectedTrend.explanationKey))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Label(L10n.text("lab.naturalSelection.review", store.language), systemImage: "arrow.uturn.backward.circle")
+                Label(text("lab.naturalSelection.review"), systemImage: "arrow.uturn.backward.circle")
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
-    private var actions: some View {
-        HStack {
-            if !prediction.hasAnswered {
-                Button(action: checkPrediction) {
-                    Label(L10n.text("lab.naturalSelection.check", store.language), systemImage: "checkmark")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedDisplayIndex < 0)
-            } else if prediction.canRetry {
-                Button(action: retryPrediction) {
-                    Label(L10n.text("lab.naturalSelection.retry", store.language), systemImage: "arrow.uturn.backward")
-                }
-                .buttonStyle(.borderedProminent)
-            } else {
-                Button(action: advanceGeneration) {
-                    Label(L10n.text("lab.naturalSelection.next", store.language), systemImage: "forward.end.fill")
-                }
-                .buttonStyle(.borderedProminent)
-            }
-
-            Button(action: resetSimulation) {
-                Label(L10n.text("lab.naturalSelection.reset", store.language), systemImage: "arrow.counterclockwise")
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    @ViewBuilder
-    private var generationOutcome: some View {
-        if let previousMean {
-            HStack(spacing: 6) {
-                Text(L10n.text("lab.naturalSelection.outcome", store.language))
-                Text(verbatim: L10n.number(previousMean, fractionDigits: 1, store.language) + " → " + L10n.number(population.traitMean, fractionDigits: 1, store.language))
+    private func parameterSlider(_ labelKey: String, value: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(text(labelKey))
+                Spacer()
+                Text(verbatim: number(value.wrappedValue, 2))
                     .monospacedDigit()
+                    .foregroundStyle(.secondary)
             }
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
+            // Steps of 0.05 without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 * 20).rounded() / 20 }), in: 0...1,
+                   onEditingChanged: { editing in if !editing { startNewPrediction() } })
+                .accessibilityLabel(Text(text(labelKey)))
+        }
+        .font(.callout)
+    }
+
+    private func drawMarker(at x: CGFloat, color: Color, dashed: Bool, plot: LabPlotGeometry, context: GraphicsContext) {
+        var line = Path()
+        line.move(to: CGPoint(x: x, y: plot.rect.minY))
+        line.addLine(to: CGPoint(x: x, y: plot.rect.maxY))
+        context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 2, dash: dashed ? [5, 4] : []))
+    }
+
+    private func outline(_ previous: NaturalSelectionPopulation, plot: LabPlotGeometry, step: CGFloat) -> Path {
+        var path = Path()
+        for trait in stride(from: 0.0, through: 100.0, by: 1.0) {
+            let height = CGFloat(Self.individuals * Self.binWidth * Self.density(trait, previous)) * step
+            let point = CGPoint(x: plot.point(trait, 0).x, y: plot.rect.maxY - height)
+            if trait == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        return path
+    }
+
+    /// Expected head count per bin when the trait follows a normal curve with the population's mean and spread.
+    private static func binCounts(_ population: NaturalSelectionPopulation) -> [Int] {
+        (0..<binCount).map { index in
+            Int((individuals * binWidth * density((Double(index) + 0.5) * binWidth, population)).rounded())
         }
     }
 
-    private var limitations: some View {
-        LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.naturalSelection.limit", store.language)])
-    }
-
-    private var modelRule: some View {
-        Text(L10n.text("lab.naturalSelection.rule", store.language))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func drawMarker(_ value: Double, color: Color, context: GraphicsContext, size: CGSize) {
-        let x = CGFloat(value / 100) * size.width
-        var marker = Path()
-        marker.move(to: CGPoint(x: x, y: 0))
-        marker.addLine(to: CGPoint(x: x, y: size.height))
-        context.stroke(marker, with: .color(color.opacity(0.75)), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+    private static func density(_ trait: Double, _ population: NaturalSelectionPopulation) -> Double {
+        let spread = max(population.traitSpread, 1)
+        let distance = (trait - population.traitMean) / spread
+        return exp(-0.5 * distance * distance) / (spread * (2 * Double.pi).squareRoot())
     }
 
     private var expectedTrend: NaturalSelectionTrend {
@@ -7857,6 +8531,15 @@ private struct NaturalSelectionLab: View {
             selectionStrength: selectionStrength,
             heritability: heritability
         )
+    }
+
+    private func moveEnvironment(_ direction: AccessibilityAdjustmentDirection) {
+        switch direction {
+        case .increment: environmentOptimum = min(100, environmentOptimum + 5)
+        case .decrement: environmentOptimum = max(0, environmentOptimum - 5)
+        @unknown default: return
+        }
+        startNewPrediction()
     }
 
     private func checkPrediction() {
@@ -7872,22 +8555,22 @@ private struct NaturalSelectionLab: View {
 
     private func advanceGeneration() {
         guard prediction.isCorrect else { return }
-        previousMean = population.traitMean
-        population = NaturalSelectionPractice.advanceGeneration(
-            from: population,
-            environmentOptimum: environmentOptimum,
-            selectionStrength: selectionStrength,
-            heritability: heritability
-        )
-        startNewPrediction(clearOutcome: false)
+        previousPopulation = population
+        withAnimation(.easeInOut(duration: 0.4)) {
+            population = NaturalSelectionPractice.advanceGeneration(
+                from: population,
+                environmentOptimum: environmentOptimum,
+                selectionStrength: selectionStrength,
+                heritability: heritability
+            )
+        }
+        meanHistory.append(population.traitMean)
+        startNewPrediction()
     }
 
-    private func startNewPrediction(clearOutcome: Bool = true) {
+    private func startNewPrediction() {
         prediction = NaturalSelectionPractice.makePredictionAttempt(for: expectedTrend)
         selectedDisplayIndex = -1
-        if clearOutcome {
-            previousMean = nil
-        }
     }
 
     private func resetSimulation() {
@@ -7895,32 +8578,9 @@ private struct NaturalSelectionLab: View {
         selectionStrength = 0.45
         heritability = 0.8
         population = NaturalSelectionPopulation(traitMean: 35, traitSpread: 20, generation: 0)
-        previousMean = nil
+        previousPopulation = nil
+        meanHistory = [35]
         startNewPrediction()
-    }
-
-    private func parameterSlider(
-        _ labelKey: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double> = 0...1,
-        onChange: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(L10n.text(labelKey, store.language))
-                Spacer()
-                Text(verbatim: L10n.number(value.wrappedValue, fractionDigits: 2, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, onEditingChanged: { isEditing in
-                if !isEditing {
-                    onChange()
-                }
-            })
-                .accessibilityLabel(Text(L10n.text(labelKey, store.language)))
-        }
-        .font(.caption)
     }
 }
 
