@@ -418,9 +418,11 @@ enum OsmosisWaterFlow: Equatable {
         }
     }
 
+    /// Net water flow goes toward the side with more non-penetrating solute.
+    /// Чистый поток воды идёт к стороне, где больше непроникающего растворённого вещества.
     static func predict(insideSolute: Int, outsideSolute: Int) -> Self {
-        if outsideSolute > insideSolute { return .waterEntersCell }
-        if insideSolute > outsideSolute { return .waterLeavesCell }
+        if insideSolute > outsideSolute { return .waterEntersCell }
+        if outsideSolute > insideSolute { return .waterLeavesCell }
         return .dynamicEquilibrium
     }
 }
