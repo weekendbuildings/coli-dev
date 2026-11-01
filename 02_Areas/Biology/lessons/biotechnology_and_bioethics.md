@@ -3,7 +3,7 @@ subject: biology
 lesson_id: biology.biotechnology_and_bioethics
 level: advanced
 languages: ru, en
-source_checked: 2026-10-27
+source_checked: 2026-11-01
 source_review_interval_days: 365
 ---
 
@@ -43,7 +43,7 @@ source_review_interval_days: 365
 
 ### Разбор
 
-Работа 2012 года описала программируемую эндонуклеазу: Cas9 режет ДНК там, куда её направляет РНК-проводник, поэтому место разреза можно выбирать. Собрать живую клетку целиком из неживых молекул пока не удалось никому, а мутации полностью не исключить: даже ДНК-полимераза ошибается примерно раз на миллиард оснований.
+Работа 2012 года описала программируемую эндонуклеазу: Cas9 режет ДНК там, куда её направляет РНК-проводник, поэтому место разреза можно выбирать. Собрать из неживых молекул клетку, которая живёт сама, пока не удалось никому (ближе всего препринт 2026 года о SpudCell, но рибосомы и пищу ей дают исследователи), а мутации полностью не исключить: даже копирование ДНК со всеми проверками ошибается примерно раз на миллиард оснований.
 
 ### Границы вывода
 
@@ -83,7 +83,7 @@ What did the 2012 discovery about the Cas9 protein make possible?
 
 ### Explanation
 
-The 2012 work described a programmable endonuclease: Cas9 cuts DNA where a guide RNA directs it, so the cut site can be chosen. No one has yet built a living cell entirely from non-living molecules, and mutations cannot be ruled out completely: even DNA polymerase errs about once per billion bases.
+The 2012 work described a programmable endonuclease: Cas9 cuts DNA where a guide RNA directs it, so the cut site can be chosen. No one has yet built a living cell from non-living molecules that can keep itself going (the closest is a 2026 preprint on SpudCell, whose ribosomes and food the researchers supply), and mutations cannot be ruled out completely: even DNA copying with all its checks errs about once per billion bases.
 
 ### Limits of the inference
 
