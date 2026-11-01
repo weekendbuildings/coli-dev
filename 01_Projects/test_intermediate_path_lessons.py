@@ -641,3 +641,23 @@ def test_ast_lesson_program_shows_precedence_and_safe_literals() -> None:
         raise AssertionError("literal_eval must refuse function calls")
     assert _answer(russian, "Ответ") == "1" and _answer(english, "Answer") == "1"
     assert _linked_advanced("Programming", "parsing_and_abstract_syntax_trees")
+
+
+def test_least_squares_lab_is_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    model = (app / "App" / "LeastSquaresFit.swift").read_text(encoding="utf-8")
+    assert 'moduleResource == "fitting_pendulum_data_least_squares"' in views and "LeastSquaresFitLab()" in views
+    assert "LeastSquaresFit.swift in Sources" in project and "scripts/verify_least_squares_fit.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.lsq\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.lsq\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # The lab uses the same measurements as the lesson program.
+    russian, _ = _sections("Physics", "fitting_pendulum_data_least_squares")
+    assert "[0.25, 0.50, 0.75, 1.00]" in russian and "[0.25, 0.50, 0.75, 1.00]" in model
+    assert "[1.00, 1.42, 1.74, 2.01]" in russian and "[1.00, 1.42, 1.74, 2.01]" in model

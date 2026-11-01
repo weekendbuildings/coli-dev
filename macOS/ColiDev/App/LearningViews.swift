@@ -1864,6 +1864,8 @@ private struct PracticeLab: View {
             CoinEntropyLab()
         } else if subject == .biology, moduleResource == "population_genetics_hardy_weinberg" {
             HardyWeinbergLab()
+        } else if subject == .physics, moduleResource == "fitting_pendulum_data_least_squares" {
+            LeastSquaresFitLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -11694,6 +11696,121 @@ private struct HardyWeinbergLab: View {
             .frame(height: 12)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct LeastSquaresFitLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var slope = 3.0
+    @State private var intercept = 0.3
+    @State private var lengthOffset = 0.0
+
+    private typealias Model = LeastSquaresFitModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let line = Model.Line(intercept: intercept, slope: slope)
+        let best = Model.bestFit(lengthOffset: lengthOffset)
+        LabCard {
+            Text(L10n.text("lab.lsq.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.lsq.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            chart(line: line, best: best)
+                .frame(height: 180)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.lsq.chart", store.language))
+                .accessibilityValue(Text(verbatim: Model.points(lengthOffset: lengthOffset)
+                    .map { "\(number($0.x, 2)); \(number($0.y, 2))" }.joined(separator: ", ")))
+            Text(L10n.text("lab.lsq.axes", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            // Each slider rounds without `step:`, which would draw a dense row of tick marks.
+            slider(String(format: L10n.text("lab.lsq.slope", store.language), number(slope, 2)), "lab.lsq.slopeLabel", "lab.lsq.slope",
+                   Binding(get: { slope }, set: { slope = ($0 * 100).rounded() / 100 }), Model.slopeRange, number(slope, 2))
+            slider(String(format: L10n.text("lab.lsq.intercept", store.language), number(intercept, 2)), "lab.lsq.interceptLabel", "lab.lsq.intercept",
+                   Binding(get: { intercept }, set: { intercept = ($0 * 100).rounded() / 100 }), Model.interceptRange, number(intercept, 2))
+            slider(String(format: L10n.text("lab.lsq.offset", store.language), number(lengthOffset, 2)), "lab.lsq.offsetLabel", "lab.lsq.offset",
+                   Binding(get: { lengthOffset }, set: { lengthOffset = ($0 * 100).rounded() / 100 }), Model.offsetRange, number(lengthOffset, 2))
+
+            Button(L10n.text("lab.lsq.fit", store.language)) {
+                slope = best.slope
+                intercept = best.intercept
+            }
+            .accessibilityIdentifier("lab.lsq.fit")
+
+            Text(String(format: L10n.text("lab.lsq.sse", store.language),
+                        number(Model.sumOfSquaredErrors(line, lengthOffset: lengthOffset), 6),
+                        number(Model.sumOfSquaredErrors(best, lengthOffset: lengthOffset), 6)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.lsq.sse")
+            Text(String(format: L10n.text("lab.lsq.gravity", store.language), number(Model.gravity(slope: slope), 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.lsq.gravity")
+            Text(String(format: L10n.text("lab.lsq.best", store.language),
+                        number(best.slope, 3), number(best.intercept, 3), number(Model.gravity(slope: best.slope), 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.lsq.best")
+            Text(L10n.text("lab.lsq.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func slider(_ title: String, _ labelKey: String, _ identifier: String,
+                        _ value: Binding<Double>, _ range: ClosedRange<Double>, _ spoken: String) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .monospacedDigit()
+            Slider(value: value, in: range)
+                .accessibilityLabel(L10n.text(labelKey, store.language))
+                .accessibilityValue(Text(verbatim: spoken))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+
+    // Measured points (L, T²), the learner's line, the dashed best line, and vertical residuals from each point.
+    private func chart(line: Model.Line, best: Model.Line) -> some View {
+        Canvas { context, size in
+            let maxX = 1.1, maxY = 4.5
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+
+            var bestPath = Path()
+            bestPath.move(to: position(0, best.value(at: 0)))
+            bestPath.addLine(to: position(maxX, best.value(at: maxX)))
+            context.stroke(bestPath, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [6, 5]))
+
+            var userPath = Path()
+            userPath.move(to: position(0, line.value(at: 0)))
+            userPath.addLine(to: position(maxX, line.value(at: maxX)))
+            context.stroke(userPath, with: .color(.accentColor), lineWidth: 2)
+
+            for point in Model.points(lengthOffset: lengthOffset) {
+                var residual = Path()
+                residual.move(to: position(point.x, point.y))
+                residual.addLine(to: position(point.x, line.value(at: point.x)))
+                context.stroke(residual, with: .color(.orange), lineWidth: 1.5)
+                let center = position(point.x, point.y)
+                context.fill(Path(ellipseIn: CGRect(x: center.x - 4, y: center.y - 4, width: 8, height: 8)), with: .color(.primary))
+            }
+        }
     }
 }
 

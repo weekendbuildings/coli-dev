@@ -53,9 +53,6 @@ jobs:
           - runner: macos-26
             arch: arm64
             feed: appcast-arm64.xml
-          - runner: macos-15-intel
-            arch: x86_64
-            feed: appcast-intel.xml
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
@@ -447,6 +444,12 @@ jobs:
           swiftc macOS/ColiDev/App/StatisticalLabs.swift macOS/ColiDev/scripts/verify_statistical_labs.swift \
             -o "$RUNNER_TEMP/verify-statistical-labs"
           "$RUNNER_TEMP/verify-statistical-labs"
+
+      - name: Verify least-squares lab model / Проверка модели подгонки прямой
+        run: |
+          swiftc macOS/ColiDev/App/LeastSquaresFit.swift macOS/ColiDev/scripts/verify_least_squares_fit.swift \
+            -o "$RUNNER_TEMP/verify-least-squares-fit"
+          "$RUNNER_TEMP/verify-least-squares-fit"
 
       - name: Verify pendulum model / Проверка модели маятника
         run: |
