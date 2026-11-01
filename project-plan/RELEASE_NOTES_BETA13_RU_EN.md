@@ -5,7 +5,7 @@
 
 ## Русский
 
-**Главное.** Курс вырос с 64 до 106 уроков и получил новый предмет «Химия». Добавлены уроки на пути к пониманию и созданию жизни и ИИ — от атомов и энтропии до пластичности синапсов и обучения нейросетей — и восемь новых тренажёров.
+**Главное.** Курс вырос с 64 до 109 уроков и получил новый предмет «Химия». Добавлены уроки на пути к пониманию и созданию жизни и ИИ — от атомов и энтропии до пластичности синапсов и обучения нейросетей — и восемь новых тренажёров.
 
 **Исправления после ручной проверки Beta 12 на MacBook Air M1:**
 - счётчик «проверки записаны» больше не обнуляется после перезапуска;
@@ -36,7 +36,7 @@ A=$([ "$(uname -m)" = arm64 ] && echo AppleSilicon || echo Intel); curl -fL -o /
 
 ## English
 
-**Highlights.** The course grew from 64 to 106 lessons and gained a new subject, Chemistry. New lessons follow the path toward understanding and creating life and AI, from atoms and entropy to synaptic plasticity and neural-network training, with eight new labs.
+**Highlights.** The course grew from 64 to 109 lessons and gained a new subject, Chemistry. New lessons follow the path toward understanding and creating life and AI, from atoms and entropy to synaptic plasticity and neural-network training, with eight new labs.
 
 **Fixes after the manual Beta 12 check on a MacBook Air M1:**
 - the "checks recorded" counter no longer resets after a restart;
