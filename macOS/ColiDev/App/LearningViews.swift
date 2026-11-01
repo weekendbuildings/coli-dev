@@ -4513,218 +4513,219 @@ private struct BiologyInvestigationLab: View {
     )
     @State private var didReviewDesign = false
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Label(L10n.text("lab.investigation.title", store.language), systemImage: "leaf")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.green)
-                Text(L10n.text("lab.investigation.scenario", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HStack(spacing: 12) {
-                lightGroup(
-                    title: L10n.text("lab.investigation.groupA", store.language),
-                    hours: "4"
-                )
-                Image(systemName: "arrow.left.and.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                lightGroup(
-                    title: L10n.text("lab.investigation.groupB", store.language),
-                    hours: "8"
-                )
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                Picker(
-                    L10n.text("lab.investigation.change", store.language),
-                    selection: Binding(
-                        get: { design.factorToChange },
-                        set: { design.factorToChange = $0; didReviewDesign = false }
-                    )
-                ) {
-                    ForEach(BiologyStudyFactor.allCases, id: \.self) { factor in
-                        Text(L10n.text(factorTitleKey(factor), store.language)).tag(factor)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                Picker(
-                    L10n.text("lab.investigation.measure", store.language),
-                    selection: Binding(
-                        get: { design.outcomeToMeasure },
-                        set: { design.outcomeToMeasure = $0; didReviewDesign = false }
-                    )
-                ) {
-                    ForEach(BiologyStudyOutcome.allCases, id: \.self) { outcome in
-                        Text(L10n.text(outcomeTitleKey(outcome), store.language)).tag(outcome)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.text("lab.investigation.keepSame", store.language))
-                    .font(.callout.weight(.semibold))
-                ForEach(BiologyStudyControl.allCases, id: \.self) { control in
-                    Toggle(
-                        L10n.text(controlTitleKey(control), store.language),
-                        isOn: Binding(
-                            get: { design.controls.contains(control) },
-                            set: { isSelected in
-                                if isSelected {
-                                    design.controls.insert(control)
-                                } else {
-                                    design.controls.remove(control)
-                                }
-                                didReviewDesign = false
-                            }
-                        )
-                    )
-                    .toggleStyle(.checkbox)
-                }
-            }
-
-            Stepper(
-                value: Binding(
-                    get: { design.independentUnitsPerCondition },
-                    set: { design.independentUnitsPerCondition = $0; didReviewDesign = false }
-                ),
-                in: 1...12
-            ) {
-                Text(
-                    String(
-                        format: L10n.text("lab.investigation.replicates", store.language),
-                        design.independentUnitsPerCondition
-                    )
-                )
-                .monospacedDigit()
-            }
-
-            Stepper(
-                value: Binding(
-                    get: { design.plantsPerUnit },
-                    set: { design.plantsPerUnit = $0; didReviewDesign = false }
-                ),
-                in: 1...12
-            ) {
-                Text(
-                    String(
-                        format: L10n.text("lab.investigation.plantsPerUnit", store.language),
-                        design.plantsPerUnit
-                    )
-                )
-                .monospacedDigit()
-            }
-
-            Text(L10n.text("lab.investigation.replicationHint", store.language))
+            LabHeader(title: text("lab.investigation.title"), instruction: text("lab.investigation.scenario"))
+            Canvas { context, size in drawBench(context, size: size) }
+                .frame(height: 210)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.investigation.bench"))
+                .accessibilityValue(Text(verbatim: design.issues.isEmpty ? text("lab.investigation.ready")
+                                         : design.issues.map { text(issueTitleKey($0)) }.joined(separator: " ")))
+            Text(text("lab.investigation.benchLegend"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Button {
-                didReviewDesign = true
-            } label: {
-                Label(
-                    L10n.text("lab.investigation.check", store.language),
-                    systemImage: "checkmark.magnifyingglass"
-                )
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-
-            if didReviewDesign {
-                if design.isReadyToCollectData {
-                    Label(
-                        L10n.text("lab.investigation.ready", store.language),
-                        systemImage: "checkmark.seal.fill"
-                    )
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.green)
-                    .fixedSize(horizontal: false, vertical: true)
-                    Text(L10n.text("lab.investigation.noResults", store.language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label(
-                            L10n.text("lab.investigation.review", store.language),
-                            systemImage: "exclamationmark.circle"
-                        )
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.orange)
-                        ForEach(design.issues, id: \.self) { issue in
-                            Label(
-                                L10n.text(issueTitleKey(issue), store.language),
-                                systemImage: "arrow.turn.down.right"
-                            )
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Picker(text("lab.investigation.change"), selection: Binding(
+                        get: { design.factorToChange },
+                        set: { design.factorToChange = $0; didReviewDesign = false }
+                    )) {
+                        ForEach(BiologyStudyFactor.allCases, id: \.self) { factor in
+                            Text(text(factorTitleKey(factor))).tag(factor)
                         }
                     }
+                    .pickerStyle(.menu)
+                    Picker(text("lab.investigation.measure"), selection: Binding(
+                        get: { design.outcomeToMeasure },
+                        set: { design.outcomeToMeasure = $0; didReviewDesign = false }
+                    )) {
+                        ForEach(BiologyStudyOutcome.allCases, id: \.self) { outcome in
+                            Text(text(outcomeTitleKey(outcome))).tag(outcome)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    Stepper(value: Binding(
+                        get: { design.independentUnitsPerCondition },
+                        set: { design.independentUnitsPerCondition = $0; didReviewDesign = false }
+                    ), in: 1...12) {
+                        Text(String(format: text("lab.investigation.replicates"), design.independentUnitsPerCondition))
+                            .monospacedDigit()
+                    }
+                    Stepper(value: Binding(
+                        get: { design.plantsPerUnit },
+                        set: { design.plantsPerUnit = $0; didReviewDesign = false }
+                    ), in: 1...12) {
+                        Text(String(format: text("lab.investigation.plantsPerUnit"), design.plantsPerUnit))
+                            .monospacedDigit()
+                    }
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(text("lab.investigation.keepSame"))
+                        .font(.callout.weight(.semibold))
+                    ForEach(BiologyStudyControl.allCases, id: \.self) { control in
+                        Toggle(text(controlTitleKey(control)), isOn: Binding(
+                            get: { design.controls.contains(control) },
+                            set: { isSelected in
+                                if isSelected { design.controls.insert(control) } else { design.controls.remove(control) }
+                                didReviewDesign = false
+                            }
+                        ))
+                        .toggleStyle(.checkbox)
+                    }
+                }
+            }
+            Text(text("lab.investigation.replicationHint"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 12) {
+                Button {
+                    didReviewDesign = true
+                } label: {
+                    Label(text("lab.investigation.check"), systemImage: "checkmark.magnifyingglass")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                LabStatusBadge(kind: design.isReadyToCollectData ? .good : .warning,
+                               text: String(format: text("lab.investigation.issueCount"), design.issues.count))
+            }
+            if didReviewDesign { reviewResult }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.investigation.challenge"),
+                         solved: didReviewDesign && design.isReadyToCollectData, solvedText: text("lab.investigation.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.investigation.noResults")])
+        }
+    }
+
+    @ViewBuilder
+    private var reviewResult: some View {
+        if design.isReadyToCollectData {
+            Label(text("lab.investigation.ready"), systemImage: "checkmark.seal.fill")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.green)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(text("lab.investigation.review"), systemImage: "exclamationmark.circle")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.orange)
+                ForEach(design.issues, id: \.self) { issue in
+                    Label(text(issueTitleKey(issue)), systemImage: "arrow.turn.down.right")
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
-    private func lightGroup(title: String, hours: String) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: "sun.max.fill")
-                .font(.title2)
-                .foregroundStyle(.orange)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.caption.weight(.medium))
-            Text(
-                String(
-                    format: L10n.text("lab.investigation.hours", store.language),
-                    hours
-                )
-            )
-            .font(.callout.weight(.semibold).monospacedDigit())
+    // Two groups of pots. The factor being changed differs on purpose; anything not held constant differs too, and then
+    // a difference in growth could not be pinned on the factor.
+    private func drawBench(_ context: GraphicsContext, size: CGSize) {
+        let half = size.width / 2
+        for group in 0..<2 {
+            let origin = CGFloat(group) * half
+            let lightDiffers = design.factorToChange == .lightExposure
+            let hours = lightDiffers ? (group == 0 ? 4 : 8) : 6
+            drawLamp(context, centre: CGPoint(x: origin + half / 2, y: 26), rays: hours)
+            let warm = !design.controls.contains(.temperatureAndDuration) && group == 1
+            context.draw(Text(verbatim: warm ? "26 °C" : "20 °C").font(.caption2.weight(.semibold)).foregroundColor(warm ? .red : .secondary),
+                         at: CGPoint(x: origin + half - 30, y: 22))
+            let units = design.independentUnitsPerCondition
+            let columns = min(units, 6)
+            let rows = units > 6 ? 2 : 1
+            let potWidth = min(58, (half - 30) / CGFloat(max(columns, 3)) - 6)
+            for unit in 0..<units {
+                let column = unit % 6, row = unit / 6
+                let x = origin + 15 + (half - 30 - CGFloat(columns) * (potWidth + 6)) / 2 + CGFloat(column) * (potWidth + 6)
+                let y = size.height - 30 - CGFloat(rows - 1 - row) * 62
+                drawPot(context, x: x, bottom: y, width: potWidth, group: group, unit: unit)
+            }
+            let label = text(group == 0 ? "lab.investigation.groupA" : "lab.investigation.groupB")
+                + (lightDiffers ? " · " + String(format: text("lab.investigation.hours"), "\(hours)") : "")
+            context.draw(Text(verbatim: label).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: origin + half / 2, y: size.height - 10))
         }
-        .frame(maxWidth: .infinity)
-        .padding(12)
-        .background(Color.green.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+        var divider = Path()
+        divider.move(to: CGPoint(x: half, y: 10))
+        divider.addLine(to: CGPoint(x: half, y: size.height - 22))
+        context.stroke(divider, with: .color(.secondary.opacity(0.3)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+    }
+
+    private func drawLamp(_ context: GraphicsContext, centre: CGPoint, rays: Int) {
+        var beams = Path()
+        for ray in 0..<rays {
+            let angle = Double(ray) / Double(rays) * 2 * .pi
+            beams.move(to: CGPoint(x: centre.x + 11 * CGFloat(cos(angle)), y: centre.y + 11 * CGFloat(sin(angle))))
+            beams.addLine(to: CGPoint(x: centre.x + 19 * CGFloat(cos(angle)), y: centre.y + 19 * CGFloat(sin(angle))))
+        }
+        context.stroke(beams, with: .color(.orange), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+        context.fill(Path(ellipseIn: CGRect(x: centre.x - 8, y: centre.y - 8, width: 16, height: 16)), with: .color(.yellow))
+    }
+
+    private func drawPot(_ context: GraphicsContext, x: CGFloat, bottom: CGFloat, width: CGFloat, group: Int, unit: Int) {
+        let varied = { (control: BiologyStudyControl) -> Bool in !design.controls.contains(control) }
+        let seed = (group * 7 + unit * 3) % 5
+        let potHeight: CGFloat = varied(.potAndSoil) ? 18 + CGFloat(seed) * 3 : 24
+        let potColor: Color = varied(.potAndSoil) && seed % 2 == 1 ? .gray : .brown
+        let pot = CGRect(x: x, y: bottom - potHeight, width: width, height: potHeight)
+        context.fill(Path(roundedRect: pot, cornerRadius: 3), with: .color(potColor.opacity(0.75)))
+        let waterDiffers = design.factorToChange == .waterAmount || varied(.waterAmount)
+        let water: CGFloat = waterDiffers ? (design.factorToChange == .waterAmount ? (group == 0 ? 0.25 : 0.75) : CGFloat(seed) / 5 + 0.1) : 0.5
+        context.fill(Path(CGRect(x: pot.minX + 2, y: pot.maxY - 2 - (potHeight - 4) * water, width: pot.width - 4, height: (potHeight - 4) * water)),
+                     with: .color(.blue.opacity(0.55)))
+        let plantDiffers = design.factorToChange == .plantType || varied(.seedType)
+        let altKind = plantDiffers && (design.factorToChange == .plantType ? group == 1 : seed % 2 == 0)
+        let stems = min(design.plantsPerUnit, 5)
+        for stem in 0..<stems {
+            let stemX = pot.minX + pot.width * (CGFloat(stem) + 0.5) / CGFloat(stems)
+            var line = Path()
+            line.move(to: CGPoint(x: stemX, y: pot.minY))
+            line.addLine(to: CGPoint(x: stemX, y: pot.minY - 26))
+            context.stroke(line, with: .color(.green), lineWidth: 2)
+            let leaf = CGRect(x: stemX - 5, y: pot.minY - 34, width: 10, height: 10)
+            if altKind {
+                var spike = Path()
+                spike.move(to: CGPoint(x: stemX, y: pot.minY - 38))
+                spike.addLine(to: CGPoint(x: stemX - 5, y: pot.minY - 25))
+                spike.addLine(to: CGPoint(x: stemX + 5, y: pot.minY - 25))
+                spike.closeSubpath()
+                context.fill(spike, with: .color(.mint))
+            } else {
+                context.fill(Path(ellipseIn: leaf), with: .color(.green))
+            }
+        }
+        if design.plantsPerUnit > 5 {
+            context.draw(Text(verbatim: "+\(design.plantsPerUnit - 5)").font(.system(size: 9, weight: .bold)).foregroundColor(.secondary),
+                         at: CGPoint(x: pot.midX, y: pot.maxY + 7))
+        }
     }
 
     private func factorTitleKey(_ factor: BiologyStudyFactor) -> String {
         switch factor {
-        case .lightExposure:
-            return "lab.investigation.factor.light"
-        case .waterAmount:
-            return "lab.investigation.factor.water"
-        case .plantType:
-            return "lab.investigation.factor.plant"
+        case .lightExposure: return "lab.investigation.factor.light"
+        case .waterAmount: return "lab.investigation.factor.water"
+        case .plantType: return "lab.investigation.factor.plant"
         }
     }
 
     private func outcomeTitleKey(_ outcome: BiologyStudyOutcome) -> String {
         switch outcome {
-        case .heightChange:
-            return "lab.investigation.outcome.height"
-        case .leafCount:
-            return "lab.investigation.outcome.leaves"
-        case .soilMoisture:
-            return "lab.investigation.outcome.soil"
+        case .heightChange: return "lab.investigation.outcome.height"
+        case .leafCount: return "lab.investigation.outcome.leaves"
+        case .soilMoisture: return "lab.investigation.outcome.soil"
         }
     }
 
     private func controlTitleKey(_ control: BiologyStudyControl) -> String {
         switch control {
-        case .waterAmount:
-            return "lab.investigation.control.water"
-        case .seedType:
-            return "lab.investigation.control.seed"
-        case .potAndSoil:
-            return "lab.investigation.control.pot"
-        case .temperatureAndDuration:
-            return "lab.investigation.control.conditions"
+        case .waterAmount: return "lab.investigation.control.water"
+        case .seedType: return "lab.investigation.control.seed"
+        case .potAndSoil: return "lab.investigation.control.pot"
+        case .temperatureAndDuration: return "lab.investigation.control.conditions"
         }
     }
 
@@ -8664,51 +8665,66 @@ private struct FoodWebLab: View {
 
     private let species = ["algae", "zooplankton", "snails", "smallFish", "heron"]
 
-    private var visibleLinks: [PondFoodWebLink] {
-        PondFoodWebModel.visibleLinks(excluding: removedNode)
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var visibleLinks: [PondFoodWebLink] { PondFoodWebModel.visibleLinks(excluding: removedNode) }
+    private var directConsumers: [String] { PondFoodWebModel.directConsumers(of: removedNode) }
+    private var consumerCount: Int { PondFoodWebModel.nodes.filter { $0.kind == .consumer }.count }
+    private var fedConsumers: Int {
+        PondFoodWebModel.nodes.filter { $0.kind == .consumer && $0.id != removedNode && !starving.contains($0.id) }.count
     }
 
-    private var directConsumers: [String] {
-        PondFoodWebModel.directConsumers(of: removedNode)
+    /// Consumers left with no food arrow from a remaining organism, followed down the chain: if every food source of a consumer
+    /// is gone or itself left without food, it loses its food too. A statement about arrows on this diagram, not a population forecast.
+    private var starving: Set<String> {
+        guard removedNode != "none" else { return [] }
+        var lost: Set<String> = []
+        var changed = true
+        while changed {
+            changed = false
+            for node in PondFoodWebModel.nodes where node.kind == .consumer && node.id != removedNode && !lost.contains(node.id) {
+                let food = PondFoodWebModel.links.filter { $0.to == node.id && $0.kind == .feeding }
+                    .filter { $0.from != removedNode && !lost.contains($0.from) }
+                if food.isEmpty {
+                    lost.insert(node.id)
+                    changed = true
+                }
+            }
+        }
+        return lost
     }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Label(L10n.text("biology.foodWebLab.title", store.language), systemImage: "point.3.connected.trianglepath.dotted")
-                    .font(.headline)
-
-                Text(L10n.text("biology.foodWebLab.arrow", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                diagram
-                    .frame(height: 280)
-                    .padding(.vertical, 4)
-                    .accessibilityElement(children: .contain)
-
-                selectedNodeDetails
-
-                Picker(L10n.text("biology.foodWebLab.scenario", store.language), selection: $removedNode) {
-                    Text(L10n.text("biology.foodWebLab.none", store.language)).tag("none")
-                    ForEach(species, id: \.self) { id in
-                        Text(nodeName(id)).tag(id)
-                    }
+            LabHeader(title: text("biology.foodWebLab.title"), instruction: text("biology.foodWebLab.subtitle"))
+            diagram
+                .frame(height: 280)
+                .padding(.vertical, 4)
+                .accessibilityElement(children: .contain)
+            Text(text("biology.foodWebLab.arrow"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(text("biology.foodWebLab.scenario"), selection: $removedNode) {
+                Text(text("biology.foodWebLab.none")).tag("none")
+                ForEach(species, id: \.self) { id in
+                    Text(nodeName(id)).tag(id)
                 }
-                .pickerStyle(.menu)
-                .onChange(of: removedNode) { newValue in
-                    if selectedNode == newValue { selectedNode = "none" }
-                }
-
-                if removedNode != "none" {
-                    removalSummary
-                }
-
-                Text(L10n.text("biology.foodWebLab.limit", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+            .pickerStyle(.menu)
+            .frame(maxWidth: 420)
+            .onChange(of: removedNode) { newValue in
+                if selectedNode == newValue { selectedNode = "none" }
+            }
+            LabStatGrid {
+                LabStat(label: text("biology.foodWebLab.statConsumers"), value: "\(fedConsumers) / \(consumerCount)", tint: .orange)
+                LabStat(label: text("biology.foodWebLab.statDirect"), value: "\(directConsumers.count)", tint: .purple)
+                LabStat(label: text("biology.foodWebLab.statLost"), value: "\(starving.count)", tint: .red)
+            }
+            if removedNode != "none" { removalSummary }
+            selectedNodeDetails
+            LabChallenge(caption: text("lab.kit.task"), task: text("biology.foodWebLab.challenge"),
+                         solved: starving.count == consumerCount, solvedText: text("biology.foodWebLab.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("biology.foodWebLab.cascadeNote"), text("biology.foodWebLab.limit")])
         }
     }
 
@@ -8719,61 +8735,74 @@ private struct FoodWebLab: View {
                     for link in visibleLinks {
                         guard let from = PondFoodWebModel.nodes.first(where: { $0.id == link.from }),
                               let to = PondFoodWebModel.nodes.first(where: { $0.id == link.to }) else { continue }
-                        let start = CGPoint(x: from.x * size.width, y: from.y * size.height)
-                        let end = CGPoint(x: to.x * size.width, y: to.y * size.height)
-                        let dx = end.x - start.x
-                        let dy = end.y - start.y
-                        let distance = max(hypot(dx, dy), 1)
-                        let ux = dx / distance
-                        let uy = dy / distance
-                        let lineStart = CGPoint(x: start.x + ux * 50, y: start.y + uy * 22)
-                        let tip = CGPoint(x: end.x - ux * 51, y: end.y - uy * 22)
-                        let base = CGPoint(x: tip.x - ux * 9, y: tip.y - uy * 9)
-                        let opacity = selectedNode == "none" || link.from == selectedNode || link.to == selectedNode ? 0.78 : 0.16
-                        var shaft = Path()
-                        shaft.move(to: lineStart)
-                        shaft.addLine(to: tip)
-                        let isMatterCycle = link.kind == .matterCycle
-                        let linkColor = isMatterCycle ? Color.teal : Color.secondary
-                        context.stroke(
-                            shaft,
-                            with: .color(linkColor.opacity(opacity)),
-                            style: StrokeStyle(lineWidth: 1.7, lineCap: .round, dash: isMatterCycle ? [4, 3] : [])
-                        )
-
-                        let wing = CGPoint(x: -uy * 4, y: ux * 4)
-                        var arrow = Path()
-                        arrow.move(to: tip)
-                        arrow.addLine(to: CGPoint(x: base.x + wing.x, y: base.y + wing.y))
-                        arrow.addLine(to: CGPoint(x: base.x - wing.x, y: base.y - wing.y))
-                        arrow.closeSubpath()
-                        context.fill(arrow, with: .color(linkColor.opacity(opacity)))
+                        drawArrow(context, from: CGPoint(x: from.x * size.width, y: from.y * size.height),
+                                  to: CGPoint(x: to.x * size.width, y: to.y * size.height), link: link)
                     }
                 }
-
                 ForEach(PondFoodWebModel.nodes) { node in
                     if node.id != removedNode {
-                        Button {
-                            selectedNode = node.id
-                        } label: {
-                            Text(nodeName(node.id))
-                                .font(.caption.weight(.medium))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.8)
-                                .frame(width: 104, height: 42)
-                                .background(node.id == selectedNode ? Color.accentColor.opacity(0.18) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
-                                .overlay(RoundedRectangle(cornerRadius: 9).stroke(nodeColor(node.kind).opacity(0.7), lineWidth: node.id == selectedNode ? 2 : 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(nodeName(node.id))
-                        .accessibilityHint(Text(L10n.text("biology.foodWebLab.select", store.language)))
-                        .position(x: node.x * geometry.size.width, y: node.y * geometry.size.height)
+                        nodeButton(node)
+                            .position(x: node.x * geometry.size.width, y: node.y * geometry.size.height)
                     }
                 }
             }
         }
-        .accessibilityLabel(L10n.text("biology.foodWebLab.title", store.language))
+        .accessibilityLabel(text("biology.foodWebLab.title"))
+    }
+
+    private func drawArrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, link: PondFoodWebLink) {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let distance = max(hypot(dx, dy), 1)
+        let ux = dx / distance
+        let uy = dy / distance
+        let lineStart = CGPoint(x: start.x + ux * 50, y: start.y + uy * 22)
+        let tip = CGPoint(x: end.x - ux * 51, y: end.y - uy * 22)
+        let base = CGPoint(x: tip.x - ux * 9, y: tip.y - uy * 9)
+        let highlighted = selectedNode == "none" || link.from == selectedNode || link.to == selectedNode
+        let lostLink = starving.contains(link.from) || starving.contains(link.to)
+        let opacity = lostLink ? 0.12 : (highlighted ? 0.8 : 0.16)
+        let isMatterCycle = link.kind == .matterCycle
+        let linkColor = isMatterCycle ? Color.teal : Color.secondary
+        var shaft = Path()
+        shaft.move(to: lineStart)
+        shaft.addLine(to: tip)
+        context.stroke(shaft, with: .color(linkColor.opacity(opacity)),
+                       style: StrokeStyle(lineWidth: highlighted && !lostLink ? 2 : 1.5, lineCap: .round, dash: isMatterCycle ? [4, 3] : []))
+        let wing = CGPoint(x: -uy * 4, y: ux * 4)
+        var arrow = Path()
+        arrow.move(to: tip)
+        arrow.addLine(to: CGPoint(x: base.x + wing.x, y: base.y + wing.y))
+        arrow.addLine(to: CGPoint(x: base.x - wing.x, y: base.y - wing.y))
+        arrow.closeSubpath()
+        context.fill(arrow, with: .color(linkColor.opacity(opacity)))
+    }
+
+    private func nodeButton(_ node: PondFoodWebNode) -> some View {
+        let lost = starving.contains(node.id)
+        let selected = node.id == selectedNode
+        return Button {
+            selectedNode = node.id
+        } label: {
+            VStack(spacing: 1) {
+                Text(nodeName(node.id))
+                    .font(.caption.weight(.medium))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                if lost {
+                    Text(text("biology.foodWebLab.noFood")).font(.caption2.weight(.semibold)).foregroundStyle(.red)
+                }
+            }
+            .frame(width: 104, height: 44)
+            .background(selected ? Color.accentColor.opacity(0.18) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(lost ? Color.red : nodeColor(node.kind).opacity(0.7),
+                                                              style: StrokeStyle(lineWidth: selected || lost ? 2 : 1, dash: lost ? [4, 3] : [])))
+            .opacity(lost ? 0.6 : 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(nodeName(node.id) + (lost ? ", " + text("biology.foodWebLab.noFood") : ""))
+        .accessibilityHint(Text(text("biology.foodWebLab.select")))
     }
 
     private var selectedNodeDetails: some View {
@@ -8783,39 +8812,45 @@ private struct FoodWebLab: View {
             Text(nodeName(selectedNode))
                 .font(.subheadline.weight(.semibold))
             if !incoming.isEmpty {
-                Text("\(L10n.text("biology.foodWebLab.incoming", store.language)): \(incoming.map(nodeName).joined(separator: ", "))")
+                Text(verbatim: text("biology.foodWebLab.incoming") + ": " + incoming.map(nodeName).joined(separator: ", "))
             }
             if !outgoing.isEmpty {
-                Text("\(L10n.text("biology.foodWebLab.outgoing", store.language)): \(outgoing.map(nodeName).joined(separator: ", "))")
+                Text(verbatim: text("biology.foodWebLab.outgoing") + ": " + outgoing.map(nodeName).joined(separator: ", "))
             }
             if incoming.isEmpty && outgoing.isEmpty {
-                Text(L10n.text("biology.foodWebLab.noDirectLinks", store.language))
+                Text(text("biology.foodWebLab.noDirectLinks"))
             }
         }
         .font(.caption)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
         .fixedSize(horizontal: false, vertical: true)
     }
 
     private var removalSummary: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text("biology.foodWebLab.removal", store.language))
+            Text(text("biology.foodWebLab.removal"))
                 .font(.caption.weight(.semibold))
-            if directConsumers.isEmpty {
-                Text(L10n.text("biology.foodWebLab.noConsumers", store.language))
-                    .font(.caption)
-            } else {
-                Text(directConsumers.map(nodeName).joined(separator: ", "))
+            Text(directConsumers.isEmpty ? text("biology.foodWebLab.noConsumers") : directConsumers.map(nodeName).joined(separator: ", "))
+                .font(.caption)
+            if !starving.isEmpty {
+                Text(text("biology.foodWebLab.lostAll"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.top, 2)
+                Text(species.filter(starving.contains).map(nodeName).joined(separator: " → "))
                     .font(.caption)
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.red.opacity(starving.isEmpty ? 0.04 : 0.08), in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func nodeName(_ id: String) -> String {
-        if id == "none" { return L10n.text("biology.foodWebLab.network", store.language) }
-        return L10n.text("biology.foodweb.node.\(id)", store.language)
+        if id == "none" { return text("biology.foodWebLab.network") }
+        return text("biology.foodweb.node.\(id)")
     }
 
     private func nodeColor(_ kind: PondFoodWebNodeKind) -> Color {
@@ -8843,74 +8878,68 @@ private struct EukaryoticCellLab: View {
     @State private var selectedPart = "nucleus"
     @State private var sceneTapSequence = 0
     @State private var sceneTapDiagnostic = "not tapped"
+    @State private var visitedParts: Set<String> = ["nucleus"]
 
     private var isCell3DUITestRoute: Bool {
         ProcessInfo.processInfo.arguments.contains("-colidev.uiTestCell3D")
     }
 
     private let parts = CellOrganelleID.all
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label(
-                        L10n.text("lab.cell3d.title", store.language),
-                        systemImage: "cube.transparent"
-                    )
+            LabHeader(title: text("lab.cell3d.title"), instruction: text("lab.cell3d.subtitle"))
+            EukaryoticCellScene(
+                selectedPart: $selectedPart,
+                tapSequence: $sceneTapSequence,
+                tapDiagnostic: $sceneTapDiagnostic
+            )
+                .frame(height: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(text("lab.cell3d.accessibility")))
+                .accessibilityValue(Text(text("biology.cell3d.\(selectedPart)")))
+                .accessibilityIdentifier("biology.cell3d.scene")
+                .overlay(alignment: .topLeading) {
+                    if isCell3DUITestRoute {
+                        let diagnostic = "tap=\(sceneTapSequence), part=\(selectedPart), \(sceneTapDiagnostic)"
+                        Text(diagnostic)
+                            .font(.system(size: 1))
+                            .foregroundStyle(.clear)
+                            .frame(width: 1, height: 1)
+                            .accessibilityLabel(Text(diagnostic))
+                            .accessibilityValue(Text(diagnostic))
+                            .accessibilityIdentifier("biology.cell3d.tapState")
+                    }
+                }
+            Picker(text("lab.cellPart"), selection: $selectedPart) {
+                ForEach(parts, id: \.self) { part in
+                    Text(text("biology.cell3d.\(part)")).tag(part)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(maxWidth: 360)
+            .accessibilityIdentifier("biology.cell3d.organelles")
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text("biology.cell3d.\(selectedPart)"))
                     .font(.headline)
-                    Spacer()
-                    Text(L10n.text("lab.cell3d.interactionHint", store.language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                EukaryoticCellScene(
-                    selectedPart: $selectedPart,
-                    tapSequence: $sceneTapSequence,
-                    tapDiagnostic: $sceneTapDiagnostic
-                )
-                    .frame(height: 260)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(L10n.text("lab.cell3d.accessibility", store.language)))
-                    .accessibilityValue(Text(L10n.text("biology.cell3d.\(selectedPart)", store.language)))
-                    .accessibilityIdentifier("biology.cell3d.scene")
-                    .overlay(alignment: .topLeading) {
-                        if isCell3DUITestRoute {
-                            let diagnostic = "tap=\(sceneTapSequence), part=\(selectedPart), \(sceneTapDiagnostic)"
-                            Text(diagnostic)
-                                .font(.system(size: 1))
-                                .foregroundStyle(.clear)
-                                .frame(width: 1, height: 1)
-                                .accessibilityLabel(Text(diagnostic))
-                                .accessibilityValue(Text(diagnostic))
-                                .accessibilityIdentifier("biology.cell3d.tapState")
-
-                        }
-                    }
-
-                Picker(L10n.text("lab.cellPart", store.language), selection: $selectedPart) {
-                    ForEach(parts, id: \.self) { part in
-                        Text(L10n.text("biology.cell3d.\(part)", store.language)).tag(part)
-                    }
-                }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("biology.cell3d.organelles")
-
-                Text(L10n.text("biology.cell3d.\(selectedPart).function", store.language))
+                Text(text("biology.cell3d.\(selectedPart).function"))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 10))
                     .accessibilityIdentifier("biology.cell3d.description")
-
-                Text(L10n.text("lab.cell3d.scaleNote", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.teal.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            LabStatGrid {
+                LabStat(label: text("lab.cell3d.statVisited"), value: "\(visitedParts.count) / \(parts.count)", tint: .teal)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.cell3d.challenge"),
+                         solved: selectedPart == "mitochondria", solvedText: text("lab.cell3d.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.cell3d.scaleNote")])
         }
+        .onChange(of: selectedPart) { part in visitedParts.insert(part) }
     }
 }
 
