@@ -839,6 +839,45 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testTimeDilationLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/special_relativity_time_dilation"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.relativity.result"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The relativity lesson must show its lab. / В уроке об относительности должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("12,50") || shown.contains("12.50")) && (shown.contains("1,250") || shown.contains("1.250")), shown)
+    }
+
+    @MainActor
+    func testHydrogenSpectrumLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/quantum_energy_levels_and_shells"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.hydrogen.photon"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The quantum levels lesson must show its lab. / В уроке о квантовых уровнях должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("656")) && (shown.contains("1,89") || shown.contains("1.89")), shown)
+    }
+
+    @MainActor
+    func testElectromagneticWaveLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/maxwell_and_electromagnetic_waves"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.emwave.wavelength"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The Maxwell lesson must show its lab. / В уроке об уравнениях Максвелла должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("3,00") || shown.contains("3.00")), shown)
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

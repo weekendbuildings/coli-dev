@@ -487,6 +487,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-chemical-energy-labs"
           "$RUNNER_TEMP/verify-chemical-energy-labs"
 
+      - name: Verify relativity, hydrogen spectrum, and electromagnetic wave lab models / Проверка моделей относительности, спектра водорода и электромагнитных волн
+        run: |
+          swiftc macOS/ColiDev/App/ModernPhysicsLabs.swift macOS/ColiDev/scripts/verify_modern_physics_labs.swift \
+            -o "$RUNNER_TEMP/verify-modern-physics-labs"
+          "$RUNNER_TEMP/verify-modern-physics-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

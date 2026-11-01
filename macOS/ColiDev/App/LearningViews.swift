@@ -1890,6 +1890,12 @@ private struct PracticeLab: View {
             EnergyCouplingLab()
         } else if subject == .chemistry, moduleResource == "reaction_rate_and_equilibrium" {
             ReactionQuotientLab()
+        } else if subject == .physics, moduleResource == "special_relativity_time_dilation" {
+            TimeDilationLab()
+        } else if subject == .physics, moduleResource == "quantum_energy_levels_and_shells" {
+            HydrogenSpectrumLab()
+        } else if subject == .physics, moduleResource == "maxwell_and_electromagnetic_waves" {
+            ElectromagneticWaveLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12897,6 +12903,241 @@ private struct ReactionQuotientLab: View {
                 .accessibilityLabel(Text(verbatim: formula))
                 .accessibilityValue(Text(verbatim: number(mixture[keyPath: path], 4)))
                 .accessibilityIdentifier(identifier)
+        }
+    }
+}
+
+private struct TimeDilationLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var speed = 0.6
+    @State private var properTime = 10.0
+
+    private typealias Model = RelativityModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let gamma = Model.gamma(speed: speed)
+        LabCard {
+            Text(L10n.text("lab.relativity.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.relativity.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            curve
+                .frame(height: 150)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.relativity.chart", store.language))
+                .accessibilityValue(Text(verbatim: number(gamma, 2)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.relativity.speed", store.language), number(speed, 2)))
+                    .monospacedDigit()
+                // Rounds to hundredths of c without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { speed }, set: { speed = ($0 * 100).rounded() / 100 }), in: Model.speedRange)
+                    .accessibilityLabel(L10n.text("lab.relativity.speedLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(speed, 2)))
+                    .accessibilityIdentifier("lab.relativity.speed")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.relativity.proper", store.language), number(properTime, 0)))
+                    .monospacedDigit()
+                Slider(value: Binding(get: { properTime }, set: { properTime = $0.rounded() }), in: Model.properTimeRange)
+                    .accessibilityLabel(L10n.text("lab.relativity.properLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(properTime, 0)))
+                    .accessibilityIdentifier("lab.relativity.proper")
+            }
+
+            Text(String(format: L10n.text("lab.relativity.result", store.language), number(gamma, 3),
+                        number(properTime, 0), number(Model.dilatedTime(properTime: properTime, speed: speed), 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.relativity.result")
+            Text(String(format: L10n.text("lab.relativity.muon", store.language),
+                        number(Model.dilatedTime(properTime: Model.muonHalfLife, speed: speed), 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.relativity.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // γ against v/c from 0 to 0.99 on a scale up to γ = 8, with the chosen speed marked.
+    private var curve: some View {
+        Canvas { context, size in
+            let maxY = 8.0
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(1, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            var one = Path()
+            one.move(to: position(0, 1))
+            one.addLine(to: position(1, 1))
+            context.stroke(one, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            var line = Path()
+            for index in 0...198 {
+                let x = Double(index) / 200
+                let point = position(x, Model.gamma(speed: x))
+                if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+            }
+            context.stroke(line, with: .color(.accentColor), lineWidth: 2)
+            let marker = position(speed, Model.gamma(speed: speed))
+            context.fill(Path(ellipseIn: CGRect(x: marker.x - 5, y: marker.y - 5, width: 10, height: 10)), with: .color(.orange))
+        }
+    }
+}
+
+private struct HydrogenSpectrumLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var upper = 3
+    @State private var lower = 2
+
+    private typealias Model = HydrogenSpectrumModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    // An approximate colour for a visible wavelength, linear between rough anchors; outside the range it is grey.
+    private func lineColor(_ wavelength: Double) -> Color {
+        guard Model.visibleRange.contains(wavelength) else { return .gray }
+        let anchors: [(Double, Double, Double, Double)] = [(380, 0.5, 0, 1), (440, 0, 0, 1), (490, 0, 1, 1), (510, 0, 1, 0), (580, 1, 1, 0), (645, 1, 0, 0), (760, 0.6, 0, 0)]
+        for (left, right) in zip(anchors, anchors.dropFirst()) where wavelength <= right.0 {
+            let share = (wavelength - left.0) / (right.0 - left.0)
+            return Color(red: left.1 + (right.1 - left.1) * share, green: left.2 + (right.2 - left.2) * share, blue: left.3 + (right.3 - left.3) * share)
+        }
+        return .red
+    }
+
+    var body: some View {
+        let wavelength = Model.wavelength(from: upper, to: lower)
+        let region = wavelength < Model.visibleRange.lowerBound ? "lab.hydrogen.ultraviolet"
+            : wavelength > Model.visibleRange.upperBound ? "lab.hydrogen.infrared" : "lab.hydrogen.visible"
+        LabCard {
+            Text(L10n.text("lab.hydrogen.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.hydrogen.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            levels
+                .frame(height: 170)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.hydrogen.diagram", store.language))
+                .accessibilityValue(Text(verbatim: "\(upper) → \(lower)"))
+
+            Stepper(value: Binding(get: { upper }, set: { upper = $0; if lower >= upper { lower = upper - 1 } }), in: 2...Model.levelRange.upperBound) {
+                Text(String(format: L10n.text("lab.hydrogen.upper", store.language), String(upper))).monospacedDigit()
+            }
+            .accessibilityIdentifier("lab.hydrogen.upper")
+            Stepper(value: Binding(get: { lower }, set: { lower = min($0, upper - 1) }), in: 1...(upper - 1)) {
+                Text(String(format: L10n.text("lab.hydrogen.lower", store.language), String(lower))).monospacedDigit()
+            }
+            .accessibilityIdentifier("lab.hydrogen.lower")
+
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 4).fill(lineColor(wavelength)).frame(width: 36, height: 22)
+                    .accessibilityHidden(true)
+                Text(String(format: L10n.text("lab.hydrogen.photon", store.language),
+                            number(Model.photonEnergy(from: upper, to: lower), 2), number(wavelength, 0)))
+                    .font(.headline.monospacedDigit())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.hydrogen.photon")
+            }
+            Text(L10n.text(region, store.language))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(String(format: L10n.text("lab.hydrogen.shell", store.language), String(upper), String(Model.shellCapacity(level: upper))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.hydrogen.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Levels Eₙ = −13.6/n² drawn to scale from −13.6 eV to 0, with an arrow for the chosen transition.
+    private var levels: some View {
+        Canvas { context, size in
+            func y(_ energy: Double) -> CGFloat { size.height * 0.05 + size.height * 0.9 * CGFloat(-energy / 13.6) }
+            for level in Model.levelRange {
+                var line = Path()
+                line.move(to: CGPoint(x: size.width * 0.1, y: y(Model.energy(level: level))))
+                line.addLine(to: CGPoint(x: size.width * 0.9, y: y(Model.energy(level: level))))
+                let chosen = level == upper || level == lower
+                context.stroke(line, with: .color(chosen ? .primary : .secondary.opacity(0.5)), lineWidth: chosen ? 2 : 1)
+                context.draw(Text(verbatim: "n=\(level)").font(.caption2), at: CGPoint(x: size.width * 0.05, y: y(Model.energy(level: level))))
+            }
+            let x = size.width * 0.6
+            var arrow = Path()
+            arrow.move(to: CGPoint(x: x, y: y(Model.energy(level: upper))))
+            arrow.addLine(to: CGPoint(x: x, y: y(Model.energy(level: lower))))
+            arrow.move(to: CGPoint(x: x - 6, y: y(Model.energy(level: lower)) - 8))
+            arrow.addLine(to: CGPoint(x: x, y: y(Model.energy(level: lower))))
+            arrow.addLine(to: CGPoint(x: x + 6, y: y(Model.energy(level: lower)) - 8))
+            context.stroke(arrow, with: .color(lineColor(Model.wavelength(from: upper, to: lower))), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct ElectromagneticWaveLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var exponent = 8.0
+
+    private typealias Model = ElectromagneticWaveModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    // Scientific notation such as 3,00 · 10⁸, written with superscript digits.
+    private func scientific(_ value: Double) -> String {
+        let power = Int(floor(log10(value)))
+        let mantissa = value / pow(10, Double(power))
+        let superscripts: [Character: Character] = ["0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻"]
+        return "\(number(mantissa, 2)) · 10" + String(String(power).map { superscripts[$0] ?? $0 })
+    }
+
+    var body: some View {
+        let frequency = pow(10, exponent)
+        let wavelength = Model.wavelength(frequency: frequency)
+        LabCard {
+            Text(L10n.text("lab.emwave.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.emwave.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.emwave.frequency", store.language), scientific(frequency)))
+                    .monospacedDigit()
+                // Tenths of an order of magnitude without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { exponent }, set: { exponent = ($0 * 10).rounded() / 10 }), in: Model.exponentRange)
+                    .accessibilityLabel(L10n.text("lab.emwave.frequencyLabel", store.language))
+                    .accessibilityValue(Text(verbatim: scientific(frequency)))
+                    .accessibilityIdentifier("lab.emwave.frequency")
+            }
+            Text(String(format: L10n.text("lab.emwave.wavelength", store.language), scientific(wavelength)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.emwave.wavelength")
+            Text(String(format: L10n.text("lab.emwave.compareRadio", store.language), scientific(frequency / Model.radioFrequency)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(String(format: L10n.text("lab.emwave.compareGreen", store.language), scientific(wavelength / Model.greenWavelength)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.emwave.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
         }
     }
 }

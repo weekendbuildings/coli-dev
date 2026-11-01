@@ -805,3 +805,26 @@ def test_coupling_and_quotient_labs_are_wired_into_the_app_project_and_ci() -> N
     assert "+20 − 30.5 = −10.5" in coupling and "−30.5 kJ/mol" in coupling
     _, equilibrium = _sections("Chemistry", "reaction_rate_and_equilibrium")
     assert "K = 0.64" in equilibrium and "Q = 0.040" in equilibrium
+
+
+def test_modern_physics_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    for resource, view in [("special_relativity_time_dilation", "TimeDilationLab"), ("quantum_energy_levels_and_shells", "HydrogenSpectrumLab"),
+                           ("maxwell_and_electromagnetic_waves", "ElectromagneticWaveLab")]:
+        assert f'moduleResource == "{resource}"' in views and f"{view}()" in views
+    assert "ModernPhysicsLabs.swift in Sources" in project and "scripts/verify_modern_physics_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:relativity|hydrogen|emwave)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:relativity|hydrogen|emwave)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, relativity = _sections("Physics", "special_relativity_time_dilation")
+    assert "1.25" in relativity and "12.5 s" in relativity and "1.52 µs" in relativity
+    _, quantum = _sections("Physics", "quantum_energy_levels_and_shells")
+    assert "656 nm" in quantum and "1240" in quantum and "2n²" in quantum
+    _, maxwell = _sections("Physics", "maxwell_and_electromagnetic_waves")
+    assert "3.00 m" in maxwell and "100 MHz" in maxwell
