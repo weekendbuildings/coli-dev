@@ -661,3 +661,26 @@ def test_least_squares_lab_is_wired_into_the_app_project_and_ci() -> None:
     russian, _ = _sections("Physics", "fitting_pendulum_data_least_squares")
     assert "[0.25, 0.50, 0.75, 1.00]" in russian and "[0.25, 0.50, 0.75, 1.00]" in model
     assert "[1.00, 1.42, 1.74, 2.01]" in russian and "[1.00, 1.42, 1.74, 2.01]" in model
+
+
+def test_plasticity_and_enzyme_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "synaptic_plasticity_and_learning"' in views and "SynapticPlasticityLab()" in views
+    assert 'moduleResource == "enzyme_kinetics_michaelis_menten"' in views and "MichaelisMentenLab()" in views
+    assert "LifeMechanismLabs.swift in Sources" in project and "scripts/verify_life_mechanism_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:plasticity|enzyme)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:plasticity|enzyme)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # The lab follows the lesson: NMDA needs glutamate and strong depolarisation, and AMPA insertion strengthens the synapse.
+    _, synapse = _sections("Biology", "synaptic_plasticity_and_learning")
+    assert "magnesium" in synapse and "calcium" in synapse and "AMPA receptors are inserted" in synapse
+    # The enzyme lab starts at the lesson quiz: Vmax 100, Km 2 mM, [S] 6 mM gives 75.
+    _, enzyme = _sections("Chemistry", "enzyme_kinetics_michaelis_menten")
+    assert "v = 100 · 6 / (2 + 6) = 75" in enzyme
+    assert math.isclose(100 * 6 / (2 + 6), 75)
