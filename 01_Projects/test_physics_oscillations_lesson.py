@@ -64,6 +64,6 @@ def test_pendulum_lab_is_wired_into_the_app_project_and_ci() -> None:
     assert "accessibilityReduceMotion" in views.split("private struct PendulumLab", 1)[1].split("private struct PendulumDrawing", 1)[0]
     assert "Pendulum.swift in Sources" in project
     assert "scripts/verify_pendulum.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.pendulum\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.pendulum\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.pendulum\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined

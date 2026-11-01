@@ -96,7 +96,7 @@ def test_new_foundation_labs_are_wired_into_the_app_project_and_ci() -> None:
     assert "HeatMixing.swift in Sources" in project and "ShortMessagePractice.swift in Sources" in project
     assert "scripts/verify_heat_mixing.swift" in workflow and "scripts/verify_short_message.swift" in workflow
     for prefix in ("lab.heat.", "lab.message."):
-        used = {key for key in re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:heat|message)\.[A-Za-z.0-9]+)"', views) if key.startswith(prefix)}
+        used = {key for key in re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:heat|message)\.[A-Za-z.0-9]+)"', views) if key.startswith(prefix)}
         assert used and used <= strings, used - strings
     model = (APP_ROOT / "App" / "ShortMessagePractice.swift").read_text(encoding="utf-8")
     assert set(re.findall(r'"(lab\.message\.[a-z]+\.[a-z0-9]+)"', model)) <= strings

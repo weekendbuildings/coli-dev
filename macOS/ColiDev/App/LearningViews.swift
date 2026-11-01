@@ -10432,56 +10432,80 @@ private struct HeldOutEvaluationLab: View {
 private struct NeuronSignalLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var depolarization = 10.0
+    @State private var progress = 1.0
+    @State private var playing = false
 
-    private var potential: Int {
-        Int(NeuronSignalModel.membranePotential(afterDepolarization: depolarization).rounded())
-    }
+    private typealias Model = NeuronSignalModel
 
-    private var fires: Bool {
-        NeuronSignalModel.firesActionPotential(afterDepolarization: depolarization)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func millivolts(_ value: Double) -> String { L10n.measurement(value, fractionDigits: 0, unit: "mV", store.language) }
 
     var body: some View {
+        let fires = Model.firesActionPotential(afterDepolarization: depolarization)
         LabCard {
-            Text(L10n.text("lab.neuron.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.neuron.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.neuron.title"), instruction: text("lab.neuron.subtitle"))
+            trace(fires: fires)
+                .frame(height: 260)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text(fires ? "lab.neuron.traceFires" : "lab.neuron.traceNoFire"))
 
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(
-                    format: L10n.text("lab.neuron.stimulus", store.language),
-                    Int(depolarization.rounded()),
-                    L10n.measurement(Double(potential), fractionDigits: 0, unit: "mV", store.language)
-                ))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $depolarization, in: NeuronSignalModel.stimulusRange, step: 1)
-                    .accessibilityLabel(L10n.text("lab.neuron.stimulusLabel", store.language))
-                    .accessibilityValue(String(
-                        format: L10n.text("lab.neuron.potentialValue", store.language),
-                        L10n.measurement(Double(potential), fractionDigits: 0, unit: "mV", store.language)
-                    ))
+            HStack(spacing: 12) {
+                Button {
+                    progress = 0
+                    playing = true
+                } label: { Label(text("lab.neuron.play"), systemImage: "bolt.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.neuron.play")
+                Text(String(format: text("lab.neuron.stimulus"), Int(depolarization.rounded()), millivolts(Model.membranePotential(afterDepolarization: depolarization))))
+                    .monospacedDigit()
+                    .frame(minWidth: 260, alignment: .leading)
+                // Whole millivolts without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { depolarization }, set: { depolarization = $0.rounded() }), in: Model.stimulusRange)
+                    .accessibilityLabel(text("lab.neuron.stimulusLabel"))
             }
+            LabStatGrid {
+                LabStat(label: text("lab.neuron.statMembrane"), value: millivolts(Model.membranePotential(afterDepolarization: depolarization)), tint: .accentColor)
+                LabStat(label: text("lab.neuron.statPeak"), value: millivolts(Model.highestPotential(afterDepolarization: depolarization)), tint: fires ? .yellow : .secondary)
+            }
+            LabStatusBadge(kind: fires ? .good : .info, text: text(fires ? "lab.neuron.fires" : "lab.neuron.noFire"), identifier: "lab.neuron.outcome")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.neuron.challenge"),
+                         solved: fires && !Model.firesActionPotential(afterDepolarization: depolarization - 1), solvedText: text("lab.neuron.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.neuron.hint"), text("lab.neuron.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while progress < 1 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 25_000_000)
+                progress = min(progress + 0.02, 1)
+            }
+            playing = false
+        }
+    }
 
-            MembraneTraceView(
-                points: NeuronSignalModel.trace(afterDepolarization: depolarization),
-                thresholdLabel: L10n.text("lab.neuron.thresholdLine", store.language),
-                restLabel: L10n.text("lab.neuron.restLine", store.language)
-            )
-            .frame(height: 170)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(L10n.text(fires ? "lab.neuron.traceFires" : "lab.neuron.traceNoFire", store.language))
-
-            Label(L10n.text(fires ? "lab.neuron.fires" : "lab.neuron.noFire", store.language), systemImage: fires ? "bolt.fill" : "minus.circle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.neuron.outcome")
-            Text(L10n.text("lab.neuron.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+    // The membrane potential over time with the resting and threshold levels; Play draws it from left to right.
+    private func trace(fires: Bool) -> some View {
+        Canvas { context, size in
+            let points = Model.trace(afterDepolarization: depolarization)
+            let maxTime = points.last?.milliseconds ?? 5
+            let plot = LabPlotGeometry(size: size, x: 0...maxTime, y: -90...50)
+            plot.drawAxes(in: context, xLabel: text("lab.neuron.axisTime"), yLabel: text("lab.neuron.axisVoltage"), format: { L10n.number($0, fractionDigits: 0, store.language) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -4, dy: -4)))
+            for (value, key, color) in [(Model.thresholdPotential, "lab.neuron.thresholdLine", Color.orange), (Model.restingPotential, "lab.neuron.restLine", Color.secondary)] {
+                var line = Path()
+                line.move(to: plot.point(0, value))
+                line.addLine(to: plot.point(maxTime, value))
+                clipped.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 1.2, dash: [5, 4]))
+                clipped.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(color), at: plot.point(maxTime, value + 3), anchor: .bottomTrailing)
+            }
+            let visible = maxTime * progress
+            var line = Path()
+            var started = false
+            for point in points where point.milliseconds <= visible {
+                let location = plot.point(point.milliseconds, point.millivolts)
+                if started { line.addLine(to: location) } else { line.move(to: location); started = true }
+            }
+            clipped.stroke(line, with: .color(fires ? .yellow : .accentColor), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
         }
     }
 }
@@ -10901,89 +10925,128 @@ private struct GradientDescentLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var learningRateIndex = 1
     @State private var steps = 5.0
+    @State private var playing = false
 
-    private var learningRate: Double {
-        GradientDescentPractice.learningRates[min(max(learningRateIndex, 0), GradientDescentPractice.learningRates.count - 1)]
-    }
+    private typealias Model = GradientDescentPractice
 
-    private var trajectory: [GradientDescentStep] {
-        GradientDescentPractice.trajectory(learningRate: learningRate, steps: Int(steps.rounded()))
-    }
-
-    private var verdictKey: String {
-        if !GradientDescentPractice.converges(learningRate: learningRate) {
-            return "lab.gd.diverges"
-        }
-        return GradientDescentPractice.oscillates(learningRate: learningRate) ? "lab.gd.oscillates" : "lab.gd.converges"
-    }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var rate: Double { Model.learningRates[learningRateIndex] }
 
     var body: some View {
+        let path = Model.trajectory(learningRate: rate, steps: Int(steps.rounded()))
+        let last = path.last ?? GradientDescentStep(step: 0, weight: Model.initialWeight, loss: Model.loss(weight: Model.initialWeight))
+        let status: (LabStatusKind, String) = !Model.converges(learningRate: rate) ? (.bad, text("lab.gd.diverges"))
+            : Model.oscillates(learningRate: rate) ? (.warning, text("lab.gd.oscillates")) : (.good, text("lab.gd.converges"))
         LabCard {
-            Text(L10n.text("lab.gd.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.gd.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.gd.title"), instruction: text("lab.gd.subtitle"))
+            HStack(spacing: 16) {
+                dataPlot(weight: last.weight)
+                lossPlot(path: path)
+            }
+            .frame(height: 260)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.gd.chart"))
+            .accessibilityValue(Text(verbatim: number(last.loss, 3)))
 
-            Picker(L10n.text("lab.gd.rate", store.language), selection: $learningRateIndex) {
-                ForEach(Array(GradientDescentPractice.learningRates.enumerated()), id: \.offset) { index, rate in
-                    Text(verbatim: "η = " + L10n.number(rate, fractionDigits: 2, store.language)).tag(index)
-                }
+            Picker(text("lab.gd.rate"), selection: $learningRateIndex) {
+                ForEach(Model.learningRates.indices, id: \.self) { index in Text(verbatim: "η = " + number(Model.learningRates[index], 2)).tag(index) }
             }
             .pickerStyle(.segmented)
             .accessibilityIdentifier("lab.gd.rate")
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: L10n.text("lab.gd.steps", store.language), Int(steps.rounded())))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $steps, in: 0...Double(GradientDescentPractice.maximumSteps), step: 1)
-                    .accessibilityLabel(L10n.text("lab.gd.stepsLabel", store.language))
-                    .accessibilityValue(String(Int(steps.rounded())))
+            HStack(spacing: 12) {
+                Button {
+                    if Int(steps.rounded()) >= Model.maximumSteps { steps = 0 }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.gd.play")
+                Text(String(format: text("lab.gd.steps"), Int(steps.rounded()))).monospacedDigit().frame(minWidth: 130, alignment: .leading)
+                // Whole iterations without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { steps }, set: { steps = $0.rounded() }), in: 0...Double(Model.maximumSteps))
+                    .accessibilityLabel(text("lab.gd.stepsLabel"))
             }
-
-            if let last = trajectory.last {
-                Text(String(
-                    format: L10n.text("lab.gd.state", store.language),
-                    L10n.number(last.weight, fractionDigits: 3, store.language),
-                    L10n.number(last.loss, fractionDigits: 3, store.language)
-                ))
-                    .font(.callout.monospacedDigit())
-                    .accessibilityIdentifier("lab.gd.state")
+            LabStatGrid {
+                LabStat(label: "w", value: number(last.weight, 3), tint: .accentColor)
+                LabStat(label: text("lab.gd.statLoss"), value: number(last.loss, 3), tint: .orange)
+                LabStat(label: text("lab.gd.statFactor"), value: number(1 - 15 * rate, 2), tint: .purple)
             }
-
-            lossChart
-                .frame(height: 90)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.gd.chart", store.language))
-
-            Label(L10n.text(verdictKey, store.language), systemImage: verdictKey == "lab.gd.diverges" ? "exclamationmark.triangle" : "checkmark.seal")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.gd.verdict")
-            Text(L10n.text("lab.gd.optimum", store.language))
-                .font(.callout)
+            Text(String(format: text("lab.gd.state"), number(last.weight, 3), number(last.loss, 3)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-            Text(L10n.text("lab.gd.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.gd.state")
+            LabStatusBadge(kind: status.0, text: status.1)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.gd.challenge"),
+                         solved: Model.converges(learningRate: rate) && Model.oscillates(learningRate: rate), solvedText: text("lab.gd.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.gd.hint"), text("lab.gd.optimum"), text("lab.gd.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled && Int(steps.rounded()) < Model.maximumSteps {
+                try? await Task.sleep(nanoseconds: 380_000_000)
+                withAnimation(.easeInOut(duration: 0.3)) { steps += 1 }
+            }
+            playing = false
         }
     }
 
-    // Loss spans about seven decades across the offered rates, so bars use a logarithmic scale above the minimum.
-    private var lossChart: some View {
-        let minimumLoss = GradientDescentPractice.loss(weight: GradientDescentPractice.optimalWeight)
-        return GeometryReader { geometry in
-            HStack(alignment: .bottom, spacing: 3) {
-                ForEach(trajectory, id: \.step) { point in
-                    let decades = log10(max(point.loss / minimumLoss, 1))
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(Color.accentColor.gradient)
-                        .frame(height: max(3, geometry.size.height * CGFloat(min(decades / 7, 1))))
-                }
+    // The four data points with the current line y = w·x and the best line dashed.
+    private func dataPlot(weight: Double) -> some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...4.5, y: 0...10)
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "y", format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            var best = Path()
+            best.move(to: plot.point(0, 0))
+            best.addLine(to: plot.point(4.5, 4.5 * Model.optimalWeight))
+            clipped.stroke(best, with: .color(.green), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var line = Path()
+            line.move(to: plot.point(0, 0))
+            line.addLine(to: plot.point(4.5, 4.5 * weight))
+            clipped.stroke(line, with: .color(.accentColor), lineWidth: 3)
+            for (x, y) in zip(Model.inputs, Model.targets) {
+                let measured = plot.point(x, y), predicted = plot.point(x, weight * x)
+                var residual = Path()
+                residual.move(to: measured)
+                residual.addLine(to: predicted)
+                clipped.stroke(residual, with: .color(.orange.opacity(0.7)), lineWidth: 1.5)
+                clipped.fill(Path(ellipseIn: CGRect(x: measured.x - 6, y: measured.y - 6, width: 12, height: 12)), with: .color(.orange))
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
+            context.draw(Text(verbatim: "y = " + number(weight, 2) + "·x").font(.caption.weight(.bold)).foregroundColor(.accentColor),
+                         at: CGPoint(x: plot.rect.minX + 8, y: plot.rect.minY + 14), anchor: .leading)
+        }
+    }
+
+    // The error parabola L(w) with each iteration as a dot hopping toward (or away from) the minimum.
+    private func lossPlot(path: [GradientDescentStep]) -> some View {
+        Canvas { context, size in
+            let maxLoss = max(Model.loss(weight: Model.initialWeight), path.map(\.loss).max() ?? 0) * 1.05
+            let plot = LabPlotGeometry(size: size, x: -0.5...4.5, y: 0...maxLoss)
+            plot.drawAxes(in: context, xLabel: "w", yLabel: text("lab.gd.axisLoss"), format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -8, dy: -8)))
+            var curve = Path()
+            for index in 0...200 {
+                let w = -0.5 + 5 * Double(index) / 200
+                let location = plot.point(w, min(Model.loss(weight: w), maxLoss * 1.2))
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.secondary), lineWidth: 2)
+            var hops = Path()
+            for (index, step) in path.enumerated() {
+                let location = plot.point(min(max(step.weight, -0.5), 4.5), min(step.loss, maxLoss))
+                if index == 0 { hops.move(to: location) } else { hops.addLine(to: location) }
+            }
+            clipped.stroke(hops, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            for (index, step) in path.enumerated() {
+                let location = plot.point(min(max(step.weight, -0.5), 4.5), min(step.loss, maxLoss))
+                let radius: CGFloat = index == path.count - 1 ? 7 : 4
+                clipped.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)),
+                             with: .color(index == path.count - 1 ? .accentColor : .orange))
+            }
+            let minimum = plot.point(Model.optimalWeight, Model.loss(weight: Model.optimalWeight))
+            clipped.fill(Path(ellipseIn: CGRect(x: minimum.x - 5, y: minimum.y - 5, width: 10, height: 10)), with: .color(.green))
         }
     }
 }
@@ -10993,78 +11056,102 @@ private struct SynapticSummationLab: View {
     @State private var excitatory = 2
     @State private var inhibitory = 0
 
-    private var potential: Double {
-        SynapticSummationModel.membranePotential(excitatory: excitatory, inhibitory: inhibitory)
-    }
+    private typealias Model = SynapticSummationModel
 
-    private var fires: Bool {
-        SynapticSummationModel.reachesThreshold(excitatory: excitatory, inhibitory: inhibitory)
-    }
-
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private var potentialDescription: String {
-        L10n.measurement(potential.rounded(), fractionDigits: 0, unit: "mV", store.language)
+        L10n.measurement(Model.membranePotential(excitatory: excitatory, inhibitory: inhibitory), fractionDigits: 0, unit: "mV", store.language)
     }
 
     var body: some View {
+        let fires = Model.reachesThreshold(excitatory: excitatory, inhibitory: inhibitory)
         LabCard {
-            Text(L10n.text("lab.synapse.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.synapse.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            Stepper(value: $excitatory, in: SynapticSummationModel.inputRange) {
-                Text(String(format: L10n.text("lab.synapse.excitatory", store.language), excitatory))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.synapse.title"), instruction: text("lab.synapse.subtitle"))
+            HStack(spacing: 18) {
+                cell(fires: fires)
+                meter
+                    .frame(width: 120)
             }
-            .accessibilityLabel(Text(L10n.text("lab.synapse.excitatoryLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(excitatory)))
-            .accessibilityIdentifier("lab.synapse.excitatory")
-            Stepper(value: $inhibitory, in: SynapticSummationModel.inputRange) {
-                Text(String(format: L10n.text("lab.synapse.inhibitory", store.language), inhibitory))
-                    .monospacedDigit()
-            }
-            .accessibilityLabel(Text(L10n.text("lab.synapse.inhibitoryLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(inhibitory)))
-            .accessibilityIdentifier("lab.synapse.inhibitory")
+            .frame(height: 240)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.synapse.scale"))
+            .accessibilityValue(String(format: text("lab.synapse.potential"), potentialDescription))
 
-            Text(String(format: L10n.text("lab.synapse.potential", store.language), potentialDescription))
+            HStack(spacing: 24) {
+                Stepper(value: $excitatory.animation(.spring(response: 0.35)), in: Model.inputRange) {
+                    Text(String(format: text("lab.synapse.excitatory"), excitatory)).foregroundStyle(.green)
+                }
+                .accessibilityLabel(Text(text("lab.synapse.excitatoryLabel")))
+                .accessibilityIdentifier("lab.synapse.excitatory")
+                Stepper(value: $inhibitory.animation(.spring(response: 0.35)), in: Model.inputRange) {
+                    Text(String(format: text("lab.synapse.inhibitory"), inhibitory)).foregroundStyle(.red)
+                }
+                .accessibilityLabel(Text(text("lab.synapse.inhibitoryLabel")))
+                .accessibilityIdentifier("lab.synapse.inhibitory")
+            }
+            Text(String(format: text("lab.synapse.potential"), potentialDescription))
                 .font(.headline.monospacedDigit())
                 .accessibilityIdentifier("lab.synapse.potential")
-            potentialScale
-                .frame(height: 26)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.synapse.scale", store.language))
-                .accessibilityValue(String(format: L10n.text("lab.synapse.potential", store.language), potentialDescription))
-
-            Label(L10n.text(fires ? "lab.synapse.fires" : "lab.synapse.noFire", store.language), systemImage: fires ? "bolt.fill" : "minus.circle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.synapse.outcome")
-            Text(L10n.text("lab.synapse.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabStatusBadge(kind: fires ? .good : .info, text: text(fires ? "lab.synapse.fires" : "lab.synapse.noFire"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.synapse.challenge"),
+                         solved: inhibitory == 2 && excitatory == Model.excitatoryInputsNeeded(inhibitory: 2), solvedText: text("lab.synapse.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.synapse.hint"), text("lab.synapse.limit")])
         }
     }
 
-    // The scale spans the lab's reachable range, −94 to −46 mV, with the −55 mV threshold marked.
-    private var potentialScale: some View {
-        GeometryReader { geometry in
-            let lower = -94.0
-            let upper = -46.0
-            let fraction = (potential - lower) / (upper - lower)
-            let thresholdFraction = (SynapticSummationModel.thresholdPotential - lower) / (upper - lower)
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.secondary.opacity(0.12))
-                Capsule()
-                    .fill((fires ? Color.green : Color.accentColor).gradient)
-                    .frame(width: max(8, geometry.size.width * CGFloat(fraction)))
-                Rectangle()
-                    .fill(Color.orange)
-                    .frame(width: 2)
-                    .offset(x: geometry.size.width * CGFloat(thresholdFraction))
+    // A neuron with excitatory (green) and inhibitory (red) synapses on its dendrites; the axon lights up when it fires.
+    private func cell(fires: Bool) -> some View {
+        Canvas { context, size in
+            let soma = CGPoint(x: size.width * 0.42, y: size.height / 2)
+            let dendrites = (0..<6).map { index -> CGPoint in
+                let angle = Double.pi * (0.62 + Double(index) * 0.15)
+                return CGPoint(x: soma.x + CGFloat(cos(angle)) * size.height * 0.46, y: soma.y - CGFloat(sin(angle)) * size.height * 0.46)
+            }
+            for (index, tip) in dendrites.enumerated() {
+                var branch = Path()
+                branch.move(to: soma)
+                branch.addLine(to: tip)
+                context.stroke(branch, with: .color(.secondary.opacity(0.6)), lineWidth: 4)
+                let excitatoryHere = index < excitatory
+                let inhibitoryHere = index < inhibitory
+                if excitatoryHere {
+                    let point = CGPoint(x: soma.x + (tip.x - soma.x) * 0.75, y: soma.y + (tip.y - soma.y) * 0.75)
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - 9, y: point.y - 9, width: 18, height: 18)), with: .color(.green))
+                    context.draw(Text(verbatim: "+").font(.caption.weight(.heavy)).foregroundColor(.white), at: point)
+                }
+                if inhibitoryHere {
+                    let point = CGPoint(x: soma.x + (tip.x - soma.x) * 0.45, y: soma.y + (tip.y - soma.y) * 0.45)
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - 9, y: point.y - 9, width: 18, height: 18)), with: .color(.red))
+                    context.draw(Text(verbatim: "−").font(.caption.weight(.heavy)).foregroundColor(.white), at: point)
+                }
+            }
+            context.fill(Path(ellipseIn: CGRect(x: soma.x - 34, y: soma.y - 34, width: 68, height: 68)), with: .color(.purple.opacity(0.8)))
+            var axon = Path()
+            axon.move(to: CGPoint(x: soma.x + 34, y: soma.y))
+            axon.addLine(to: CGPoint(x: size.width - 10, y: soma.y))
+            context.stroke(axon, with: .color(fires ? .yellow : .secondary.opacity(0.5)), lineWidth: fires ? 7 : 4)
+            context.draw(Text(text(fires ? "lab.synapse.spike" : "lab.synapse.silent")).font(.caption.weight(.bold)).foregroundColor(fires ? .yellow : .secondary),
+                         at: CGPoint(x: (soma.x + size.width) / 2 + 20, y: soma.y - 18))
+        }
+    }
+
+    // The membrane potential on a scale from −94 to −46 mV with the resting and threshold levels.
+    private var meter: some View {
+        Canvas { context, size in
+            let low = -94.0, high = -46.0
+            func y(_ value: Double) -> CGFloat { 10 + (size.height - 20) * CGFloat((high - value) / (high - low)) }
+            let bar = CGRect(x: 18, y: 10, width: 30, height: size.height - 20)
+            context.fill(Path(roundedRect: bar, cornerRadius: 10), with: .color(.secondary.opacity(0.15)))
+            let potential = Model.membranePotential(excitatory: excitatory, inhibitory: inhibitory)
+            let top = y(potential)
+            context.fill(Path(roundedRect: CGRect(x: bar.minX, y: top, width: bar.width, height: bar.maxY - top), cornerRadius: 10),
+                         with: .color(potential >= Model.thresholdPotential ? .yellow : .accentColor))
+            for (value, key, color) in [(Model.thresholdPotential, "lab.neuron.thresholdLine", Color.orange), (Model.restingPotential, "lab.neuron.restLine", Color.secondary)] {
+                var line = Path()
+                line.move(to: CGPoint(x: bar.minX - 6, y: y(value)))
+                line.addLine(to: CGPoint(x: bar.maxX + 6, y: y(value)))
+                context.stroke(line, with: .color(color), lineWidth: 2)
+                context.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(color), at: CGPoint(x: bar.maxX + 10, y: y(value)), anchor: .leading)
             }
         }
     }
@@ -11523,94 +11610,119 @@ private struct NeuronTrainingLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var model = NeuronTrainingModel()
     @State private var learningRate = 0.05
+    @State private var playing = false
 
-    private func number(_ value: Double, _ digits: Int = 3) -> String {
-        L10n.number(value, fractionDigits: digits, store.language)
-    }
+    private typealias Model = NeuronTrainingModel
 
-    private var regime: NeuronTrainingModel.Regime {
-        NeuronTrainingModel.regime(learningRate: learningRate)
-    }
-
-    private var regimeKey: String {
-        switch regime {
-        case .converging: return "lab.neurontrain.converging"
-        case .oscillating: return "lab.neurontrain.oscillating"
-        case .diverging: return "lab.neurontrain.diverging"
-        }
-    }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
+        let regime = Model.regime(learningRate: learningRate)
+        let factor = number(Model.errorFactor(learningRate: learningRate), 2), limit = number(Model.stableLearningRateLimit, 2)
+        let status: (LabStatusKind, String) = switch regime {
+        case .converging: (.good, String(format: text("lab.neurontrain.converging"), factor, limit))
+        case .oscillating: (.warning, String(format: text("lab.neurontrain.oscillating"), factor, limit))
+        case .diverging: (.bad, String(format: text("lab.neurontrain.diverging"), factor, limit))
+        }
         LabCard {
-            Text(L10n.text("lab.neurontrain.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.neurontrain.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.neurontrain.title"), instruction: text("lab.neurontrain.subtitle"))
+            HStack(spacing: 16) {
+                neuron
+                    .frame(width: 360)
+                lossChart
+            }
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.neurontrain.chart"))
+            .accessibilityValue(Text(verbatim: number(model.loss, 4)))
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.neurontrain.rate", store.language), number(learningRate, 2)))
-                    .monospacedDigit()
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.neurontrain.rate"), number(learningRate, 2))).monospacedDigit().frame(minWidth: 220, alignment: .leading)
                 // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
-                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 100).rounded() / 100 }), in: NeuronTrainingModel.learningRateRange)
-                    .accessibilityLabel(L10n.text("lab.neurontrain.rateLabel", store.language))
-                    .accessibilityValue(Text(verbatim: number(learningRate, 2)))
+                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 100).rounded() / 100 }), in: Model.learningRateRange)
+                    .accessibilityLabel(text("lab.neurontrain.rateLabel"))
                     .accessibilityIdentifier("lab.neurontrain.rate")
             }
-            HStack {
-                Button(L10n.text("lab.neurontrain.step", store.language)) { model.step(learningRate: learningRate) }
+            HStack(spacing: 10) {
+                Button {
+                    if model.lossHistory.count >= 30 { model.reset() }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
                     .buttonStyle(.borderedProminent)
-                    .disabled(model.lossHistory.count >= 30 || !model.loss.isFinite)
+                    .accessibilityIdentifier("lab.neurontrain.play")
+                Button(text("lab.neurontrain.step")) { withAnimation(.easeInOut(duration: 0.25)) { model.step(learningRate: learningRate) } }
                     .accessibilityIdentifier("lab.neurontrain.step")
-                Button(L10n.text("lab.neurontrain.reset", store.language)) { model.reset() }
+                Button(text("lab.neurontrain.reset")) { playing = false; withAnimation { model.reset() } }
                     .accessibilityIdentifier("lab.neurontrain.reset")
             }
-
-            Text(String(format: L10n.text("lab.neurontrain.state", store.language),
-                        String(model.lossHistory.count), number(model.weight), number(model.bias), number(model.output)))
-                .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-            Text(String(format: L10n.text("lab.neurontrain.gradients", store.language),
-                        number(model.loss, 4), number(model.weightGradient), number(model.biasGradient)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.neurontrain.loss")
-            lossChart
-                .frame(height: 120)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.neurontrain.chart", store.language))
-                .accessibilityValue(Text(verbatim: (model.lossHistory + [model.loss]).map { number($0, 4) }.joined(separator: ", ")))
-            Label(String(format: L10n.text(regimeKey, store.language),
-                         number(NeuronTrainingModel.errorFactor(learningRate: learningRate), 2),
-                         number(NeuronTrainingModel.stableLearningRateLimit, 2)),
-                  systemImage: regime == .converging ? "arrow.down.right" : "exclamationmark.triangle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.neurontrain.regime")
-            Text(L10n.text("lab.neurontrain.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabStatGrid {
+                LabStat(label: text("lab.neurontrain.statSteps"), value: String(model.lossHistory.count))
+                LabStat(label: "w · b", value: number(model.weight, 3) + " · " + number(model.bias, 3), tint: .purple)
+                LabStat(label: text("lab.neurontrain.statOutput"), value: number(model.output, 3), tint: .accentColor)
+                LabStat(label: text("lab.neurontrain.statLoss"), value: number(model.loss, 4), tint: .orange, identifier: "lab.neurontrain.loss")
+            }
+            LabStatusBadge(kind: status.0, text: status.1)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.neurontrain.challenge"),
+                         solved: model.lossHistory.count == 1 && model.loss < 1e-9, solvedText: text("lab.neurontrain.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.neurontrain.hint"),
+                String(format: text("lab.neurontrain.gradients"), number(model.loss, 4), number(model.weightGradient, 3), number(model.biasGradient, 3)),
+                text("lab.neurontrain.limit"),
+            ])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 350_000_000)
+                guard playing else { break }
+                withAnimation(.easeInOut(duration: 0.25)) { model.step(learningRate: learningRate) }
+                if model.loss < 1e-8 || model.loss > 1e6 || model.lossHistory.count >= 30 { playing = false }
+            }
         }
     }
 
-    // Loss after each step on a logarithmic scale, so fast convergence and divergence both stay visible.
+    // x = 2 flows through ×w and +b into the output y, compared with the target 2; the gap is the error.
+    private var neuron: some View {
+        Canvas { context, size in
+            let y = size.height * 0.45
+            let input = CGPoint(x: 34, y: y), body = CGPoint(x: size.width * 0.55, y: y), output = CGPoint(x: size.width - 40, y: y)
+            var wires = Path()
+            wires.move(to: input)
+            wires.addLine(to: body)
+            wires.addLine(to: output)
+            context.stroke(wires, with: .color(.secondary), lineWidth: 3)
+            context.fill(Path(ellipseIn: CGRect(x: input.x - 26, y: y - 26, width: 52, height: 52)), with: .color(.teal))
+            context.draw(Text(verbatim: "x = 2").font(.caption.weight(.bold)).foregroundColor(.white), at: input)
+            context.fill(Path(ellipseIn: CGRect(x: body.x - 40, y: y - 40, width: 80, height: 80)), with: .color(.purple.opacity(0.85)))
+            context.draw(Text(verbatim: "w·x + b").font(.caption.weight(.bold)).foregroundColor(.white), at: body)
+            context.draw(Text(verbatim: "w = " + number(model.weight, 2)).font(.caption.weight(.semibold)).foregroundColor(.purple), at: CGPoint(x: (input.x + body.x) / 2, y: y - 16))
+            context.draw(Text(verbatim: "b = " + number(model.bias, 2)).font(.caption.weight(.semibold)).foregroundColor(.purple), at: CGPoint(x: body.x, y: y + 54))
+            let error = model.output - Model.target
+            let color: Color = abs(error) < 0.01 ? .green : .orange
+            context.fill(Path(ellipseIn: CGRect(x: output.x - 30, y: y - 30, width: 60, height: 60)), with: .color(color))
+            context.draw(Text(verbatim: number(model.output, 2)).font(.headline).foregroundColor(.white), at: output)
+            context.draw(Text(text("lab.neurontrain.target")).font(.caption.weight(.semibold)).foregroundColor(.green), at: CGPoint(x: output.x, y: y + 46))
+            context.draw(Text(verbatim: "y − t = " + number(error, 3)).font(.caption.weight(.bold)).foregroundColor(color), at: CGPoint(x: output.x - 10, y: y - 44))
+        }
+    }
+
+    // The error after every step: falling for a good rate, flat or rising for a bad one.
     private var lossChart: some View {
         Canvas { context, size in
-            let values = (model.lossHistory + [model.loss]).map { max($0, 1e-6) }
-            guard values.count > 1 else { return }
-            let logs = values.map { log10($0) }
-            let low = min(logs.min() ?? 0, -2)
-            let high = max(logs.max() ?? 0, 1)
-            var path = Path()
-            for (index, value) in logs.enumerated() {
-                let x = size.width * CGFloat(index) / CGFloat(values.count - 1)
-                let y = size.height * CGFloat((high - value) / (high - low))
-                if index == 0 { path.move(to: CGPoint(x: x, y: y)) } else { path.addLine(to: CGPoint(x: x, y: y)) }
-                context.fill(Path(ellipseIn: CGRect(x: x - 3, y: y - 3, width: 6, height: 6)), with: .color(.accentColor))
+            let values = model.lossHistory + [model.loss]
+            let top = max(min(values.max() ?? 1, 50), 0.5)
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(values.count - 1, 5)), y: 0...top * 1.1)
+            plot.drawAxes(in: context, xLabel: text("lab.descent2d.lossX"), yLabel: "L", format: { number($0, $0 < 10 && $0 != $0.rounded() ? 1 : 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect.insetBy(dx: -4, dy: -4)))
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index), min(value, top * 1.1))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+                clipped.fill(Path(ellipseIn: CGRect(x: location.x - 3, y: location.y - 3, width: 6, height: 6)), with: .color(.orange))
             }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 2)
+            clipped.stroke(line, with: .color(.orange), lineWidth: 2)
         }
     }
 }

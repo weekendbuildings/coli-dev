@@ -79,7 +79,7 @@ def test_neuron_lab_is_wired_into_the_app_project_and_ci() -> None:
     assert "NeuronSignal.swift in Sources" in project
     assert "scripts/verify_neuron_signal.swift" in workflow
 
-    used_keys = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.neuron\.[A-Za-z]+)"', views))
+    used_keys = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.neuron\.[A-Za-z]+)"', views))
     defined_keys = set(re.findall(r'^\s*"(lab\.neuron\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used_keys
     assert used_keys <= defined_keys
