@@ -4674,83 +4674,103 @@ private struct PhotosynthesisLab: View {
         return light < carbonDioxide ? "lab.photosynthesisLightLimits" : "lab.photosynthesisCO2Limits"
     }
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func percent(_ value: Double) -> String { L10n.measurement(value, fractionDigits: 0, unit: "%", store.language) }
+
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.photosynthesisHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-
-            HStack(alignment: .center, spacing: 10) {
-                stageCard(
-                    symbol: "sun.max.fill",
-                    color: .orange,
-                    title: L10n.text("lab.photosynthesisLightStage", store.language),
-                    detail: L10n.text("lab.photosynthesisEnergyProducts", store.language)
-                )
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                stageCard(
-                    symbol: "leaf.fill",
-                    color: .green,
-                    title: L10n.text("lab.photosynthesisCarbonStage", store.language),
-                    detail: L10n.text("lab.photosynthesisCarbonProduct", store.language)
-                )
-            }
-
-            factorSlider(title: L10n.text("lab.photosynthesisLight", store.language), value: $light)
-            factorSlider(title: L10n.text("lab.photosynthesisCO2", store.language), value: $carbonDioxide)
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text(L10n.text("lab.photosynthesisRelativeRate", store.language))
-                    Spacer()
-                    Text("\(Int(rate))%")
-                        .monospacedDigit()
-                        .fontWeight(.semibold)
+            LabHeader(title: text("lab.photosynthesisTitle"), instruction: text("lab.photosynthesisSubtitle"))
+            HStack(spacing: 16) {
+                stages
+                    .frame(width: 300)
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: 0...100, y: 0...100)
+                    factorMap(plot)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            let value = plot.value(at: drag.location)
+                            light = min(max((value.x / 5).rounded() * 5, 0), 100)
+                            carbonDioxide = min(max((value.y / 5).rounded() * 5, 0), 100)
+                        })
                 }
-                ProgressView(value: rate, total: 100)
-                    .tint(.green)
-                Label(L10n.text(limitingFactorKey, store.language), systemImage: "exclamationmark.triangle.fill")
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(.orange)
             }
-            .padding(12)
-            .background(Color.green.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        }
-    }
+            .frame(height: 260)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.photosynthesisMap"))
+            .accessibilityValue(Text(verbatim: percent(rate)))
 
-    private func stageCard(symbol: String, color: Color, title: String, detail: String) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: symbol)
-                .font(.title2)
-                .foregroundStyle(color)
-            Text(title)
-                .font(.caption.weight(.semibold))
-                .multilineTextAlignment(.center)
-            Text(detail)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+            factorSlider(title: text("lab.photosynthesisLight"), value: $light)
+            factorSlider(title: text("lab.photosynthesisCO2"), value: $carbonDioxide)
+            LabStatGrid {
+                LabStat(label: text("lab.photosynthesisRelativeRate"), value: percent(rate), tint: .green)
+                LabStat(label: text("lab.photosynthesisLight"), value: percent(light), tint: .orange)
+                LabStat(label: text("lab.photosynthesisCO2"), value: percent(carbonDioxide), tint: .teal)
+            }
+            LabStatusBadge(kind: light == carbonDioxide ? .good : .warning, text: text(limitingFactorKey))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.photosynthesisChallenge"),
+                         solved: rate == 80 && light == carbonDioxide, solvedText: text("lab.photosynthesisChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.photosynthesisHint")])
         }
-        .frame(maxWidth: .infinity, minHeight: 94)
-        .padding(9)
-        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
     }
 
     private func factorSlider(title: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text("\(Int(value.wrappedValue))%")
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 0...100, step: 5)
+        HStack(spacing: 12) {
+            Text(verbatim: "\(title): \(percent(value.wrappedValue))").monospacedDigit().frame(minWidth: 220, alignment: .leading)
+            // Steps of 5% without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / 5).rounded() * 5 }), in: 0...100)
                 .accessibilityLabel(Text(title))
+        }
+    }
+
+    // The two linked stages: the sun's size follows the light, the arrow's thickness the ATP and NADPH made,
+    // and the sugar output follows the slower of the two stages.
+    private var stages: some View {
+        Canvas { context, size in
+            let sun = CGPoint(x: 40, y: 40)
+            let sunRadius = CGFloat(10 + light / 6)
+            context.fill(Path(ellipseIn: CGRect(x: sun.x - sunRadius, y: sun.y - sunRadius, width: 2 * sunRadius, height: 2 * sunRadius)), with: .color(.yellow))
+            let lightBox = CGRect(x: 20, y: 90, width: 110, height: 70)
+            let carbonBox = CGRect(x: size.width - 130, y: 90, width: 110, height: 70)
+            context.fill(Path(roundedRect: lightBox, cornerRadius: 12), with: .color(.orange.opacity(0.25 + 0.6 * light / 100)))
+            context.fill(Path(roundedRect: carbonBox, cornerRadius: 12), with: .color(.green.opacity(0.25 + 0.6 * rate / 100)))
+            context.draw(Text(text("lab.photosynthesisLightStage")).font(.caption.weight(.bold)).foregroundColor(.primary), at: CGPoint(x: lightBox.midX, y: lightBox.midY))
+            context.draw(Text(text("lab.photosynthesisCarbonStage")).font(.caption.weight(.bold)).foregroundColor(.primary), at: CGPoint(x: carbonBox.midX, y: carbonBox.midY))
+            var energy = Path()
+            energy.move(to: CGPoint(x: lightBox.maxX + 4, y: lightBox.midY))
+            energy.addLine(to: CGPoint(x: carbonBox.minX - 8, y: carbonBox.midY))
+            context.stroke(energy, with: .color(.orange), style: StrokeStyle(lineWidth: CGFloat(2 + light / 12), lineCap: .round))
+            context.draw(Text(verbatim: "ATP, NADPH").font(.caption2.weight(.semibold)).foregroundColor(.orange), at: CGPoint(x: size.width / 2, y: lightBox.midY - 20))
+            for index in 0..<Int(carbonDioxide / 10) {
+                let x = carbonBox.minX + 8 + CGFloat(index % 5) * 22, y = 50 + CGFloat(index / 5) * 18
+                context.draw(Text(verbatim: "CO₂").font(.caption2.weight(.bold)).foregroundColor(.teal), at: CGPoint(x: x, y: y))
+            }
+            let sugar = CGRect(x: carbonBox.midX - CGFloat(rate / 4), y: carbonBox.maxY + 18, width: CGFloat(rate / 2), height: 22)
+            context.fill(Path(roundedRect: sugar, cornerRadius: 6), with: .color(.green))
+            context.draw(Text(text("lab.photosynthesisCarbonProduct")).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: carbonBox.midX, y: sugar.maxY + 12))
+        }
+    }
+
+    // Rate = min(light, CO₂) as a heat map over both factors: the corner-shaped bands show that raising the factor
+    // that is not limiting does nothing. The current point can be dragged anywhere on the map.
+    private func factorMap(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            let cells = 40
+            let width = plot.rect.width / CGFloat(cells), height = plot.rect.height / CGFloat(cells)
+            for column in 0..<cells {
+                for row in 0..<cells {
+                    let x = (Double(column) + 0.5) * 100 / Double(cells), y = 100 - (Double(row) + 0.5) * 100 / Double(cells)
+                    context.fill(Path(CGRect(x: plot.rect.minX + CGFloat(column) * width, y: plot.rect.minY + CGFloat(row) * height, width: width + 0.5, height: height + 0.5)),
+                                 with: .color(LabHeatScale.color(min(x, y) / 100)))
+                }
+            }
+            plot.drawAxes(in: context, xLabel: text("lab.photosynthesisAxisLight"), yLabel: text("lab.photosynthesisAxisCO2"), format: { String(Int($0)) })
+            var diagonal = Path()
+            diagonal.move(to: plot.point(0, 0))
+            diagonal.addLine(to: plot.point(100, 100))
+            context.stroke(diagonal, with: .color(.white.opacity(0.5)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            let current = plot.point(light, carbonDioxide)
+            context.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white))
+            context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(.accentColor))
         }
     }
 }
