@@ -463,6 +463,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-growth-model-labs"
           "$RUNNER_TEMP/verify-growth-model-labs"
 
+      - name: Verify neural layer and 2D gradient descent lab models / Проверка моделей слоя нейросети и градиентного спуска
+        run: |
+          swiftc macOS/ColiDev/App/NeuralMathLabs.swift macOS/ColiDev/scripts/verify_neural_math_labs.swift \
+            -o "$RUNNER_TEMP/verify-neural-math-labs"
+          "$RUNNER_TEMP/verify-neural-math-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

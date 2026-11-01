@@ -1874,6 +1874,10 @@ private struct PracticeLab: View {
             EulerMethodLab()
         } else if subject == .chemistry, moduleResource == "prebiotic_chemistry_and_autocatalysis" {
             AutocatalysisLab()
+        } else if subject == .mathematics, moduleResource == "vectors_and_matrices" {
+            NeuralLayerLab()
+        } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
+            GradientDescent2DLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12217,6 +12221,183 @@ private struct AutocatalysisLab: View {
                     context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(color))
                 }
                 context.stroke(path, with: .color(color), lineWidth: 2)
+            }
+        }
+    }
+}
+
+private struct NeuralLayerLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var weights = [[1, 2], [0, -1]]
+    @State private var input = [3, 4]
+    @State private var bias = [0, 0]
+    @State private var useReLU = false
+
+    private typealias Model = NeuralLayerModel
+
+    private func signed(_ value: Int) -> String { value < 0 ? "(−\(-value))" : String(value) }
+    private func plain(_ value: Int) -> String { value < 0 ? "−\(-value)" : String(value) }
+
+    var body: some View {
+        let raw = Model.preActivation(weights: weights, input: input, bias: bias)
+        let output = useReLU ? Model.relu(raw) : raw
+        LabCard {
+            Text(L10n.text("lab.layer.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.layer.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: 14) {
+                    stepper("w\(row + 1)1", $weights[row][0], Model.weightRange, "lab.layer.w\(row + 1)1")
+                    stepper("w\(row + 1)2", $weights[row][1], Model.weightRange, "lab.layer.w\(row + 1)2")
+                    stepper("b\(row + 1)", $bias[row], Model.biasRange, "lab.layer.b\(row + 1)")
+                }
+            }
+            HStack(spacing: 14) {
+                stepper("x1", $input[0], Model.inputRange, "lab.layer.x1")
+                stepper("x2", $input[1], Model.inputRange, "lab.layer.x2")
+            }
+            Toggle(L10n.text("lab.layer.relu", store.language), isOn: $useReLU)
+                .accessibilityIdentifier("lab.layer.relu")
+
+            ForEach(0..<2, id: \.self) { row in
+                Text(String(format: L10n.text("lab.layer.neuron", store.language), String(row + 1),
+                            "\(signed(weights[row][0]))·\(signed(input[0])) + \(signed(weights[row][1]))·\(signed(input[1])) + \(signed(bias[row]))",
+                            plain(raw[row])))
+                    .font(.callout.monospacedDigit())
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(String(format: L10n.text(useReLU ? "lab.layer.outputReLU" : "lab.layer.output", store.language),
+                        "(\(plain(output[0])), \(plain(output[1])))"))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.layer.output")
+            Text(L10n.text("lab.layer.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func stepper(_ name: String, _ value: Binding<Int>, _ range: ClosedRange<Int>, _ identifier: String) -> some View {
+        Stepper(value: value, in: range) {
+            Text(verbatim: "\(name) = \(plain(value.wrappedValue))")
+                .monospacedDigit()
+                .frame(minWidth: 64, alignment: .leading)
+        }
+        .accessibilityLabel(Text(verbatim: name))
+        .accessibilityValue(Text(verbatim: plain(value.wrappedValue)))
+        .accessibilityIdentifier(identifier)
+    }
+}
+
+private struct GradientDescent2DLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var startIndex = 0
+    @State private var rate = 0.1
+    @State private var path = [GradientDescent2DModel.starts[0]]
+
+    private typealias Model = GradientDescent2DModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var point: Model.Point { path.last ?? Model.starts[startIndex] }
+
+    var body: some View {
+        let slope = Model.gradient(point)
+        LabCard {
+            Text(L10n.text("lab.descent2d.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.descent2d.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            contourMap
+                .frame(height: 200)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.descent2d.chart", store.language))
+                .accessibilityValue(Text(verbatim: "(\(number(point.x, 3)); \(number(point.y, 3)))"))
+
+            Picker(L10n.text("lab.descent2d.start", store.language), selection: $startIndex) {
+                ForEach(Model.starts.indices, id: \.self) { index in
+                    Text(verbatim: "(\(number(Model.starts[index].x, 0)); \(number(Model.starts[index].y, 0)))").tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.descent2d.start")
+            .onChange(of: startIndex) { index in path = [Model.starts[index]] }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.descent2d.rate", store.language), number(rate, 2)))
+                    .monospacedDigit()
+                // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { rate }, set: { rate = ($0 * 100).rounded() / 100 }), in: Model.rateRange)
+                    .accessibilityLabel(L10n.text("lab.descent2d.rateLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(rate, 2)))
+                    .accessibilityIdentifier("lab.descent2d.rate")
+            }
+            HStack {
+                Button(L10n.text("lab.descent2d.step", store.language)) {
+                    guard !Model.hasDiverged(point) else { return }
+                    path.append(Model.step(point, rate: rate))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.descent2d.step")
+                Button(L10n.text("lab.descent2d.reset", store.language)) { path = [Model.starts[startIndex]] }
+                    .accessibilityIdentifier("lab.descent2d.reset")
+            }
+
+            Text(String(format: L10n.text("lab.descent2d.point", store.language), String(path.count - 1),
+                        number(point.x, 3), number(point.y, 3), number(Model.value(point), 3),
+                        number(slope.x, 3), number(slope.y, 3)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.descent2d.point")
+            Text(String(format: L10n.text("lab.descent2d.factors", store.language),
+                        number(Model.xFactor(rate: rate), 2), number(Model.yFactor(rate: rate), 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text(Model.converges(rate: rate) ? "lab.descent2d.converges" : "lab.descent2d.diverges", store.language))
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.descent2d.verdict")
+            Text(L10n.text("lab.descent2d.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Level curves x² + 3y² = c are ellipses; the path of steps is drawn on top, the last point highlighted.
+    private var contourMap: some View {
+        Canvas { context, size in
+            let span = 3.0
+            let scale = min(size.width, size.height) / CGFloat(2 * span)
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            func position(_ p: Model.Point) -> CGPoint {
+                CGPoint(x: center.x + CGFloat(p.x) * scale, y: center.y - CGFloat(p.y) * scale)
+            }
+            for level in [0.25, 1, 2.5, 5, 9, 16] {
+                let halfWidth = CGFloat(level.squareRoot()) * scale
+                let halfHeight = CGFloat((level / 3).squareRoot()) * scale
+                let ellipse = CGRect(x: center.x - halfWidth, y: center.y - halfHeight, width: 2 * halfWidth, height: 2 * halfHeight)
+                context.stroke(Path(ellipseIn: ellipse), with: .color(.secondary.opacity(0.45)), lineWidth: 1)
+            }
+            context.fill(Path(ellipseIn: CGRect(x: center.x - 3, y: center.y - 3, width: 6, height: 6)), with: .color(.green))
+            var trail = Path()
+            for (index, p) in path.enumerated() {
+                if index == 0 { trail.move(to: position(p)) } else { trail.addLine(to: position(p)) }
+            }
+            context.stroke(trail, with: .color(.orange), lineWidth: 1.5)
+            for (index, p) in path.enumerated() {
+                let location = position(p)
+                let radius: CGFloat = index == path.count - 1 ? 5 : 3
+                context.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)),
+                             with: .color(index == path.count - 1 ? .accentColor : .orange))
             }
         }
     }

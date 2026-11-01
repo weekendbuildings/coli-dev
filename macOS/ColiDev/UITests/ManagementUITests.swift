@@ -692,6 +692,46 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testNeuralLayerLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/vectors_and_matrices"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let output = app.staticTexts["lab.layer.output"]
+        XCTAssertTrue(
+            output.waitForExistence(timeout: 10),
+            "The matrices lesson must show the neural layer lab. / В уроке о матрицах должен быть тренажёр слоя.\n\(app.debugDescription)"
+        )
+        let shown = (output.value as? String ?? "") + " " + output.label
+        XCTAssertTrue(shown.contains("(11, −4)"), "W = [[1, 2], [0, −1]], x = (3, 4) must give (11, −4).\n\(shown)")
+    }
+
+    @MainActor
+    func testGradientDescent2DLabTakesTheQuizStep() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let lessonScrollView = app.scrollViews["lesson.scrollView"]
+        XCTAssertTrue(lessonScrollView.waitForExistence(timeout: 5))
+        let step = app.buttons["lab.descent2d.step"]
+        XCTAssertTrue(
+            step.waitForExistence(timeout: 10),
+            "The gradient lesson must show the 2D descent lab. / В уроке о градиенте должен быть тренажёр спуска.\n\(app.debugDescription)"
+        )
+        let point = app.staticTexts["lab.descent2d.point"]
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        scrollUntilHittable(step, in: lessonScrollView)
+        step.click()
+        if !(text(point).contains("0,8") || text(point).contains("0.8")), step.isHittable { step.click() }
+        // From (1, 1) with ε = 0.1 one step lands at (0.8, 0.4).
+        XCTAssertTrue(text(point).contains("0,8") || text(point).contains("0.8"), text(point))
+        XCTAssertTrue(text(point).contains("0,4") || text(point).contains("0.4"), text(point))
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

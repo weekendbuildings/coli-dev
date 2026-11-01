@@ -706,3 +706,24 @@ def test_euler_and_autocatalysis_labs_are_wired_into_the_app_project_and_ci() ->
     assert math.isclose(100 * 1.1 * 1.1, 121) and math.isclose(100 * math.exp(0.2), 122.14, abs_tol=5e-3)
     _, autocatalysis = _sections("Chemistry", "prebiotic_chemistry_and_autocatalysis")
     assert "2¹⁰ = 1024" in autocatalysis and 2 ** 10 == 1024
+
+
+def test_neural_layer_and_descent_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "vectors_and_matrices"' in views and "NeuralLayerLab()" in views
+    assert 'moduleResource == "gradient_and_partial_derivatives"' in views and "GradientDescent2DLab()" in views
+    assert "NeuralMathLabs.swift in Sources" in project and "scripts/verify_neural_math_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:layer|descent2d)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:layer|descent2d)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Both labs start at their lesson quizzes.
+    _, matrices = _sections("Mathematics", "vectors_and_matrices")
+    assert "W = [[1, 2], [0, −1]]" in matrices and "(11, −4)" in matrices
+    _, gradient = _sections("Mathematics", "gradient_and_partial_derivatives")
+    assert "(1, 1) − 0.1 · (2, 6) = (0.8, 0.4)" in gradient
