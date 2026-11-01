@@ -1,7 +1,7 @@
-# ColiDev 0.1.0 Beta 13 — черновик заметок к выпуску / Draft release notes
+# ColiDev 0.1.0 Beta 13 — заметки к выпуску / Release notes
 
-> Статус: черновик. Выпуск публикуется только после «да» владельца, слияния рабочей ветки в `main` и зелёного CI на трёх Mac.
-> Status: draft. The release is published only after the owner's "yes", merging the working branch into `main`, and green CI on three Macs.
+
+**Опубликовано 2026-10-31: [v0.1.0-beta.13](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.13), собрано из `f55b211` (Merge PR #9), CI [41247367541](https://github.com/weekendbuildings/coli-dev/actions/runs/41247367541) зелёный на трёх Mac. / Published 2026-10-31, built from `f55b211`, CI green on three Macs.**
 
 ## Русский
 
