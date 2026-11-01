@@ -10218,77 +10218,103 @@ private struct LinearSystemLab: View {
 
 private struct AlgorithmComplexityLab: View {
     @EnvironmentObject private var store: LearningStore
-    @State private var sizeIndex = 2.0
+    @State private var sizeIndex = 2
+    @State private var progress = 1.0
+    @State private var racing = false
 
-    private var itemCount: Int {
-        AlgorithmComplexityPractice.sampleSizes[Int(sizeIndex.rounded())]
-    }
+    private typealias Model = AlgorithmComplexityPractice
 
-    private var linearCount: Int {
-        AlgorithmComplexityPractice.linearSearchWorstCaseComparisons(for: itemCount)
-    }
-
-    private var binaryCount: Int {
-        AlgorithmComplexityPractice.binarySearchWorstCaseComparisons(for: itemCount)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var itemCount: Int { Model.sampleSizes[sizeIndex] }
+    private var linearCount: Int { Model.linearSearchWorstCaseComparisons(for: itemCount) }
+    private var binaryCount: Int { Model.binarySearchWorstCaseComparisons(for: itemCount) }
 
     var body: some View {
+        let done = Int((progress * Double(linearCount)).rounded())
         LabCard {
-            Text(L10n.text("lab.complexityHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: L10n.text("lab.complexitySize", store.language), itemCount))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $sizeIndex, in: 0...3, step: 1)
-                    .accessibilityLabel(L10n.text("lab.complexitySize", store.language))
-                    .accessibilityValue(String(itemCount))
+            LabHeader(title: text("lab.complexityTitle"), instruction: text("lab.complexitySubtitle"))
+            Picker(text("lab.complexitySizeShort"), selection: $sizeIndex) {
+                ForEach(Model.sampleSizes.indices, id: \.self) { index in Text(verbatim: "n = \(Model.sampleSizes[index])").tag(index) }
             }
-
-            complexityBar(
-                title: L10n.text("lab.complexityLinear", store.language),
-                comparisons: linearCount,
-                maximum: linearCount,
-                tint: .blue
-            )
-            complexityBar(
-                title: L10n.text("lab.complexityBinary", store.language),
-                comparisons: binaryCount,
-                maximum: linearCount,
-                tint: .purple
-            )
-
-            Label(L10n.text("lab.complexityPrecondition", store.language), systemImage: "checkmark.seal")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.complexityLimit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .pickerStyle(.segmented)
+            .accessibilityValue(String(itemCount))
+            race(done: done)
+                .frame(height: 150)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.complexityRace"))
+            HStack(spacing: 12) {
+                Button {
+                    progress = 0
+                    racing = true
+                } label: { Label(text("lab.complexityStart"), systemImage: "flag.checkered") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.complexity.race")
+                Label(text("lab.complexityPrecondition"), systemImage: "checkmark.seal").font(.callout).foregroundStyle(.secondary)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.complexityLinear"), value: String(format: text("lab.complexityComparisons"), min(done, linearCount)), tint: .blue)
+                LabStat(label: text("lab.complexityBinary"), value: String(format: text("lab.complexityComparisons"), min(done, binaryCount)), tint: .purple)
+                LabStat(label: text("lab.complexityRatio"), value: "× " + L10n.number(Double(linearCount) / Double(binaryCount), fractionDigits: 0, store.language), tint: .orange)
+            }
+            growth
+                .frame(height: 170)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.complexityGrowth"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.complexityChallenge"),
+                         solved: Double(linearCount) / Double(binaryCount) > 50, solvedText: text("lab.complexityChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.complexityHint"), text("lab.complexityLimit")])
+        }
+        .task(id: racing) {
+            guard racing else { return }
+            while progress < 1 && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000)
+                progress = min(progress + 0.008, 1)
+            }
+            racing = false
         }
     }
 
-    private func complexityBar(title: String, comparisons: Int, maximum: Int, tint: Color) -> some View {
-        HStack(spacing: 10) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .frame(width: 132, alignment: .leading)
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.12))
-                    Capsule()
-                        .fill(tint.gradient)
-                        .frame(width: max(8, geometry.size.width * CGFloat(comparisons) / CGFloat(maximum)))
+    // Both searches look for the last element on one shared clock of comparisons: linear search fills the row cell
+    // by cell, binary search halves its purple window each time and finishes almost at once.
+    private func race(done: Int) -> some View {
+        Canvas { context, size in
+            let left: CGFloat = 8, width = size.width - 16
+            for (row, title, color) in [(0, text("lab.complexityLinear"), Color.blue), (1, text("lab.complexityBinary"), Color.purple)] {
+                let y = 26 + CGFloat(row) * 66
+                context.draw(Text(verbatim: title).font(.caption.weight(.semibold)).foregroundColor(color), at: CGPoint(x: left, y: y - 16), anchor: .leading)
+                let bar = CGRect(x: left, y: y, width: width, height: 26)
+                context.fill(Path(roundedRect: bar, cornerRadius: 5), with: .color(.secondary.opacity(0.15)))
+                if row == 0 {
+                    let share = CGFloat(min(done, linearCount)) / CGFloat(linearCount)
+                    context.fill(Path(roundedRect: CGRect(x: bar.minX, y: bar.minY, width: bar.width * share, height: bar.height), cornerRadius: 5), with: .color(color.opacity(0.8)))
+                } else {
+                    let steps = min(done, binaryCount)
+                    let windowShare = pow(0.5, Double(steps))
+                    let window = max(3, bar.width * CGFloat(windowShare))
+                    context.fill(Path(roundedRect: CGRect(x: bar.maxX - window, y: bar.minY, width: window, height: bar.height), cornerRadius: 5), with: .color(color.opacity(0.85)))
                 }
+                context.fill(Path(CGRect(x: bar.maxX - 3, y: bar.minY - 4, width: 3, height: bar.height + 8)), with: .color(.green))
             }
-            .frame(height: 14)
-            Text(String(format: L10n.text("lab.complexityComparisons", store.language), comparisons))
-                .font(.caption.monospacedDigit())
-                .frame(width: 82, alignment: .trailing)
         }
-        .accessibilityElement(children: .combine)
+    }
+
+    // Worst-case comparisons against n for both searches on the four sizes: n grows straight up, log₂ n barely moves.
+    private var growth: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...1100, y: 0...1100, leading: 54)
+            plot.drawAxes(in: context, xLabel: "n", yLabel: text("lab.complexityAxisComparisons"), format: { String(Int($0)) })
+            for (counts, color) in [(Model.sampleSizes.map(Model.linearSearchWorstCaseComparisons), Color.blue),
+                                    (Model.sampleSizes.map(Model.binarySearchWorstCaseComparisons), Color.purple)] {
+                var line = Path()
+                for (index, n) in Model.sampleSizes.enumerated() {
+                    let location = plot.point(Double(n), Double(counts[index]))
+                    if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+                    let radius: CGFloat = index == sizeIndex ? 7 : 4
+                    context.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(color))
+                }
+                context.stroke(line, with: .color(color), lineWidth: 2.5)
+            }
+        }
     }
 }
 
