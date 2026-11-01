@@ -5961,15 +5961,16 @@ private struct KineticEnergyLab: View {
                 .font(.caption)
                 .foregroundStyle(.secondary)
 
-            HStack(alignment: .firstTextBaseline, spacing: 14) {
-                energyReadout(title: L10n.text("lab.energyInitial", store.language), value: initialEnergy, unit: "J")
-                Image(systemName: "arrow.right")
-                    .foregroundStyle(.tertiary)
-                    .accessibilityHidden(true)
-                energyReadout(title: L10n.text("lab.energyFinal", store.language), value: finalEnergy, unit: "J")
-                Spacer(minLength: 0)
-                energyReadout(title: L10n.text("lab.energyFinalSpeed", store.language), value: finalSpeed, unit: "m/s")
+            LabStatGrid {
+                LabStat(label: L10n.text("lab.energyInitial", store.language), value: L10n.measurement(initialEnergy, fractionDigits: 1, unit: "J", store.language), tint: .accentColor)
+                LabStat(label: L10n.text("lab.energyNetWork", store.language), value: L10n.measurement(netWork, fractionDigits: 1, unit: "J", store.language), tint: netWork >= 0 ? .green : .red)
+                LabStat(label: L10n.text("lab.energyFinal", store.language), value: L10n.measurement(finalEnergy, fractionDigits: 1, unit: "J", store.language), tint: .orange)
+                LabStat(label: L10n.text("lab.energyFinalSpeed", store.language), value: L10n.measurement(finalSpeed, fractionDigits: 2, unit: "m/s", store.language), tint: .purple)
             }
+            energyBars
+                .frame(height: 120)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.energyBars", store.language))
 
             valueSlider(title: L10n.text("lab.mass", store.language), value: $mass, range: 1...8, unit: "kg")
             valueSlider(title: L10n.text("lab.energyInitialSpeed", store.language), value: $initialSpeed, range: 0...12, unit: "m/s")
@@ -5981,6 +5982,32 @@ private struct KineticEnergyLab: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.energyChallenge", store.language),
+                         solved: abs(proposedFinalEnergy) < 0.5 && initialEnergy > 0, solvedText: L10n.text("lab.energyChallengeSolved", store.language))
+        }
+    }
+
+    // The work–energy theorem as bars: kinetic energy before, the net work added or taken away, and the energy after.
+    private var energyBars: some View {
+        Canvas { context, size in
+            let values = [initialEnergy, netWork, finalEnergy]
+            let top = max(values.map(abs).max() ?? 1, 1)
+            let zeroY = size.height * 0.62
+            let slot = size.width / 3
+            let titles = ["lab.energyInitial", "lab.energyNetWork", "lab.energyFinal"]
+            let colors: [Color] = [.accentColor, netWork >= 0 ? .green : .red, .orange]
+            for (index, value) in values.enumerated() {
+                let height = (zeroY - 14) * CGFloat(abs(value) / top)
+                let rect = CGRect(x: CGFloat(index) * slot + slot * 0.3, y: value >= 0 ? zeroY - height : zeroY, width: slot * 0.4, height: max(2, height))
+                context.fill(Path(roundedRect: rect, cornerRadius: 5), with: .color(colors[index]))
+                context.draw(Text(L10n.text(titles[index], store.language)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: rect.midX, y: size.height - 8))
+            }
+            var zero = Path()
+            zero.move(to: CGPoint(x: 0, y: zeroY))
+            zero.addLine(to: CGPoint(x: size.width, y: zeroY))
+            context.stroke(zero, with: .color(.secondary), lineWidth: 1)
+            context.draw(Text(verbatim: "+").font(.headline).foregroundColor(.secondary), at: CGPoint(x: slot, y: zeroY - 20))
+            context.draw(Text(verbatim: "=").font(.headline).foregroundColor(.secondary), at: CGPoint(x: 2 * slot, y: zeroY - 20))
         }
     }
 
