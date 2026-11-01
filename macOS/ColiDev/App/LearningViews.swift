@@ -5701,12 +5701,7 @@ private struct ProjectileMotionLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.projectile.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.projectile.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.projectile.title", store.language), instruction: L10n.text("lab.projectile.hint", store.language))
 
             Canvas { context, size in
                 guard size.width > 0, size.height > 0 else { return }
@@ -6918,10 +6913,7 @@ private struct CellCycleLab: View {
                 }
             }
 
-            Text(L10n.text("lab.cellCycle.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.cellCycle.limit", store.language)])
         }
     }
 
@@ -7038,10 +7030,7 @@ private struct AnimalFunctionLab: View {
                 }
             }
 
-            Text(L10n.text("lab.zoology.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.zoology.limit", store.language)])
         }
     }
 
@@ -7843,10 +7832,7 @@ private struct NaturalSelectionLab: View {
     }
 
     private var limitations: some View {
-        Text(L10n.text("lab.naturalSelection.limit", store.language))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+        LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.naturalSelection.limit", store.language)])
     }
 
     private var modelRule: some View {
@@ -9698,12 +9684,7 @@ private struct SQLSchemaQueryLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.sql.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.sql.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.sql.title", store.language), instruction: L10n.text("lab.sql.hint", store.language))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(L10n.text("lab.sql.sampleTable", store.language))
@@ -9788,10 +9769,7 @@ private struct SQLSchemaQueryLab: View {
                 .buttonStyle(.bordered)
             }
 
-            Text(L10n.text("lab.sql.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.sql.limit", store.language)])
         }
     }
 
@@ -9995,12 +9973,7 @@ private struct GitWorkflowLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.git.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.git.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.git.title", store.language), instruction: L10n.text("lab.git.hint", store.language))
             Text(L10n.text("lab.git.files", store.language))
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -10088,10 +10061,7 @@ private struct GitWorkflowLab: View {
                 .buttonStyle(.bordered)
             }
 
-            Text(L10n.text("lab.git.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.git.limit", store.language)])
         }
     }
 
@@ -10588,11 +10558,7 @@ private struct VectorKinematicsLab: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(L10n.text("lab.vector.title", store.language))
-                .font(.title3.weight(.semibold))
-            Text(L10n.text("lab.vector.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: L10n.text("lab.vector.title", store.language), instruction: L10n.text("lab.vector.hint", store.language))
 
             HStack(alignment: .center, spacing: 24) {
                 vectorDiagram
@@ -10835,12 +10801,7 @@ private struct CirculationRouteLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.circulation.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.circulation.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.circulation.title", store.language), instruction: L10n.text("lab.circulation.hint", store.language))
 
             Picker(L10n.text("lab.circulation.animalTitle", store.language), selection: $animal) {
                 ForEach(CirculationAnimal.allCases) { option in
@@ -10905,10 +10866,7 @@ private struct CirculationRouteLab: View {
                 .accessibilityIdentifier("lab.circulation.feedback")
             }
 
-            Text(L10n.text("lab.circulation.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.circulation.limit", store.language)])
         }
         .onChange(of: animal) { _ in
             predictedPasses = nil
@@ -11298,12 +11256,7 @@ private struct PHScaleLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.ph.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.ph.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.ph.title", store.language), instruction: L10n.text("lab.ph.hint", store.language))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(String(format: L10n.text("lab.ph.value", store.language), String(Int(pH))))
@@ -11329,10 +11282,7 @@ private struct PHScaleLab: View {
                 .font(.callout.monospacedDigit())
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("lab.ph.comparison")
-            Text(L10n.text("lab.ph.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.ph.limit", store.language)])
         }
     }
 
@@ -11382,12 +11332,7 @@ private struct MoleculeBuilderLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.molecule.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.molecule.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.molecule.title", store.language), instruction: L10n.text("lab.molecule.hint", store.language))
 
             Picker(L10n.text("lab.molecule.central", store.language), selection: $central) {
                 ForEach(MoleculeBuilderModel.CentralAtom.allCases) { atom in
@@ -11424,10 +11369,7 @@ private struct MoleculeBuilderLab: View {
                         .accessibilityIdentifier("lab.molecule.status")
                 }
             }
-            Text(L10n.text("lab.molecule.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.molecule.limit", store.language)])
         }
     }
 
@@ -11497,12 +11439,7 @@ private struct ReactionEnergyLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.energy.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.energy.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.energy.title", store.language), instruction: L10n.text("lab.energy.hint", store.language))
 
             labeledSlider("lab.energy.freeEnergy", "lab.energy.freeEnergyLabel", value: $freeEnergy, range: Model.freeEnergyRange, increment: 5)
             labeledSlider("lab.energy.activation", "lab.energy.activationLabel", value: $activation, range: Model.activationRange, increment: 5)
@@ -11551,10 +11488,7 @@ private struct ReactionEnergyLab: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
-            Text(L10n.text("lab.energy.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.energy.limit", store.language)])
         }
     }
 
@@ -14683,12 +14617,7 @@ private struct DataStructureChoiceLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.dataStructures.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.dataStructures.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.dataStructures.title", store.language), instruction: L10n.text("lab.dataStructures.hint", store.language))
 
             if let scenario = currentScenario {
                 Text(String(format: L10n.text("lab.dataStructures.progress", store.language), stepIndex + 1, DataStructureChoicePractice.scenarios.count))
@@ -14750,10 +14679,7 @@ private struct DataStructureChoiceLab: View {
                 .buttonStyle(.bordered)
             }
 
-            Text(L10n.text("lab.dataStructures.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.dataStructures.limit", store.language)])
         }
     }
 
