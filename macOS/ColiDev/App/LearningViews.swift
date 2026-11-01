@@ -9446,97 +9446,140 @@ private struct VariablesTypesLab: View {
     @State private var inputText = "12"
     @State private var conversionResult: PythonInputPracticeResult?
     @State private var practiceTracker = PythonInputPracticeTracker()
+    @State private var sawValueError = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.variableCodeInitial", store.language))
-                .font(.system(.body, design: .monospaced).weight(.medium))
-            Toggle(L10n.text("lab.variableReassign", store.language), isOn: $reassignToText)
-                .toggleStyle(.switch)
-            Text(L10n.text("lab.variableCodeUpdate", store.language))
-                .font(.system(.body, design: .monospaced).weight(.medium))
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("lab.variableCurrentBinding", store.language))
-                    .font(.caption.weight(.semibold))
+            LabHeader(title: text("lab.variableTitle"), instruction: text("lab.variableSubtitle"))
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    codeLine(text("lab.variableCodeInitial"), active: !reassignToText)
+                    codeLine(text("lab.variableCodeUpdate"), active: reassignToText)
+                    Toggle(text("lab.variableReassign"), isOn: $reassignToText.animation(.spring(response: 0.4, dampingFraction: 0.8)))
+                        .toggleStyle(.switch)
+                        .padding(.top, 6)
+                }
+                .frame(maxWidth: 280, alignment: .leading)
+                bindingDiagram
+            }
+            Label(text(reassignToText ? "lab.variableAfter" : "lab.variableBefore"), systemImage: reassignToText ? "textformat" : "number")
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(text("lab.input.title")).font(.headline)
+                Text(text("lab.input.explanation"))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("score")
-                        .font(.system(.body, design: .monospaced).weight(.semibold))
-                    Spacer()
-                    Text(reassignToText ? "\"12\"" : "12")
-                        .font(.system(.title3, design: .monospaced).weight(.semibold))
-                        .textSelection(.enabled)
-                    Text(reassignToText ? "str" : "int")
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(text("lab.input.codeRead"))
+                    Text("count = int(raw_text)")
                 }
-                Label(
-                    L10n.text(reassignToText ? "lab.variableAfter" : "lab.variableBefore", store.language),
-                    systemImage: reassignToText ? "textformat" : "number"
-                )
-                .font(.callout)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
-            Divider()
-
-            Text(L10n.text("lab.input.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.input.explanation", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.input.practiceHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.input.codeRead", store.language))
                 .font(.system(.body, design: .monospaced).weight(.medium))
-            Text("count = int(raw_text)")
-                .font(.system(.body, design: .monospaced).weight(.medium))
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                TextField(L10n.text("lab.input.placeholder", store.language), text: $inputText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 260)
-                    .accessibilityLabel(Text(L10n.text("lab.input.accessibility", store.language)))
-                    .onSubmit(convertInput)
-
-                Button(L10n.text("lab.input.convert", store.language), action: convertInput)
-                    .buttonStyle(.borderedProminent)
-            }
-
-            if let conversionResult {
-                switch conversionResult {
-                case .integer(let value):
-                    Label(
-                        String(format: L10n.text("lab.input.integerResult", store.language), value),
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .foregroundStyle(.green)
-                case .valueError:
-                    Label(L10n.text("lab.input.valueError", store.language), systemImage: "exclamationmark.circle.fill")
-                        .foregroundStyle(.orange)
-                case .outsideSimulatorRange:
-                    Label(L10n.text("lab.input.rangeLimit", store.language), systemImage: "info.circle.fill")
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    TextField(text("lab.input.placeholder"), text: $inputText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 260)
+                        .accessibilityLabel(Text(text("lab.input.accessibility")))
+                        .onSubmit(convertInput)
+                    Button(text("lab.input.convert"), action: convertInput)
+                        .buttonStyle(.borderedProminent)
                 }
+                conversionPipeline
             }
-
-            Text(L10n.text("lab.input.simulatorLimit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
+            .padding(12)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.variableChallenge"),
+                         solved: sawValueError, solvedText: text("lab.variableChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.input.practiceHint"), text("lab.input.simulatorLimit")])
             Divider()
             PracticeMinutesRunner()
         }
     }
 
+    private func codeLine(_ code: String, active: Bool) -> some View {
+        Text(code)
+            .font(.system(.body, design: .monospaced).weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(active ? Color.accentColor.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    // A name is a label pointing at an object. Reassigning moves the arrow to a new object; the old int is not converted.
+    private var bindingDiagram: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text(verbatim: "score")
+                .font(.system(.title3, design: .monospaced).weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.secondary.opacity(0.15), in: Capsule())
+            Image(systemName: "arrow.right")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+            VStack(spacing: 10) {
+                objectBox(value: "12", type: "int", colour: .blue, current: !reassignToText)
+                objectBox(value: "\"12\"", type: "str", colour: .orange, current: reassignToText)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.variableCurrentBinding"))
+        .accessibilityValue(Text(verbatim: reassignToText ? "\"12\" (str)" : "12 (int)"))
+    }
+
+    private func objectBox(value: String, type: String, colour: Color, current: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text(verbatim: value)
+                .font(.system(.title3, design: .monospaced).weight(.bold))
+            Text(verbatim: type)
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(colour.opacity(0.25), in: Capsule())
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(colour.opacity(current ? 0.22 : 0.06), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(colour.opacity(current ? 0.9 : 0.25), lineWidth: current ? 2 : 1))
+        .opacity(current ? 1 : 0.45)
+        .scaleEffect(current ? 1 : 0.94)
+    }
+
+    // raw_text (always str) → int() → an int, or a ValueError when the text is not a whole number.
+    @ViewBuilder
+    private var conversionPipeline: some View {
+        if let conversionResult {
+            HStack(spacing: 8) {
+                objectBox(value: "\"" + inputText + "\"", type: "str", colour: .orange, current: true)
+                Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                Text(verbatim: "int()").font(.system(.callout, design: .monospaced).weight(.semibold))
+                Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                switch conversionResult {
+                case .integer(let value):
+                    objectBox(value: "\(value)", type: "int", colour: .blue, current: true)
+                case .valueError:
+                    Label(text("lab.input.valueError"), systemImage: "exclamationmark.octagon.fill")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .outsideSimulatorRange:
+                    Label(text("lab.input.rangeLimit"), systemImage: "info.circle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
     private func convertInput() {
-        conversionResult = PythonInputPractice.convert(inputText)
+        let result = PythonInputPractice.convert(inputText)
+        withAnimation(.easeOut(duration: 0.25)) { conversionResult = result }
+        if case .valueError = result { sawValueError = true }
         if let evidence = practiceTracker.recordSubmission(text: inputText) {
             store.recordStudyAssessment(lessonID: "programming.variables_and_types", evidence: evidence)
         }
@@ -9774,6 +9817,9 @@ private struct AlgorithmicThinkingLab: View {
     var body: some View {
         LabCard {
             LabHeader(title: L10n.text("labkit.title.AlgorithmicThinkingLab", store.language), instruction: L10n.text("lab.algorithmHint", store.language))
+            ProgressView(value: Double(completedSteps.count), total: Double(max(stepOrder.count, 1)))
+                .tint(session.isComplete ? .green : .accentColor)
+                .accessibilityLabel(Text(String(format: L10n.text("lab.algorithmProgress", store.language), min(completedSteps.count + 1, stepOrder.count), stepOrder.count)))
 
             if let currentQuestion = session.currentQuestion {
                 Text(L10n.text(currentQuestion.contextKey, store.language))
@@ -9800,6 +9846,7 @@ private struct AlgorithmicThinkingLab: View {
                                let actual = AlgorithmicThinkingPractice.faultyMaximumInitializedAtZero(of: values) {
                                 Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(values))]")
                                     .font(.system(.callout, design: .monospaced))
+                                valueBars(values)
                                 Text(String(format: L10n.text("lab.algorithmDebugFaultyOutput", store.language), actual))
                                     .font(.system(.callout, design: .monospaced))
                                 Text(String(format: L10n.text("lab.algorithmDebugExpectedOutput", store.language), expected))
@@ -9816,6 +9863,7 @@ private struct AlgorithmicThinkingLab: View {
                             .font(.callout)
                         Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(scenario.values))]")
                             .font(.system(.body, design: .monospaced))
+                        valueBars(scenario.values)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -9826,6 +9874,7 @@ private struct AlgorithmicThinkingLab: View {
                             .font(.callout)
                         Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(AlgorithmicThinkingPractice.maximumListValues))]")
                             .font(.system(.body, design: .monospaced))
+                        valueBars(AlgorithmicThinkingPractice.maximumListValues)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -9836,6 +9885,7 @@ private struct AlgorithmicThinkingLab: View {
                             .font(.callout)
                         Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(scenario.values))]")
                             .font(.system(.body, design: .monospaced))
+                        valueBars(scenario.values)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -10017,7 +10067,39 @@ private struct AlgorithmicThinkingLab: View {
 
                 PythonCodePracticeView()
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.algorithmChallenge", store.language),
+                         solved: session.isComplete, solvedText: L10n.text("lab.algorithmChallengeSolved", store.language))
         }
+    }
+
+    // The input list as signed bars around zero: negative values hang below the line, an empty list has no bars at all.
+    private func valueBars(_ values: [Int]) -> some View {
+        Canvas { context, size in
+            guard !values.isEmpty else {
+                context.draw(Text(verbatim: "[ ]").font(.title3.monospaced()).foregroundColor(.secondary), at: CGPoint(x: size.width / 2, y: size.height / 2))
+                return
+            }
+            let top = CGFloat(max(values.max() ?? 0, 0)), bottom = CGFloat(min(values.min() ?? 0, 0))
+            let span = max(top - bottom, 1)
+            let unit = (size.height - 32) / span
+            let zero = 16 + top * unit
+            let slot = min(size.width / CGFloat(values.count), 54)
+            var axis = Path()
+            axis.move(to: CGPoint(x: 0, y: zero))
+            axis.addLine(to: CGPoint(x: size.width, y: zero))
+            context.stroke(axis, with: .color(.secondary.opacity(0.7)), lineWidth: 1)
+            for (index, value) in values.enumerated() {
+                let height = max(CGFloat(abs(value)) * unit, 2)
+                let x = CGFloat(index) * slot + slot / 2
+                let y = value >= 0 ? zero - height : zero
+                context.fill(Path(roundedRect: CGRect(x: x - slot * 0.32, y: y, width: slot * 0.64, height: height), cornerRadius: 3),
+                             with: .color(value >= 0 ? Color.teal : Color.orange))
+                context.draw(Text(verbatim: value < 0 ? "−\(-value)" : "\(value)").font(.caption.monospacedDigit().weight(.semibold)).foregroundColor(.primary),
+                             at: CGPoint(x: x, y: value >= 0 ? y - 8 : y + height + 8))
+            }
+        }
+        .frame(height: 96)
+        .accessibilityHidden(true)
     }
 
     private func select(displayedIndex: Int) {
@@ -10280,46 +10362,130 @@ private struct FileReadingLab: View {
         optionCount: FileReadingOutcome.allCases.count,
         answerOriginalIndex: FileReadingPractice.scenarios[0].expectedOutcome.rawValue
     )
+    @State private var solvedScenarios: Set<String> = []
 
-    private var scenario: FileReadingScenario {
-        FileReadingPractice.scenario(id: scenarioID) ?? FileReadingPractice.scenarios[0]
+    /// How far a run gets: every stage before `failingStage` succeeds; the failing stage stops the program.
+    private enum StageState { case passed, failed, notReached }
+    private static let stageKeys = ["lab.fileTrace.stepOpen", "lab.fileTrace.stepRead", "lab.fileTrace.stepConvert", "lab.fileTrace.stepSum"]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: FileReadingScenario { FileReadingPractice.scenario(id: scenarioID) ?? FileReadingPractice.scenarios[0] }
+    private var answeredCorrectly: Bool { selectedOutcome.map { FileReadingPractice.isCorrect($0, for: scenarioID) } ?? false }
+    private var fileLines: [String]? {
+        switch scenario.expectedOutcome {
+        case .missingFile: return nil
+        case .invalidNumber: return ["7", "twelve"]
+        case .successfulSum: return ["7", "-3"]
+        }
+    }
+    private var failingStage: Int? {
+        switch scenario.expectedOutcome {
+        case .missingFile: return 0
+        case .invalidNumber: return 2
+        case .successfulSum: return nil
+        }
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.FileReadingLab", store.language), instruction: L10n.text("lab.fileTrace.hint", store.language))
-
-            Picker(L10n.text("lab.fileTrace.scenario", store.language), selection: $scenarioID) {
+            LabHeader(title: text("labkit.title.FileReadingLab"), instruction: text("lab.fileTrace.hint"))
+            Picker(text("lab.fileTrace.scenario"), selection: $scenarioID) {
                 ForEach(FileReadingPractice.scenarios) { item in
-                    Text(L10n.text("lab.fileTrace.scenario.\(item.id)", store.language)).tag(item.id)
+                    Text(text("lab.fileTrace.scenario.\(item.id)")).tag(item.id)
                 }
             }
             .pickerStyle(.menu)
-            .onChange(of: scenarioID) { _ in
-                selectedOutcome = nil
-                hasCheckedAnswer = false
-                outcomeOrder = QuizAnswerOrder(
-                    optionCount: FileReadingOutcome.allCases.count,
-                    answerOriginalIndex: scenario.expectedOutcome.rawValue
-                )
+            .frame(maxWidth: 420)
+            .onChange(of: scenarioID) { _ in resetAttempt() }
+            HStack(alignment: .top, spacing: 14) {
+                filePanel
+                Text("""
+                with path.open("r", encoding="utf-8") as file:
+                    total = sum(int(line.strip()) for line in file if line.strip())
+                """)
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityLabel(Text(text("lab.fileTrace.code")))
             }
+            pipeline
+            answerPanel
+            LabStatGrid {
+                LabStat(label: text("lab.fileTrace.statSolved"), value: "\(solvedScenarios.count) / \(FileReadingPractice.scenarios.count)", tint: .green)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.fileTrace.challenge"),
+                         solved: solvedScenarios.count == FileReadingPractice.scenarios.count, solvedText: text("lab.fileTrace.challengeSolved"))
+        }
+    }
 
-            Text("""
-            with path.open("r", encoding="utf-8") as file:
-                total = sum(int(line.strip()) for line in file if line.strip())
-            """)
-            .font(.system(.callout, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityLabel(Text(L10n.text("lab.fileTrace.code", store.language)))
+    // The file on disk: its lines, or a dashed outline when it does not exist.
+    private var filePanel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label {
+                Text(verbatim: "scores.txt").font(.system(.caption, design: .monospaced).weight(.semibold))
+            } icon: {
+                Image(systemName: fileLines == nil ? "doc.badge.ellipsis" : "doc.text")
+            }
+            .foregroundStyle(fileLines == nil ? Color.orange : Color.secondary)
+            if let fileLines {
+                ForEach(Array(fileLines.enumerated()), id: \.offset) { _, line in
+                    Text(verbatim: line).font(.system(.title3, design: .monospaced).weight(.semibold))
+                }
+            } else {
+                Text(text("lab.fileTrace.fileMissing")).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .frame(width: 150, alignment: .leading)
+        .frame(minHeight: 96, alignment: .topLeading)
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.secondary.opacity(0.5),
+                                                                 style: StrokeStyle(lineWidth: 1.5, dash: fileLines == nil ? [5, 4] : [])))
+        .accessibilityElement(children: .combine)
+    }
 
-            Text(L10n.text("lab.fileTrace.question", store.language))
-                .font(.headline)
+    // The stages of the run. After the answer is checked they show how far the program got and where it stopped.
+    private var pipeline: some View {
+        HStack(spacing: 6) {
+            ForEach(Self.stageKeys.indices, id: \.self) { index in
+                if index > 0 {
+                    Image(systemName: "arrow.right").font(.caption).foregroundStyle(.secondary)
+                }
+                stageChip(index)
+            }
+        }
+    }
+
+    private func stageState(_ index: Int) -> StageState {
+        guard let failingStage else { return .passed }
+        if index < failingStage { return .passed }
+        return index == failingStage ? .failed : .notReached
+    }
+
+    private func stageChip(_ index: Int) -> some View {
+        let state = stageState(index)
+        let colour: Color = !hasCheckedAnswer ? .secondary : (state == .passed ? .green : (state == .failed ? .red : .secondary))
+        let symbol = !hasCheckedAnswer ? "questionmark.circle" : (state == .passed ? "checkmark.circle.fill" : (state == .failed ? "xmark.octagon.fill" : "circle.dashed"))
+        return VStack(spacing: 4) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(colour)
+            Text(text(Self.stageKeys[index]))
+                .font(.caption.weight(.medium))
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: 66)
+        .background(colour.opacity(hasCheckedAnswer ? 0.12 : 0.06), in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .combine)
+    }
 
-            ForEach(Array(outcomeOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
+    private var answerPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(text("lab.fileTrace.question"))
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(outcomeOrder.displayedOriginalIndices.enumerated()), id: \.offset) { _, originalIndex in
                 let outcome = FileReadingPractice.outcomes[originalIndex]
                 Button {
                     guard !hasCheckedAnswer else { return }
@@ -10327,57 +10493,59 @@ private struct FileReadingLab: View {
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: selectedOutcome == outcome ? "largecircle.fill.circle" : "circle")
-                        Text(L10n.text(outcome.localizationKey, store.language))
+                        Text(text(outcome.localizationKey))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(10)
-                    .background(
-                        selectedOutcome == outcome ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06),
-                        in: RoundedRectangle(cornerRadius: 10)
-                    )
+                    .background(selectedOutcome == outcome ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06),
+                                in: RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
                 .disabled(hasCheckedAnswer)
                 .accessibilityAddTraits(selectedOutcome == outcome ? .isSelected : [])
             }
-
-            if hasCheckedAnswer {
-                let correct = selectedOutcome.map { FileReadingPractice.isCorrect($0, for: scenarioID) } ?? false
-                Label(
-                    L10n.text(correct ? "lab.fileTrace.correct" : "lab.fileTrace.incorrect", store.language),
-                    systemImage: correct ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .foregroundStyle(correct ? Color.green : Color.orange)
-
-                Label(
-                    L10n.text(scenario.explanationKey, store.language),
-                    systemImage: "info.circle"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Button {
-                if let selectedOutcome,
-                   let evidence = assessmentTracker.recordSubmission(
-                    selectedAnswerIndex: selectedOutcome.rawValue,
-                    correctAnswerIndex: scenario.expectedOutcome.rawValue,
-                    optionCount: FileReadingOutcome.allCases.count,
-                    itemID: scenario.id
-                   ) {
-                    store.recordStudyAssessment(
-                        lessonID: "programming.strings_files_and_exceptions",
-                        evidence: evidence
-                    )
+            HStack(spacing: 10) {
+                Button(action: checkAnswer) {
+                    Label(text("lab.fileTrace.check"), systemImage: "checkmark")
                 }
-                hasCheckedAnswer = true
-            } label: {
-                Label(L10n.text("lab.fileTrace.check", store.language), systemImage: "checkmark")
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedOutcome == nil || hasCheckedAnswer)
+                if hasCheckedAnswer && !answeredCorrectly {
+                    Button(text("lab.fileTrace.retry"), action: resetAttempt)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedOutcome == nil || hasCheckedAnswer)
+            if hasCheckedAnswer {
+                Label(text(answeredCorrectly ? "lab.fileTrace.correct" : "lab.fileTrace.incorrect"),
+                      systemImage: answeredCorrectly ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .foregroundStyle(answeredCorrectly ? Color.green : Color.orange)
+                Label(text(scenario.explanationKey), systemImage: "info.circle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func checkAnswer() {
+        if let selectedOutcome,
+           let evidence = assessmentTracker.recordSubmission(
+            selectedAnswerIndex: selectedOutcome.rawValue,
+            correctAnswerIndex: scenario.expectedOutcome.rawValue,
+            optionCount: FileReadingOutcome.allCases.count,
+            itemID: scenario.id
+           ) {
+            store.recordStudyAssessment(lessonID: "programming.strings_files_and_exceptions", evidence: evidence)
+        }
+        hasCheckedAnswer = true
+        if answeredCorrectly { solvedScenarios.insert(scenarioID) }
+    }
+
+    private func resetAttempt() {
+        selectedOutcome = nil
+        hasCheckedAnswer = false
+        outcomeOrder = QuizAnswerOrder(optionCount: FileReadingOutcome.allCases.count, answerOriginalIndex: scenario.expectedOutcome.rawValue)
     }
 }
 
@@ -10622,93 +10790,180 @@ private struct DebuggingLab: View {
         optionCount: DebuggingPractice.scenarios[0].choiceKeys.count,
         answerOriginalIndex: DebuggingPractice.scenarios[0].correctChoice
     )
+    @State private var solvedScenarios: Set<String> = []
 
-    private var scenario: DebuggingScenario {
-        DebuggingPractice.scenario(id: scenarioID) ?? DebuggingPractice.scenarios[0]
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: DebuggingScenario { DebuggingPractice.scenario(id: scenarioID) ?? DebuggingPractice.scenarios[0] }
+    private var codeLines: [String] { scenario.code.components(separatedBy: "\n") }
+    private var answeredCorrectly: Bool { hasChecked && optionOrder.isCorrect(displayedIndex: selectedChoice) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             LabCard {
-                LabHeader(title: L10n.text("labkit.title.DebuggingLab", store.language), instruction: L10n.text("lab.debugging.hint", store.language))
-
-                Picker(L10n.text("lab.debugging.scenarioPicker", store.language), selection: $scenarioID) {
+                LabHeader(title: text("labkit.title.DebuggingLab"), instruction: text("lab.debugging.hint"))
+                Picker(text("lab.debugging.scenarioPicker"), selection: $scenarioID) {
                     ForEach(DebuggingPractice.scenarios) { item in
-                        Text(L10n.text(item.promptKey, store.language)).tag(item.id)
+                        Text(text(item.promptKey)).tag(item.id)
                     }
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(.segmented)
+                .labelsHidden()
                 .onChange(of: scenarioID) { newScenarioID in
                     selectedChoice = -1
                     hasChecked = false
                     if let newScenario = DebuggingPractice.scenario(id: newScenarioID) {
-                        optionOrder = QuizAnswerOrder(
-                            optionCount: newScenario.choiceKeys.count,
-                            answerOriginalIndex: newScenario.correctChoice
-                        )
+                        optionOrder = QuizAnswerOrder(optionCount: newScenario.choiceKeys.count, answerOriginalIndex: newScenario.correctChoice)
                     }
                 }
-
-                Text(scenario.code)
-                    .font(.system(.callout, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityLabel(Text(L10n.text("lab.debugging.code", store.language)))
-
+                codePanel
                 Label(scenario.traceback, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(.callout, design: .monospaced))
-                    .foregroundStyle(.orange)
+                    .font(.system(.callout, design: .monospaced).weight(.medium))
+                    .foregroundStyle(.red)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(Text(L10n.text("lab.debugging.traceback", store.language)))
-
-                Text(L10n.text("lab.debugging.choose", store.language))
-                    .font(.callout.weight(.medium))
-
-                Picker(L10n.text("lab.debugging.choicePicker", store.language), selection: $selectedChoice) {
-                    ForEach(Array(optionOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                        Text(L10n.text(scenario.choiceKeys[originalIndex], store.language)).tag(displayIndex)
-                    }
+                    .accessibilityLabel(Text(text("lab.debugging.traceback") + ": " + scenario.traceback))
+                choicePanel
+                if hasChecked { evidencePanel }
+                LabStatGrid {
+                    LabStat(label: text("lab.debugging.statSolved"), value: "\(solvedScenarios.count) / \(DebuggingPractice.scenarios.count)", tint: .green)
                 }
-                .pickerStyle(.radioGroup)
-                .disabled(hasChecked)
+                LabChallenge(caption: text("lab.kit.task"), task: text("lab.debugging.challenge"),
+                             solved: solvedScenarios.count == DebuggingPractice.scenarios.count, solvedText: text("lab.debugging.challengeSolved"))
+            }
+            GitWorkflowLab()
+        }
+    }
 
-                if hasChecked {
-                    Label(
-                        L10n.text(scenario.explanationKey, store.language),
-                        systemImage: optionOrder.isCorrect(displayedIndex: selectedChoice)
-                            ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                    )
-                    .font(.callout)
-                    .foregroundStyle(optionOrder.isCorrect(displayedIndex: selectedChoice) ? Color.green : Color.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+    // Numbered code. In these three examples the error appears on the last line; it lights up only after the answer is checked.
+    private var codePanel: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(codeLines.enumerated()), id: \.offset) { index, line in
+                let failing = hasChecked && index == codeLines.count - 1
+                HStack(spacing: 10) {
+                    Text(verbatim: "\(index + 1)")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18, alignment: .trailing)
+                    Text(verbatim: line)
+                        .textSelection(.enabled)
+                    Spacer(minLength: 0)
                 }
+                .font(.system(.callout, design: .monospaced))
+                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .background(failing ? Color.red.opacity(0.2) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+            }
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(text("lab.debugging.code")))
+    }
 
-                Button {
-                    hasChecked = true
-                    guard let selectedOriginalIndex = optionOrder.originalIndex(forDisplayedIndex: selectedChoice),
-                          let evidence = assessmentTracker.recordSubmission(
-                            selectedAnswerIndex: selectedOriginalIndex,
-                            correctAnswerIndex: scenario.correctChoice,
-                            optionCount: scenario.choiceKeys.count,
-                            itemID: scenario.id
-                          ) else {
-                        return
-                    }
-                    store.recordStudyAssessment(
-                        lessonID: "programming.debugging_tests_and_git",
-                        evidence: evidence
-                    )
-                } label: {
-                    Label(L10n.text("lab.debugging.check", store.language), systemImage: "checkmark")
+    private var choicePanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.debugging.choose"))
+                .font(.callout.weight(.medium))
+            Picker(text("lab.debugging.choicePicker"), selection: $selectedChoice) {
+                ForEach(Array(optionOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
+                    Text(text(scenario.choiceKeys[originalIndex])).tag(displayIndex)
+                }
+            }
+            .pickerStyle(.radioGroup)
+            .labelsHidden()
+            .disabled(hasChecked)
+            HStack(spacing: 10) {
+                Button(action: checkAnswer) {
+                    Label(text("lab.debugging.check"), systemImage: "checkmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(hasChecked || selectedChoice < 0)
+                if hasChecked && !answeredCorrectly {
+                    Button(text("lab.debugging.retry")) {
+                        hasChecked = false
+                        selectedChoice = -1
+                        optionOrder = QuizAnswerOrder(optionCount: scenario.choiceKeys.count, answerOriginalIndex: scenario.correctChoice)
+                    }
+                }
             }
-
-            GitWorkflowLab()
+            if hasChecked {
+                Label(text(scenario.explanationKey), systemImage: answeredCorrectly ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .font(.callout)
+                    .foregroundStyle(answeredCorrectly ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // What the program actually had at the moment of the error, drawn for each kind of bug.
+    private var evidencePanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(text("lab.debugging.evidenceTitle")).font(.callout.weight(.semibold))
+            switch scenarioID {
+            case "index-error":
+                HStack(spacing: 6) {
+                    ForEach(Array(["\"a\"", "\"b\"", "\"c\""].enumerated()), id: \.offset) { index, value in
+                        indexCell(index: index, value: value, exists: true)
+                    }
+                    indexCell(index: 3, value: "?", exists: false)
+                }
+            case "assertion-error":
+                HStack(spacing: 10) {
+                    evidenceChip(label: text("lab.debugging.evidence.got"), value: "double(3) = 6", colour: .orange)
+                    evidenceChip(label: text("lab.debugging.evidence.expected"), value: "5", colour: .blue)
+                }
+            default:
+                HStack(spacing: 10) {
+                    evidenceChip(label: text("lab.debugging.evidence.known"), value: "total", colour: .green)
+                    evidenceChip(label: text("lab.debugging.evidence.asked"), value: "totel", colour: .red)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func indexCell(index: Int, value: String, exists: Bool) -> some View {
+        VStack(spacing: 3) {
+            Text(verbatim: value)
+                .font(.system(.callout, design: .monospaced).weight(.bold))
+                .frame(width: 48, height: 36)
+                .background(exists ? Color.green.opacity(0.2) : Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(exists ? Color.green.opacity(0.6) : Color.red,
+                                                                        style: StrokeStyle(lineWidth: 1.5, dash: exists ? [] : [4, 3])))
+            Text(verbatim: "\(index)")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(exists ? Color.secondary : Color.red)
+        }
+    }
+
+    private func evidenceChip(label: String, value: String, colour: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(verbatim: value)
+                .font(.system(.title3, design: .monospaced).weight(.bold))
+                .foregroundStyle(colour)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(colour.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func checkAnswer() {
+        hasChecked = true
+        if optionOrder.isCorrect(displayedIndex: selectedChoice) { solvedScenarios.insert(scenarioID) }
+        guard let selectedOriginalIndex = optionOrder.originalIndex(forDisplayedIndex: selectedChoice),
+              let evidence = assessmentTracker.recordSubmission(
+                selectedAnswerIndex: selectedOriginalIndex,
+                correctAnswerIndex: scenario.correctChoice,
+                optionCount: scenario.choiceKeys.count,
+                itemID: scenario.id
+              ) else {
+            return
+        }
+        store.recordStudyAssessment(lessonID: "programming.debugging_tests_and_git", evidence: evidence)
     }
 }
 
@@ -15592,11 +15847,15 @@ private struct DataStructureChoiceLab: View {
 
 private struct LoopTraceLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scenarioID: String
     @State private var question: LoopTraceQuestion
     @State private var prediction: InteractivePredictionAttempt
     @State private var selectedDisplayIndex = -1
     @State private var revealedStepCount = 0
+    @State private var playing = false
+
+    private static let codeLines = ["count = 0", "for number in numbers:", "    if number % 2 == 0:", "        count += 1", "return count"]
 
     init() {
         let initialScenario = LoopTracePractice.scenarios[0]
@@ -15606,125 +15865,163 @@ private struct LoopTraceLab: View {
         _prediction = State(initialValue: Self.makePrediction(for: initialQuestion))
     }
 
-    private var scenario: LoopTraceScenario {
-        LoopTracePractice.scenario(id: scenarioID) ?? LoopTracePractice.scenarios[0]
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: LoopTraceScenario { LoopTracePractice.scenario(id: scenarioID) ?? LoopTracePractice.scenarios[0] }
+    private var unlocked: Bool { prediction.hasAnswered && prediction.isCorrect }
+    private var finished: Bool { unlocked && revealedStepCount == scenario.steps.count }
+    private var currentStep: LoopTraceStep? { revealedStepCount > 0 ? scenario.steps[revealedStepCount - 1] : nil }
+    private var count: Int { currentStep?.countAfter ?? 0 }
+    /// The code line the trace is on: the loop body for the current number, then `return` at the end.
+    private var activeLine: Int {
+        guard unlocked else { return -1 }
+        if finished { return 4 }
+        guard let step = currentStep else { return 0 }
+        return step.isEven ? 3 : 2
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.LoopTraceLab", store.language), instruction: L10n.text("lab.loopTraceHint", store.language))
-
-            Text("count_even(\(scenario.displayedValues))")
-                .font(.system(.body, design: .monospaced).weight(.semibold))
-                .textSelection(.enabled)
-                .accessibilityLabel(Text(L10n.text("lab.loopTraceInput", store.language)))
-
-            Picker(
-                L10n.text("lab.loopTraceScenario", store.language),
-                selection: Binding(
-                    get: { scenarioID },
-                    set: selectScenario
-                )
-            ) {
+            LabHeader(title: text("labkit.title.LoopTraceLab"), instruction: text("lab.loopTraceSubtitle"))
+            Picker(text("lab.loopTraceScenario"), selection: Binding(get: { scenarioID }, set: selectScenario)) {
                 ForEach(LoopTracePractice.scenarios) { item in
-                    Text(L10n.text("lab.loopTraceScenario.\(item.id)", store.language)).tag(item.id)
+                    Text(text("lab.loopTraceScenario.\(item.id)")).tag(item.id)
                 }
             }
             .pickerStyle(.menu)
+            .frame(maxWidth: 360)
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("count_even(\(scenario.displayedValues))")
+                        .font(.system(.callout, design: .monospaced).weight(.semibold))
+                        .padding(.bottom, 6)
+                        .accessibilityLabel(Text(text("lab.loopTraceInput")))
+                    ForEach(Array(Self.codeLines.enumerated()), id: \.offset) { index, line in
+                        Text(verbatim: line)
+                            .font(.system(.callout, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(index == activeLine ? Color.accentColor.opacity(0.22) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                    }
+                }
+                .padding(10)
+                .frame(maxWidth: 320)
+                .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(text("lab.loopTraceCode")))
+                VStack(alignment: .leading, spacing: 12) {
+                    arrayCells
+                    HStack(spacing: 10) {
+                        memoryBox(name: "number", value: currentStep.map { String($0.value) } ?? "—", colour: .purple)
+                        memoryBox(name: "count", value: unlocked ? String(count) : "?", colour: .green)
+                    }
+                }
+            }
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.loopTraceChallenge"),
+                         solved: finished, solvedText: text("lab.loopTraceChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.loopTraceHint"), text("lab.loopTraceWrongHint")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && revealedStepCount < scenario.steps.count {
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                guard playing else { return }
+                if reduceMotion { revealedStepCount += 1 } else { withAnimation(.easeInOut(duration: 0.25)) { revealedStepCount += 1 } }
+            }
+            playing = false
+        }
+    }
 
-            Text("""
-            count = 0
-            for number in numbers:
-                if number % 2 == 0:
-                    count += 1
-            return count
-            """)
-            .font(.system(.callout, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityLabel(Text(L10n.text("lab.loopTraceCode", store.language)))
+    // The list as boxes: the pointer marks `number`; counted (even) numbers turn green, skipped (odd) ones grey.
+    private var arrayCells: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(scenario.steps.enumerated()), id: \.offset) { index, step in
+                let done = unlocked && index < revealedStepCount
+                let current = unlocked && index == revealedStepCount - 1
+                VStack(spacing: 3) {
+                    Text(verbatim: "\(step.value)")
+                        .font(.system(.title3, design: .monospaced).weight(.bold))
+                        .frame(width: 44, height: 40)
+                        .background(done ? (step.isEven ? Color.green.opacity(0.35) : Color.secondary.opacity(0.18)) : Color.secondary.opacity(0.08),
+                                    in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(current ? Color.purple : Color.secondary.opacity(0.3), lineWidth: current ? 2.5 : 1))
+                    Image(systemName: "arrowtriangle.up.fill")
+                        .font(.caption)
+                        .foregroundStyle(.purple)
+                        .opacity(current ? 1 : 0)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(text("lab.loopTraceInput")))
+        .accessibilityValue(Text(verbatim: scenario.displayedValues))
+    }
 
+    private func memoryBox(name: String, value: String, colour: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: name).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
+            Text(verbatim: value)
+                .font(.system(.title2, design: .monospaced).weight(.bold))
+                .foregroundStyle(colour)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(colour.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(L10n.text("lab.loopTracePrediction", store.language))
+                Text(text("lab.loopTracePrediction")).font(.callout.weight(.medium))
                 Spacer()
-                Picker(L10n.text("lab.loopTracePrediction", store.language), selection: $selectedDisplayIndex) {
-                    Text(L10n.text("lab.loopTraceChoose", store.language)).tag(-1)
+                Picker(text("lab.loopTracePrediction"), selection: $selectedDisplayIndex) {
+                    Text(text("lab.loopTraceChoose")).tag(-1)
                     ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
                         Text(String(question.options[originalIndex])).tag(displayIndex)
                     }
                 }
                 .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 160)
                 .disabled(prediction.hasAnswered)
             }
-
-            if prediction.hasAnswered {
-                if prediction.isCorrect {
-                    Label(
-                        String(format: L10n.text("lab.loopTraceFeedback", store.language), scenario.expectedCount),
-                        systemImage: "checkmark.circle.fill"
-                    )
+            if unlocked {
+                Label(String(format: text("lab.loopTraceFeedback"), scenario.expectedCount), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .fixedSize(horizontal: false, vertical: true)
-
-                    ForEach(Array(scenario.steps.prefix(revealedStepCount))) { step in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("\(step.index + 1)")
-                                .font(.caption.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 22, alignment: .leading)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(String(format: L10n.text("lab.loopTraceStep", store.language), step.value))
-                                    .font(.system(.callout, design: .monospaced).weight(.medium))
-                                Text(L10n.text(step.isEven ? "lab.loopTraceEven" : "lab.loopTraceOdd", store.language))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(String(step.countAfter))
-                                .font(.system(.callout, design: .monospaced).weight(.semibold))
-                                .accessibilityLabel(Text(L10n.text("lab.loopTraceCount", store.language)))
-                        }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 10))
-                        .accessibilityElement(children: .combine)
-                    }
-
-                    if revealedStepCount == scenario.steps.count {
-                        Label(
-                            String(format: L10n.text("lab.loopTraceReturn", store.language), scenario.expectedCount),
-                            systemImage: "arrow.uturn.backward.circle"
-                        )
+                HStack(spacing: 10) {
+                    Button {
+                        revealedStepCount = min(revealedStepCount + 1, scenario.steps.count)
+                    } label: { Label(text("lab.loopTraceNextStep"), systemImage: "arrow.right") }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(finished || playing)
+                    Button {
+                        playing = true
+                    } label: { Label(text("lab.loopTracePlay"), systemImage: "play.fill") }
+                        .disabled(finished || playing)
+                }
+                if let step = currentStep, !finished {
+                    Text(String(format: text("lab.loopTraceStep"), step.value) + " — " + text(step.isEven ? "lab.loopTraceEven" : "lab.loopTraceOdd"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                if finished {
+                    Label(String(format: text("lab.loopTraceReturn"), scenario.expectedCount), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.tint)
-                    }
-                } else {
-                    Label(L10n.text("lab.loopTraceWrong", store.language), systemImage: "arrow.counterclockwise.circle")
-                        .foregroundStyle(.orange)
-                    Text(L10n.text("lab.loopTraceWrongHint", store.language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.loopTraceRetry", store.language)) {
-                        prediction.retry()
-                        selectedDisplayIndex = -1
-                        revealedStepCount = 0
-                    }
-                    .buttonStyle(.link)
                 }
-            }
-
-            if prediction.hasAnswered, prediction.isCorrect {
-                Button {
-                    revealedStepCount = min(revealedStepCount + 1, scenario.steps.count)
-                } label: {
-                    Label(L10n.text("lab.loopTraceNextStep", store.language), systemImage: "arrow.right")
+            } else if prediction.hasAnswered {
+                Label(text("lab.loopTraceWrong"), systemImage: "arrow.counterclockwise.circle")
+                    .foregroundStyle(.orange)
+                Button(text("lab.loopTraceRetry")) {
+                    prediction.retry()
+                    selectedDisplayIndex = -1
+                    revealedStepCount = 0
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(revealedStepCount >= scenario.steps.count)
-            } else if !prediction.hasAnswered {
+                .buttonStyle(.link)
+            } else {
                 Button {
                     prediction.select(displayedIndex: selectedDisplayIndex)
                     guard let evidence = prediction.currentAnswerEventEvidence() else { return }
@@ -15733,12 +16030,14 @@ private struct LoopTraceLab: View {
                         revealedStepCount = scenario.steps.isEmpty ? 0 : 1
                     }
                 } label: {
-                    Label(L10n.text("lab.loopTraceCheck", store.language), systemImage: "checkmark")
+                    Label(text("lab.loopTraceCheck"), systemImage: "checkmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(selectedDisplayIndex < 0)
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private static func makePrediction(for question: LoopTraceQuestion) -> InteractivePredictionAttempt {
@@ -15754,6 +16053,7 @@ private struct LoopTraceLab: View {
 
     private func selectScenario(_ id: String) {
         guard let nextScenario = LoopTracePractice.scenario(id: id) else { return }
+        playing = false
         scenarioID = nextScenario.id
         let nextQuestion = LoopTraceQuestion(scenario: nextScenario)
         question = nextQuestion
@@ -15765,210 +16065,257 @@ private struct LoopTraceLab: View {
 
 private struct CollectionsLoopsLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tasks = ["docs", "tests", "app"]
     @State private var nextTask = 0
     @State private var includesIndexes = true
+    @State private var printedCount = 3
+    @State private var playing = false
     @State private var whileInitialValue = 5
     @State private var whileDecrement = 2
     @State private var whileTrace = WhileLoopTrace(initialValue: 5, decrement: 2)
 
     private let additions = ["build", "review", "ship", "notes", "measure"]
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private var outputLines: [String] {
-        if includesIndexes {
-            return tasks.enumerated().map { "\($0.offset)  \($0.element)" }
-        }
-        return tasks.map { $0 }
+        includesIndexes ? tasks.enumerated().map { "\($0.offset) \($0.element)" } : tasks
     }
-
     private var loopCode: String {
         includesIndexes
             ? "for index, task in enumerate(tasks):\n    print(index, task)"
             : "for task in tasks:\n    print(task)"
     }
+    /// The element the loop variable holds while the run is animating.
+    private var pointer: Int? { playing && printedCount > 0 ? printedCount - 1 : nil }
+    /// Line of the while code the last check led to: the body when the condition held, the `while` line when it failed.
+    private var activeWhileLine: Int {
+        guard let last = whileTrace.steps.last else { return 0 }
+        return last.conditionTrue ? 3 : 1
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.CollectionsLoopsLab", store.language), instruction: L10n.text("lab.collectionsHelp", store.language))
-
-            Text("tasks = [\(tasks.map { "\"\($0)\"" }.joined(separator: ", "))]")
-                .font(.system(.body, design: .monospaced).weight(.medium))
-                .textSelection(.enabled)
-                .accessibilityLabel(Text(L10n.text("lab.collectionsState", store.language)))
-
-            if tasks.isEmpty {
-                Label(L10n.text("lab.collectionsEmpty", store.language), systemImage: "list.bullet")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 10) {
-                        ForEach(tasks.indices, id: \.self) { index in
-                            VStack(alignment: .leading, spacing: 7) {
-                                if includesIndexes {
-                                    Text("[\(index)]")
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(tasks[index])
-                                    .font(.system(.body, design: .monospaced).weight(.semibold))
-                                    .textSelection(.enabled)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-                .scrollIndicators(.hidden)
-                .accessibilityLabel(Text(L10n.text("lab.collectionsState", store.language)))
-            }
-
-            Picker(L10n.text("lab.collectionsLoop", store.language), selection: $includesIndexes) {
-                Text(L10n.text("lab.collectionsValuesOnly", store.language)).tag(false)
-                Text(L10n.text("lab.collectionsWithIndex", store.language)).tag(true)
-            }
-            .pickerStyle(.segmented)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(loopCode)
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                Divider()
-                ForEach(outputLines.indices, id: \.self) { index in
-                    Text(outputLines[index])
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
+            LabHeader(title: text("labkit.title.CollectionsLoopsLab"), instruction: text("lab.collectionsSubtitle"))
+            listCells
             HStack(spacing: 10) {
                 Button {
                     guard tasks.count < 8 else { return }
-                    tasks.append(additions[nextTask % additions.count])
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        tasks.append(additions[nextTask % additions.count])
+                    }
                     nextTask += 1
-                } label: {
-                    Label(L10n.text("lab.collectionsAdd", store.language), systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(tasks.count >= 8)
-
+                    finishRun()
+                } label: { Label(text("lab.collectionsAdd"), systemImage: "plus") }
+                    .disabled(tasks.count >= 8)
                 Button {
                     guard !tasks.isEmpty else { return }
-                    tasks.removeLast()
-                } label: {
-                    Label(L10n.text("lab.collectionsRemove", store.language), systemImage: "minus")
-                }
-                .buttonStyle(.bordered)
-                .disabled(tasks.isEmpty)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { _ = tasks.removeLast() }
+                    finishRun()
+                } label: { Label(text("lab.collectionsRemove"), systemImage: "minus") }
+                    .disabled(tasks.isEmpty)
+                Button {
+                    if reduceMotion {
+                        finishRun()
+                    } else {
+                        printedCount = 0
+                        playing = true
+                    }
+                } label: { Label(text("lab.collectionsRun"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(tasks.isEmpty || playing)
             }
-
-            Text(L10n.text("lab.collectionsCount", store.language) + ": \(tasks.count)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(L10n.text("lab.collectionsWhileTitle", store.language))
-                    .font(.headline)
-                Text(L10n.text("lab.collectionsWhileHint", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("remaining = \(whileTrace.initialValue)\nwhile remaining > 0:\n    print(remaining)\n    remaining -= \(whileTrace.decrement)")
+            Picker(text("lab.collectionsLoop"), selection: $includesIndexes) {
+                Text(text("lab.collectionsValuesOnly")).tag(false)
+                Text(text("lab.collectionsWithIndex")).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            HStack(alignment: .top, spacing: 12) {
+                Text(loopCode)
                     .font(.system(.callout, design: .monospaced))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
-
-                Stepper(value: $whileInitialValue, in: WhileLoopTrace.initialValueRange) {
-                    Text(String(format: L10n.text("lab.collectionsWhileInitial", store.language), whileInitialValue))
-                        .font(.callout.monospacedDigit())
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(text("lab.collectionsOutputTitle")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    ForEach(Array(outputLines.prefix(printedCount).enumerated()), id: \.offset) { _, line in
+                        Text(verbatim: line).font(.system(.callout, design: .monospaced))
+                    }
                 }
-                .onChange(of: whileInitialValue) { _ in resetWhileTrace() }
+                .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
+                .padding(12)
+                .background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .combine)
+            }
+            whilePanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.collectionsChallenge"),
+                         solved: whileTrace.isComplete && whileTrace.currentValue == 0 && whileTrace.initialValue > 0,
+                         solvedText: text("lab.collectionsChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.collectionsHelp"), text("lab.collectionsWhileHint"), text("lab.collectionsWhileLimit")])
+        }
+        .onChange(of: includesIndexes) { _ in finishRun() }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && printedCount < tasks.count {
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                guard playing else { return }
+                printedCount += 1
+            }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            playing = false
+        }
+    }
 
-                Stepper(value: $whileDecrement, in: WhileLoopTrace.decrementRange) {
-                    Text(String(format: L10n.text("lab.collectionsWhileDecrement", store.language), whileDecrement))
-                        .font(.callout.monospacedDigit())
-                }
-                .onChange(of: whileDecrement) { _ in resetWhileTrace() }
-
-                Label(
-                    String(format: L10n.text("lab.collectionsWhileCurrent", store.language), whileTrace.currentValue),
-                    systemImage: whileTrace.isComplete ? "checkmark.circle.fill" : "repeat"
-                )
-                .font(.callout.weight(.medium).monospacedDigit())
-                .foregroundStyle(whileTrace.isComplete ? Color.green : Color.primary)
-
-                Text(L10n.text("lab.collectionsWhileOutput", store.language) + ": [\(whileTrace.printedValues.map(String.init).joined(separator: ", "))]")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-
-                ForEach(whileTrace.steps) { step in
-                    VStack(alignment: .leading, spacing: 4) {
-                        let feedbackKey = step.conditionTrue
-                            ? "lab.collectionsWhileConditionTrue"
-                            : "lab.collectionsWhileConditionFalse"
-                        Label(
-                            String(format: L10n.text(feedbackKey, store.language), step.checkNumber, step.valueBeforeCheck),
-                            systemImage: step.conditionTrue ? "checkmark.circle" : "stop.circle.fill"
-                        )
-                        .font(.caption.weight(.medium).monospacedDigit())
-                        .foregroundStyle(step.conditionTrue ? Color.secondary : Color.green)
-
-                        if let valueAfterBody = step.valueAfterBody {
-                            Text(String(format: L10n.text("lab.collectionsWhileBody", store.language), valueAfterBody))
+    // The list as boxes with indexes underneath; during a run the pointer marks the current element.
+    @ViewBuilder
+    private var listCells: some View {
+        if tasks.isEmpty {
+            Label(text("lab.collectionsEmpty"), systemImage: "list.bullet")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 74)
+                .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(tasks.indices, id: \.self) { index in
+                        VStack(spacing: 4) {
+                            Text(verbatim: tasks[index])
+                                .font(.system(.body, design: .monospaced).weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .frame(minWidth: 66, minHeight: 42)
+                                .background(pointer == index ? Color.purple.opacity(0.28) : Color.teal.opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(pointer == index ? Color.purple : Color.teal.opacity(0.5),
+                                                                                        lineWidth: pointer == index ? 2.5 : 1))
+                            Text(verbatim: "[\(index)]")
                                 .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text(L10n.text("lab.collectionsWhileExit", store.language))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(includesIndexes ? Color.secondary : Color.secondary.opacity(0.35))
                         }
+                        .transition(.scale.combined(with: .opacity))
                     }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 10))
                 }
+                .padding(.vertical, 2)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(text("lab.collectionsState")))
+            .accessibilityValue(Text(verbatim: tasks.joined(separator: ", ")))
+        }
+    }
 
-                HStack(spacing: 10) {
-                    Button {
-                        whileTrace.checkNextStep()
-                    } label: {
-                        Label(L10n.text("lab.collectionsWhileCheck", store.language), systemImage: "arrow.right.circle")
+    private var whilePanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.collectionsWhileTitle")).font(.headline)
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(whileCodeLines.enumerated()), id: \.offset) { index, line in
+                        let failed = index == 1 && whileTrace.isComplete
+                        Text(verbatim: line)
+                            .font(.system(.callout, design: .monospaced))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(index == activeWhileLine ? (failed ? Color.red : Color.accentColor).opacity(0.22) : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: 5))
                     }
+                }
+                .padding(8)
+                .frame(maxWidth: 240)
+                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 4) {
+                    Stepper(value: $whileInitialValue, in: WhileLoopTrace.initialValueRange) {
+                        Text(String(format: text("lab.collectionsWhileInitial"), whileInitialValue))
+                            .font(.callout.monospacedDigit())
+                    }
+                    .onChange(of: whileInitialValue) { _ in resetWhileTrace() }
+                    Stepper(value: $whileDecrement, in: WhileLoopTrace.decrementRange) {
+                        Text(String(format: text("lab.collectionsWhileDecrement"), whileDecrement))
+                            .font(.callout.monospacedDigit())
+                    }
+                    .onChange(of: whileDecrement) { _ in resetWhileTrace() }
+                }
+            }
+            Canvas { context, size in drawNumberLine(context, size: size) }
+                .frame(height: 96)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.collectionsWhileLine"))
+                .accessibilityValue(Text(String(format: text("lab.collectionsWhileCurrent"), whileTrace.currentValue)))
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) { _ = whileTrace.checkNextStep() }
+                } label: { Label(text("lab.collectionsWhileCheck"), systemImage: "arrow.right.circle") }
                     .buttonStyle(.borderedProminent)
                     .disabled(whileTrace.isComplete)
-
-                    Button {
-                        resetWhileTrace()
-                    } label: {
-                        Label(L10n.text("lab.collectionsWhileRestart", store.language), systemImage: "arrow.counterclockwise")
+                Button(action: resetWhileTrace) { Label(text("lab.collectionsWhileRestart"), systemImage: "arrow.counterclockwise") }
+            }
+            if let step = whileTrace.steps.last {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(String(format: text(step.conditionTrue ? "lab.collectionsWhileConditionTrue" : "lab.collectionsWhileConditionFalse"),
+                                 step.checkNumber, step.valueBeforeCheck),
+                          systemImage: step.conditionTrue ? "checkmark.circle" : "stop.circle.fill")
+                        .font(.callout.weight(.medium).monospacedDigit())
+                        .foregroundStyle(step.conditionTrue ? Color.primary : Color.green)
+                    if let valueAfterBody = step.valueAfterBody {
+                        Text(String(format: text("lab.collectionsWhileBody"), valueAfterBody))
+                    } else {
+                        Text(text("lab.collectionsWhileExit"))
                     }
-                    .buttonStyle(.bordered)
                 }
-
-                Text(L10n.text("lab.collectionsWhileLimit", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.collectionsStatCurrent"), value: "\(whileTrace.currentValue)", tint: whileTrace.isComplete ? .green : .accentColor)
+                LabStat(label: text("lab.collectionsStatChecks"), value: "\(whileTrace.steps.count)", tint: .purple)
+                LabStat(label: text("lab.collectionsWhileOutput"), value: "[" + whileTrace.printedValues.map(String.init).joined(separator: ", ") + "]", tint: .teal)
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var whileCodeLines: [String] {
+        ["remaining = \(whileTrace.initialValue)", "while remaining > 0:", "    print(remaining)", "    remaining -= \(whileTrace.decrement)"]
+    }
+
+    // remaining on a number line: green where the condition holds, red where it fails; each arc is one pass through the body.
+    private func drawNumberLine(_ context: GraphicsContext, size: CGSize) {
+        let left: CGFloat = 16
+        let unit = (size.width - 32) / 12
+        let baseline = size.height - 24
+        func x(_ value: Int) -> CGFloat { left + CGFloat(value + 3) * unit }
+        context.fill(Path(CGRect(x: x(-3), y: baseline - 3, width: x(0) - x(-3), height: 6)), with: .color(.red.opacity(0.45)))
+        context.fill(Path(CGRect(x: x(0), y: baseline - 3, width: x(9) - x(0), height: 6)), with: .color(.green.opacity(0.45)))
+        for value in -3...9 {
+            var tick = Path()
+            tick.move(to: CGPoint(x: x(value), y: baseline - 6))
+            tick.addLine(to: CGPoint(x: x(value), y: baseline + 6))
+            context.stroke(tick, with: .color(.secondary.opacity(value == 0 ? 1 : 0.5)), lineWidth: value == 0 ? 2 : 1)
+            context.draw(Text(verbatim: value < 0 ? "−\(-value)" : "\(value)").font(.caption2.monospacedDigit()).foregroundColor(.secondary),
+                         at: CGPoint(x: x(value), y: baseline + 15))
+        }
+        for step in whileTrace.steps {
+            guard let after = step.valueAfterBody else { continue }
+            let start = CGPoint(x: x(step.valueBeforeCheck), y: baseline - 8)
+            let end = CGPoint(x: x(after), y: baseline - 8)
+            var hop = Path()
+            hop.move(to: start)
+            hop.addQuadCurve(to: end, control: CGPoint(x: (start.x + end.x) / 2, y: baseline - 8 - abs(start.x - end.x) * 0.6))
+            context.stroke(hop, with: .color(.accentColor), lineWidth: 2)
+        }
+        let marker = CGPoint(x: x(whileTrace.currentValue), y: baseline)
+        context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(whileTrace.isComplete ? .green : .accentColor))
+    }
+
+    private func finishRun() {
+        playing = false
+        printedCount = tasks.count
     }
 
     private func resetWhileTrace() {
         whileTrace = WhileLoopTrace(initialValue: whileInitialValue, decrement: whileDecrement)
     }
 }
-
 
 private struct PendingCustomTopicOutlineReview: Identifiable {
     let messageID: UUID
