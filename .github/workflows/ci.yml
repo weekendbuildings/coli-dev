@@ -53,9 +53,6 @@ jobs:
           - runner: macos-26
             arch: arm64
             feed: appcast-arm64.xml
-          - runner: macos-15-intel
-            arch: x86_64
-            feed: appcast-intel.xml
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 30
     steps:
