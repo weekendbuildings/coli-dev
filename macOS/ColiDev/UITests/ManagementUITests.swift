@@ -744,8 +744,8 @@ final class ManagementUITests: XCTestCase {
             "The DNA fidelity lesson must show its lab. / В уроке о точности копирования ДНК должен быть тренажёр.\n\(app.debugDescription)"
         )
         let shown = (exact.value as? String ?? "") + " " + exact.label
-        // e = 10⁻⁹ and σ = 10 give about 2.3 billion letters; group separators depend on the locale.
-        XCTAssertTrue(shown.contains("302") && shown.contains("585"), shown)
+        // The lab starts at a 1% error with σ = 10, which allows 229 letters as in "What life is".
+        XCTAssertTrue(shown.contains("229"), shown)
     }
 
     @MainActor
