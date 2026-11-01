@@ -419,7 +419,7 @@ def test_neuron_lab_is_wired_into_the_app_project_and_ci() -> None:
     workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert 'moduleResource == "neural_network_backpropagation"' in views and "NeuronTrainingLab()" in views
     assert "NeuronTraining.swift in Sources" in project and "scripts/verify_neuron_training.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.neurontrain\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.neurontrain\.[A-Za-z]+)"', views))
     defined = re.findall(r'^\s*"(lab\.neurontrain\.[A-Za-z]+)":', strings, re.MULTILINE)
     assert used and used <= set(defined) and len(defined) == len(set(defined))
 
@@ -460,7 +460,7 @@ def test_statistical_labs_are_wired_into_the_app_project_and_ci() -> None:
     assert 'moduleResource == "entropy_and_the_second_law"' in views and "CoinEntropyLab()" in views
     assert 'moduleResource == "population_genetics_hardy_weinberg"' in views and "HardyWeinbergLab()" in views
     assert "StatisticalLabs.swift in Sources" in project and "scripts/verify_statistical_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:entropy|hardy)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:entropy|hardy)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:entropy|hardy)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     # Practice task: q with ten carriers per affected individual is 2p/q = 10, so q = 1/6.
@@ -668,7 +668,7 @@ def test_least_squares_lab_is_wired_into_the_app_project_and_ci() -> None:
     model = (app / "App" / "LeastSquaresFit.swift").read_text(encoding="utf-8")
     assert 'moduleResource == "fitting_pendulum_data_least_squares"' in views and "LeastSquaresFitLab()" in views
     assert "LeastSquaresFit.swift in Sources" in project and "scripts/verify_least_squares_fit.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.lsq\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.lsq\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.lsq\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     # The lab uses the same measurements as the lesson program.
@@ -688,7 +688,7 @@ def test_plasticity_and_enzyme_labs_are_wired_into_the_app_project_and_ci() -> N
     assert 'moduleResource == "synaptic_plasticity_and_learning"' in views and "SynapticPlasticityLab()" in views
     assert 'moduleResource == "enzyme_kinetics_michaelis_menten"' in views and "MichaelisMentenLab()" in views
     assert "LifeMechanismLabs.swift in Sources" in project and "scripts/verify_life_mechanism_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:plasticity|enzyme)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:plasticity|enzyme)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:plasticity|enzyme)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     # The lab follows the lesson: NMDA needs glutamate and strong depolarisation, and AMPA insertion strengthens the synapse.
@@ -711,7 +711,7 @@ def test_euler_and_autocatalysis_labs_are_wired_into_the_app_project_and_ci() ->
     assert 'moduleResource == "euler_method_numerical_modeling"' in views and "EulerMethodLab()" in views
     assert 'moduleResource == "prebiotic_chemistry_and_autocatalysis"' in views and "AutocatalysisLab()" in views
     assert "GrowthModelLabs.swift in Sources" in project and "scripts/verify_growth_model_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     # Both labs start at their lesson quizzes: Euler with h = 1 gives 121, and ten doublings give 1024.
@@ -733,7 +733,7 @@ def test_neural_layer_and_descent_labs_are_wired_into_the_app_project_and_ci() -
     assert 'moduleResource == "vectors_and_matrices"' in views and "NeuralLayerLab()" in views
     assert 'moduleResource == "gradient_and_partial_derivatives"' in views and "GradientDescent2DLab()" in views
     assert "NeuralMathLabs.swift in Sources" in project and "scripts/verify_neural_math_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:layer|descent2d)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:layer|descent2d)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:layer|descent2d)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     # Both labs start at their lesson quizzes.
@@ -754,7 +754,7 @@ def test_fidelity_and_hamming_labs_are_wired_into_the_app_project_and_ci() -> No
     assert 'moduleResource == "dna_replication_fidelity_and_repair"' in views and "GenomeFidelityLab()" in views
     assert 'moduleResource == "sequence_comparison_hamming_distance"' in views and "HammingDistanceLab()" in views
     assert "SequenceLabs.swift in Sources" in project and "scripts/verify_sequence_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     # Both labs start at their lesson examples: 2.3 billion letters at e = 10⁻⁹, and distance 2 with 75% identity.
@@ -776,7 +776,7 @@ def test_dating_and_feedback_labs_are_wired_into_the_app_project_and_ci() -> Non
     assert 'moduleResource == "radioactive_decay_and_dating"' in views and "RadioactiveDatingLab()" in views
     assert 'moduleResource == "homeostasis_and_feedback"' in views and "FeedbackLoopLab()" in views
     assert "RegulationLabs.swift in Sources" in project and "scripts/verify_regulation_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:dating|feedback)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:dating|feedback)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:dating|feedback)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     _, dating = _sections("Physics", "radioactive_decay_and_dating")
@@ -798,7 +798,7 @@ def test_coupling_and_quotient_labs_are_wired_into_the_app_project_and_ci() -> N
     assert 'moduleResource == "thermodynamics_of_living_systems"' in views and "EnergyCouplingLab()" in views
     assert 'moduleResource == "reaction_rate_and_equilibrium"' in views and "ReactionQuotientLab()" in views
     assert "ChemicalEnergyLabs.swift in Sources" in project and "scripts/verify_chemical_energy_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:coupling|quotient)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:coupling|quotient)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:coupling|quotient)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     _, coupling = _sections("Chemistry", "thermodynamics_of_living_systems")
@@ -819,7 +819,7 @@ def test_modern_physics_labs_are_wired_into_the_app_project_and_ci() -> None:
                            ("maxwell_and_electromagnetic_waves", "ElectromagneticWaveLab")]:
         assert f'moduleResource == "{resource}"' in views and f"{view}()" in views
     assert "ModernPhysicsLabs.swift in Sources" in project and "scripts/verify_modern_physics_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:relativity|hydrogen|emwave)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:relativity|hydrogen|emwave)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:relativity|hydrogen|emwave)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     _, relativity = _sections("Physics", "special_relativity_time_dilation")
@@ -841,7 +841,7 @@ def test_classical_physics_labs_are_wired_into_the_app_project_and_ci() -> None:
     for resource, view in [("circuits_and_ohms_law", "CircuitLab"), ("refraction_of_light", "RefractionLab"), ("torque_and_rotational_equilibrium", "SeesawLab")]:
         assert f'moduleResource == "{resource}"' in views and f"{view}()" in views
     assert "ClassicalPhysicsLabs.swift in Sources" in project and "scripts/verify_classical_physics_labs.swift" in workflow
-    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:circuit|refraction|seesaw)\.[A-Za-z]+)"', views))
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()(?<!identifier: )"(lab\.(?:circuit|refraction|seesaw)\.[A-Za-z]+)"', views))
     defined = set(re.findall(r'^\s*"(lab\.(?:circuit|refraction|seesaw)\.[A-Za-z]+)":', strings, re.MULTILINE))
     assert used and used <= defined
     _, circuits = _sections("Physics", "circuits_and_ohms_law")
