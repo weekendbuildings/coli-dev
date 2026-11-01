@@ -84,8 +84,8 @@ def test_lessons_mention_spudcell_without_overclaiming() -> None:
     assert "препринте" in russian and "not yet peer reviewed" in english
     assert "пока не удалось никому" in russian and "no one has yet built a living cell" in english
     assert "2026.07.01.735724" in sources
-    russian, english, _ = _lesson("Biology", "biotechnology_and_bioethics")
-    assert "SpudCell" in russian and "SpudCell" in english
+    russian, english, sources = _lesson("Biology", "biotechnology_and_bioethics")
+    assert "SpudCell" in russian and "SpudCell" in english and "2026.07.01.735724" in sources
 
 
 def test_rna_world_name_and_vesicle_division_are_attributed_exactly() -> None:
