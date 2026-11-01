@@ -744,8 +744,8 @@ final class ManagementUITests: XCTestCase {
             "The DNA fidelity lesson must show its lab. / В уроке о точности копирования ДНК должен быть тренажёр.\n\(app.debugDescription)"
         )
         let shown = (exact.value as? String ?? "") + " " + exact.label
-        // e = 10⁻⁹ and σ = 10 give about 2.3 billion letters; group separators depend on the locale.
-        XCTAssertTrue(shown.contains("302") && shown.contains("585"), shown)
+        // The lab starts at a 1% error with σ = 10, which allows 229 letters as in "What life is".
+        XCTAssertTrue(shown.contains("229"), shown)
     }
 
     @MainActor
@@ -836,6 +836,123 @@ final class ManagementUITests: XCTestCase {
         settle.click()
         if text(value).contains("0,040") || text(value).contains("0.040"), settle.isHittable { settle.click() }
         XCTAssertTrue(text(value).contains("0,640") || text(value).contains("0.640"), "After settling Q must equal K = 0.64.\n\(text(value))")
+    }
+
+    @MainActor
+    func testTimeDilationLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/special_relativity_time_dilation"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.relativity.result"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The relativity lesson must show its lab. / В уроке об относительности должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("12,50") || shown.contains("12.50")) && (shown.contains("1,250") || shown.contains("1.250")), shown)
+    }
+
+    @MainActor
+    func testHydrogenSpectrumLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/quantum_energy_levels_and_shells"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.hydrogen.photon"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The quantum levels lesson must show its lab. / В уроке о квантовых уровнях должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("656")) && (shown.contains("1,89") || shown.contains("1.89")), shown)
+    }
+
+    @MainActor
+    func testElectromagneticWaveLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/maxwell_and_electromagnetic_waves"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.emwave.wavelength"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The Maxwell lesson must show its lab. / В уроке об уравнениях Максвелла должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("3,00") || shown.contains("3.00")), shown)
+    }
+
+    @MainActor
+    func testCircuitLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/circuits_and_ohms_law"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.circuit.total"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The circuits lesson must show its lab. / В уроке о цепях должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("1,50") || shown.contains("1.50")) && (shown.contains("8,00") || shown.contains("8.00")), shown)
+    }
+
+    @MainActor
+    func testRefractionLabStartsAtThePracticeRay() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/refraction_of_light"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.refraction.angle"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The refraction lesson must show its lab. / В уроке о преломлении должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("19,2") || shown.contains("19.2")), shown)
+    }
+
+    @MainActor
+    func testSeesawLabShowsTheBalancingDistance() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/torque_and_rotational_equilibrium"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.seesaw.balance"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The torque lesson must show its lab. / В уроке о моменте силы должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("1,50") || shown.contains("1.50")), shown)
+    }
+
+    @MainActor
+    func testLogisticGrowthLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/logistic_population_growth"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.logistic.growth"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The logistic growth lesson must show its lab. / В уроке о логистическом росте должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("25,0") || shown.contains("25.0")), shown)
+    }
+
+    @MainActor
+    func testMarkRecaptureLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/mark_recapture_population_estimate"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.recapture.estimate"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The mark-recapture lesson must show its lab. / В уроке о мечении должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("200")), shown)
+    }
+
+    @MainActor
+    func testSurfaceVolumeLabStartsAtSizeOne() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/surface_volume_and_body_size"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let element = app.staticTexts["lab.surface.ratio"]
+        XCTAssertTrue(element.waitForExistence(timeout: 10), "The body size lesson must show its lab. / В уроке о размере тела должен быть тренажёр.\n\(app.debugDescription)")
+        let shown = (element.value as? String ?? "") + " " + element.label
+        XCTAssertTrue((shown.contains("3,00") || shown.contains("3.00")), shown)
     }
 
     @MainActor
