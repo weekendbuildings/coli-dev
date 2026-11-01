@@ -657,6 +657,188 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testEulerMethodLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/euler_method_numerical_modeling"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let result = app.staticTexts["lab.euler.result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 10),
+            "The Euler method lesson must show its lab. / В уроке о методе Эйлера должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        XCTAssertTrue(text(result).contains("121"), "Two steps with h = 1 must give 121. / Два шага с h = 1 дают 121.\n\(text(result))")
+        let exact = app.staticTexts["lab.euler.exact"]
+        XCTAssertTrue(text(exact).contains("122,14") || text(exact).contains("122.14"), text(exact))
+    }
+
+    @MainActor
+    func testAutocatalysisLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/prebiotic_chemistry_and_autocatalysis"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let counts = app.staticTexts["lab.autocatalysis.counts"]
+        XCTAssertTrue(
+            counts.waitForExistence(timeout: 10),
+            "The autocatalysis lesson must show its lab. / В уроке об автокатализе должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (counts.value as? String ?? "") + " " + counts.label
+        // 1024 may be shown with a locale group separator, so check its last digits and the catalyst's 11.
+        XCTAssertTrue(shown.contains("024") && shown.contains("11"), "Ten hours must give 1024 and 11. / Через 10 ч должно быть 1024 и 11.\n\(shown)")
+    }
+
+    @MainActor
+    func testNeuralLayerLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/vectors_and_matrices"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let output = app.staticTexts["lab.layer.output"]
+        XCTAssertTrue(
+            output.waitForExistence(timeout: 10),
+            "The matrices lesson must show the neural layer lab. / В уроке о матрицах должен быть тренажёр слоя.\n\(app.debugDescription)"
+        )
+        let shown = (output.value as? String ?? "") + " " + output.label
+        XCTAssertTrue(shown.contains("(11, −4)"), "W = [[1, 2], [0, −1]], x = (3, 4) must give (11, −4).\n\(shown)")
+    }
+
+    @MainActor
+    func testGradientDescent2DLabTakesTheQuizStep() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let lessonScrollView = app.scrollViews["lesson.scrollView"]
+        XCTAssertTrue(lessonScrollView.waitForExistence(timeout: 5))
+        let step = app.buttons["lab.descent2d.step"]
+        XCTAssertTrue(
+            step.waitForExistence(timeout: 10),
+            "The gradient lesson must show the 2D descent lab. / В уроке о градиенте должен быть тренажёр спуска.\n\(app.debugDescription)"
+        )
+        let point = app.staticTexts["lab.descent2d.point"]
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        scrollUntilHittable(step, in: lessonScrollView)
+        step.click()
+        if !(text(point).contains("0,8") || text(point).contains("0.8")), step.isHittable { step.click() }
+        // From (1, 1) with ε = 0.1 one step lands at (0.8, 0.4).
+        XCTAssertTrue(text(point).contains("0,8") || text(point).contains("0.8"), text(point))
+        XCTAssertTrue(text(point).contains("0,4") || text(point).contains("0.4"), text(point))
+    }
+
+    @MainActor
+    func testGenomeFidelityLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/dna_replication_fidelity_and_repair"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let exact = app.staticTexts["lab.fidelity.exact"]
+        XCTAssertTrue(
+            exact.waitForExistence(timeout: 10),
+            "The DNA fidelity lesson must show its lab. / В уроке о точности копирования ДНК должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (exact.value as? String ?? "") + " " + exact.label
+        // e = 10⁻⁹ and σ = 10 give about 2.3 billion letters; group separators depend on the locale.
+        XCTAssertTrue(shown.contains("302") && shown.contains("585"), shown)
+    }
+
+    @MainActor
+    func testHammingLabShowsTheLessonExample() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/sequence_comparison_hamming_distance"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let result = app.staticTexts["lab.hamming.result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 10),
+            "The sequence comparison lesson must show its lab. / В уроке о сравнении последовательностей должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (result.value as? String ?? "") + " " + result.label
+        XCTAssertTrue(shown.contains("2") && (shown.contains("75,0") || shown.contains("75.0")), shown)
+        XCTAssertTrue(shown.contains("%"), "The identity must keep its percent sign. / У идентичности должен быть знак процента.\n\(shown)")
+    }
+
+    @MainActor
+    func testRadioactiveDatingLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/radioactive_decay_and_dating"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let age = app.staticTexts["lab.dating.age"]
+        XCTAssertTrue(
+            age.waitForExistence(timeout: 10),
+            "The radioactive dating lesson must show its lab. / В уроке о датировании должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (age.value as? String ?? "") + " " + age.label
+        // 25% of carbon-14 left is two half-lives, about 11 460 years; group separators depend on the locale.
+        XCTAssertTrue(shown.contains("460") && (shown.contains("2,00") || shown.contains("2.00")), shown)
+    }
+
+    @MainActor
+    func testFeedbackLoopLabShowsNegativeFeedbackSettling() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/homeostasis_and_feedback"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let result = app.staticTexts["lab.feedback.result"]
+        XCTAssertTrue(
+            result.waitForExistence(timeout: 10),
+            "The homeostasis lesson must show its lab. / В уроке о гомеостазе должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (result.value as? String ?? "") + " " + result.label
+        // 2 °C shrinking by 30% a step for 15 steps leaves 0.01 °C.
+        XCTAssertTrue(shown.contains("0,01") || shown.contains("0.01"), shown)
+    }
+
+    @MainActor
+    func testEnergyCouplingLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/thermodynamics_of_living_systems"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let total = app.staticTexts["lab.coupling.total"]
+        XCTAssertTrue(
+            total.waitForExistence(timeout: 10),
+            "The thermodynamics lesson must show the coupling lab. / В уроке о термодинамике должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (total.value as? String ?? "") + " " + total.label
+        XCTAssertTrue(shown.contains("10,5") || shown.contains("10.5"), "+20 − 30.5 must give −10.5. / Должно получиться −10,5.\n\(shown)")
+    }
+
+    @MainActor
+    func testReactionQuotientLabReachesEquilibrium() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/reaction_rate_and_equilibrium"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let lessonScrollView = app.scrollViews["lesson.scrollView"]
+        XCTAssertTrue(lessonScrollView.waitForExistence(timeout: 5))
+        let value = app.staticTexts["lab.quotient.value"]
+        XCTAssertTrue(
+            value.waitForExistence(timeout: 10),
+            "The equilibrium lesson must show the reaction quotient lab. / В уроке о равновесии должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        XCTAssertTrue(text(value).contains("0,040") || text(value).contains("0.040"), text(value))
+        let settle = app.buttons["lab.quotient.settle"]
+        scrollUntilHittable(settle, in: lessonScrollView)
+        settle.click()
+        if text(value).contains("0,040") || text(value).contains("0.040"), settle.isHittable { settle.click() }
+        XCTAssertTrue(text(value).contains("0,640") || text(value).contains("0.640"), "After settling Q must equal K = 0.64.\n\(text(value))")
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

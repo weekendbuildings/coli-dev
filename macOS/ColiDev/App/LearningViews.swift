@@ -1870,6 +1870,26 @@ private struct PracticeLab: View {
             SynapticPlasticityLab()
         } else if subject == .chemistry, moduleResource == "enzyme_kinetics_michaelis_menten" {
             MichaelisMentenLab()
+        } else if subject == .mathematics, moduleResource == "euler_method_numerical_modeling" {
+            EulerMethodLab()
+        } else if subject == .chemistry, moduleResource == "prebiotic_chemistry_and_autocatalysis" {
+            AutocatalysisLab()
+        } else if subject == .mathematics, moduleResource == "vectors_and_matrices" {
+            NeuralLayerLab()
+        } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
+            GradientDescent2DLab()
+        } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
+            GenomeFidelityLab()
+        } else if subject == .biology, moduleResource == "sequence_comparison_hamming_distance" {
+            HammingDistanceLab()
+        } else if subject == .physics, moduleResource == "radioactive_decay_and_dating" {
+            RadioactiveDatingLab()
+        } else if subject == .biology, moduleResource == "homeostasis_and_feedback" {
+            FeedbackLoopLab()
+        } else if subject == .chemistry, moduleResource == "thermodynamics_of_living_systems" {
+            EnergyCouplingLab()
+        } else if subject == .chemistry, moduleResource == "reaction_rate_and_equilibrium" {
+            ReactionQuotientLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12020,6 +12040,863 @@ private struct MichaelisMentenLab: View {
 
             let current = position(substrate, Model.rate(substrate: substrate, maximumRate: maximumRate, michaelisConstant: michaelisConstant))
             context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(.orange))
+        }
+    }
+}
+
+private struct EulerMethodLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var stepIndex = 0
+    @State private var endTime = 2
+
+    private typealias Model = EulerMethodModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var stepSize: Double { Model.stepSizes[stepIndex] }
+
+    var body: some View {
+        let euler = Model.eulerValue(stepSize: stepSize, endTime: endTime)
+        let exact = Model.exactValue(at: Double(endTime))
+        LabCard {
+            Text(L10n.text("lab.euler.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.euler.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            chart
+                .frame(height: 170)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.euler.chart", store.language))
+                .accessibilityValue(Text(verbatim: "\(number(euler, 2)); \(number(exact, 2))"))
+
+            Text(L10n.text("lab.euler.stepLabel", store.language))
+            Picker(L10n.text("lab.euler.stepLabel", store.language), selection: $stepIndex) {
+                ForEach(Model.stepSizes.indices, id: \.self) { index in
+                    Text(verbatim: "h = " + number(Model.stepSizes[index], [0, 1, 2, 1][index])).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .accessibilityIdentifier("lab.euler.step")
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.euler.endTime", store.language), String(endTime)))
+                    .monospacedDigit()
+                // Rounds to whole time units without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { Double(endTime) }, set: { endTime = Int($0.rounded()) }),
+                       in: Double(Model.endTimeRange.lowerBound)...Double(Model.endTimeRange.upperBound))
+                    .accessibilityLabel(L10n.text("lab.euler.endTimeLabel", store.language))
+                    .accessibilityValue(Text(verbatim: String(endTime)))
+                    .accessibilityIdentifier("lab.euler.endTime")
+            }
+
+            Text(String(format: L10n.text("lab.euler.result", store.language), String(endTime), number(euler, 2),
+                        String(Model.stepCount(stepSize: stepSize, endTime: endTime))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.euler.result")
+            Text(String(format: L10n.text("lab.euler.exact", store.language), number(exact, 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.euler.exact")
+            Text(String(format: L10n.text("lab.euler.error", store.language), number(exact - euler, 2), number((exact - euler) / exact * 100, 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.euler.error")
+            Text(L10n.text("lab.euler.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // The exact curve N₀·e^(r·t) and Euler's broken line with a dot after every step.
+    private var chart: some View {
+        Canvas { context, size in
+            let maxX = Double(endTime), maxY = Model.exactValue(at: maxX) * 1.08
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+
+            var exactPath = Path()
+            for index in 0...200 {
+                let t = maxX * Double(index) / 200
+                let point = position(t, Model.exactValue(at: t))
+                if index == 0 { exactPath.move(to: point) } else { exactPath.addLine(to: point) }
+            }
+            context.stroke(exactPath, with: .color(.accentColor), lineWidth: 2)
+
+            let points = Model.eulerPoints(stepSize: stepSize, endTime: endTime)
+            var eulerPath = Path()
+            for (index, point) in points.enumerated() {
+                let location = position(point.t, point.value)
+                if index == 0 { eulerPath.move(to: location) } else { eulerPath.addLine(to: location) }
+            }
+            context.stroke(eulerPath, with: .color(.orange), lineWidth: 1.5)
+            if points.count <= 60 {
+                for point in points {
+                    let location = position(point.t, point.value)
+                    context.fill(Path(ellipseIn: CGRect(x: location.x - 3, y: location.y - 3, width: 6, height: 6)), with: .color(.orange))
+                }
+            }
+        }
+    }
+}
+
+private struct AutocatalysisLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var hours = 10
+    @State private var logarithmic = false
+
+    private typealias Model = AutocatalysisModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private func grouped(_ value: Int) -> String { value.formatted(.number.locale(locale)) }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.autocatalysis.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.autocatalysis.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            chart
+                .frame(height: 160)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.autocatalysis.chart", store.language))
+                .accessibilityValue(Text(verbatim: "\(grouped(Model.catalysed(hours: hours))); \(grouped(Model.autocatalytic(hours: hours)))"))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.autocatalysis.hours", store.language), String(hours)))
+                    .monospacedDigit()
+                // Rounds to whole hours without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { Double(hours) }, set: { hours = Int($0.rounded()) }),
+                       in: Double(Model.hourRange.lowerBound)...Double(Model.hourRange.upperBound))
+                    .accessibilityLabel(L10n.text("lab.autocatalysis.hoursLabel", store.language))
+                    .accessibilityValue(Text(verbatim: String(hours)))
+                    .accessibilityIdentifier("lab.autocatalysis.hours")
+            }
+            Toggle(L10n.text("lab.autocatalysis.log", store.language), isOn: $logarithmic)
+                .accessibilityIdentifier("lab.autocatalysis.log")
+
+            Text(String(format: L10n.text("lab.autocatalysis.counts", store.language), String(hours),
+                        grouped(Model.catalysed(hours: hours)), grouped(Model.autocatalytic(hours: hours))))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.autocatalysis.counts")
+            Text(String(format: L10n.text("lab.autocatalysis.overtake", store.language), String(Model.overtakingHour)))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            if logarithmic {
+                Text(L10n.text("lab.autocatalysis.logNote", store.language))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(L10n.text("lab.autocatalysis.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Both processes from hour 0 to the chosen hour, on a linear scale or as log₂ of the molecule count.
+    private var chart: some View {
+        Canvas { context, size in
+            let maxX = Double(max(hours, 1))
+            func scaled(_ count: Int) -> Double { logarithmic ? log2(Double(count)) : Double(count) }
+            let maxY = max(scaled(Model.autocatalytic(hours: max(hours, 1))), 1) * 1.08
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / maxY))
+            }
+            var axes = Path()
+            axes.move(to: position(0, maxY))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+
+            for (series, color) in [(Model.catalysed, Color.secondary), (Model.autocatalytic, Color.accentColor)] {
+                var path = Path()
+                for hour in 0...max(hours, 1) {
+                    let point = position(Double(hour), scaled(series(hour)))
+                    if hour == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                    context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(color))
+                }
+                context.stroke(path, with: .color(color), lineWidth: 2)
+            }
+        }
+    }
+}
+
+private struct NeuralLayerLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var weights = [[1, 2], [0, -1]]
+    @State private var input = [3, 4]
+    @State private var bias = [0, 0]
+    @State private var useReLU = false
+
+    private typealias Model = NeuralLayerModel
+
+    private func signed(_ value: Int) -> String { value < 0 ? "(−\(-value))" : String(value) }
+    private func plain(_ value: Int) -> String { value < 0 ? "−\(-value)" : String(value) }
+
+    var body: some View {
+        let raw = Model.preActivation(weights: weights, input: input, bias: bias)
+        let output = useReLU ? Model.relu(raw) : raw
+        LabCard {
+            Text(L10n.text("lab.layer.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.layer.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            ForEach(0..<2, id: \.self) { row in
+                HStack(spacing: 14) {
+                    stepper("w\(row + 1)1", $weights[row][0], Model.weightRange, "lab.layer.w\(row + 1)1")
+                    stepper("w\(row + 1)2", $weights[row][1], Model.weightRange, "lab.layer.w\(row + 1)2")
+                    stepper("b\(row + 1)", $bias[row], Model.biasRange, "lab.layer.b\(row + 1)")
+                }
+            }
+            HStack(spacing: 14) {
+                stepper("x1", $input[0], Model.inputRange, "lab.layer.x1")
+                stepper("x2", $input[1], Model.inputRange, "lab.layer.x2")
+            }
+            Toggle(L10n.text("lab.layer.relu", store.language), isOn: $useReLU)
+                .accessibilityIdentifier("lab.layer.relu")
+
+            ForEach(0..<2, id: \.self) { row in
+                Text(String(format: L10n.text("lab.layer.neuron", store.language), String(row + 1),
+                            "\(signed(weights[row][0]))·\(signed(input[0])) + \(signed(weights[row][1]))·\(signed(input[1])) + \(signed(bias[row]))",
+                            plain(raw[row])))
+                    .font(.callout.monospacedDigit())
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Text(String(format: L10n.text(useReLU ? "lab.layer.outputReLU" : "lab.layer.output", store.language),
+                        "(\(plain(output[0])), \(plain(output[1])))"))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.layer.output")
+            Text(L10n.text("lab.layer.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func stepper(_ name: String, _ value: Binding<Int>, _ range: ClosedRange<Int>, _ identifier: String) -> some View {
+        Stepper(value: value, in: range) {
+            Text(verbatim: "\(name) = \(plain(value.wrappedValue))")
+                .monospacedDigit()
+                .frame(minWidth: 64, alignment: .leading)
+        }
+        .accessibilityLabel(Text(verbatim: name))
+        .accessibilityValue(Text(verbatim: plain(value.wrappedValue)))
+        .accessibilityIdentifier(identifier)
+    }
+}
+
+private struct GradientDescent2DLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var startIndex = 0
+    @State private var rate = 0.1
+    @State private var path = [GradientDescent2DModel.starts[0]]
+
+    private typealias Model = GradientDescent2DModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var point: Model.Point { path.last ?? Model.starts[startIndex] }
+
+    var body: some View {
+        let slope = Model.gradient(point)
+        LabCard {
+            Text(L10n.text("lab.descent2d.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.descent2d.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            contourMap
+                .frame(height: 200)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.descent2d.chart", store.language))
+                .accessibilityValue(Text(verbatim: "(\(number(point.x, 3)); \(number(point.y, 3)))"))
+
+            Picker(L10n.text("lab.descent2d.start", store.language), selection: $startIndex) {
+                ForEach(Model.starts.indices, id: \.self) { index in
+                    Text(verbatim: "(\(number(Model.starts[index].x, 0)); \(number(Model.starts[index].y, 0)))").tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.descent2d.start")
+            .onChange(of: startIndex) { index in path = [Model.starts[index]] }
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.descent2d.rate", store.language), number(rate, 2)))
+                    .monospacedDigit()
+                // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { rate }, set: { rate = ($0 * 100).rounded() / 100 }), in: Model.rateRange)
+                    .accessibilityLabel(L10n.text("lab.descent2d.rateLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(rate, 2)))
+                    .accessibilityIdentifier("lab.descent2d.rate")
+            }
+            HStack {
+                Button(L10n.text("lab.descent2d.step", store.language)) {
+                    guard !Model.hasDiverged(point) else { return }
+                    path.append(Model.step(point, rate: rate))
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.descent2d.step")
+                Button(L10n.text("lab.descent2d.reset", store.language)) { path = [Model.starts[startIndex]] }
+                    .accessibilityIdentifier("lab.descent2d.reset")
+            }
+
+            Text(String(format: L10n.text("lab.descent2d.point", store.language), String(path.count - 1),
+                        number(point.x, 3), number(point.y, 3), number(Model.value(point), 3),
+                        number(slope.x, 3), number(slope.y, 3)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.descent2d.point")
+            Text(String(format: L10n.text("lab.descent2d.factors", store.language),
+                        number(Model.xFactor(rate: rate), 2), number(Model.yFactor(rate: rate), 2)))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text(Model.converges(rate: rate) ? "lab.descent2d.converges" : "lab.descent2d.diverges", store.language))
+                .font(.headline)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.descent2d.verdict")
+            Text(L10n.text("lab.descent2d.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Level curves x² + 3y² = c are ellipses; the path of steps is drawn on top, the last point highlighted.
+    private var contourMap: some View {
+        Canvas { context, size in
+            let span = 3.0
+            let scale = min(size.width, size.height) / CGFloat(2 * span)
+            let center = CGPoint(x: size.width / 2, y: size.height / 2)
+            func position(_ p: Model.Point) -> CGPoint {
+                CGPoint(x: center.x + CGFloat(p.x) * scale, y: center.y - CGFloat(p.y) * scale)
+            }
+            for level in [0.25, 1, 2.5, 5, 9, 16] {
+                let halfWidth = CGFloat(level.squareRoot()) * scale
+                let halfHeight = CGFloat((level / 3).squareRoot()) * scale
+                let ellipse = CGRect(x: center.x - halfWidth, y: center.y - halfHeight, width: 2 * halfWidth, height: 2 * halfHeight)
+                context.stroke(Path(ellipseIn: ellipse), with: .color(.secondary.opacity(0.45)), lineWidth: 1)
+            }
+            context.fill(Path(ellipseIn: CGRect(x: center.x - 3, y: center.y - 3, width: 6, height: 6)), with: .color(.green))
+            var trail = Path()
+            for (index, p) in path.enumerated() {
+                if index == 0 { trail.move(to: position(p)) } else { trail.addLine(to: position(p)) }
+            }
+            context.stroke(trail, with: .color(.orange), lineWidth: 1.5)
+            for (index, p) in path.enumerated() {
+                let location = position(p)
+                let radius: CGFloat = index == path.count - 1 ? 5 : 3
+                context.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)),
+                             with: .color(index == path.count - 1 ? .accentColor : .orange))
+            }
+        }
+    }
+}
+
+private struct GenomeFidelityLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var exponent = 9
+    @State private var advantage = 10.0
+
+    private typealias Model = GenomeFidelityModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private func grouped(_ value: Double) -> String { Int(value.rounded()).formatted(.number.locale(locale)) }
+
+    var body: some View {
+        let exact = Model.exactLimit(exponent: exponent, advantage: advantage)
+        LabCard {
+            Text(L10n.text("lab.fidelity.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.fidelity.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.fidelity.error", store.language), String(exponent), grouped(pow(10, Double(exponent)))))
+                    .monospacedDigit()
+                // Whole exponents only, without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { Double(exponent) }, set: { exponent = Int($0.rounded()) }),
+                       in: Double(Model.exponentRange.lowerBound)...Double(Model.exponentRange.upperBound))
+                    .accessibilityLabel(L10n.text("lab.fidelity.errorLabel", store.language))
+                    .accessibilityValue(Text(verbatim: "10^−\(exponent)"))
+                    .accessibilityIdentifier("lab.fidelity.exponent")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.fidelity.advantage", store.language), grouped(advantage)))
+                    .monospacedDigit()
+                Slider(value: Binding(get: { advantage }, set: { advantage = $0.rounded() }), in: Model.advantageRange)
+                    .accessibilityLabel(L10n.text("lab.fidelity.advantageLabel", store.language))
+                    .accessibilityValue(Text(verbatim: grouped(advantage)))
+                    .accessibilityIdentifier("lab.fidelity.advantage")
+            }
+
+            // Bar on a logarithmic scale from 1 to 10¹¹ letters, so every tenfold gain in length is one equal step.
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.12))
+                    Capsule().fill(Color.accentColor.gradient)
+                        .frame(width: max(6, geometry.size.width * CGFloat(log10(max(exact, 1)) / 11)))
+                }
+            }
+            .frame(height: 14)
+            .accessibilityHidden(true)
+
+            Text(String(format: L10n.text("lab.fidelity.limitExact", store.language), grouped(exact)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.fidelity.exact")
+            Text(String(format: L10n.text("lab.fidelity.limitApprox", store.language), grouped(Model.approximateLimit(exponent: exponent, advantage: advantage))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.fidelity.note", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+}
+
+private struct HammingDistanceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var first = "ATGCCGTA"
+    @State private var second = "ATGACGTT"
+
+    private typealias Model = HammingModel
+
+    private var cleanFirst: String { first.uppercased().filter { !$0.isWhitespace } }
+    private var cleanSecond: String { second.uppercased().filter { !$0.isWhitespace } }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.hamming.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.hamming.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            TextField(L10n.text("lab.hamming.first", store.language), text: $first)
+                .textFieldStyle(.roundedBorder)
+                .font(.body.monospaced())
+                .accessibilityIdentifier("lab.hamming.first")
+            TextField(L10n.text("lab.hamming.second", store.language), text: $second)
+                .textFieldStyle(.roundedBorder)
+                .font(.body.monospaced())
+                .accessibilityIdentifier("lab.hamming.second")
+
+            if let mismatches = Model.mismatchPositions(cleanFirst, cleanSecond) {
+                alignment(mismatches: Set(mismatches))
+                Text(String(format: L10n.text("lab.hamming.result", store.language), String(mismatches.count),
+                            L10n.number(Model.identity(cleanFirst, cleanSecond) ?? 0, fractionDigits: 1, store.language)))
+                    .font(.headline.monospacedDigit())
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.hamming.result")
+                Text(mismatches.isEmpty
+                     ? L10n.text("lab.hamming.identical", store.language)
+                     : String(format: L10n.text("lab.hamming.positions", store.language), mismatches.map(String.init).joined(separator: ", ")))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text(!Model.isValid(cleanFirst) || !Model.isValid(cleanSecond)
+                     ? L10n.text("lab.hamming.invalid", store.language)
+                     : String(format: L10n.text("lab.hamming.lengths", store.language), String(cleanFirst.count), String(cleanSecond.count)))
+                    .font(.callout)
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.hamming.result")
+            }
+            Button(L10n.text("lab.hamming.reset", store.language)) {
+                first = "ATGCCGTA"
+                second = "ATGACGTT"
+            }
+            .accessibilityIdentifier("lab.hamming.reset")
+            Text(L10n.text("lab.hamming.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // The two sequences letter by letter, with differing positions highlighted.
+    private func alignment(mismatches: Set<Int>) -> some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: 2) {
+                ForEach(Array(zip(cleanFirst, cleanSecond).enumerated()), id: \.offset) { index, pair in
+                    VStack(spacing: 2) {
+                        Text(String(pair.0))
+                        Text(String(pair.1))
+                        Text(String(index + 1)).font(.caption2).foregroundStyle(.secondary)
+                    }
+                    .font(.body.monospaced())
+                    .padding(.horizontal, 4)
+                    .padding(.vertical, 2)
+                    .background(RoundedRectangle(cornerRadius: 4).fill(mismatches.contains(index + 1) ? Color.orange.opacity(0.3) : Color.secondary.opacity(0.08)))
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L10n.text("lab.hamming.alignment", store.language))
+        .accessibilityValue(Text(verbatim: "\(cleanFirst) / \(cleanSecond)"))
+    }
+}
+
+private struct RadioactiveDatingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var isotopeIndex = 0
+    @State private var remainingPercent = 25.0
+
+    private typealias Model = RadioactiveDatingModel
+
+    private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
+    private var isotope: Model.Isotope { Model.isotopes[isotopeIndex] }
+
+    private func years(_ value: Double) -> String {
+        if value >= 1e9 {
+            return String(format: L10n.text("lab.dating.billionYears", store.language), L10n.number(value / 1e9, fractionDigits: 2, store.language))
+        }
+        return String(format: L10n.text("lab.dating.years", store.language), Int(value.rounded()).formatted(.number.locale(locale)))
+    }
+
+    var body: some View {
+        let halfLives = Model.halfLives(remainingPercent: remainingPercent)
+        LabCard {
+            Text(L10n.text("lab.dating.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.dating.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(L10n.text("lab.dating.isotope", store.language), selection: $isotopeIndex) {
+                Text(L10n.text("lab.dating.carbon", store.language)).tag(0)
+                Text(L10n.text("lab.dating.uranium", store.language)).tag(1)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.dating.isotope")
+
+            curve(halfLives: halfLives)
+                .frame(height: 150)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.dating.chart", store.language))
+                .accessibilityValue(Text(verbatim: L10n.number(remainingPercent, fractionDigits: 0, store.language)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.dating.remaining", store.language), L10n.number(remainingPercent, fractionDigits: 0, store.language)))
+                    .monospacedDigit()
+                // Whole percents without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { remainingPercent }, set: { remainingPercent = $0.rounded() }), in: Model.remainingPercentRange)
+                    .accessibilityLabel(L10n.text("lab.dating.remainingLabel", store.language))
+                    .accessibilityValue(Text(verbatim: L10n.number(remainingPercent, fractionDigits: 0, store.language)))
+                    .accessibilityIdentifier("lab.dating.remaining")
+            }
+
+            Text(String(format: L10n.text("lab.dating.age", store.language), years(Model.age(remainingPercent: remainingPercent, isotope: isotope)),
+                        L10n.number(halfLives, fractionDigits: 2, store.language)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.dating.age")
+            Text(String(format: L10n.text("lab.dating.oldRock", store.language),
+                        Int(Model.halfLivesElapsed(years: 3e9, isotope: isotope).rounded()).formatted(.number.locale(locale))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.dating.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Remaining share (1/2)^n against the number of half-lives n, with the chosen share marked.
+    private func curve(halfLives: Double) -> some View {
+        Canvas { context, size in
+            let maxX = 7.0
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / maxX), y: size.height * CGFloat(1 - y / 1.05))
+            }
+            var axes = Path()
+            axes.move(to: position(0, 1.05))
+            axes.addLine(to: position(0, 0))
+            axes.addLine(to: position(maxX, 0))
+            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            var grid = Path()
+            for n in 1...7 {
+                grid.move(to: position(Double(n), 0))
+                grid.addLine(to: position(Double(n), pow(0.5, Double(n))))
+            }
+            context.stroke(grid, with: .color(.secondary.opacity(0.35)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            var line = Path()
+            for index in 0...200 {
+                let x = maxX * Double(index) / 200
+                let point = position(x, pow(0.5, x))
+                if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+            }
+            context.stroke(line, with: .color(.accentColor), lineWidth: 2)
+            let marker = position(min(halfLives, maxX), remainingPercent / 100)
+            context.fill(Path(ellipseIn: CGRect(x: marker.x - 5, y: marker.y - 5, width: 10, height: 10)), with: .color(.orange))
+        }
+    }
+}
+
+private struct FeedbackLoopLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var negative = true
+    @State private var gain = 0.3
+    @State private var disturbance = 2.0
+
+    private typealias Model = FeedbackLoopModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let finalDeviation = Model.deviation(after: Model.steps, initial: disturbance, gain: gain, negative: negative)
+        LabCard {
+            Text(L10n.text("lab.feedback.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.feedback.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(L10n.text("lab.feedback.type", store.language), selection: $negative) {
+                Text(L10n.text("lab.feedback.negative", store.language)).tag(true)
+                Text(L10n.text("lab.feedback.positive", store.language)).tag(false)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.feedback.type")
+
+            chart
+                .frame(height: 150)
+                .clipped()
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.feedback.chart", store.language))
+                .accessibilityValue(Text(verbatim: number(finalDeviation, 2)))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.feedback.disturbance", store.language), number(disturbance, 1)))
+                    .monospacedDigit()
+                // Rounds to half a degree without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { disturbance }, set: { disturbance = ($0 * 2).rounded() / 2 }), in: Model.disturbanceRange)
+                    .accessibilityLabel(L10n.text("lab.feedback.disturbanceLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(disturbance, 1)))
+                    .accessibilityIdentifier("lab.feedback.disturbance")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.feedback.gain", store.language), number(gain, 2)))
+                    .monospacedDigit()
+                Slider(value: Binding(get: { gain }, set: { gain = ($0 * 20).rounded() / 20 }), in: Model.gainRange)
+                    .accessibilityLabel(L10n.text("lab.feedback.gainLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(gain, 2)))
+                    .accessibilityIdentifier("lab.feedback.gain")
+            }
+
+            Text(String(format: L10n.text("lab.feedback.result", store.language), String(Model.steps), number(finalDeviation, 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.feedback.result")
+            Text(L10n.text(negative ? "lab.feedback.negativeNote" : "lab.feedback.positiveNote", store.language))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.feedback.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // Temperature after each step between 33 and 41 °C, with the set point dashed; runaway values leave the chart.
+    private var chart: some View {
+        Canvas { context, size in
+            let minY = Model.setPoint - 4, maxY = Model.setPoint + 4
+            let values = Model.temperatures(initial: disturbance, gain: gain, negative: negative)
+            func position(_ x: Double, _ y: Double) -> CGPoint {
+                CGPoint(x: size.width * CGFloat(x / Double(Model.steps)), y: size.height * CGFloat(1 - (y - minY) / (maxY - minY)))
+            }
+            var setPoint = Path()
+            setPoint.move(to: position(0, Model.setPoint))
+            setPoint.addLine(to: position(Double(Model.steps), Model.setPoint))
+            context.stroke(setPoint, with: .color(.green), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var line = Path()
+            for (step, value) in values.enumerated() {
+                let clamped = min(max(value, minY - 1), maxY + 1)
+                let point = position(Double(step), clamped)
+                if step == 0 { line.move(to: point) } else { line.addLine(to: point) }
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(negative ? .accentColor : .red))
+            }
+            context.stroke(line, with: .color(negative ? .accentColor : .red), lineWidth: 2)
+        }
+    }
+}
+
+private struct EnergyCouplingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var reaction = 20.0
+    @State private var atpCount = 1
+
+    private typealias Model = EnergyCouplingModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let total = Model.total(reaction: reaction, atpCount: atpCount)
+        LabCard {
+            Text(L10n.text("lab.coupling.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.coupling.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.coupling.reaction", store.language), number(reaction, 0)))
+                    .monospacedDigit()
+                // Whole kJ/mol without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { reaction }, set: { reaction = $0.rounded() }), in: Model.reactionRange)
+                    .accessibilityLabel(L10n.text("lab.coupling.reactionLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(reaction, 0)))
+                    .accessibilityIdentifier("lab.coupling.reaction")
+            }
+            Stepper(value: $atpCount, in: Model.atpRange) {
+                Text(String(format: L10n.text("lab.coupling.atp", store.language), String(atpCount), number(Double(atpCount) * Model.atpFreeEnergy, 1)))
+                    .monospacedDigit()
+            }
+            .accessibilityLabel(Text(L10n.text("lab.coupling.atpLabel", store.language)))
+            .accessibilityValue(Text(verbatim: String(atpCount)))
+            .accessibilityIdentifier("lab.coupling.atpCount")
+
+            energyBars(total: total)
+                .frame(height: 70)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.coupling.chart", store.language))
+                .accessibilityValue(Text(verbatim: number(total, 1)))
+
+            Text(String(format: L10n.text("lab.coupling.total", store.language), number(reaction, 0), String(atpCount), number(total, 1)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.coupling.total")
+            Text(L10n.text(Model.runs(reaction: reaction, atpCount: atpCount) ? "lab.coupling.runs" : "lab.coupling.stalls", store.language))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.coupling.verdict")
+            Text(String(format: L10n.text("lab.coupling.minimum", store.language), String(Model.minimumATP(reaction: reaction))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.coupling.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // The reaction's positive ΔG to the right of zero, each ATP's −30.5 kJ/mol to the left, and the total below.
+    private func energyBars(total: Double) -> some View {
+        Canvas { context, size in
+            let scale = size.width / 2 / 160
+            let zero = size.width / 2
+            context.fill(Path(CGRect(x: zero, y: 4, width: CGFloat(reaction) * scale, height: 22)), with: .color(.red.opacity(0.7)))
+            for index in 0..<atpCount {
+                let width = CGFloat(-Model.atpFreeEnergy) * scale
+                let rect = CGRect(x: zero - CGFloat(index + 1) * width, y: 4, width: width - 2, height: 22)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.green.opacity(0.7)))
+            }
+            let totalWidth = CGFloat(abs(total)) * scale
+            let totalRect = CGRect(x: total < 0 ? zero - totalWidth : zero, y: 38, width: totalWidth, height: 22)
+            context.fill(Path(roundedRect: totalRect, cornerRadius: 3), with: .color(total < 0 ? .accentColor : .orange))
+            var axis = Path()
+            axis.move(to: CGPoint(x: zero, y: 0))
+            axis.addLine(to: CGPoint(x: zero, y: size.height))
+            context.stroke(axis, with: .color(.secondary), lineWidth: 1)
+        }
+    }
+}
+
+private struct ReactionQuotientLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var mixture = ReactionQuotientModel.lessonMixture
+
+    private typealias Model = ReactionQuotientModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var directionText: String {
+        switch Model.direction(mixture) {
+        case .forward: return L10n.text("lab.quotient.forward", store.language)
+        case .reverse: return L10n.text("lab.quotient.reverse", store.language)
+        case .equilibrium: return L10n.text("lab.quotient.equilibrium", store.language)
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.quotient.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.quotient.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            concentration("CO", \.carbonMonoxide, "lab.quotient.slider.co")
+            concentration("H₂O", \.water, "lab.quotient.slider.water")
+            concentration("CO₂", \.carbonDioxide, "lab.quotient.slider.co2")
+            concentration("H₂", \.hydrogen, "lab.quotient.slider.h2")
+
+            Text(String(format: L10n.text("lab.quotient.value", store.language), number(Model.quotient(mixture), 3), number(Model.equilibriumConstant, 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.quotient.value")
+            Text(directionText)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.quotient.direction")
+            HStack {
+                Button(L10n.text("lab.quotient.settle", store.language)) { mixture = Model.equilibrate(mixture) }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.quotient.settle")
+                Button(L10n.text("lab.quotient.addWater", store.language)) {
+                    mixture.water = min(mixture.water + 0.01, Model.concentrationRange.upperBound)
+                }
+                .accessibilityIdentifier("lab.quotient.addWater")
+                Button(L10n.text("lab.quotient.reset", store.language)) { mixture = Model.lessonMixture }
+                    .accessibilityIdentifier("lab.quotient.reset")
+            }
+            Text(L10n.text("lab.quotient.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func concentration(_ formula: String, _ path: WritableKeyPath<Model.Mixture, Double>, _ identifier: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: "[\(formula)] = \(number(mixture[keyPath: path], 4)) " + L10n.text("lab.quotient.unit", store.language))
+                .monospacedDigit()
+            // Rounds to 0.001 mol/L without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { mixture[keyPath: path] }, set: { mixture[keyPath: path] = ($0 * 1000).rounded() / 1000 }),
+                   in: Model.concentrationRange)
+                .accessibilityLabel(Text(verbatim: formula))
+                .accessibilityValue(Text(verbatim: number(mixture[keyPath: path], 4)))
+                .accessibilityIdentifier(identifier)
         }
     }
 }

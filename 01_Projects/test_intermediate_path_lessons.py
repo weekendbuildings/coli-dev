@@ -435,6 +435,20 @@ def test_l10n_dictionary_has_no_duplicate_keys() -> None:
     assert keys and duplicates == []
 
 
+def test_l10n_format_strings_escape_percent_signs() -> None:
+    # In a String(format:) template a literal percent sign must be written %%; a lone % is read as a broken
+    # conversion and the number after it is lost or garbled.
+    import re
+
+    strings = (AREAS.parent / "macOS" / "ColiDev" / "App" / "L10n.swift").read_text(encoding="utf-8")
+    entries = re.findall(r'^\s*"([^"]+)": \("((?:[^"\\]|\\.)*)", "((?:[^"\\]|\\.)*)"\)', strings, re.MULTILINE)
+    assert entries
+    lone = [(key, text) for key, *texts in entries for text in texts
+            if re.search(r"%(?:\d+\$)?[@d]", text)
+            and re.search(r"%(?![@dfisu]|\d+\$[@dfisu]|l{1,2}[du]|\d*\.\d+f)", text.replace("%%", ""))]
+    assert lone == []
+
+
 def test_statistical_labs_are_wired_into_the_app_project_and_ci() -> None:
     import re
 
@@ -684,3 +698,110 @@ def test_plasticity_and_enzyme_labs_are_wired_into_the_app_project_and_ci() -> N
     _, enzyme = _sections("Chemistry", "enzyme_kinetics_michaelis_menten")
     assert "v = 100 · 6 / (2 + 6) = 75" in enzyme
     assert math.isclose(100 * 6 / (2 + 6), 75)
+
+
+def test_euler_and_autocatalysis_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "euler_method_numerical_modeling"' in views and "EulerMethodLab()" in views
+    assert 'moduleResource == "prebiotic_chemistry_and_autocatalysis"' in views and "AutocatalysisLab()" in views
+    assert "GrowthModelLabs.swift in Sources" in project and "scripts/verify_growth_model_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:euler|autocatalysis)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Both labs start at their lesson quizzes: Euler with h = 1 gives 121, and ten doublings give 1024.
+    _, euler = _sections("Mathematics", "euler_method_numerical_modeling")
+    assert "N₂ = 110 + 1 · 0.1 · 110 = 121" in euler and "122.14" in euler
+    assert math.isclose(100 * 1.1 * 1.1, 121) and math.isclose(100 * math.exp(0.2), 122.14, abs_tol=5e-3)
+    _, autocatalysis = _sections("Chemistry", "prebiotic_chemistry_and_autocatalysis")
+    assert "2¹⁰ = 1024" in autocatalysis and 2 ** 10 == 1024
+
+
+def test_neural_layer_and_descent_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "vectors_and_matrices"' in views and "NeuralLayerLab()" in views
+    assert 'moduleResource == "gradient_and_partial_derivatives"' in views and "GradientDescent2DLab()" in views
+    assert "NeuralMathLabs.swift in Sources" in project and "scripts/verify_neural_math_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:layer|descent2d)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:layer|descent2d)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Both labs start at their lesson quizzes.
+    _, matrices = _sections("Mathematics", "vectors_and_matrices")
+    assert "W = [[1, 2], [0, −1]]" in matrices and "(11, −4)" in matrices
+    _, gradient = _sections("Mathematics", "gradient_and_partial_derivatives")
+    assert "(1, 1) − 0.1 · (2, 6) = (0.8, 0.4)" in gradient
+
+
+def test_fidelity_and_hamming_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "dna_replication_fidelity_and_repair"' in views and "GenomeFidelityLab()" in views
+    assert 'moduleResource == "sequence_comparison_hamming_distance"' in views and "HammingDistanceLab()" in views
+    assert "SequenceLabs.swift in Sources" in project and "scripts/verify_sequence_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:fidelity|hamming)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    # Both labs start at their lesson examples: 2.3 billion letters at e = 10⁻⁹, and distance 2 with 75% identity.
+    _, fidelity = _sections("Biology", "dna_replication_fidelity_and_repair")
+    assert "ln 10 / 10⁻⁹ ≈ 2.3" in fidelity and "229 letters" in fidelity
+    assert math.isclose(math.log(10) / 1e-9 / 1e9, 2.3026, abs_tol=1e-4)
+    _, hamming = _sections("Biology", "sequence_comparison_hamming_distance")
+    assert '"ATGCCGTA"' in hamming and '"ATGACGTT"' in hamming and "2 and 75.0" in hamming
+
+
+def test_dating_and_feedback_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "radioactive_decay_and_dating"' in views and "RadioactiveDatingLab()" in views
+    assert 'moduleResource == "homeostasis_and_feedback"' in views and "FeedbackLoopLab()" in views
+    assert "RegulationLabs.swift in Sources" in project and "scripts/verify_regulation_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:dating|feedback)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:dating|feedback)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, dating = _sections("Physics", "radioactive_decay_and_dating")
+    assert "5730 years" in dating and "4.5 billion years" in dating and "two half-lives" in dating
+    assert math.isclose(5730 * math.log2(100 / 25), 11_460)
+    assert math.isclose(2 * 0.7 ** 15, 0.0095, abs_tol=5e-4)  # the UI test's 0.01 °C after 15 steps
+    _, homeostasis = _sections("Biology", "homeostasis_and_feedback")
+    assert "negative feedback" in homeostasis.lower() and "positive feedback" in homeostasis.lower()
+
+
+def test_coupling_and_quotient_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "thermodynamics_of_living_systems"' in views and "EnergyCouplingLab()" in views
+    assert 'moduleResource == "reaction_rate_and_equilibrium"' in views and "ReactionQuotientLab()" in views
+    assert "ChemicalEnergyLabs.swift in Sources" in project and "scripts/verify_chemical_energy_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:coupling|quotient)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:coupling|quotient)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, coupling = _sections("Chemistry", "thermodynamics_of_living_systems")
+    assert "+20 − 30.5 = −10.5" in coupling and "−30.5 kJ/mol" in coupling
+    _, equilibrium = _sections("Chemistry", "reaction_rate_and_equilibrium")
+    assert "K = 0.64" in equilibrium and "Q = 0.040" in equilibrium
