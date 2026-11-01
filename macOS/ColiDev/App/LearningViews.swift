@@ -1886,6 +1886,10 @@ private struct PracticeLab: View {
             RadioactiveDatingLab()
         } else if subject == .biology, moduleResource == "homeostasis_and_feedback" {
             FeedbackLoopLab()
+        } else if subject == .chemistry, moduleResource == "thermodynamics_of_living_systems" {
+            EnergyCouplingLab()
+        } else if subject == .chemistry, moduleResource == "reaction_rate_and_equilibrium" {
+            ReactionQuotientLab()
         } else if subject == .physics, moduleResource == "oscillations_and_waves" {
             PendulumLab()
         } else if subject == .physics, moduleResource == "temperature_and_heat" {
@@ -12741,6 +12745,158 @@ private struct FeedbackLoopLab: View {
                 context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)), with: .color(negative ? .accentColor : .red))
             }
             context.stroke(line, with: .color(negative ? .accentColor : .red), lineWidth: 2)
+        }
+    }
+}
+
+private struct EnergyCouplingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var reaction = 20.0
+    @State private var atpCount = 1
+
+    private typealias Model = EnergyCouplingModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let total = Model.total(reaction: reaction, atpCount: atpCount)
+        LabCard {
+            Text(L10n.text("lab.coupling.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.coupling.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(String(format: L10n.text("lab.coupling.reaction", store.language), number(reaction, 0)))
+                    .monospacedDigit()
+                // Whole kJ/mol without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { reaction }, set: { reaction = $0.rounded() }), in: Model.reactionRange)
+                    .accessibilityLabel(L10n.text("lab.coupling.reactionLabel", store.language))
+                    .accessibilityValue(Text(verbatim: number(reaction, 0)))
+                    .accessibilityIdentifier("lab.coupling.reaction")
+            }
+            Stepper(value: $atpCount, in: Model.atpRange) {
+                Text(String(format: L10n.text("lab.coupling.atp", store.language), String(atpCount), number(Double(atpCount) * Model.atpFreeEnergy, 1)))
+                    .monospacedDigit()
+            }
+            .accessibilityLabel(Text(L10n.text("lab.coupling.atpLabel", store.language)))
+            .accessibilityValue(Text(verbatim: String(atpCount)))
+            .accessibilityIdentifier("lab.coupling.atpCount")
+
+            energyBars(total: total)
+                .frame(height: 70)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(L10n.text("lab.coupling.chart", store.language))
+                .accessibilityValue(Text(verbatim: number(total, 1)))
+
+            Text(String(format: L10n.text("lab.coupling.total", store.language), number(reaction, 0), String(atpCount), number(total, 1)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.coupling.total")
+            Text(L10n.text(Model.runs(reaction: reaction, atpCount: atpCount) ? "lab.coupling.runs" : "lab.coupling.stalls", store.language))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.coupling.verdict")
+            Text(String(format: L10n.text("lab.coupling.minimum", store.language), String(Model.minimumATP(reaction: reaction))))
+                .font(.callout.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+            Text(L10n.text("lab.coupling.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    // The reaction's positive ΔG to the right of zero, each ATP's −30.5 kJ/mol to the left, and the total below.
+    private func energyBars(total: Double) -> some View {
+        Canvas { context, size in
+            let scale = size.width / 2 / 160
+            let zero = size.width / 2
+            context.fill(Path(CGRect(x: zero, y: 4, width: CGFloat(reaction) * scale, height: 22)), with: .color(.red.opacity(0.7)))
+            for index in 0..<atpCount {
+                let width = CGFloat(-Model.atpFreeEnergy) * scale
+                let rect = CGRect(x: zero - CGFloat(index + 1) * width, y: 4, width: width - 2, height: 22)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.green.opacity(0.7)))
+            }
+            let totalWidth = CGFloat(abs(total)) * scale
+            let totalRect = CGRect(x: total < 0 ? zero - totalWidth : zero, y: 38, width: totalWidth, height: 22)
+            context.fill(Path(roundedRect: totalRect, cornerRadius: 3), with: .color(total < 0 ? .accentColor : .orange))
+            var axis = Path()
+            axis.move(to: CGPoint(x: zero, y: 0))
+            axis.addLine(to: CGPoint(x: zero, y: size.height))
+            context.stroke(axis, with: .color(.secondary), lineWidth: 1)
+        }
+    }
+}
+
+private struct ReactionQuotientLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var mixture = ReactionQuotientModel.lessonMixture
+
+    private typealias Model = ReactionQuotientModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var directionText: String {
+        switch Model.direction(mixture) {
+        case .forward: return L10n.text("lab.quotient.forward", store.language)
+        case .reverse: return L10n.text("lab.quotient.reverse", store.language)
+        case .equilibrium: return L10n.text("lab.quotient.equilibrium", store.language)
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            Text(L10n.text("lab.quotient.title", store.language))
+                .font(.headline)
+            Text(L10n.text("lab.quotient.hint", store.language))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+
+            concentration("CO", \.carbonMonoxide, "lab.quotient.slider.co")
+            concentration("H₂O", \.water, "lab.quotient.slider.water")
+            concentration("CO₂", \.carbonDioxide, "lab.quotient.slider.co2")
+            concentration("H₂", \.hydrogen, "lab.quotient.slider.h2")
+
+            Text(String(format: L10n.text("lab.quotient.value", store.language), number(Model.quotient(mixture), 3), number(Model.equilibriumConstant, 2)))
+                .font(.headline.monospacedDigit())
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.quotient.value")
+            Text(directionText)
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.quotient.direction")
+            HStack {
+                Button(L10n.text("lab.quotient.settle", store.language)) { mixture = Model.equilibrate(mixture) }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.quotient.settle")
+                Button(L10n.text("lab.quotient.addWater", store.language)) {
+                    mixture.water = min(mixture.water + 0.01, Model.concentrationRange.upperBound)
+                }
+                .accessibilityIdentifier("lab.quotient.addWater")
+                Button(L10n.text("lab.quotient.reset", store.language)) { mixture = Model.lessonMixture }
+                    .accessibilityIdentifier("lab.quotient.reset")
+            }
+            Text(L10n.text("lab.quotient.limit", store.language))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func concentration(_ formula: String, _ path: WritableKeyPath<Model.Mixture, Double>, _ identifier: String) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: "[\(formula)] = \(number(mixture[keyPath: path], 4)) " + L10n.text("lab.quotient.unit", store.language))
+                .monospacedDigit()
+            // Rounds to 0.001 mol/L without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { mixture[keyPath: path] }, set: { mixture[keyPath: path] = ($0 * 1000).rounded() / 1000 }),
+                   in: Model.concentrationRange)
+                .accessibilityLabel(Text(verbatim: formula))
+                .accessibilityValue(Text(verbatim: number(mixture[keyPath: path], 4)))
+                .accessibilityIdentifier(identifier)
         }
     }
 }

@@ -800,6 +800,45 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testEnergyCouplingLabStartsAtTheLessonQuiz() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/thermodynamics_of_living_systems"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let total = app.staticTexts["lab.coupling.total"]
+        XCTAssertTrue(
+            total.waitForExistence(timeout: 10),
+            "The thermodynamics lesson must show the coupling lab. / В уроке о термодинамике должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        let shown = (total.value as? String ?? "") + " " + total.label
+        XCTAssertTrue(shown.contains("10,5") || shown.contains("10.5"), "+20 − 30.5 must give −10.5. / Должно получиться −10,5.\n\(shown)")
+    }
+
+    @MainActor
+    func testReactionQuotientLabReachesEquilibrium() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/reaction_rate_and_equilibrium"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launch()
+        app.activate()
+        let lessonScrollView = app.scrollViews["lesson.scrollView"]
+        XCTAssertTrue(lessonScrollView.waitForExistence(timeout: 5))
+        let value = app.staticTexts["lab.quotient.value"]
+        XCTAssertTrue(
+            value.waitForExistence(timeout: 10),
+            "The equilibrium lesson must show the reaction quotient lab. / В уроке о равновесии должен быть тренажёр.\n\(app.debugDescription)"
+        )
+        func text(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        XCTAssertTrue(text(value).contains("0,040") || text(value).contains("0.040"), text(value))
+        let settle = app.buttons["lab.quotient.settle"]
+        scrollUntilHittable(settle, in: lessonScrollView)
+        settle.click()
+        if text(value).contains("0,040") || text(value).contains("0.040"), settle.isHittable { settle.click() }
+        XCTAssertTrue(text(value).contains("0,640") || text(value).contains("0.640"), "After settling Q must equal K = 0.64.\n\(text(value))")
+    }
+
+    @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"

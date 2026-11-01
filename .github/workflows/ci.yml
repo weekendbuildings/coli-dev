@@ -481,6 +481,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-regulation-labs"
           "$RUNNER_TEMP/verify-regulation-labs"
 
+      - name: Verify energy coupling and reaction quotient lab models / Проверка моделей сопряжения с АТФ и равновесия
+        run: |
+          swiftc macOS/ColiDev/App/ChemicalEnergyLabs.swift macOS/ColiDev/scripts/verify_chemical_energy_labs.swift \
+            -o "$RUNNER_TEMP/verify-chemical-energy-labs"
+          "$RUNNER_TEMP/verify-chemical-energy-labs"
+
       - name: Verify pendulum model / Проверка модели маятника
         run: |
           swiftc macOS/ColiDev/App/Pendulum.swift macOS/ColiDev/scripts/verify_pendulum.swift \

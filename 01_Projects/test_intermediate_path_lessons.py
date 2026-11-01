@@ -785,3 +785,23 @@ def test_dating_and_feedback_labs_are_wired_into_the_app_project_and_ci() -> Non
     assert math.isclose(2 * 0.7 ** 15, 0.0095, abs_tol=5e-4)  # the UI test's 0.01 °C after 15 steps
     _, homeostasis = _sections("Biology", "homeostasis_and_feedback")
     assert "negative feedback" in homeostasis.lower() and "positive feedback" in homeostasis.lower()
+
+
+def test_coupling_and_quotient_labs_are_wired_into_the_app_project_and_ci() -> None:
+    import re
+
+    app = AREAS.parent / "macOS" / "ColiDev"
+    views = (app / "App" / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (app / "App" / "L10n.swift").read_text(encoding="utf-8")
+    project = (app / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    workflow = (AREAS.parent / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+    assert 'moduleResource == "thermodynamics_of_living_systems"' in views and "EnergyCouplingLab()" in views
+    assert 'moduleResource == "reaction_rate_and_equilibrium"' in views and "ReactionQuotientLab()" in views
+    assert "ChemicalEnergyLabs.swift in Sources" in project and "scripts/verify_chemical_energy_labs.swift" in workflow
+    used = set(re.findall(r'(?<!accessibilityIdentifier\()"(lab\.(?:coupling|quotient)\.[A-Za-z]+)"', views))
+    defined = set(re.findall(r'^\s*"(lab\.(?:coupling|quotient)\.[A-Za-z]+)":', strings, re.MULTILINE))
+    assert used and used <= defined
+    _, coupling = _sections("Chemistry", "thermodynamics_of_living_systems")
+    assert "+20 − 30.5 = −10.5" in coupling and "−30.5 kJ/mol" in coupling
+    _, equilibrium = _sections("Chemistry", "reaction_rate_and_equilibrium")
+    assert "K = 0.64" in equilibrium and "Q = 0.040" in equilibrium
