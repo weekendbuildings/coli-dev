@@ -10341,91 +10341,87 @@ private struct AlgorithmComplexityLab: View {
 
 private struct HeldOutEvaluationLab: View {
     @EnvironmentObject private var store: LearningStore
-    // The slider moves over the k values themselves, so VoiceOver reports "k = 13", not a slider position.
-    @State private var neighbourValue = Double(HeldOutEvaluationPractice.neighbourCounts[0])
+    @State private var neighbourIndex = 0
 
-    private static let counts = HeldOutEvaluationPractice.neighbourCounts
-    private static let neighbourRange = Double(counts[0])...Double(counts[counts.count - 1])
-    private static let neighbourStep = Double(counts[1] - counts[0])
+    private typealias Model = HeldOutEvaluationPractice
 
-    private var neighbourCount: Int {
-        let target = Int(neighbourValue.rounded())
-        return HeldOutEvaluationPractice.neighbourCounts.min { abs($0 - target) < abs($1 - target) } ?? target
-    }
-
-    private var verdictKey: String {
-        if HeldOutEvaluationPractice.showsOverfitting(neighbours: neighbourCount) {
-            return "lab.holdout.overfit"
-        }
-        if HeldOutEvaluationPractice.matchesBaseline(neighbours: neighbourCount) {
-            return "lab.holdout.atBaseline"
-        }
-        return "lab.holdout.generalizes"
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var neighbours: Int { Model.neighbourCounts[neighbourIndex] }
 
     var body: some View {
+        let training = Model.accuracy(of: Model.trainingExamples, neighbours: neighbours)
+        let heldOut = Model.accuracy(of: Model.heldOutExamples, neighbours: neighbours)
+        let baseline = Model.baselineAccuracy(on: Model.heldOutExamples)
+        let status: (LabStatusKind, String) = Model.showsOverfitting(neighbours: neighbours) ? (.bad, text("lab.holdout.overfit"))
+            : Model.matchesBaseline(neighbours: neighbours) ? (.warning, text("lab.holdout.atBaseline")) : (.good, text("lab.holdout.generalizes"))
         LabCard {
-            Text(L10n.text("lab.holdout.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.holdout.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 7) {
-                Text(String(format: L10n.text("lab.holdout.neighbours", store.language), neighbourCount))
-                    .font(.headline.monospacedDigit())
-                Slider(value: $neighbourValue, in: Self.neighbourRange, step: Self.neighbourStep)
-                    .accessibilityLabel(L10n.text("lab.holdout.neighboursLabel", store.language))
-                    .accessibilityValue("k = \(neighbourCount)")
+            LabHeader(title: text("lab.holdout.title"), instruction: text("lab.holdout.subtitle"))
+            timeline
+                .frame(height: 170)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.holdout.chart"))
+            Picker(text("lab.holdout.neighboursLabel"), selection: $neighbourIndex.animation()) {
+                ForEach(Model.neighbourCounts.indices, id: \.self) { index in Text(verbatim: "k = \(Model.neighbourCounts[index])").tag(index) }
             }
-
-            accuracyBar(
-                title: L10n.text("lab.holdout.training", store.language),
-                accuracy: HeldOutEvaluationPractice.accuracy(of: HeldOutEvaluationPractice.trainingExamples, neighbours: neighbourCount),
-                tint: .blue
-            )
-            accuracyBar(
-                title: L10n.text("lab.holdout.heldOut", store.language),
-                accuracy: HeldOutEvaluationPractice.accuracy(of: HeldOutEvaluationPractice.heldOutExamples, neighbours: neighbourCount),
-                tint: .green
-            )
-            accuracyBar(
-                title: L10n.text("lab.holdout.baseline", store.language),
-                accuracy: HeldOutEvaluationPractice.baselineAccuracy(on: HeldOutEvaluationPractice.heldOutExamples),
-                tint: .gray
-            )
-
-            Label(L10n.text(verdictKey, store.language), systemImage: verdictKey == "lab.holdout.generalizes" ? "checkmark.seal" : "exclamationmark.triangle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.holdout.verdict")
-            Text(L10n.text("lab.holdout.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.holdout.neighbours")
+            VStack(alignment: .leading, spacing: 8) {
+                bar(text("lab.holdout.training"), training, .blue)
+                bar(text("lab.holdout.heldOut"), heldOut, .orange)
+                bar(text("lab.holdout.baseline"), baseline, .secondary)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.holdout.verdict")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.holdout.challenge"),
+                         solved: neighbours == Model.bestHeldOutNeighbourCount, solvedText: text("lab.holdout.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.holdout.hint"), text("lab.holdout.limit")])
         }
     }
 
-    private func accuracyBar(title: String, accuracy: HeldOutAccuracy, tint: Color) -> some View {
+    private func bar(_ title: String, _ accuracy: HeldOutAccuracy, _ color: Color) -> some View {
         HStack(spacing: 10) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .frame(width: 150, alignment: .leading)
-            GeometryReader { geometry in
+            Text(title).font(.callout).frame(width: 200, alignment: .leading)
+            GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.12))
-                    Capsule()
-                        .fill(tint.gradient)
-                        .frame(width: max(8, geometry.size.width * CGFloat(accuracy.percent) / 100))
+                    Capsule().fill(Color.secondary.opacity(0.15))
+                    Capsule().fill(color.gradient).frame(width: max(6, proxy.size.width * CGFloat(accuracy.percent) / 100))
                 }
             }
-            .frame(height: 14)
-            Text(String(format: L10n.text("lab.holdout.score", store.language), accuracy.correct, accuracy.total, accuracy.percent))
-                .font(.caption.monospacedDigit())
-                .frame(width: 104, alignment: .trailing)
+            .frame(height: 16)
+            Text(String(format: text("lab.holdout.score"), accuracy.correct, accuracy.total, accuracy.percent)).font(.callout.monospacedDigit()).frame(width: 130, alignment: .trailing)
         }
-        .accessibilityElement(children: .combine)
+        .animation(.easeInOut(duration: 0.25), value: accuracy.percent)
+    }
+
+    // Minutes of practice on a line: training examples above (green passed, red failed), held-out examples below
+    // filled with the true answer and ringed with the model's prediction; wrong predictions get a cross.
+    private var timeline: some View {
+        Canvas { context, size in
+            let left: CGFloat = 20, right = size.width - 20
+            func x(_ minutes: Int) -> CGFloat { left + (right - left) * CGFloat(minutes) / 75 }
+            let trainY = size.height * 0.28, testY = size.height * 0.68
+            for (y, key) in [(trainY, "lab.holdout.training"), (testY, "lab.holdout.heldOut")] {
+                var line = Path()
+                line.move(to: CGPoint(x: left, y: y))
+                line.addLine(to: CGPoint(x: right, y: y))
+                context.stroke(line, with: .color(.secondary.opacity(0.4)), lineWidth: 1)
+                context.draw(Text(text(key)).font(.caption2.weight(.semibold)).foregroundColor(.secondary), at: CGPoint(x: left, y: y - 22), anchor: .leading)
+            }
+            for example in Model.trainingExamples {
+                context.fill(Path(ellipseIn: CGRect(x: x(example.minutes) - 7, y: trainY - 7, width: 14, height: 14)), with: .color(example.passed ? .green : .red))
+            }
+            for example in Model.heldOutExamples {
+                let predicted = Model.predictsPass(minutes: example.minutes, neighbours: neighbours)
+                let center = CGPoint(x: x(example.minutes), y: testY)
+                context.fill(Path(ellipseIn: CGRect(x: center.x - 7, y: center.y - 7, width: 14, height: 14)), with: .color(example.passed ? .green : .red))
+                context.stroke(Path(ellipseIn: CGRect(x: center.x - 11, y: center.y - 11, width: 22, height: 22)), with: .color(predicted ? .green : .red), lineWidth: 2.5)
+                if predicted != example.passed {
+                    context.draw(Text(verbatim: "✗").font(.headline).foregroundColor(.red), at: CGPoint(x: center.x, y: center.y + 22))
+                }
+            }
+            for minutes in stride(from: 0, through: 75, by: 15) {
+                context.draw(Text(verbatim: "\(minutes)").font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x(minutes), y: size.height - 8))
+            }
+        }
     }
 }
 
@@ -11163,109 +11159,109 @@ private struct ReplicatorErrorThresholdLab: View {
     @State private var errorPercent = 1.0
     @State private var advantage = 10.0
 
+    private typealias Model = ReplicatorErrorThresholdModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private var errorRate: Double { errorPercent / 100 }
 
-    private var exactCopy: Double {
-        ReplicatorErrorThresholdModel.exactCopyProbability(length: length, errorRate: errorRate)
-    }
-
-    private var offspring: Double {
-        ReplicatorErrorThresholdModel.exactOffspring(length: length, errorRate: errorRate, advantage: advantage)
-    }
-
-    private var persists: Bool {
-        ReplicatorErrorThresholdModel.persists(length: length, errorRate: errorRate, advantage: advantage)
-    }
-
-    private var maximumLengthDescription: String {
-        guard let maximum = ReplicatorErrorThresholdModel.maximumLength(errorRate: errorRate, advantage: advantage) else {
-            return L10n.text("lab.replicator.noLength", store.language)
-        }
-        return String(format: L10n.text("lab.replicator.maxLength", store.language), String(maximum))
-    }
-
     var body: some View {
+        let offspring = Model.exactOffspring(length: length, errorRate: errorRate, advantage: advantage)
+        let persists = Model.persists(length: length, errorRate: errorRate, advantage: advantage)
+        let maximum = Model.maximumLength(errorRate: errorRate, advantage: advantage)
         LabCard {
-            Text(L10n.text("lab.replicator.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.replicator.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.replicator.length", store.language), String(Int(length))))
-                    .monospacedDigit()
-                Slider(value: snapped($length, to: 10), in: ReplicatorErrorThresholdModel.lengthRange)
-                    .accessibilityLabel(L10n.text("lab.replicator.lengthLabel", store.language))
-                    .accessibilityValue(Text(verbatim: String(Int(length))))
-                    .accessibilityIdentifier("lab.replicator.length")
+            LabHeader(title: text("lab.replicator.title"), instruction: text("lab.replicator.subtitle"))
+            HStack(spacing: 16) {
+                GeometryReader { proxy in
+                    let plot = LabPlotGeometry(size: proxy.size, x: Model.lengthRange, y: 0...max(2, advantage * 0.25))
+                    chart(plot, maximum: maximum)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                            length = min(max(plot.value(at: drag.location).x.rounded(), Model.lengthRange.lowerBound), Model.lengthRange.upperBound)
+                        })
+                }
+                colony
+                    .frame(width: 200)
             }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.replicator.error", store.language), L10n.number(errorPercent, fractionDigits: 1, store.language)))
-                    .monospacedDigit()
-                Slider(value: snapped($errorPercent, to: 0.1), in: 0.1...5.0)
-                    .accessibilityLabel(L10n.text("lab.replicator.errorLabel", store.language))
-                    .accessibilityValue(Text(String(format: L10n.text("lab.replicator.percentValue", store.language), L10n.number(errorPercent, fractionDigits: 1, store.language))))
-                    .accessibilityIdentifier("lab.replicator.error")
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.replicator.advantage", store.language), String(Int(advantage))))
-                    .monospacedDigit()
-                Slider(value: snapped($advantage, to: 1), in: ReplicatorErrorThresholdModel.advantageRange)
-                    .accessibilityLabel(L10n.text("lab.replicator.advantageLabel", store.language))
-                    .accessibilityValue(Text(verbatim: String(Int(advantage))))
-                    .accessibilityIdentifier("lab.replicator.advantage")
-            }
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.replicator.scale"))
+            .accessibilityValue(Text(verbatim: number(offspring, 2)))
 
-            Text(String(format: L10n.text("lab.replicator.exactCopy", store.language), L10n.number(exactCopy * 100, fractionDigits: 1, store.language)))
-                .font(.callout.monospacedDigit())
-            Text(String(format: L10n.text("lab.replicator.offspring", store.language), L10n.number(offspring, fractionDigits: 2, store.language)))
-                .font(.headline.monospacedDigit())
-                .accessibilityIdentifier("lab.replicator.offspring")
-            offspringScale
-                .frame(height: 26)
-                .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.replicator.scale", store.language))
-                .accessibilityValue(String(format: L10n.text("lab.replicator.offspring", store.language), L10n.number(offspring, fractionDigits: 2, store.language)))
-
-            Label(L10n.text(persists ? "lab.replicator.persists" : "lab.replicator.erased", store.language), systemImage: persists ? "checkmark.seal" : "exclamationmark.triangle")
-                .font(.callout.weight(.medium))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.replicator.outcome")
-            Text(maximumLengthDescription)
-                .font(.callout.monospacedDigit())
-                .accessibilityIdentifier("lab.replicator.maxLength")
-            Text(L10n.text("lab.replicator.limit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            slider(String(format: text("lab.replicator.length"), number(length, 0)), "lab.replicator.lengthLabel", "lab.replicator.length",
+                   Binding(get: { length }, set: { length = $0.rounded() }), Model.lengthRange)
+            slider(String(format: text("lab.replicator.error"), number(errorPercent, 1)), "lab.replicator.errorLabel", "lab.replicator.error",
+                   Binding(get: { errorPercent }, set: { errorPercent = ($0 * 10).rounded() / 10 }), (Model.errorRateRange.lowerBound * 100)...(Model.errorRateRange.upperBound * 100))
+            slider(String(format: text("lab.replicator.advantage"), number(advantage, 0)), "lab.replicator.advantageLabel", "lab.replicator.advantage",
+                   Binding(get: { advantage }, set: { advantage = $0.rounded() }), Model.advantageRange)
+            LabStatGrid {
+                LabStat(label: text("lab.replicator.statExact"), value: number(Model.exactCopyProbability(length: length, errorRate: errorRate) * 100, 1) + " %", tint: .green)
+                LabStat(label: "σ · (1 − e)ᴸ", value: number(offspring, 2), tint: persists ? .green : .red, identifier: "lab.replicator.offspring")
+                LabStat(label: text("lab.replicator.statMax"), value: maximum.map(String.init) ?? "0", tint: .purple)
+            }
+            LabStatusBadge(kind: persists ? .good : .bad, text: text(persists ? "lab.replicator.persists" : "lab.replicator.erased"))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.replicator.challenge"),
+                         solved: errorPercent == 1 && advantage == 10 && persists && length >= 200, solvedText: text("lab.replicator.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.replicator.hint"), text("lab.replicator.limit")])
         }
     }
 
-    // Rounds slider values without `step:`, which would draw a dense row of tick marks under each slider.
-    private func snapped(_ value: Binding<Double>, to increment: Double) -> Binding<Double> {
-        Binding(
-            get: { value.wrappedValue },
-            set: { value.wrappedValue = ($0 / increment).rounded() * increment }
-        )
+    private func slider(_ title: String, _ labelKey: String, _ identifier: String, _ value: Binding<Double>, _ range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).monospacedDigit().frame(minWidth: 300, alignment: .leading)
+            // Each slider rounds without `step:`, which would draw a dense row of tick marks.
+            Slider(value: value, in: range)
+                .accessibilityLabel(text(labelKey))
+                .accessibilityIdentifier(identifier)
+        }
     }
 
-    // Exact offspring on a 0…2 scale with the survival line at 1 in the middle; larger values are capped.
-    private var offspringScale: some View {
-        GeometryReader { geometry in
-            let fraction = min(offspring, 2) / 2
-            ZStack(alignment: .leading) {
-                Capsule().fill(Color.secondary.opacity(0.12))
-                Capsule()
-                    .fill((persists ? Color.green : Color.orange).gradient)
-                    .frame(width: max(8, geometry.size.width * CGFloat(fraction)))
-                Rectangle()
-                    .fill(Color.primary.opacity(0.7))
-                    .frame(width: 2)
-                    .offset(x: geometry.size.width * 0.5)
+    // Exact offspring σ(1 − e)ᴸ against length: above the line at 1 the information survives (green), below it is erased.
+    private func chart(_ plot: LabPlotGeometry, maximum: Int?) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text("lab.replicator.axisLength"), yLabel: text("lab.replicator.axisOffspring"), format: { number($0, 0) })
+            var clipped = context
+            clipped.clip(to: Path(plot.rect))
+            let one = plot.point(0, 1).y
+            clipped.fill(Path(CGRect(x: plot.rect.minX, y: plot.rect.minY, width: plot.rect.width, height: one - plot.rect.minY)), with: .color(.green.opacity(0.08)))
+            clipped.fill(Path(CGRect(x: plot.rect.minX, y: one, width: plot.rect.width, height: plot.rect.maxY - one)), with: .color(.red.opacity(0.08)))
+            var threshold = Path()
+            threshold.move(to: CGPoint(x: plot.rect.minX, y: one))
+            threshold.addLine(to: CGPoint(x: plot.rect.maxX, y: one))
+            clipped.stroke(threshold, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var curve = Path()
+            for index in 0...200 {
+                let l = plot.x.lowerBound + (plot.x.upperBound - plot.x.lowerBound) * Double(index) / 200
+                let location = plot.point(l, min(Model.exactOffspring(length: l, errorRate: errorRate, advantage: advantage), plot.y.upperBound))
+                if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
+            }
+            clipped.stroke(curve, with: .color(.accentColor), lineWidth: 2.5)
+            if let maximum {
+                var mark = Path()
+                mark.move(to: plot.point(Double(maximum), 0))
+                mark.addLine(to: plot.point(Double(maximum), 1))
+                clipped.stroke(mark, with: .color(.purple), lineWidth: 2)
+                clipped.draw(Text(verbatim: "L max = \(maximum)").font(.caption.weight(.bold)).foregroundColor(.purple), at: plot.point(Double(maximum), 1.08), anchor: .bottomLeading)
+            }
+            let current = plot.point(length, min(Model.exactOffspring(length: length, errorRate: errorRate, advantage: advantage), plot.y.upperBound))
+            clipped.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.orange))
+            clipped.stroke(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
+        }
+    }
+
+    // Forty copies of the molecule: the exact-copy share is green, copies with at least one error are red.
+    private var colony: some View {
+        Canvas { context, size in
+            let exact = Model.exactCopyProbability(length: length, errorRate: errorRate)
+            let good = Int((exact * 40).rounded())
+            let cell = min(size.width / 5, size.height / 8)
+            for index in 0..<40 {
+                let rect = CGRect(x: CGFloat(index % 5) * cell + cell * 0.12, y: CGFloat(index / 5) * cell + cell * 0.12, width: cell * 0.76, height: cell * 0.76)
+                context.fill(Path(roundedRect: rect, cornerRadius: 5), with: .color(index < good ? .green : .red.opacity(0.7)))
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: length)
+        .accessibilityHidden(true)
     }
 }
 
@@ -11730,65 +11726,85 @@ private struct NeuronTrainingLab: View {
 private struct CoinEntropyLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var coins = 4
+    @State private var toss: [Bool] = []
 
     private typealias Model = CoinMicrostateModel
 
     private var locale: Locale { Locale(identifier: store.language == .ru ? "ru_RU" : "en_US") }
     private func grouped(_ value: Int) -> String { value.formatted(.number.locale(locale)) }
     private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: value < 0.001 ? 4 : 1, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let mostLikely = Model.mostLikelyHeads(coins: coins)
         let total = Model.total(coins: coins)
+        let tossHeads = toss.count == coins ? toss.filter { $0 }.count : nil
         LabCard {
-            Text(L10n.text("lab.entropy.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.entropy.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Stepper(value: $coins, in: Model.coinRange) {
-                Text(String(format: L10n.text("lab.entropy.coins", store.language), String(coins), grouped(total)))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.entropy.title"), instruction: text("lab.entropy.subtitle"))
+            HStack(spacing: 12) {
+                Stepper(value: Binding(get: { coins }, set: { coins = $0; toss = [] }), in: Model.coinRange) {
+                    Text(String(format: text("lab.entropy.coins"), String(coins), grouped(total))).monospacedDigit()
+                }
+                .accessibilityLabel(Text(text("lab.entropy.coinsLabel")))
+                .accessibilityIdentifier("lab.entropy.coins")
+                Spacer()
+                Button {
+                    withAnimation(.spring(response: 0.4)) { toss = (0..<coins).map { _ in Bool.random() } }
+                } label: { Label(text("lab.entropy.toss"), systemImage: "circle.lefthalf.filled") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.entropy.toss")
             }
-            .accessibilityLabel(Text(L10n.text("lab.entropy.coinsLabel", store.language)))
-            .accessibilityValue(Text(verbatim: String(coins)))
-            .accessibilityIdentifier("lab.entropy.coins")
-
-            histogram
-                .frame(height: 140)
+            if !toss.isEmpty {
+                HStack(spacing: 4) {
+                    ForEach(toss.indices, id: \.self) { index in
+                        Text(verbatim: toss[index] ? text("lab.entropy.headShort") : text("lab.entropy.tailShort"))
+                            .font(.caption.weight(.bold))
+                            .frame(width: 26, height: 26)
+                            .background(Circle().fill(toss[index] ? Color.orange : Color.secondary.opacity(0.35)))
+                    }
+                }
+            }
+            histogram(highlight: tossHeads)
+                .frame(height: 230)
                 .accessibilityElement(children: .ignore)
-                .accessibilityLabel(L10n.text("lab.entropy.chart", store.language))
+                .accessibilityLabel(text("lab.entropy.chart"))
                 .accessibilityValue(Text(verbatim: (0...coins).map { String(Model.microstates(coins: coins, heads: $0)) }.joined(separator: ", ")))
-
-            Text(String(format: L10n.text("lab.entropy.mostLikely", store.language),
-                        String(mostLikely), grouped(Model.microstates(coins: coins, heads: mostLikely)), grouped(total),
+            LabStatGrid {
+                LabStat(label: text("lab.entropy.statTotal"), value: grouped(total), tint: .purple)
+                LabStat(label: String(format: text("lab.entropy.statMost"), String(mostLikely)), value: percent(Model.probability(coins: coins, heads: mostLikely)) + " %", tint: .orange)
+                LabStat(label: text("lab.entropy.statAllHeads"), value: percent(Model.probability(coins: coins, heads: coins)) + " %", tint: .red)
+            }
+            Text(String(format: text("lab.entropy.mostLikely"), String(mostLikely), grouped(Model.microstates(coins: coins, heads: mostLikely)), grouped(total),
                         percent(Model.probability(coins: coins, heads: mostLikely))))
                 .font(.callout.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.entropy.mostLikely")
-            Text(String(format: L10n.text("lab.entropy.allHeads", store.language), grouped(total), percent(Model.probability(coins: coins, heads: coins))))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.entropy.allHeads")
-            Text(L10n.text("lab.entropy.limit", store.language))
-                .font(.caption)
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.entropy.mostLikely")
+            Text(String(format: text("lab.entropy.allHeads"), grouped(total), percent(Model.probability(coins: coins, heads: coins))))
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("lab.entropy.allHeads")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.entropy.challenge"), solved: total > 1_000_000, solvedText: text("lab.entropy.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.entropy.hint"), text("lab.entropy.limit")])
         }
     }
 
-    // One bar per macrostate, height proportional to its number of microstates; the most likely bar is highlighted.
-    private var histogram: some View {
+    // Microstates per macrostate with axes; the most likely bars are orange and the last toss's macrostate is outlined.
+    private func histogram(highlight: Int?) -> some View {
         Canvas { context, size in
             let counts = (0...coins).map { Model.microstates(coins: coins, heads: $0) }
             let peak = Double(counts.max() ?? 1)
-            let slot = size.width / CGFloat(counts.count)
+            let plot = LabPlotGeometry(size: size, x: -0.5...(Double(coins) + 0.5), y: 0...peak * 1.1, leading: 60)
+            let xTicks = coins <= 10 ? Array(0...coins).map(Double.init) : LabPlotGeometry.ticks(0...Double(coins), count: 5)
+            plot.drawAxes(in: context, xLabel: text("lab.entropy.axisHeads"), yLabel: text("lab.entropy.axisWays"), xTicks: xTicks, format: { grouped(Int($0.rounded())) })
+            let slot = plot.rect.width / CGFloat(counts.count)
             for (heads, count) in counts.enumerated() {
-                let height = size.height * CGFloat(Double(count) / peak)
-                let rect = CGRect(x: CGFloat(heads) * slot + slot * 0.15, y: size.height - height, width: slot * 0.7, height: height)
-                let highlighted = heads == Model.mostLikelyHeads(coins: coins) || heads == coins - Model.mostLikelyHeads(coins: coins)
-                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(highlighted ? .accentColor : .secondary.opacity(0.45)))
+                let top = plot.point(Double(heads), Double(count))
+                let rect = CGRect(x: top.x - slot * 0.35, y: top.y, width: slot * 0.7, height: plot.rect.maxY - top.y)
+                let likely = heads == Model.mostLikelyHeads(coins: coins) || heads == coins - Model.mostLikelyHeads(coins: coins)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(likely ? .orange : .accentColor.opacity(0.55)))
+                if heads == highlight {
+                    context.stroke(Path(roundedRect: rect.insetBy(dx: -3, dy: -3), cornerRadius: 4), with: .color(.primary), lineWidth: 2.5)
+                }
             }
         }
     }
@@ -11800,56 +11816,66 @@ private struct HardyWeinbergLab: View {
 
     private typealias Model = HardyWeinbergModel
 
-    private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: 1, store.language) }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         let genotypes = Model.genotypes(recessiveAllele: recessiveAllele)
+        let ratio = Model.carriersPerAffected(recessiveAllele: recessiveAllele)
         LabCard {
-            Text(L10n.text("lab.hardy.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.hardy.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            VStack(alignment: .leading, spacing: 4) {
-                Text(String(format: L10n.text("lab.hardy.alleles", store.language),
-                            L10n.number(1 - recessiveAllele, fractionDigits: 2, store.language),
-                            L10n.number(recessiveAllele, fractionDigits: 2, store.language)))
-                    .monospacedDigit()
+            LabHeader(title: text("lab.hardy.title"), instruction: text("lab.hardy.subtitle"))
+            HStack(spacing: 18) {
+                population(genotypes)
+                    .frame(width: 260, height: 260)
+                VStack(alignment: .leading, spacing: 12) {
+                    legend(text("lab.hardy.dominant"), genotypes.dominantHomozygous, .blue)
+                    legend(text("lab.hardy.carrier"), genotypes.heterozygous, .purple)
+                    legend(text("lab.hardy.recessive"), genotypes.recessiveHomozygous, .orange)
+                }
+            }
+            .accessibilityElement(children: .combine)
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.hardy.alleles"), number(1 - recessiveAllele, 2), number(recessiveAllele, 2))).monospacedDigit().frame(minWidth: 220, alignment: .leading)
                 // Rounds to hundredths without `step:`, which would draw a dense row of tick marks.
                 Slider(value: Binding(get: { recessiveAllele }, set: { recessiveAllele = ($0 * 100).rounded() / 100 }), in: Model.recessiveRange)
-                    .accessibilityLabel(L10n.text("lab.hardy.sliderLabel", store.language))
-                    .accessibilityValue(Text(verbatim: L10n.number(recessiveAllele, fractionDigits: 2, store.language)))
+                    .accessibilityLabel(text("lab.hardy.sliderLabel"))
+                    .accessibilityValue(Text(verbatim: number(recessiveAllele, 2)))
                     .accessibilityIdentifier("lab.hardy.q")
             }
-            genotypeBar(L10n.text("lab.hardy.dominant", store.language), genotypes.dominantHomozygous, .blue)
-            genotypeBar(L10n.text("lab.hardy.carrier", store.language), genotypes.heterozygous, .purple)
-            genotypeBar(L10n.text("lab.hardy.recessive", store.language), genotypes.recessiveHomozygous, .orange)
-            Text(String(format: L10n.text("lab.hardy.ratio", store.language),
-                        L10n.number(Model.carriersPerAffected(recessiveAllele: recessiveAllele), fractionDigits: 1, store.language)))
-                .font(.headline.monospacedDigit())
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("lab.hardy.ratio")
-            Text(L10n.text("lab.hardy.limit", store.language))
-                .font(.caption)
+            LabStatGrid {
+                LabStat(label: text("lab.hardy.statRatio"), value: number(ratio, 1), tint: .purple, identifier: "lab.hardy.ratio")
+                LabStat(label: "2pq", value: number(genotypes.heterozygous * 100, 1) + " %", tint: .purple)
+                LabStat(label: "q²", value: number(genotypes.recessiveHomozygous * 100, 1) + " %", tint: .orange)
+            }
+            Text(String(format: text("lab.hardy.ratio"), number(ratio, 1)))
+                .font(.callout.monospacedDigit())
                 .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.hardy.challenge"), solved: abs(ratio - 10) < 0.6, solvedText: text("lab.hardy.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.hardy.hint"), text("lab.hardy.limit")])
         }
     }
 
-    private func genotypeBar(_ title: String, _ share: Double, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text("\(title): \(percent(share)) %")
-                .font(.callout.monospacedDigit())
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.12))
-                    Capsule().fill(color.gradient).frame(width: max(4, geometry.size.width * CGFloat(share)))
-                }
-            }
-            .frame(height: 12)
+    private func legend(_ title: String, _ share: Double, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Circle().fill(color).frame(width: 16, height: 16)
+            Text(verbatim: "\(title): \(number(share * 100, 1)) %").font(.callout.monospacedDigit())
         }
-        .accessibilityElement(children: .combine)
+    }
+
+    // A hundred individuals coloured by genotype in Hardy–Weinberg proportions p², 2pq, q².
+    private func population(_ genotypes: HardyWeinbergModel.Genotypes) -> some View {
+        Canvas { context, size in
+            let dominant = Int((genotypes.dominantHomozygous * 100).rounded())
+            let carriers = Int((genotypes.heterozygous * 100).rounded())
+            let cell = min(size.width, size.height) / 10
+            for index in 0..<100 {
+                let color: Color = index < dominant ? .blue : (index < dominant + carriers ? .purple : .orange)
+                let rect = CGRect(x: CGFloat(index % 10) * cell + cell * 0.12, y: CGFloat(index / 10) * cell + cell * 0.12, width: cell * 0.76, height: cell * 0.76)
+                context.fill(Path(ellipseIn: rect), with: .color(color))
+            }
+        }
+        .animation(.easeInOut(duration: 0.25), value: recessiveAllele)
+        .accessibilityHidden(true)
     }
 }
 
