@@ -1,12 +1,17 @@
 # Статус готовности прототипа ColiDev / ColiDev prototype readiness
 
-**Дата обновления / Updated:** 2026-10-24
+**Дата обновления / Updated:** 2026-11-01
+
+## Beta 14 — 2026-11-01
+
+**RU — Beta 14, 2026-11-01.** [Beta 14](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.14) собрана из `f46893b` (PR #10), CI [41282180750](https://github.com/weekendbuildings/coli-dev/actions/runs/41282180750) зелёный. Курс — 117 уроков вместо 109: теперь у каждой строки дорожных карт, кроме двух строк английского (он на паузе), есть урок. Код приложения не менялся. Начиная с Beta 14 выпуски собираются только для Apple Silicon. Проверено на MacBook Air M1 (macOS 27.0.1): установка из выпуска, запуск, backend, тьютор находит новые уроки. Подробно — [заметки к выпуску](project-plan/RELEASE_NOTES_BETA14_RU_EN.md).<br>
+**EN — Beta 14, 2026-11-01.** [Beta 14](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.14) is built from `f46893b` (PR #10), CI [41282180750](https://github.com/weekendbuildings/coli-dev/actions/runs/41282180750) green. The course has 117 lessons instead of 109: every roadmap row now has a lesson except two English rows (English is paused). The app code is unchanged. From Beta 14 on, releases are built for Apple Silicon only. Checked on a MacBook Air M1 (macOS 27.0.1): install from the release, launch, backend, and the tutor finding the new lessons. Details: [release notes](project-plan/RELEASE_NOTES_BETA14_RU_EN.md).<br>
+**RU/EN — одной командой / one command:** `curl -fL -o /tmp/ColiDev.zip "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.14/ColiDev-beta-AppleSilicon.zip" && rm -rf /Applications/ColiDev.app && ditto -x -k /tmp/ColiDev.zip /Applications && xattr -dr com.apple.quarantine /Applications/ColiDev.app 2>/dev/null; open /Applications/ColiDev.app`
 
 ## Beta 13 — 2026-10-31
 
 **RU — Beta 13, 2026-10-31.** [Beta 13](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.13) собрана из `f55b211` (PR #9), CI [41247367541](https://github.com/weekendbuildings/coli-dev/actions/runs/41247367541) зелёный на macOS 15 и 26 Apple Silicon и macOS 15 Intel. Курс — 109 уроков вместо 64, новый предмет «Химия», восемь новых тренажёров, исправления после проверки Beta 12. Обновления ищутся в `weekendbuildings/coli-dev`: Beta 12 после переноса репозитория не видит новых выпусков, поэтому Beta 13 ставится вручную командой ниже. Проверено на MacBook Air M1 (macOS 27.0.1): установка из выпуска, запуск, backend, в настройках виден список выпусков. Подробно — [заметки к выпуску](project-plan/RELEASE_NOTES_BETA13_RU_EN.md).<br>
 **EN — Beta 13, 2026-10-31.** [Beta 13](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.13) is built from `f55b211` (PR #9), CI [41247367541](https://github.com/weekendbuildings/coli-dev/actions/runs/41247367541) green on macOS 15 and 26 Apple Silicon and macOS 15 Intel. The course has 109 lessons instead of 64, a new Chemistry subject, eight new labs, and fixes from the Beta 12 check. Updates come from `weekendbuildings/coli-dev`: after the repository move Beta 12 cannot see new releases, so install Beta 13 manually with the command below. Checked on a MacBook Air M1 (macOS 27.0.1): install from the release, launch, backend, and the release list in Settings. Details: [release notes](project-plan/RELEASE_NOTES_BETA13_RU_EN.md).<br>
-**RU/EN — одной командой / one command:** `A=$([ "$(uname -m)" = arm64 ] && echo AppleSilicon || echo Intel); curl -fL -o /tmp/ColiDev.zip "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.13/ColiDev-beta-$A.zip" && rm -rf /Applications/ColiDev.app && ditto -x -k /tmp/ColiDev.zip /Applications && xattr -dr com.apple.quarantine /Applications/ColiDev.app 2>/dev/null; open /Applications/ColiDev.app`
 
 ## Beta 12 — 2026-10-25
 

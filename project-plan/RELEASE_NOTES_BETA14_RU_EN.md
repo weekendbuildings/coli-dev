@@ -1,6 +1,6 @@
 # ColiDev 0.1.0 Beta 14 — заметки к выпуску / Release notes
 
-**Статус: готовится, ещё не опубликовано. / Status: in preparation, not yet published.**
+**Опубликовано 2026-11-01: [v0.1.0-beta.14](https://github.com/weekendbuildings/coli-dev/releases/tag/v0.1.0-beta.14), собрано из `f46893b` (Merge PR #10; дерево совпадает с `d5d1557`), CI [41282180750](https://github.com/weekendbuildings/coli-dev/actions/runs/41282180750) зелёный на macOS 15 и 26 Apple Silicon. Только для Apple Silicon. / Published 2026-11-01, built from `f46893b`, Apple Silicon only.**
 
 ## Русский
 
@@ -14,12 +14,14 @@
 
 **Исправление в заметках.** В заметках и README к Beta 13 было написано «106 уроков»; на самом деле в Beta 13 было 109 уроков, привязанных к дорожным картам.
 
-**Как проверялось:** каждый факт сверен с текстом учебников OpenStax или документации Python и IETF; код из уроков запускается в тестах, а печать программ и ответы на вопросы сверяются с текстом урока; Python-тесты (805) и CI на macOS 15 и 26 Apple Silicon и macOS 15 Intel.
+**Как проверялось:** каждый факт сверен с текстом учебников OpenStax или документации Python и IETF; код из уроков запускается в тестах, а печать программ и ответы на вопросы сверяются с текстом урока; Python-тесты (805) и CI на macOS 15 и 26 Apple Silicon.
+
+**Только Apple Silicon.** Начиная с Beta 14 выпуски собираются только для Mac на Apple Silicon (M1 и новее); сборки для Intel больше не публикуются.
 
 **Установка одной командой:**
 
 ```bash
-A=$([ "$(uname -m)" = arm64 ] && echo AppleSilicon || echo Intel); curl -fL -o /tmp/ColiDev.zip "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.14/ColiDev-beta-$A.zip" && rm -rf /Applications/ColiDev.app && ditto -x -k /tmp/ColiDev.zip /Applications && xattr -dr com.apple.quarantine /Applications/ColiDev.app 2>/dev/null; open /Applications/ColiDev.app
+curl -fL -o /tmp/ColiDev.zip "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.14/ColiDev-beta-AppleSilicon.zip" && rm -rf /Applications/ColiDev.app && ditto -x -k /tmp/ColiDev.zip /Applications && xattr -dr com.apple.quarantine /Applications/ColiDev.app 2>/dev/null; open /Applications/ColiDev.app
 ```
 
 Сборка не подписана Developer ID: если macOS не открывает приложение, щёлкни по нему в Finder с Control → «Открыть».
@@ -36,12 +38,14 @@ A=$([ "$(uname -m)" = arm64 ] && echo AppleSilicon || echo Intel); curl -fL -o /
 
 **Correction.** The Beta 13 notes and README said "106 lessons"; Beta 13 actually had 109 lessons linked into the roadmaps.
 
-**How it was checked:** every fact was compared with the text of OpenStax textbooks or the Python and IETF documentation; the code in the lessons runs in tests, and the programs' output and quiz answers are checked against the lesson text; Python tests (805) and CI on macOS 15 and 26 Apple Silicon and macOS 15 Intel.
+**How it was checked:** every fact was compared with the text of OpenStax textbooks or the Python and IETF documentation; the code in the lessons runs in tests, and the programs' output and quiz answers are checked against the lesson text; Python tests (805) and CI on macOS 15 and 26 Apple Silicon.
+
+**Apple Silicon only.** From Beta 14 on, releases are built only for Apple Silicon Macs (M1 and later); Intel builds are no longer published.
 
 **One-command install:**
 
 ```bash
-A=$([ "$(uname -m)" = arm64 ] && echo AppleSilicon || echo Intel); curl -fL -o /tmp/ColiDev.zip "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.14/ColiDev-beta-$A.zip" && rm -rf /Applications/ColiDev.app && ditto -x -k /tmp/ColiDev.zip /Applications && xattr -dr com.apple.quarantine /Applications/ColiDev.app 2>/dev/null; open /Applications/ColiDev.app
+curl -fL -o /tmp/ColiDev.zip "https://github.com/weekendbuildings/coli-dev/releases/download/v0.1.0-beta.14/ColiDev-beta-AppleSilicon.zip" && rm -rf /Applications/ColiDev.app && ditto -x -k /tmp/ColiDev.zip /Applications && xattr -dr com.apple.quarantine /Applications/ColiDev.app 2>/dev/null; open /Applications/ColiDev.app
 ```
 
 The build is not signed with a Developer ID: if macOS will not open the app, Control-click it in Finder and choose Open.
