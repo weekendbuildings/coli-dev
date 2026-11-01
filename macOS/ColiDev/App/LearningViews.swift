@@ -12656,8 +12656,8 @@ private struct PHScaleLab: View {
                     .accessibilityValue(Text(verbatim: String(Int(pH))))
                     .accessibilityIdentifier("lab.ph.slider")
             }
-            pHScale
-                .frame(height: 26)
+            Canvas { context, size in drawScale(context, size: size) }
+                .frame(height: 104)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(L10n.text("lab.ph.scale", store.language))
                 .accessibilityValue(Text(verbatim: String(Int(pH))))
@@ -12672,7 +12672,11 @@ private struct PHScaleLab: View {
                 .font(.callout.monospacedDigit())
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("lab.ph.comparison")
-            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.ph.limit", store.language)])
+            ionBar(label: "H⁺", share: (14 - pH) / 14, colour: .red)
+            ionBar(label: "OH⁻", share: pH / 14, colour: .blue)
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.ph.challenge", store.language),
+                         solved: pH == 2, solvedText: L10n.text("lab.ph.challengeSolved", store.language))
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.ph.ionsNote", store.language), L10n.text("lab.ph.limit", store.language)])
         }
     }
 
@@ -12681,19 +12685,47 @@ private struct PHScaleLab: View {
         Binding(get: { pH }, set: { pH = $0.rounded() })
     }
 
-    // Acidic red through neutral green to basic blue, with the current pH marked.
-    private var pHScale: some View {
-        GeometryReader { geometry in
-            let fraction = pH / PHScaleModel.pHRange.upperBound
-            ZStack(alignment: .leading) {
-                Capsule().fill(LinearGradient(colors: [.red, .orange, .green, .teal, .blue], startPoint: .leading, endPoint: .trailing))
-                Circle()
-                    .strokeBorder(Color.primary, lineWidth: 3)
-                    .background(Circle().fill(Color.white.opacity(0.85)))
-                    .frame(width: 22, height: 22)
-                    .offset(x: max(0, geometry.size.width * CGFloat(fraction) - 11))
-            }
+    // The scale from acidic red through neutral green to basic blue, with everyday substances and the current pH marked.
+    private func drawScale(_ context: GraphicsContext, size: CGSize) {
+        let left: CGFloat = 14
+        let width = size.width - 28
+        let bar = CGRect(x: left, y: 30, width: width, height: 22)
+        func x(_ value: Double) -> CGFloat { left + width * CGFloat(value / PHScaleModel.pHRange.upperBound) }
+        context.fill(Path(roundedRect: bar, cornerRadius: 11),
+                     with: .linearGradient(Gradient(colors: [.red, .orange, .green, .teal, .blue]), startPoint: CGPoint(x: bar.minX, y: 0), endPoint: CGPoint(x: bar.maxX, y: 0)))
+        for value in stride(from: 0, through: 14, by: 2) {
+            context.draw(Text(verbatim: "\(value)").font(.caption2.monospacedDigit()).foregroundColor(.secondary), at: CGPoint(x: x(Double(value)), y: 60))
         }
+        let substances: [(Double, String, Bool)] = [(2, "lab.ph.sub.lemon", true), (5, "lab.ph.sub.coffee", false), (7, "lab.ph.sub.water", true),
+                                                    (7.4, "lab.ph.sub.blood", false), (10, "lab.ph.sub.soap", true), (13, "lab.ph.sub.bleach", false)]
+        for (value, key, above) in substances {
+            let y: CGFloat = above ? 12 : 84
+            var tick = Path()
+            tick.move(to: CGPoint(x: x(value), y: above ? 20 : 68))
+            tick.addLine(to: CGPoint(x: x(value), y: above ? 30 : 76))
+            context.stroke(tick, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            context.draw(Text(L10n.text(key, store.language)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x(value), y: y))
+        }
+        let knob = CGRect(x: x(pH) - 12, y: bar.midY - 12, width: 24, height: 24)
+        context.fill(Path(ellipseIn: knob), with: .color(.white.opacity(0.9)))
+        context.stroke(Path(ellipseIn: knob), with: .color(.black), lineWidth: 2.5)
+    }
+
+    // Bar length is the order of magnitude, so one pH step moves each bar by one factor of ten, in opposite directions.
+    private func ionBar(label: String, share: Double, colour: Color) -> some View {
+        HStack(spacing: 10) {
+            Text(verbatim: label)
+                .font(.callout.monospacedDigit().weight(.semibold))
+                .frame(width: 36, alignment: .leading)
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.15))
+                    Capsule().fill(colour.opacity(0.8)).frame(width: proxy.size.width * CGFloat(share))
+                }
+            }
+            .frame(height: 12)
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -12701,12 +12733,17 @@ private struct MoleculeBuilderLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var central = MoleculeBuilderModel.CentralAtom.carbon
     @State private var hydrogens = 2
+    @State private var builtMolecules: Set<String> = []
 
     private var status: MoleculeBuilderModel.Status {
         MoleculeBuilderModel.status(central: central, hydrogens: hydrogens)
     }
 
     private var atomName: String { L10n.text(central.nameKey, store.language) }
+
+    private func recordBuiltMolecule() {
+        if status == .complete { builtMolecules.insert(central.rawValue) }
+    }
 
     private var statusDescription: String {
         switch status {
@@ -12745,7 +12782,7 @@ private struct MoleculeBuilderLab: View {
 
             HStack(alignment: .center, spacing: 18) {
                 moleculeDrawing
-                    .frame(width: 150, height: 150)
+                    .frame(width: 210, height: 210)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(L10n.text("lab.molecule.drawing", store.language))
                     .accessibilityValue(Text(verbatim: MoleculeBuilderModel.formula(central: central, hydrogens: hydrogens)))
@@ -12759,8 +12796,13 @@ private struct MoleculeBuilderLab: View {
                         .accessibilityIdentifier("lab.molecule.status")
                 }
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.molecule.challenge", store.language),
+                         solved: builtMolecules.count == MoleculeBuilderModel.CentralAtom.allCases.count,
+                         solvedText: L10n.text("lab.molecule.challengeSolved", store.language))
             LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.molecule.limit", store.language)])
         }
+        .onChange(of: hydrogens) { _ in recordBuiltMolecule() }
+        .onChange(of: central) { _ in recordBuiltMolecule() }
     }
 
     // A flat sketch: bonds within the valence are solid, extra ones dashed red. Real 3D shapes and angles differ.
@@ -12840,7 +12882,7 @@ private struct ReactionEnergyLab: View {
             }
 
             profileChart
-                .frame(height: 190)
+                .frame(height: 240)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(L10n.text("lab.energy.chart", store.language))
                 .accessibilityValue(Text(String(format: L10n.text("lab.energy.barriers", store.language), energy(barrier), energy(catalyzedBarrier))))
@@ -12878,6 +12920,8 @@ private struct ReactionEnergyLab: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.energy.challenge", store.language),
+                         solved: catalystOn && speedup >= 100_000, solvedText: L10n.text("lab.energy.challengeSolved", store.language))
             LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.energy.limit", store.language)])
         }
     }
@@ -12891,6 +12935,19 @@ private struct ReactionEnergyLab: View {
                 .accessibilityLabel(L10n.text(labelKey, store.language))
                 .accessibilityValue(Text(energy(value.wrappedValue)))
         }
+    }
+
+    private func energyArrow(_ context: GraphicsContext, x: CGFloat, from start: CGFloat, to end: CGFloat, label: String, colour: Color) {
+        guard abs(end - start) > 8 else { return }
+        let direction: CGFloat = end < start ? 1 : -1
+        var arrow = Path()
+        arrow.move(to: CGPoint(x: x, y: start))
+        arrow.addLine(to: CGPoint(x: x, y: end))
+        arrow.move(to: CGPoint(x: x - 5, y: end + direction * 8))
+        arrow.addLine(to: CGPoint(x: x, y: end))
+        arrow.addLine(to: CGPoint(x: x + 5, y: end + direction * 8))
+        context.stroke(arrow, with: .color(colour), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+        context.draw(Text(verbatim: label).font(.caption.weight(.bold)).foregroundColor(colour), at: CGPoint(x: x + 8, y: (start + end) / 2), anchor: .leading)
     }
 
     // Energy on a fixed −70…125 kJ/mol axis so that changes stay comparable; reactants sit at 0.
@@ -12918,6 +12975,12 @@ private struct ReactionEnergyLab: View {
             if catalystOn {
                 context.stroke(path(barrier: catalyzedBarrier), with: .color(.green), style: StrokeStyle(lineWidth: 3, dash: [7, 5]))
             }
+            // The barrier measured up from the reactants at the curve's peak, and ΔG measured between the two levels.
+            let samples = (0...60).map { Double($0) / 60 }
+            let peakX = samples.max { Model.profileEnergy(at: $0, barrier: barrier, freeEnergyChange: freeEnergy) < Model.profileEnergy(at: $1, barrier: barrier, freeEnergyChange: freeEnergy) } ?? 0.5
+            let peak = Model.profileEnergy(at: peakX, barrier: barrier, freeEnergyChange: freeEnergy)
+            energyArrow(context, x: size.width * CGFloat(peakX), from: y(0), to: y(peak), label: "Eₐ", colour: .orange)
+            energyArrow(context, x: size.width * 0.9, from: y(0), to: y(freeEnergy), label: "ΔG", colour: .purple)
             // Labels sit under their levels, where the curve never goes; near the bottom edge they move above.
             let productLabelY = freeEnergy - 14 > lower ? y(freeEnergy) + 10 : y(freeEnergy) - 10
             context.draw(Text(L10n.text("lab.energy.reactants", store.language)).font(.caption), at: CGPoint(x: 6, y: y(0) + 10), anchor: .leading)
