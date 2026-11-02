@@ -35,6 +35,7 @@
 | Распределённые системы и отказоустойчивость / Distributed systems and resilience | Анализировать повторы, таймауты, согласованность, идемпотентность и частичные сбои. / Reason about retries, timeouts, consistency, idempotency, and partial failure. | lesson:retries_and_idempotency |
 | Компиляторы, протоколы и специализации / Compilers, protocols, specializations | Выбирать углублённую ветку и строить проект, где можно проверить каждый слой. / Pursue a focused specialization through a verifiable project. | lesson:parsing_and_abstract_syntax_trees |
 | Нейронные сети: обучение и обратное распространение / Neural networks: training and backpropagation | Писать обучаемый нейрон, считать градиент ошибки по правилу цепочки и обновлять веса градиентным спуском, понимая ограничения обучения на малых данных. / Write a trainable neuron, compute the error gradient with the chain rule, and update weights by gradient descent, understanding the limits of learning from small data. | lesson:neural_network_backpropagation |
+| Скрытый слой: сеть учит XOR / The hidden layer: a network learns XOR | Доказывать, что один нейрон не выучит XOR, обучать сеть со скрытым слоем обратным распространением и видеть, какое представление она строит. / Prove that one neuron cannot learn XOR, train a hidden-layer network with backpropagation, and see the representation it builds. | lesson:neural_network_hidden_layer_xor |
 
 ## Форматы практики / Practice formats
 
