@@ -1889,6 +1889,9 @@ private struct PracticeLab: View {
             AttentionTowersLab()
         } else if subject == .programming, moduleResource == "transformer_block" {
             GradientTowerLab()
+        } else if subject == .programming, moduleResource == "minibatches_and_overfitting" {
+            MinibatchReliefLab()
+            WaveFitLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -14077,6 +14080,231 @@ private struct GradientTowerLab: View {
         depth = newDepth
         bypass = newBypass
         if Model(depth: newDepth, bypass: newBypass).solvesChallenge { solved = true }
+    }
+}
+
+private struct MinibatchReliefLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = MinibatchLineModel()
+    @State private var batch = 24
+    @State private var rate = 0.1
+    @State private var playing = false
+    @State private var solvedReads: Int?
+
+    private typealias Model = MinibatchLineModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if let reads = model.readsAtTarget {
+            return (reads <= Model.challengeReads ? .good : .info, String(format: text("lab.batch.reached"), String(reads)))
+        }
+        if model.reads == 0 { return (.info, text("lab.batch.ready")) }
+        return model.isFinished ? (.warning, text("lab.batch.outOfReads")) : (.info, text("lab.batch.training"))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.batch.title"), instruction: text("lab.batch.subtitle"))
+            MinibatchReliefSceneView(model: model, language: store.language)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.batch.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.batch.sceneValue"), number(model.loss, 3), String(model.reads)))
+                .accessibilityIdentifier("lab.batch.scene")
+            HStack(spacing: 14) {
+                Picker(text("lab.batch.size"), selection: Binding(get: { batch }, set: { batch = $0; restart() })) {
+                    ForEach(Model.batches, id: \.self) { Text(verbatim: String($0)).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .accessibilityIdentifier("lab.batch.size")
+                Text(String(format: text("lab.xor.rate"), number(rate))).monospacedDigit().frame(minWidth: 190, alignment: .leading)
+                Slider(value: Binding(get: { rate }, set: { rate = $0; restart() }), in: Model.rateRange)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityValue(Text(verbatim: number(rate)))
+                    .accessibilityIdentifier("lab.batch.rate")
+            }
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.batch.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.batch.step")
+                Button(text("lab.neurontrain.reset")) { restart() }
+                    .accessibilityIdentifier("lab.batch.reset")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                chart
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.batch.statReads"), value: String(model.reads), tint: .blue, identifier: "lab.batch.reads")
+                    LabStat(label: text("lab.batch.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.batch.loss")
+                    LabStat(label: text("lab.batch.statTarget"), value: number(Model.target, 3), tint: .green, identifier: "lab.batch.target")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.batch.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.batch.challenge"), solved: solvedReads != nil,
+                         solvedText: String(format: text("lab.batch.challengeSolved"), String(solvedReads ?? 0)), identifier: "lab.batch.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.batch.how1"), text("lab.batch.how2")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 90_000_000)
+                guard playing else { break }
+                advance()
+                if model.readsAtTarget != nil && model.reads > (model.readsAtTarget ?? 0) + 60 || model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func restart() {
+        playing = false
+        model = Model()
+    }
+
+    private func advance() {
+        model.step(batch: batch, rate: rate)
+        if model.solvesChallenge, solvedReads == nil { solvedReads = model.readsAtTarget }
+    }
+
+    // The error against the examples read: the price of training, not the number of steps.
+    // Ошибка против числа прочитанных примеров: цена обучения, а не число шагов.
+    private var chart: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.reads, 120)), y: 0...4)
+            plot.drawAxes(in: context, xLabel: text("lab.batch.axisReads"), yLabel: "L", yTicks: [0, 2, 4], format: { number($0, 0) })
+            var line = Path()
+            for (index, entry) in model.history.enumerated() {
+                let location = plot.point(Double(entry.reads), min(entry.loss, 4))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2)
+        }
+    }
+}
+
+private struct WaveFitLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = WaveFitModel()
+    @State private var decayPosition = 0.0
+    @State private var playing = false
+    @State private var solved = false
+
+    private typealias Model = WaveFitModel
+
+    /// The left end of the slider is exactly zero, and the rest runs from 0.001 to 1. / Левый край ровно ноль, остальное от 0,001 до 1.
+    private var decay: Double { decayPosition <= 0 ? 0 : pow(10, -3 + 3 * decayPosition) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if model.steps == 0 { return (.info, text("lab.waves.ready")) }
+        if !model.isFinished { return (.info, text("lab.waves.training")) }
+        return model.solvesChallenge ? (.good, String(format: text("lab.waves.good"), number(model.heldError))) : (.warning, String(format: text("lab.waves.finished"), number(model.heldError), number(model.bestHeld.error), String(model.bestHeld.step)))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.waves.title"), instruction: text("lab.waves.subtitle"))
+            HStack(alignment: .top, spacing: 12) {
+                fitChart
+                    .frame(height: 220)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(text("lab.waves.fitLabel"))
+                curvesChart
+                    .frame(height: 220)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(text("lab.waves.curvesLabel"))
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.waves.decay"), number(decay))).monospacedDigit().frame(minWidth: 130, alignment: .leading)
+                Slider(value: Binding(get: { decayPosition }, set: { decayPosition = $0; restart() }), in: 0...1)
+                    .accessibilityLabel(text("lab.waves.decayLabel"))
+                    .accessibilityValue(Text(verbatim: number(decay)))
+                    .accessibilityIdentifier("lab.waves.decay")
+            }
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.waves.play")
+                Button(text("lab.neurontrain.reset")) { restart() }
+                    .accessibilityIdentifier("lab.waves.reset")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.waves.statTrain"), value: number(model.trainError), tint: .blue, identifier: "lab.waves.train")
+                LabStat(label: text("lab.waves.statHeld"), value: number(model.heldError), tint: .orange, identifier: "lab.waves.held")
+                LabStat(label: text("lab.waves.statBest"), value: number(model.bestHeld.error), tint: .green, identifier: "lab.waves.best")
+                LabStat(label: text("lab.waves.statSteps"), value: String(model.steps), identifier: "lab.waves.steps")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.waves.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.waves.challenge"), solved: solved,
+                         solvedText: text("lab.waves.challengeSolved"), identifier: "lab.waves.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.waves.how1"), text("lab.waves.how2")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000)
+                guard playing else { break }
+                for _ in 0..<3 { model.step() }
+                if model.solvesChallenge { solved = true }
+                if model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func restart() {
+        playing = false
+        model = Model(decay: decay)
+    }
+
+    private var fitChart: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: -1.5...1.5, y: -2.4...2.4)
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "y", yTicks: [-2, 0, 2], format: { number($0, 0) })
+            var line = Path()
+            for index in 0...150 {
+                let x = -1.5 + 3 * Double(index) / 150
+                let location = plot.point(x, max(-2.4, min(2.4, model.value(at: x))))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+            for point in Model.data.held {
+                let at = plot.point(point.x, max(-2.4, min(2.4, point.y)))
+                context.fill(Path(ellipseIn: CGRect(x: at.x - 2, y: at.y - 2, width: 4, height: 4)), with: .color(.secondary.opacity(0.55)))
+            }
+            for point in Model.data.train {
+                let at = plot.point(point.x, max(-2.4, min(2.4, point.y)))
+                context.fill(Path(ellipseIn: CGRect(x: at.x - 4, y: at.y - 4, width: 8, height: 8)), with: .color(.blue))
+            }
+        }
+    }
+
+    private var curvesChart: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...Double(Model.stepLimit), y: 0...1.2)
+            plot.drawAxes(in: context, xLabel: text("lab.landscape.axisSteps"), yLabel: "L", yTicks: [0, 0.5, 1], format: { number($0, $0 == 0 || $0 == 1 ? 0 : 1) })
+            for (values, color) in [(model.trainHistory, Color.blue), (model.heldHistory, Color.orange)] {
+                var line = Path()
+                for (index, value) in values.enumerated() {
+                    let location = plot.point(Double(index), min(value, 1.2))
+                    if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+                }
+                context.stroke(line, with: .color(color), lineWidth: 2.5)
+            }
+            let best = plot.point(Double(model.bestHeld.step), min(model.bestHeld.error, 1.2))
+            context.fill(Path(ellipseIn: CGRect(x: best.x - 5, y: best.y - 5, width: 10, height: 10)), with: .color(.green))
+        }
     }
 }
 

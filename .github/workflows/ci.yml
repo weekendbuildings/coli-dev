@@ -469,6 +469,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-gradient-stack"
           "$RUNNER_TEMP/verify-gradient-stack"
 
+      - name: Verify training practice models / Проверка моделей практики обучения
+        run: |
+          swiftc macOS/ColiDev/App/TrainingPractice.swift macOS/ColiDev/scripts/verify_training_practice.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-training-practice"
+          "$RUNNER_TEMP/verify-training-practice"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \

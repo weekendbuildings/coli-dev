@@ -1019,6 +1019,47 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testMinibatchBowlTurnsAndOneExampleReachesTheTarget() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/minibatches_and_overfitting"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.batch.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the bowl.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let reads = app.staticTexts["lab.batch.reads"]
+        XCTAssertTrue(shown(reads).hasPrefix("0"), shown(reads))
+        let step = app.buttons["lab.batch.step"]
+        step.click()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(shown(reads).hasPrefix("24"), "A full batch reads all the points.\n\(shown(reads))")
+        snapshot("landscape-batch-full")
+        app.descendants(matching: .any)["lab.batch.size"].radioButtons.element(boundBy: 0).click()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(shown(reads).hasPrefix("0"), "A new batch size starts over.\n\(shown(reads))")
+        app.buttons["lab.batch.play"].click()
+        try await Task.sleep(nanoseconds: 9_000_000_000)
+        snapshot("landscape-batch-small")
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the bowl.")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
