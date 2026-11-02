@@ -1950,6 +1950,8 @@ private struct PracticeLab: View {
             ChatAnatomyLab()
         } else if subject == .programming, moduleResource == "model_mistakes_and_checking" {
             ModelScoreboardLab()
+        } else if subject == .programming, moduleResource == "asking_well_and_structured_output" {
+            PromptToggleLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -19735,7 +19737,8 @@ private struct ModelScoreboardLab: View {
                         let passes: Bool = item.confidence > state.threshold
                         let base: Color = item.right ? .green : .red
                         context.fill(Path(ellipseIn: dot), with: .color(base.opacity(passes ? 0.95 : 0.3)))
-                        if index == state.selected {
+                        // Marking the question before the bet would give the truth away. / Отметка до ставки выдала бы правду.
+                        if index == state.selected, state.isRevealed {
                             context.stroke(Path(ellipseIn: dot.insetBy(dx: -2, dy: -2)), with: .color(.primary), lineWidth: 2)
                         }
                     }
@@ -19760,5 +19763,134 @@ private struct ModelScoreboardLab: View {
                 .monospacedDigit()
                 .accessibilityIdentifier("lab.score.ruleLine")
         }
+    }
+}
+
+// MARK: - Prompt techniques lab / Тренажёр: что помогает просить
+
+private struct PromptToggleLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var state = PromptLabState()
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private func color(_ mark: PromptLabMark) -> Color {
+        switch mark {
+        case .right: return .green
+        case .wrong: return .red
+        case .broken: return .gray
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.prompt.title"), instruction: text("lab.prompt.subtitle"))
+            LabStatusBadge(kind: .info, text: text("lab.prompt.recorded"), identifier: "lab.prompt.recorded")
+            HStack(spacing: 18) {
+                Toggle(text("lab.prompt.rule"), isOn: $state.rule).accessibilityIdentifier("lab.prompt.rule")
+                Toggle(text("lab.prompt.examples"), isOn: $state.examples).accessibilityIdentifier("lab.prompt.examples")
+                Toggle(text("lab.prompt.shape"), isOn: $state.shape).accessibilityIdentifier("lab.prompt.shape")
+            }
+            .toggleStyle(.switch)
+            orderTiles
+            answerPanel
+            comboChart
+            LabStatGrid {
+                LabStat(label: text("lab.prompt.statRight"), value: "\(state.combo.rightCount) / \(PromptLabRecording.orders.count)", tint: .green, identifier: "lab.prompt.right")
+                LabStat(label: text("lab.prompt.statBroken"), value: String(state.combo.brokenCount), tint: .gray, identifier: "lab.prompt.broken")
+                LabStat(label: text("lab.prompt.statTokens"), value: String(state.combo.tokens), tint: .accentColor, identifier: "lab.prompt.tokens")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.prompt.challenge"), solved: state.solved,
+                         solvedText: text("lab.prompt.challengeDone"), identifier: "lab.prompt.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.prompt.howMarks"), text("lab.prompt.howExamples")])
+        }
+    }
+
+    private var orderTiles: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 6)], spacing: 6) {
+            ForEach(PromptLabRecording.orders.indices, id: \.self) { index in
+                Button { state.selectedOrder = index } label: {
+                    Text(verbatim: PromptLabRecording.orders[index].text)
+                        .font(.caption)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                        .padding(7)
+                        .frame(maxWidth: .infinity, minHeight: 42, alignment: .topLeading)
+                        .background(color(state.combo.marks[index]).opacity(0.28), in: RoundedRectangle(cornerRadius: 7))
+                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selectedOrder ? Color.accentColor : Color.clear, lineWidth: 2))
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(PromptLabRecording.orders[index].text)
+                .accessibilityValue(state.combo.marks[index].rawValue)
+                .accessibilityIdentifier("lab.prompt.order.\(index)")
+            }
+        }
+    }
+
+    private var answerPanel: some View {
+        let order = PromptLabRecording.orders[state.selectedOrder]
+        let mark = state.combo.marks[state.selectedOrder]
+        return VStack(alignment: .leading, spacing: 6) {
+            Text(text("lab.prompt.realAnswer")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(verbatim: state.combo.answers[state.selectedOrder])
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("lab.prompt.answer")
+            Text(verbatim: "\(text("lab.prompt.expected")) \(order.name), \(order.count), \(order.price)")
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Label(text("lab.prompt.mark.\(mark.rawValue)"), systemImage: mark == .right ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .font(.callout.weight(.medium))
+                .foregroundStyle(color(mark))
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    /// Each combination is a point: further right costs more tokens, higher is more accurate.
+    /// Каждое сочетание это точка: правее дороже, выше точнее.
+    private var comboChart: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text("lab.prompt.chartTitle")).font(.callout.weight(.semibold))
+            GeometryReader { proxy in
+                Canvas { context, size in
+                    let geometry = LabPlotGeometry(size: size, x: 40...205, y: 0...13, top: 14)
+                    geometry.drawAxes(in: context, xLabel: text("lab.prompt.statTokens"), yLabel: "", xTicks: [50, 100, 150, 200], yTicks: [0, 4, 8, 12]) { String(Int($0)) }
+                    let seen = PromptLabRecording.combos
+                    for combo in seen {
+                        // Combinations with the same place stand side by side. / Сочетания с одним местом стоят рядом.
+                        let offset: CGFloat = combo.shape ? 7 : -7
+                        var point: CGPoint = geometry.point(Double(combo.tokens), Double(combo.rightCount))
+                        point.x += offset
+                        let selected: Bool = combo == state.combo
+                        let radius: CGFloat = selected ? 9 : 6
+                        let dot = CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)
+                        context.fill(Path(ellipseIn: dot), with: .color(selected ? .orange : .accentColor.opacity(0.7)))
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture { location in
+                    let geometry = LabPlotGeometry(size: proxy.size, x: 40...205, y: 0...13, top: 14)
+                    let nearest = PromptLabRecording.combos.min { first, second in
+                        distance(first, to: location, in: geometry) < distance(second, to: location, in: geometry)
+                    }
+                    if let nearest { state.select(nearest) }
+                }
+            }
+            .frame(height: 160)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.prompt.chartTitle"))
+            .accessibilityValue("\(state.combo.tokens), \(state.combo.rightCount)")
+            .accessibilityIdentifier("lab.prompt.chart")
+        }
+    }
+
+    private func distance(_ combo: PromptLabCombo, to location: CGPoint, in geometry: LabPlotGeometry) -> CGFloat {
+        var point: CGPoint = geometry.point(Double(combo.tokens), Double(combo.rightCount))
+        point.x += combo.shape ? 7 : -7
+        return hypot(point.x - location.x, point.y - location.y)
     }
 }

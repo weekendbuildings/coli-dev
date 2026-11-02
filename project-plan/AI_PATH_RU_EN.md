@@ -48,16 +48,16 @@
 
 ## Карта / Map
 
-Важность: **A** без этого этап не работает, **B** нужно для понимания, **C** дополняет. Статус: **есть**, **образец** (написан, ждёт оценки владельца), **новый**. «Спор» значит, что в уроке мнения отделены от доказанного. В колонке «Руками» только то, что идёт на этом Mac без платных вызовов и новых установок. Рабочие локальные модели: `qwen2.5-coder:7b`, `qwen3.5`, `bge-m3`.
+Важность: **A** без этого этап не работает, **B** нужно для понимания, **C** дополняет. Статус: **есть** или **новый**. «Спор» значит, что в уроке мнения отделены от доказанного. В колонке «Руками» только то, что идёт на этом Mac без платных вызовов и новых установок. Рабочие локальные модели: `qwen2.5-coder:7b`, `qwen3.5`, `bge-m3`.
 
 ### Этап 1. Старт руками / Stage 1. Hands on first
 
 | Урок | Что делаешь руками | Учиться у самих преподавателей | Важность | Статус |
 |---|---|---|---|---|
-| `live_model_tokens_temperature` | Запускаешь модель, вызываешь из Python, считаешь токены, проверяешь формулу температуры сотнями настоящих бросков | Karpathy, Deep Dive; CS336, лекция 1 | A | образец |
-| `chat_roles_and_context` | Смотришь настоящий шаблон чата, сам посылаешь историю, переполняешь окно контекста и видишь, как модель «забывает» | Karpathy, How I use LLMs | A | новый |
-| `model_mistakes_and_checking` | 20 вопросов с известными ответами, своя первая оценка двух моделей, уверенность против точности | CS224N, лекция об оценке | A | новый |
-| `asking_well_and_structured_output` | Инструкции, примеры, JSON на выходе, проверка ответа кодом | CS224N, лекция о промптах и PEFT | B | новый |
+| `live_model_tokens_temperature` | Запускаешь модель, вызываешь из Python, считаешь токены, проверяешь формулу температуры сотнями настоящих бросков | Karpathy, Deep Dive; CS336, лекция 1 | A | есть |
+| `chat_roles_and_context` | Смотришь настоящий шаблон чата, сам посылаешь историю, переполняешь окно контекста и видишь, как модель «забывает» | Karpathy, How I use LLMs | A | есть |
+| `model_mistakes_and_checking` | 20 вопросов с известными ответами, своя первая оценка двух моделей, уверенность против точности | CS224N, лекция об оценке | A | есть |
+| `asking_well_and_structured_output` | Инструкции, примеры, JSON на выходе, проверка ответа кодом | CS224N, лекция о промптах и PEFT | B | есть |
 
 ### Этап 2. Создание / Stage 2. Building
 
@@ -154,7 +154,7 @@
 
 ## Порядок работ / Work order
 
-Сначала образец, и дальше ничего не пишется, пока владелец не скажет, что он ему понятен.
+Образец одобрен владельцем 2026-11-02, теперь уроки пишутся волнами.
 
 1. Оставшиеся уроки этапа 1.
 2. Этап 2, важность A: пять уроков.
@@ -175,4 +175,4 @@
 
 ## English summary
 
-The path grows from 23 to 69 lessons in five stages: hands-on work with a real local model; building a small language model (the existing lessons plus an autograd engine, training diagnostics, optimizers, initialization and a BPE tokenizer); improving models (reinforcement learning, fine-tuning, RLHF, reasoning, RAG, agents, evaluation, interpretability, safety); the road to AGI (definitions, ARC, world models, continual learning, the scaling debate); and consciousness (the hard problem, the main theories, experiments, indicators, language models, moral status). Every controversial lesson separates what experiments show from what is opinion, and the course says plainly that no accepted path to conscious AI exists. One sample lesson is written first; no others are written until the owner confirms that level is clear to him.
+The path grows from 23 to 69 lessons in five stages: hands-on work with a real local model; building a small language model (the existing lessons plus an autograd engine, training diagnostics, optimizers, initialization and a BPE tokenizer); improving models (reinforcement learning, fine-tuning, RLHF, reasoning, RAG, agents, evaluation, interpretability, safety); the road to AGI (definitions, ARC, world models, continual learning, the scaling debate); and consciousness (the hard problem, the main theories, experiments, indicators, language models, moral status). Every controversial lesson separates what experiments show from what is opinion, and the course says plainly that no accepted path to conscious AI exists. The owner approved the sample lesson on 2026-11-02, and lessons are now written in waves.
