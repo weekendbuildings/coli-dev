@@ -3,7 +3,7 @@ subject: chemistry
 lesson_id: chemistry.thermodynamics_of_living_systems
 level: advanced
 languages: ru, en
-source_checked: 2026-10-27
+source_checked: 2026-11-01
 source_review_interval_days: 365
 ---
 
@@ -19,7 +19,7 @@ source_review_interval_days: 365
 
 Клетке постоянно нужны эндергонические реакции: строить белки и ДНК, перекачивать ионы против градиента. Их продукты богаче энергией, чем исходные вещества, поэтому сами по себе они не идут. Решение — энергетическое сопряжение: невыгодную реакцию связывают с выгодной так, что суммарное изменение свободной энергии отрицательно. ΔG сопряжённых реакций складываются.
 
-Главная «энергетическая валюта» клетки — АТФ. При гидролизе одного моля АТФ до АДФ и фосфата в стандартных условиях ΔG = −7,3 ккал/моль, или −30,5 кДж/моль; в живой клетке условия другие, и значение отличается. Пример сопряжения — натрий-калиевый насос: он гонит ионы натрия из клетки, а калия — внутрь, против их градиентов, и тратит на это энергию АТФ. На работу таких насосов уходит большая доля АТФ клетки.
+Главная «энергетическая валюта» клетки — АТФ. При гидролизе одного моля АТФ до АДФ и фосфата в стандартных условиях ΔG = −7,3 ккал/моль, или −30,5 кДж/моль; в живой клетке условия другие, и значение почти вдвое больше: около −57 кДж/моль. Пример сопряжения — натрий-калиевый насос: он гонит ионы натрия из клетки, а калия — внутрь, против их градиентов, и тратит на это энергию АТФ. На работу таких насосов уходит большая доля АТФ клетки.
 
 Это тот же закон, что в уроке об энтропии. Клетка остаётся упорядоченной не вопреки второму началу, а потому, что через неё идёт поток энергии: она получает энергию с пищей или светом, запасает её в АТФ и тратит, чтобы проводить невыгодные реакции, отдавая теплоту в окружение.
 
@@ -59,7 +59,7 @@ Explain how a cell carries out unfavourable reactions with ΔG > 0 by coupling t
 
 A cell constantly needs endergonic reactions: building proteins and DNA, pumping ions against a gradient. Their products hold more energy than the reactants, so they do not run by themselves. The solution is energy coupling: an unfavourable reaction is linked to a favourable one so that the total change in free energy is negative. The ΔG values of coupled reactions add up.
 
-The cell's main "energy currency" is ATP. Hydrolysing one mole of ATP to ADP and phosphate under standard conditions gives ΔG = −7.3 kcal/mol, or −30.5 kJ/mol; conditions in a living cell differ, and so does the value. An example of coupling is the sodium-potassium pump: it drives sodium ions out of the cell and potassium in, against their gradients, and spends ATP energy to do it. A large share of a cell's ATP goes to running such pumps.
+The cell's main "energy currency" is ATP. Hydrolysing one mole of ATP to ADP and phosphate under standard conditions gives ΔG = −7.3 kcal/mol, or −30.5 kJ/mol; conditions in a living cell differ, and the value is almost double: about −57 kJ/mol. An example of coupling is the sodium-potassium pump: it drives sodium ions out of the cell and potassium in, against their gradients, and spends ATP energy to do it. A large share of a cell's ATP goes to running such pumps.
 
 This is the same law as in the entropy lesson. A cell stays ordered not in spite of the second law but because energy flows through it: it takes in energy with food or light, stores it in ATP, and spends it to run unfavourable reactions, releasing heat to the surroundings.
 
@@ -91,6 +91,6 @@ The value −30.5 kJ/mol refers to standard conditions; in a cell it depends on 
 
 ## Sources
 
-- Mary Ann Clark, Matthew Douglas, Jung Choi, *Biology 2e*, OpenStax, 2018, section 6.4 “ATP: Adenosine Triphosphate” (consulted 2026-10-27): endergonic reactions needing energy input, ΔG of −7.3 kcal/mol (−30.5 kJ/mol) for ATP hydrolysis under standard conditions and a different value under cellular conditions, energy coupling, and the sodium-potassium pump that uses a large share of a cell's ATP: [OpenStax Biology 2e, 6.4](https://openstax.org/books/biology-2e/pages/6-4-atp-adenosine-triphosphate)
+- Mary Ann Clark, Matthew Douglas, Jung Choi, *Biology 2e*, OpenStax, 2018, section 6.4 “ATP: Adenosine Triphosphate” (consulted 2026-10-27): endergonic reactions needing energy input, ΔG of −7.3 kcal/mol (−30.5 kJ/mol) for ATP hydrolysis under standard conditions and almost double that, about −57 kJ/mol, under cellular conditions, energy coupling, and the sodium-potassium pump that uses a large share of a cell's ATP: [OpenStax Biology 2e, 6.4](https://openstax.org/books/biology-2e/pages/6-4-atp-adenosine-triphosphate)
 - *Biology 2e*, section 6.3 “The Laws of Thermodynamics” (consulted 2026-10-26): living things as highly ordered systems that need constant energy input to stay in a state of low entropy: [OpenStax Biology 2e, 6.3](https://openstax.org/books/biology-2e/pages/6-3-the-laws-of-thermodynamics)
 - The OpenStax pages state their own license terms; the lesson paraphrases the sections and does not copy their text: [OpenStax terms of use](https://openstax.org/terms-of-use)

@@ -4,8 +4,10 @@ import Foundation
 enum OsmosisPracticeVerification {
     static func main() {
         let cases: [(inside: Int, outside: Int, expected: OsmosisWaterFlow, answer: Int, arrow: String)] = [
-            (inside: 4, outside: 6, expected: .waterEntersCell, answer: 0, arrow: "arrow.right"),
-            (inside: 6, outside: 4, expected: .waterLeavesCell, answer: 1, arrow: "arrow.left"),
+            // More solute outside (hypertonic) draws water out; more inside draws it in.
+            // Снаружи больше вещества (гипертонический раствор) — вода выходит; внутри больше — входит.
+            (inside: 4, outside: 6, expected: .waterLeavesCell, answer: 1, arrow: "arrow.left"),
+            (inside: 6, outside: 4, expected: .waterEntersCell, answer: 0, arrow: "arrow.right"),
             (inside: 4, outside: 4, expected: .dynamicEquilibrium, answer: 2, arrow: "arrow.left.and.right")
         ]
 
@@ -22,7 +24,7 @@ enum OsmosisPracticeVerification {
         let itemID = "biology.passive_transport_osmosis.water_flow"
         var attempt = InteractivePredictionAttempt(
             optionCount: 3,
-            answerOriginalIndex: OsmosisWaterFlow.predict(insideSolute: 4, outsideSolute: 6).answerOriginalIndex,
+            answerOriginalIndex: OsmosisWaterFlow.predict(insideSolute: 6, outsideSolute: 4).answerOriginalIndex,
             itemID: itemID
         )!
         precondition(attempt.currentAnswerEventEvidence() == nil)

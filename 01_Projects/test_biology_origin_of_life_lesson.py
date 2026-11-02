@@ -50,7 +50,7 @@ def test_lesson_separates_tested_steps_from_open_questions() -> None:
 def test_every_source_is_a_resolvable_doi() -> None:
     sources = LESSON.read_text(encoding="utf-8").split("## Sources", 1)[1]
     dois = re.findall(r"\(https://doi\.org/(10\.[^)]+)\)", sources)
-    assert len(dois) == 7 and len(set(dois)) == 7
+    assert len(dois) == 8 and len(set(dois)) == 8
 
 
 def test_replicator_lab_is_wired_into_the_app_project_and_ci() -> None:

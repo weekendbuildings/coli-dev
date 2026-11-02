@@ -228,8 +228,8 @@ enum AnswerChoiceOrderVerification {
         )
 
         let osmosisScenarios: [(inside: Int, outside: Int, expected: OsmosisWaterFlow, optionIndex: Int)] = [
-            (inside: 4, outside: 6, expected: .waterEntersCell, optionIndex: 0),
-            (inside: 6, outside: 4, expected: .waterLeavesCell, optionIndex: 1),
+            (inside: 4, outside: 6, expected: .waterLeavesCell, optionIndex: 1),
+            (inside: 6, outside: 4, expected: .waterEntersCell, optionIndex: 0),
             (inside: 4, outside: 4, expected: .dynamicEquilibrium, optionIndex: 2)
         ]
         for scenario in osmosisScenarios {

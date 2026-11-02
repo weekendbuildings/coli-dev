@@ -3,7 +3,7 @@ subject: biology
 lesson_id: biology.synaptic_plasticity_and_learning
 level: advanced
 languages: ru, en
-source_checked: 2026-10-27
+source_checked: 2026-11-01
 source_review_interval_days: 365
 ---
 
@@ -19,13 +19,13 @@ source_review_interval_days: 365
 
 Синапсы — не застывшие соединения. Они могут ослабевать и усиливаться, исчезать и появляться заново. Эта способность называется синаптической пластичностью, и именно она лежит в основе обучения и памяти. Два важных её вида изучены в гиппокампе — области мозга, которая участвует в сохранении воспоминаний: долговременная потенциация (ДВП, LTP) и долговременная депрессия (ДВД, LTD).
 
-ДВП — устойчивое усиление синаптической связи. Она следует принципу Хебба: «нейроны, которые возбуждаются вместе, связываются вместе». Один из известных механизмов работает так. Рецепторы глутамата типа NMDA обычно закрыты ионами магния. Когда постсинаптический нейрон сильно деполяризован многими входами сразу, магний выходит, и через NMDA в клетку входят ионы кальция. Кальций запускает каскад, после которого в мембрану встраиваются дополнительные рецепторы AMPA. В следующий раз тот же выброс глутамата вызывает больший ответ — синапс стал сильнее. ДВД, наоборот, ослабляет связь. Механизмы ДВП изучены не полностью.
+ДВП — устойчивое усиление синаптической связи. Она следует принципу Хебба: «нейроны, которые возбуждаются вместе, связываются вместе». Один из известных механизмов работает так. Рецепторы глутамата типа NMDA обычно закрыты ионами магния. Рецептор пропускает кальций только при двух условиях сразу: на нём есть глутамат, а постсинаптический нейрон сильно деполяризован многими входами, поэтому магний вышел. Тогда через NMDA в клетку входят ионы кальция. Кальций запускает каскад, после которого в мембрану встраиваются дополнительные рецепторы AMPA. В следующий раз тот же выброс глутамата вызывает больший ответ — синапс стал сильнее. ДВД, наоборот, ослабляет связь. Механизмы ДВП изучены не полностью.
 
 Здесь видно сходство с искусственным интеллектом. В уроке о матрицах слой нейросети вычислял Wx + b, а обучение меняло веса W. В мозге роль веса играет сила синапса, и обучение тоже меняет её. Но это аналогия, а не тождество: искусственная сеть меняет веса по градиенту ошибки, а мозг — через химические каскады, зависящие от совместной активности нейронов.
 
 ### Исследуй и потренируйся
 
-Нарисуй по шагам цепочку ДВП: сильная деполяризация → магний покидает NMDA → вход кальция → встраивание AMPA → больший ответ. Затем запиши два сходства и два различия между усилением синапса и изменением веса в искусственном нейроне.
+В тренажёре сначала попробуй только глутамат, затем добавь деполяризацию: когда синапс усиливается? Нарисуй по шагам цепочку ДВП: глутамат и сильная деполяризация → магний покидает NMDA → вход кальция → встраивание AMPA → больший ответ. Затем запиши два сходства и два различия между усилением синапса и изменением веса в искусственном нейроне.
 
 ### Вопрос
 
@@ -59,13 +59,13 @@ Explain synaptic plasticity, work through the mechanism of long-term potentiatio
 
 Synapses are not fixed connections. They can weaken and strengthen, disappear and form anew. This capacity is called synaptic plasticity, and it is the basis of learning and memory. Two important forms have been studied in the hippocampus, a brain region involved in storing memories: long-term potentiation (LTP) and long-term depression (LTD).
 
-LTP is a persistent strengthening of a synaptic connection. It follows the Hebbian principle: cells that fire together wire together. One known mechanism works like this. NMDA-type glutamate receptors are normally blocked by magnesium ions. When the postsynaptic neuron is strongly depolarised by many inputs at once, the magnesium leaves and calcium ions enter the cell through NMDA receptors. Calcium triggers a cascade after which extra AMPA receptors are inserted into the membrane. Next time, the same release of glutamate causes a larger response: the synapse has become stronger. LTD, by contrast, weakens a connection. The mechanisms of LTP are not fully understood.
+LTP is a persistent strengthening of a synaptic connection. It follows the Hebbian principle: cells that fire together wire together. One known mechanism works like this. NMDA-type glutamate receptors are normally blocked by magnesium ions. The receptor passes calcium only when two things happen together: glutamate is bound, and the postsynaptic neuron is strongly depolarised by many inputs, so the magnesium has left. Calcium ions then enter the cell through NMDA receptors. Calcium triggers a cascade after which extra AMPA receptors are inserted into the membrane. Next time, the same release of glutamate causes a larger response: the synapse has become stronger. LTD, by contrast, weakens a connection. The mechanisms of LTP are not fully understood.
 
 This shows a similarity with artificial intelligence. In the matrices lesson a network layer computed Wx + b, and learning changed the weights W. In the brain the weight is played by synaptic strength, and learning changes it too. But this is an analogy, not an identity: an artificial network changes weights along the gradient of the error, while the brain does so through chemical cascades that depend on the joint activity of neurons.
 
 ### Explore and practise
 
-Draw the LTP chain step by step: strong depolarisation → magnesium leaves NMDA → calcium entry → AMPA insertion → larger response. Then write two similarities and two differences between strengthening a synapse and changing a weight in an artificial neuron.
+In the lab, first try glutamate alone, then add depolarisation: when does the synapse strengthen? Draw the LTP chain step by step: glutamate and strong depolarisation → magnesium leaves NMDA → calcium entry → AMPA insertion → larger response. Then write two similarities and two differences between strengthening a synapse and changing a weight in an artificial neuron.
 
 ### Question
 

@@ -70,6 +70,9 @@ struct ContentView: View {
                 Section {
                     Label { Text(L10n.text("nav.today", store.language)) } icon: { Image(systemName: "sparkles") }
                         .tag(AppSection.today)
+                    Label { Text(L10n.text("nav.aiPath", store.language)) } icon: { Image(systemName: "brain.head.profile") }
+                        .tag(AppSection.aiPath)
+                        .accessibilityIdentifier("sidebar.ai-path")
                     Label { Text(L10n.text("nav.subjects", store.language)) } icon: { Image(systemName: "square.grid.2x2") }
                         .tag(AppSection.subjects)
                 } header: {
@@ -129,6 +132,8 @@ struct ContentView: View {
                         openDueReview: openDueReview
                     )
                     .onAppear(perform: openCell3DUITestRouteIfNeeded)
+                case .aiPath:
+                    AIPathView(openLesson: openPathLesson)
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
                 case .subject(let subject):
@@ -286,6 +291,14 @@ struct ContentView: View {
         practiceFocusRoute = focusPractice ? route : nil
         store.rememberCourseLesson(subject: subject, resource: resource)
         selection = .courseLesson(subject, resource)
+    }
+
+    /// The AI path is open by design, so this skips the prerequisite check of the course screen.
+    /// Путь ИИ открыт намеренно, поэтому здесь нет проверки предыдущих уроков, как на экране курса.
+    private func openPathLesson(_ lesson: AIPathLesson) {
+        practiceFocusRoute = nil
+        store.rememberCourseLesson(subject: lesson.subject, resource: lesson.resource)
+        selection = .courseLesson(lesson.subject, lesson.resource)
     }
 
     private func openRecommendedLesson(_ route: StudyLessonRoute, focusPractice: Bool) {

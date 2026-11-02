@@ -3,7 +3,7 @@ subject: chemistry
 lesson_id: chemistry.prebiotic_chemistry_and_autocatalysis
 level: advanced
 languages: ru, en
-source_checked: 2026-10-27
+source_checked: 2026-11-01
 source_review_interval_days: 365
 ---
 
@@ -17,11 +17,11 @@ source_review_interval_days: 365
 
 ### Идея и механизм
 
-Путь от простых веществ к жизни можно разбить на вопросы, которые проверяют опытом. Первый: могут ли строительные блоки возникнуть без живых организмов? Опыт Миллера 1953 года показал, что аминокислоты образуются из газовой смеси под электрическими разрядами. Второй: могла ли одна молекула и хранить информацию, и ускорять реакции? Идея «мира РНК» Гилберта отвечает, что РНК умеет и то и другое.
+Путь от простых веществ к жизни можно разбить на вопросы, которые проверяют опытом. Первый: могут ли строительные блоки возникнуть без живых организмов? Опыт Миллера 1953 года показал, что аминокислоты образуются из газовой смеси под электрическими разрядами. Второй: могла ли одна молекула и хранить информацию, и ускорять реакции? Гипотеза «мира РНК» (имя ей дал Гилберт) отвечает, что РНК умеет и то и другое.
 
 Третий вопрос — главный: как появляется самоподдерживающийся рост? Ответ — автокатализ: продукт реакции сам ускоряет образование новых таких же молекул. Если каждая молекула помогает создать ещё одну, их число не прибавляется по одной, а удваивается — рост экспоненциальный, как у делящихся бактерий. В 2009 году Линкольн и Джойс получили в лаборатории самоподдерживающееся копирование РНК-фермента: молекулы РНК, катализирующие сборку друг друга из более коротких частей.
 
-Четвёртый вопрос — граница. В 2003 году Ханчик, Фудзикава и Шостак показали модели первичных клеточных отсеков: пузырьки из жирных кислот, которые захватывают вещества внутрь, растут и делятся. Самокопирующаяся молекула внутри растущего пузырька — это и есть протоклетка из урока «Что такое жизнь».
+Четвёртый вопрос — граница. В 2003 году Ханчик, Фудзикава и Шостак показали модели первичных клеточных отсеков: пузырьки из жирных кислот, которые захватывают вещества внутрь, растут и делятся, если их продавить через узкие поры. Самокопирующаяся молекула внутри растущего пузырька — это и есть протоклетка из урока «Что такое жизнь».
 
 ### Исследуй и потренируйся
 
@@ -57,11 +57,11 @@ Explain what autocatalysis is and why it gives exponential growth, connect it to
 
 ### Idea and mechanism
 
-The path from simple substances to life can be broken into questions that experiments can test. First: can building blocks form without living organisms? Miller's 1953 experiment showed that amino acids form from a gas mixture under electric discharges. Second: could one molecule both store information and speed up reactions? Gilbert's "RNA world" answers that RNA can do both.
+The path from simple substances to life can be broken into questions that experiments can test. First: can building blocks form without living organisms? Miller's 1953 experiment showed that amino acids form from a gas mixture under electric discharges. Second: could one molecule both store information and speed up reactions? The "RNA world" hypothesis (Gilbert gave it the name) answers that RNA can do both.
 
 The third question is the key one: how does self-sustaining growth arise? The answer is autocatalysis: the product of a reaction itself speeds up the formation of more molecules like it. If each molecule helps create another, their number does not grow by one at a time but doubles, which is exponential growth, as with dividing bacteria. In 2009 Lincoln and Joyce achieved self-sustained replication of an RNA enzyme in the lab: RNA molecules that catalyse each other's assembly from shorter pieces.
 
-The fourth question is the boundary. In 2003 Hanczyc, Fujikawa, and Szostak demonstrated models of primitive cellular compartments: fatty acid vesicles that encapsulate material, grow, and divide. A self-copying molecule inside a growing vesicle is the protocell from the lesson "What life is".
+The fourth question is the boundary. In 2003 Hanczyc, Fujikawa, and Szostak demonstrated models of primitive cellular compartments: fatty acid vesicles that encapsulate material, grow, and divide when pushed through small pores. A self-copying molecule inside a growing vesicle is the protocell from the lesson "What life is".
 
 ### Explore and practise
 

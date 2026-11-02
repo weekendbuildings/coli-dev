@@ -708,6 +708,524 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testHiddenLayerLabLearnsXORAfterOneNeuronStalls() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/neural_network_hidden_layer_xor"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        let correct = app.staticTexts["lab.xor.correct"]
+        XCTAssertTrue(
+            correct.waitForExistence(timeout: 10),
+            "The hidden layer lesson must show the XOR lab. / В уроке о скрытом слое должен быть тренажёр XOR."
+        )
+        let advance = app.buttons["lab.xor.advance"]
+        XCTAssertTrue(advance.waitForExistence(timeout: 5))
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        for _ in 0..<5 { advance.click() }
+        XCTAssertTrue(shown(correct).contains("0 / 4"), "One neuron must answer 0.5 and get nothing right.\n\(shown(correct))")
+        XCTAssertTrue(shown(app.staticTexts["lab.xor.iterations"]).contains("500"))
+
+        app.descendants(matching: .any)["lab.xor.architecture"].radioButtons.element(boundBy: 1).click()
+        XCTAssertTrue(shown(app.staticTexts["lab.xor.iterations"]).contains("0"))
+        for _ in 0..<10 { advance.click() }
+        XCTAssertTrue(shown(correct).contains("4 / 4"), "Start 1 must learn XOR within 1000 iterations.\n\(shown(correct))")
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "hidden-layer-lab"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testErrorLandscapeLabPlacesTheBallByClickAndTrains() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/neural_network_hidden_layer_xor"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let terrain = app.descendants(matching: .any)["lab.landscape.terrain"]
+        XCTAssertTrue(terrain.waitForExistence(timeout: 10), "The hidden layer lesson must show the error terrain.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<60 where terrain.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(terrain.isHittable, "The terrain must scroll into view.")
+        let iterations = app.staticTexts["lab.landscape.iterations"]
+        let loss = app.staticTexts["lab.landscape.loss"]
+        let correct = app.staticTexts["lab.landscape.correct"]
+        let play = app.buttons["lab.landscape.play"]
+        XCTAssertTrue(shown(iterations).contains("0"))
+        XCTAssertTrue(shown(correct).contains("2 / 4"), "The lab must not open solved.\n\(shown(correct))")
+        snapshot("landscape-opening")
+
+        // The default start ends on the shelf with one wrong answer. / Стартовая точка приводит на полку с одной ошибкой.
+        play.click()
+        try await Task.sleep(nanoseconds: 250_000_000)
+        snapshot("landscape-running")
+        try await Task.sleep(nanoseconds: 9_000_000_000)
+        XCTAssertTrue(shown(correct).contains("3 / 4"), "The default run must stall on the shelf.\n\(shown(correct)) \(shown(loss))")
+        snapshot("landscape-shelf")
+
+        // A click on the terrain moves the start and clears the run. / Щелчок по рельефу переносит старт и сбрасывает прогон.
+        let lossBefore = shown(loss)
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click()
+        try await Task.sleep(nanoseconds: 600_000_000)
+        XCTAssertTrue(shown(iterations).hasPrefix("0"), "A click must clear the run.\n\(shown(iterations))")
+        XCTAssertNotEqual(shown(loss), lossBefore, "A click must move the ball to another height.")
+        // Dragging turns the scene and does not move the start. / Перетаскивание крутит сцену и не двигает старт.
+        let lossAfterClick = shown(loss)
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertEqual(shown(loss), lossAfterClick, "A drag must not move the start.")
+        snapshot("landscape-clicked")
+        // The terrain is still when nothing moves, so a turned scene gives a different picture.
+        // Рельеф неподвижен, поэтому повёрнутая сцена даёт другую картинку.
+        let terrainBefore = terrain.screenshot().pngRepresentation
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        XCTAssertNotEqual(terrain.screenshot().pngRepresentation, terrainBefore, "A drag must turn the terrain.")
+        snapshot("landscape-terrain-turned")
+
+        // The solid model of the network, before and after a drag. / Объёмная модель сети до и после перетаскивания.
+        let network = app.descendants(matching: .any)["lab.landscape.network"]
+        for _ in 0..<60 where network.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(network.isHittable, "The network model must scroll into view.")
+        // The examples change every 1.9 s, with a quiet moment inside each cycle, so the two pictures are taken more than a
+        // full cycle apart. / Примеры меняются каждые 1,9 с, внутри цикла есть пауза, поэтому кадры разделены больше чем циклом.
+        let networkBefore = network.screenshot().pngRepresentation
+        try await Task.sleep(nanoseconds: 2_400_000_000)
+        XCTAssertNotEqual(network.screenshot().pngRepresentation, networkBefore, "The signals must keep running.")
+        snapshot("landscape-network")
+        network.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: network.coordinate(withNormalizedOffset: CGVector(dx: 0.62, dy: 0.42)))
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        snapshot("landscape-network-turned")
+    }
+
+    @MainActor
+    func testCrossEntropyBowlIsTrainedFromTheWallToTheBottom() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/information_and_cross_entropy"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.bowl.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the bowl.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<80 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        snapshot("landscape-bowl")
+        let steps = app.staticTexts["lab.bowl.steps"]
+        let error = app.staticTexts["lab.bowl.error"]
+        XCTAssertTrue(shown(steps).hasPrefix("0"), shown(steps))
+        // A click near corner C puts the ball high on the wall. / Щелчок у угла C ставит шарик высоко на стену.
+        let before = shown(error)
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.17)).click()
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(shown(error), before, "A click must move the ball.")
+        // A drag turns the bowl and does not move the ball. / Перетаскивание крутит чашу и не двигает шарик.
+        let placed = shown(error)
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the bowl.")
+        XCTAssertEqual(shown(error), placed, "A drag must not move the ball.")
+        app.buttons["lab.bowl.play"].click()
+        let status = app.descendants(matching: .any)["lab.bowl.challenge"]
+        try await Task.sleep(nanoseconds: 16_000_000_000)
+        snapshot("landscape-bowl-trained")
+        XCTAssertTrue(shown(status).contains("Получилось") || shown(status).contains("Done") || app.staticTexts["lab.bowl.steps"].exists, shown(status))
+        XCTAssertFalse(shown(steps).hasPrefix("0 "), shown(steps))
+    }
+
+    @MainActor
+    func testSoftmaxReliefGrowsAndAcceptsANewPoint() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/classification_and_softmax"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.softmax.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the relief.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<100 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let loss = app.staticTexts["lab.softmax.loss"]
+        let correct = app.staticTexts["lab.softmax.correct"]
+        XCTAssertTrue(shown(loss).contains("1,099") || shown(loss).contains("1.099"), "The start must be ln 3.\n\(shown(loss))")
+        snapshot("landscape-softmax-opening")
+        app.buttons["lab.softmax.play"].click()
+        try await Task.sleep(nanoseconds: 9_000_000_000)
+        app.buttons["lab.softmax.play"].click()
+        snapshot("landscape-softmax-trained")
+        XCTAssertTrue(shown(correct).contains("12 / 12"), shown(correct))
+        // A click adds a point, and the count grows. / Щелчок добавляет точку, и счёт растёт.
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).click()
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertTrue(shown(correct).contains("/ 13"), shown(correct))
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the relief.")
+        XCTAssertTrue(shown(correct).contains("/ 13"), "A drag must not add a point.\n\(shown(correct))")
+    }
+
+    @MainActor
+    func testEmbeddingSpaceGathersWordsAndMovesTheHorse() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/embeddings_and_similarity"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.embed.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the space.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<100 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let steps = app.staticTexts["lab.embed.steps"]
+        XCTAssertTrue(shown(steps).hasPrefix("0"), shown(steps))
+        snapshot("landscape-embed-opening")
+        let play = app.buttons["lab.embed.play"]
+        play.click()
+        try await Task.sleep(nanoseconds: 14_000_000_000)
+        play.click()
+        snapshot("landscape-embed-trained")
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.1)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.15)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the space.")
+        snapshot("landscape-embed-turned")
+    }
+
+    @MainActor
+    func testAttentionBoardGetsStuckThenFindsTheStripe() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/attention_mechanism"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.attention.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the board.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let accuracy = app.staticTexts["lab.attention.accuracy"]
+        let play = app.buttons["lab.attention.play"]
+        snapshot("landscape-attention-opening")
+        play.click()
+        try await Task.sleep(nanoseconds: 16_000_000_000)
+        snapshot("landscape-attention-stuck")
+        XCTAssertFalse(shown(accuracy).contains("100"), "Without place numbers the model must stay stuck.\n\(shown(accuracy))")
+        let toggle = app.checkBoxes["lab.attention.positions"]
+        XCTAssertTrue(toggle.exists, app.debugDescription)
+        toggle.click()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        play.click()
+        for _ in 0..<60 where !shown(accuracy).contains("100") {
+            try await Task.sleep(nanoseconds: 1_000_000_000)
+        }
+        try await Task.sleep(nanoseconds: 3_000_000_000)
+        snapshot("landscape-attention-learned")
+        XCTAssertTrue(shown(accuracy).contains("100"), "With place numbers the model must learn.\n\(shown(accuracy))")
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the board.")
+    }
+
+    @MainActor
+    func testGradientTowerFadesAndTheBypassHoldsTheSignal() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/transformer_block"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.tower.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the tower.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let bottom = app.staticTexts["lab.tower.bottom"]
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        snapshot("landscape-tower-off")
+        XCTAssertTrue(shown(bottom).contains("10⁻⁶"), "Without a bypass the signal must fade.\n\(shown(bottom))")
+        app.checkBoxes["lab.tower.bypass"].click()
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        snapshot("landscape-tower-on")
+        XCTAssertTrue(shown(bottom).contains("1,28") || shown(bottom).contains("1.28"), "With a bypass the signal must hold.\n\(shown(bottom))")
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the tower.")
+    }
+
+    @MainActor
+    func testMinibatchBowlTurnsAndOneExampleReachesTheTarget() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/minibatches_and_overfitting"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.batch.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the bowl.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let reads = app.staticTexts["lab.batch.reads"]
+        XCTAssertTrue(shown(reads).hasPrefix("0"), shown(reads))
+        let step = app.buttons["lab.batch.step"]
+        step.click()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(shown(reads).hasPrefix("24"), "A full batch reads all the points.\n\(shown(reads))")
+        snapshot("landscape-batch-full")
+        app.descendants(matching: .any)["lab.batch.size"].radioButtons.element(boundBy: 0).click()
+        try await Task.sleep(nanoseconds: 300_000_000)
+        XCTAssertTrue(shown(reads).hasPrefix("0"), "A new batch size starts over.\n\(shown(reads))")
+        app.buttons["lab.batch.play"].click()
+        try await Task.sleep(nanoseconds: 9_000_000_000)
+        snapshot("landscape-batch-small")
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the bowl.")
+    }
+
+    @MainActor
+    func testBayesTownShowsTheTrueShareAmongTheRaised() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/probability_and_bayes"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.town.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 20), "The lesson must show the town.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let chance = app.staticTexts["lab.town.chance"]
+        XCTAssertTrue(shown(chance).contains("16,7") || shown(chance).contains("16.7"), "The opening must match the lesson.\n\(shown(chance))")
+        try await Task.sleep(nanoseconds: 800_000_000)
+        snapshot("landscape-town-opening")
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the town.")
+        app.checkBoxes["lab.town.second"].click()
+        try await Task.sleep(nanoseconds: 800_000_000)
+        snapshot("landscape-town-second")
+        XCTAssertTrue(shown(chance).contains("79,8") || shown(chance).contains("79.8"), "A second test must match the lesson.\n\(shown(chance))")
+    }
+
+    @MainActor
+    func testGaltonBoardDropsBallsAndTurns() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/random_variables_and_sampling"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.galton.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 20), "The lesson must show the board.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let balls = app.staticTexts["lab.galton.balls"]
+        XCTAssertTrue(shown(balls).hasPrefix("0"), shown(balls))
+        app.buttons["lab.galton.drop100"].click()
+        try await Task.sleep(nanoseconds: 600_000_000)
+        snapshot("landscape-galton-falling")
+        for _ in 0..<4 { app.buttons["lab.galton.drop100"].click() }
+        try await Task.sleep(nanoseconds: 1_500_000_000)
+        snapshot("landscape-galton-full")
+        XCTAssertTrue(shown(balls).hasPrefix("500"), shown(balls))
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.2)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.2)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the board.")
+    }
+
+    @MainActor
+    func testConsciousnessLabExplainsEachAnswer() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/consciousness_known_and_unknown"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        let yes = app.buttons["lab.mind.rpt1.yes"]
+        XCTAssertTrue(yes.waitForExistence(timeout: 10), "The lesson must show the indicators.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where !yes.isHittable {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(yes.isHittable)
+        yes.click()
+        let why = app.descendants(matching: .any)["lab.mind.rpt1.why"]
+        XCTAssertTrue(why.waitForExistence(timeout: 3), "An answer must open its explanation.")
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "landscape-mind"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
+    func testTinyModelWritesAndShowsItsAttention() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/build_your_language_model"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.tiny.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 20), "The lesson must show the model.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<160 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        try await Task.sleep(nanoseconds: 2_000_000_000)
+        snapshot("landscape-tiny-opening")
+        let editor = app.textViews["lab.tiny.text"]
+        XCTAssertTrue(editor.exists, app.debugDescription)
+        let before = editor.value as? String ?? ""
+        app.buttons["lab.tiny.write"].click()
+        try await Task.sleep(nanoseconds: 12_000_000_000)
+        app.buttons["lab.tiny.write"].click()
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        snapshot("landscape-tiny-written")
+        let after = editor.value as? String ?? ""
+        XCTAssertGreaterThan(after.count, before.count + 5, "The model must write.\n\(after)")
+        XCTAssertTrue(after.hasPrefix(before), "The model must continue the text.\n\(after)")
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the scene.")
+    }
+
+    @MainActor
+    func testAIPathOpensALateLessonForANewLearner() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        let item = app.descendants(matching: .any)["sidebar.ai-path"]
+        XCTAssertTrue(item.waitForExistence(timeout: 10), "The sidebar must offer the AI path.\n\(app.debugDescription)")
+        item.click()
+        let lesson = app.buttons["path.lesson.neural_network_hidden_layer_xor"]
+        XCTAssertTrue(lesson.waitForExistence(timeout: 5), "The path must list the hidden layer lesson.\n\(app.debugDescription)")
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "landscape-path"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let screen = app.scrollViews["path.screen"]
+        if !lesson.isHittable, screen.exists {
+            for _ in 0..<60 where !lesson.isHittable { screen.scroll(byDeltaX: 0, deltaY: -40) }
+        }
+        lesson.click()
+        // A new learner gets the late lesson at once, with no waiting for earlier ones.
+        // Новичок сразу попадает в поздний урок, без ожидания предыдущих.
+        XCTAssertTrue(app.scrollViews["lesson.scrollView"].waitForExistence(timeout: 10), "The path must open the lesson itself.")
+        XCTAssertTrue(app.descendants(matching: .any)["lab.landscape.terrain"].waitForExistence(timeout: 10), "The lesson must be the hidden layer one.")
+    }
+
+    @MainActor
     func testGradientDescent2DLabTakesTheQuizStep() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"

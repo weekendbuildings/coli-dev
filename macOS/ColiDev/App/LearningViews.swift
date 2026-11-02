@@ -1856,6 +1856,9 @@ private struct PracticeLab: View {
             GradientDescentLab()
         } else if subject == .programming, moduleResource == "neural_network_backpropagation" {
             NeuronTrainingLab()
+        } else if subject == .programming, moduleResource == "neural_network_hidden_layer_xor" {
+            XORNetworkLab()
+            ErrorLandscapeLab()
         } else if subject == .biology, moduleResource == "synapses_and_signal_summation" {
             SynapticSummationLab()
         } else if subject == .biology, moduleResource == "what_is_life_and_its_origin" {
@@ -1876,6 +1879,27 @@ private struct PracticeLab: View {
             AutocatalysisLab()
         } else if subject == .mathematics, moduleResource == "vectors_and_matrices" {
             NeuralLayerLab()
+        } else if subject == .mathematics, moduleResource == "information_and_cross_entropy" {
+            CrossEntropyBowlLab()
+        } else if subject == .programming, moduleResource == "classification_and_softmax" {
+            SoftmaxReliefLab()
+        } else if subject == .programming, moduleResource == "embeddings_and_similarity" {
+            EmbeddingSpaceLab()
+        } else if subject == .programming, moduleResource == "attention_mechanism" {
+            AttentionTowersLab()
+        } else if subject == .programming, moduleResource == "transformer_block" {
+            GradientTowerLab()
+        } else if subject == .programming, moduleResource == "minibatches_and_overfitting" {
+            MinibatchReliefLab()
+            WaveFitLab()
+        } else if subject == .mathematics, moduleResource == "probability_and_bayes" {
+            BayesTownLab()
+        } else if subject == .mathematics, moduleResource == "random_variables_and_sampling" {
+            GaltonBoardLab()
+        } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
+            ConsciousnessIndicatorLab()
+        } else if subject == .programming, moduleResource == "build_your_language_model" {
+            TinyModelLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -2352,6 +2376,8 @@ private struct AnimalGroupLab: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(selection == nil && wasCorrect != true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.animalGroupChallenge", store.language),
+                         solved: complete, solvedText: L10n.text("lab.animalGroupChallengeSolved", store.language))
         }
     }
     private static func makeOptionOrders() -> [[Int]] {
@@ -2390,9 +2416,24 @@ private struct AnimalLineageLab: View {
                     .frame(maxWidth: .infinity)
                     .padding(10)
                     .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+                Rectangle().fill(Color.secondary.opacity(0.6)).frame(width: 2, height: 12)
                 Text(L10n.text("lab.lineageProtostomes", store.language))
                     .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.secondary)
+                Canvas { context, size in
+                    // The split into two branches of the tree.
+                    let middle = size.width / 2, left = size.width * 0.25, right = size.width * 0.75
+                    var fork = Path()
+                    fork.move(to: CGPoint(x: middle, y: 0))
+                    fork.addLine(to: CGPoint(x: middle, y: size.height / 2))
+                    fork.move(to: CGPoint(x: left, y: size.height))
+                    fork.addLine(to: CGPoint(x: left, y: size.height / 2))
+                    fork.addLine(to: CGPoint(x: right, y: size.height / 2))
+                    fork.addLine(to: CGPoint(x: right, y: size.height))
+                    context.stroke(fork, with: .color(.secondary.opacity(0.6)), lineWidth: 2)
+                }
+                .frame(height: 18)
+                .accessibilityHidden(true)
                 HStack(alignment: .top, spacing: 12) {
                     lineageBranch(title: "lab.lineageEcdysozoa", members: "lab.lineageArthropodsNematodes")
                     lineageBranch(title: "lab.lineageLophotrochozoa", members: "lab.lineageAnnelidsMolluscs")
@@ -2479,6 +2520,8 @@ private struct AnimalLineageLab: View {
                 .buttonStyle(.borderedProminent)
                 .disabled(selection == nil && wasCorrect != true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.lineageChallenge", store.language),
+                         solved: complete, solvedText: L10n.text("lab.lineageChallengeSolved", store.language))
         }
     }
 
@@ -2510,117 +2553,127 @@ private struct AnimalLineageLab: View {
 private struct GeometryMeasureLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var shape = GeometryShape.rectangle
-    @State private var base = 6.0
-    @State private var height = 4.0
+    // Not 6 × 4: that rectangle is the answer to the task below.
+    @State private var base = 5.0
+    @State private var height = 3.0
 
-    private var measure: GeometryMeasure {
-        GeometryMeasure(base: base, height: height, shape: shape)
-    }
+    private static let maxSide = 10.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measureText(_ value: Double, _ unit: String) -> String { L10n.measurement(value, fractionDigits: 1, unit: unit, store.language) }
+    private var measure: GeometryMeasure { GeometryMeasure(base: base, height: height, shape: shape) }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.GeometryMeasureLab", store.language), instruction: L10n.text("lab.geometryHint", store.language))
-            Picker(L10n.text("lab.geometryShape", store.language), selection: $shape) {
-                Text(L10n.text("lab.geometryRectangle", store.language)).tag(GeometryShape.rectangle)
-                Text(L10n.text("lab.geometryTriangle", store.language)).tag(GeometryShape.rightTriangle)
+            LabHeader(title: text("labkit.title.GeometryMeasureLab"), instruction: text("lab.geometrySubtitle"))
+            Picker(text("lab.geometryShape"), selection: $shape) {
+                Text(text("lab.geometryRectangle")).tag(GeometryShape.rectangle)
+                Text(text("lab.geometryTriangle")).tag(GeometryShape.rightTriangle)
             }
             .pickerStyle(.segmented)
-
-            Canvas { context, size in
-                let inset: CGFloat = 24
-                let availableWidth = max(size.width - 2 * inset, 0)
-                let availableHeight = max(size.height - 2 * inset, 0)
-                guard availableWidth > 0, availableHeight > 0 else { return }
-                let scale = min(availableWidth / CGFloat(base), availableHeight / CGFloat(height))
-                let width = CGFloat(base) * scale
-                let drawnHeight = CGFloat(height) * scale
-                let left = (size.width - width) / 2
-                let bottom = size.height - (size.height - drawnHeight) / 2
-                var path = Path()
-                if shape == .rectangle {
-                    path.addRect(CGRect(x: left, y: bottom - drawnHeight, width: width, height: drawnHeight))
-                } else {
-                    path.move(to: CGPoint(x: left, y: bottom))
-                    path.addLine(to: CGPoint(x: left, y: bottom - drawnHeight))
-                    path.addLine(to: CGPoint(x: left + width, y: bottom))
-                    path.closeSubpath()
-                    var rightAngle = Path()
-                    let mark: CGFloat = min(12, scale * 0.2)
-                    rightAngle.move(to: CGPoint(x: left, y: bottom - mark))
-                    rightAngle.addLine(to: CGPoint(x: left + mark, y: bottom - mark))
-                    rightAngle.addLine(to: CGPoint(x: left + mark, y: bottom))
-                    context.stroke(rightAngle, with: .color(.secondary), lineWidth: 1.5)
-                }
-                context.fill(path, with: .color(Color.accentColor.opacity(0.18)))
-                context.stroke(path, with: .color(.accentColor), lineWidth: 3)
+            .labelsHidden()
+            GeometryReader { proxy in
+                figure(size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in resize(to: drag.location, size: proxy.size) })
             }
-            .frame(height: 220)
+            .frame(height: 280)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(L10n.text("lab.geometryDiagram", store.language)))
-            .accessibilityValue(Text(verbatim: "\(L10n.text(shape == .rectangle ? "lab.geometryRectangle" : "lab.geometryTriangle", store.language)); b = \(L10n.measurement(base, fractionDigits: 1, unit: "m", store.language)); h = \(L10n.measurement(height, fractionDigits: 1, unit: "m", store.language))"))
-
-            HStack {
-                Text(verbatim: "b = " + L10n.measurement(base, fractionDigits: 1, unit: "m", store.language))
-                Spacer()
-                Text(verbatim: "h = " + L10n.measurement(height, fractionDigits: 1, unit: "m", store.language))
-            }
-            .font(.callout.monospacedDigit())
-
+            .accessibilityLabel(Text(text("lab.geometryDiagram")))
+            .accessibilityValue(Text(verbatim: text(shape == .rectangle ? "lab.geometryRectangle" : "lab.geometryTriangle")
+                                     + "; b = " + measureText(base, "m") + ", h = " + measureText(height, "m")))
             slider("lab.geometryBase", value: $base)
             slider("lab.geometryHeight", value: $height)
-
-            HStack(spacing: 20) {
-                metric(
-                    "lab.geometryArea",
-                    value: measure.area,
-                    unit: "m²",
-                    isApproximate: measure.areaNeedsRoundingForDisplay
-                )
-                metric(
-                    "lab.geometryPerimeter",
-                    value: measure.perimeter,
-                    unit: "m",
-                    isApproximate: measure.perimeterNeedsRoundingForDisplay
-                )
+            LabStatGrid {
+                LabStat(label: text("lab.geometryArea"), value: (measure.areaNeedsRoundingForDisplay ? "≈ " : "")
+                        + L10n.measurement(measure.area, fractionDigits: 2, unit: "m²", store.language), tint: .accentColor)
+                LabStat(label: text("lab.geometryPerimeter"), value: (measure.perimeterNeedsRoundingForDisplay ? "≈ " : "")
+                        + L10n.measurement(measure.perimeter, fractionDigits: 2, unit: "m", store.language), tint: .orange)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-
-            Text(L10n.text("lab.geometryRounding", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text(L10n.text("lab.geometryScaling", store.language))
-                .font(.callout)
-            Text(L10n.text("lab.geometryLimits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.geometryChallenge"),
+                         solved: shape == .rectangle && abs(measure.area - 24) < 0.001 && abs(measure.perimeter - 20) < 0.001,
+                         solvedText: text("lab.geometryChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.geometryHint"), text("lab.geometryScaling"),
+                                                                 text("lab.geometryRounding"), text("lab.geometryLimits")])
         }
+    }
+
+    /// One fixed scale for every size, so a bigger figure really looks bigger.
+    private func scale(_ size: CGSize) -> CGFloat {
+        min((size.width - 60) / CGFloat(Self.maxSide), (size.height - 40) / CGFloat(Self.maxSide))
+    }
+
+    // A 1 m grid inside the figure: the area is the number of whole squares (halves along a triangle's slope).
+    private func figure(size: CGSize) -> some View {
+        Canvas { context, size in
+            let unit = scale(size)
+            let left: CGFloat = 40
+            let bottom = size.height - 24
+            let width = CGFloat(base) * unit, tall = CGFloat(height) * unit
+            var outline = Path()
+            if shape == .rectangle {
+                outline.addRect(CGRect(x: left, y: bottom - tall, width: width, height: tall))
+            } else {
+                outline.move(to: CGPoint(x: left, y: bottom))
+                outline.addLine(to: CGPoint(x: left, y: bottom - tall))
+                outline.addLine(to: CGPoint(x: left + width, y: bottom))
+                outline.closeSubpath()
+            }
+            context.fill(outline, with: .color(Color.accentColor.opacity(0.16)))
+            var grid = Path()
+            for column in 1..<Int(base.rounded(.up)) {
+                grid.move(to: CGPoint(x: left + CGFloat(column) * unit, y: bottom))
+                grid.addLine(to: CGPoint(x: left + CGFloat(column) * unit, y: bottom - tall))
+            }
+            for row in 1..<Int(height.rounded(.up)) {
+                grid.move(to: CGPoint(x: left, y: bottom - CGFloat(row) * unit))
+                grid.addLine(to: CGPoint(x: left + width, y: bottom - CGFloat(row) * unit))
+            }
+            var clipped = context
+            clipped.clip(to: outline)
+            clipped.stroke(grid, with: .color(.accentColor.opacity(0.35)), lineWidth: 1)
+            context.stroke(outline, with: .color(.accentColor), lineWidth: 3)
+            if shape == .rightTriangle {
+                var rightAngle = Path()
+                rightAngle.move(to: CGPoint(x: left, y: bottom - 12))
+                rightAngle.addLine(to: CGPoint(x: left + 12, y: bottom - 12))
+                rightAngle.addLine(to: CGPoint(x: left + 12, y: bottom))
+                context.stroke(rightAngle, with: .color(.secondary), lineWidth: 1.5)
+                let hypotenuse = (base * base + height * height).squareRoot()
+                context.draw(Text(verbatim: "c ≈ " + L10n.measurement(hypotenuse, fractionDigits: 2, unit: "m", store.language))
+                                .font(.caption.weight(.semibold)).foregroundColor(.orange),
+                             at: CGPoint(x: left + width / 2 + 10, y: bottom - tall / 2 - 10), anchor: .leading)
+            }
+            context.draw(Text(verbatim: "b = " + measureText(base, "m")).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         at: CGPoint(x: left + width / 2, y: bottom + 12))
+            context.draw(Text(verbatim: "h = " + measureText(height, "m")).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         at: CGPoint(x: left - 6, y: bottom - tall / 2), anchor: .trailing)
+            let handle = CGPoint(x: left + width, y: bottom - tall)
+            context.fill(Path(ellipseIn: CGRect(x: handle.x - 8, y: handle.y - 8, width: 16, height: 16)), with: .color(.accentColor))
+            context.draw(Text(verbatim: measureText(1, "m") + " = □").font(.caption2).foregroundColor(.secondary),
+                         at: CGPoint(x: size.width - 8, y: 10), anchor: .trailing)
+        }
+    }
+
+    /// Dragging the corner sets base and height in half-metre steps.
+    private func resize(to location: CGPoint, size: CGSize) {
+        let unit = scale(size)
+        base = min(max((Double((location.x - 40) / unit) * 2).rounded() / 2, 1), Self.maxSide)
+        height = min(max((Double((size.height - 24 - location.y) / unit) * 2).rounded() / 2, 1), Self.maxSide)
     }
 
     private func slider(_ key: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(L10n.text(key, store.language))
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 1, unit: "m", store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 1...10, step: 0.5)
-                .accessibilityLabel(Text(L10n.text(key, store.language)))
-                .accessibilityValue(Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 1, unit: "m", store.language)))
+        HStack(spacing: 12) {
+            Text(text(key)).frame(width: 150, alignment: .leading)
+            // Half-metre steps without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 * 2).rounded() / 2 }), in: 1...10)
+                .accessibilityLabel(Text(text(key)))
+                .accessibilityValue(Text(verbatim: measureText(value.wrappedValue, "m")))
+            Text(verbatim: measureText(value.wrappedValue, "m"))
+                .monospacedDigit()
+                .frame(width: 64, alignment: .trailing)
         }
-    }
-
-    private func metric(_ key: String, value: Double, unit: String, isApproximate: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(key, store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(verbatim: (isApproximate ? "≈ " : "") + L10n.measurement(value, fractionDigits: 2, unit: unit, store.language))
-                .font(.title3.monospacedDigit())
-        }
-        .accessibilityElement(children: .combine)
+        .font(.callout)
     }
 }
 
@@ -2630,113 +2683,119 @@ private struct PercentRepresentationLab: View {
     @State private var whole = 240.0
     @State private var kilometres = 1.5
 
-    private var representation: PercentRepresentation {
-        PercentRepresentation(percent: Int(percent.rounded()))
-    }
-
-    private var formattedDecimal: String {
-        L10n.number(representation.decimal, fractionDigits: 2, store.language)
-    }
-
-    private var formattedKilometres: String {
-        L10n.number(kilometres, fractionDigits: 1, store.language)
-    }
-
-    private var formattedMetres: String {
-        L10n.number(KilometreConversion(kilometres: kilometres).metres, fractionDigits: 0, store.language)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var representation: PercentRepresentation { PercentRepresentation(percent: Int(percent.rounded())) }
+    private var formattedDecimal: String { L10n.number(representation.decimal, fractionDigits: 2, store.language) }
+    private var formattedKilometres: String { L10n.number(kilometres, fractionDigits: 1, store.language) }
+    private var formattedMetres: String { L10n.number(KilometreConversion(kilometres: kilometres).metres, fractionDigits: 0, store.language) }
+    private var part: Double { representation.part(of: Int(whole)) }
+    private var formattedPart: String { L10n.number(part, fractionDigits: part == part.rounded() ? 0 : 1, store.language) }
 
     var body: some View {
         LabCard {
-            Label(L10n.text("lab.percent.title", store.language), systemImage: "chart.pie.fill")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(.orange)
-
-            Text(L10n.text("lab.percent.help", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-            HStack(spacing: 8) {
-                Text("\(representation.percent)%")
-                Text("=")
-                Text(representation.fractionDescription)
-                Text("=")
-                Text(formattedDecimal)
-            }
-            .font(.system(size: 22, weight: .semibold, design: .rounded).monospacedDigit())
-            .frame(maxWidth: .infinity, minHeight: 54)
-            .background(Color.orange.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel(String(
-                format: L10n.text("lab.percent.representations", store.language),
-                "\(representation.percent)%",
-                representation.fractionDescription,
-                formattedDecimal
-            ))
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(L10n.text("lab.percent.share", store.language))
-                    Spacer()
-                    Text("\(representation.percent)%")
-                        .monospacedDigit()
+            LabHeader(title: text("lab.percent.title"), instruction: text("lab.percent.subtitle"))
+            HStack(alignment: .center, spacing: 24) {
+                GeometryReader { proxy in
+                    hundredGrid(size: proxy.size)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in paint(at: drag.location, size: proxy.size) })
                 }
-                Slider(value: $percent, in: 0...100, step: 1)
-                    .tint(.orange)
-                    .accessibilityLabel(L10n.text("lab.percent.share", store.language))
-            }
-
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color.secondary.opacity(0.16))
-                    Capsule()
-                        .fill(Color.orange.gradient)
-                        .frame(width: geometry.size.width * CGFloat(representation.decimal))
+                .frame(width: 220, height: 220)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.percent.gridLabel"))
+                .accessibilityValue(Text(verbatim: "\(representation.percent)%"))
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: percent = min(100, percent + 1)
+                    case .decrement: percent = max(0, percent - 1)
+                    @unknown default: break
+                    }
+                }
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(verbatim: "\(representation.percent) %")
+                        .font(.system(size: 34, weight: .bold, design: .rounded).monospacedDigit())
+                        .foregroundStyle(.orange)
+                    Text(verbatim: "= " + representation.fractionDescription + " = " + formattedDecimal)
+                        .font(.system(size: 24, weight: .semibold, design: .rounded).monospacedDigit())
+                        .accessibilityLabel(String(format: text("lab.percent.representations"), "\(representation.percent)%",
+                                                   representation.fractionDescription, formattedDecimal))
+                    Text(text("lab.percent.gridHint"))
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
-            .frame(height: 18)
-            .accessibilityElement()
-            .accessibilityLabel(L10n.text("lab.percent.bar", store.language)
-                .replacingOccurrences(of: "%@", with: "\(representation.percent)%"))
-
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(L10n.text("lab.percent.whole", store.language))
-                    Spacer()
-                    Text("\(Int(whole))")
-                        .monospacedDigit()
+            percentSlider(title: text("lab.percent.share"), value: $percent, range: 0...100, step: 1, display: "\(representation.percent) %", tint: .orange)
+            VStack(alignment: .leading, spacing: 6) {
+                percentSlider(title: text("lab.percent.whole"), value: $whole, range: 100...1000, step: 50, display: "\(Int(whole))", tint: .orange)
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 6).fill(Color.secondary.opacity(0.16))
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.orange.gradient)
+                            .frame(width: proxy.size.width * CGFloat(representation.decimal))
+                        Text(verbatim: formattedPart + " / \(Int(whole))")
+                            .font(.callout.weight(.semibold).monospacedDigit())
+                            .padding(.horizontal, 8)
+                    }
                 }
-                Slider(value: $whole, in: 100...1000, step: 50)
-                    .tint(.orange)
-                    .accessibilityLabel(L10n.text("lab.percent.whole", store.language))
+                .frame(height: 28)
+                .accessibilityElement()
+                .accessibilityLabel(text("lab.percent.bar").replacingOccurrences(of: "%@", with: "\(representation.percent)%"))
             }
-
-            Text(String(format: L10n.text("lab.percent.part", store.language), representation.part(of: Int(whole))))
-                .font(.headline.monospacedDigit())
-                .accessibilityElement(children: .combine)
-
-            Divider()
-
-            Text(L10n.text("lab.percent.unitsTitle", store.language))
-                .font(.headline)
-
-            HStack {
-                Text(L10n.text("lab.percent.kilometres", store.language))
-                Spacer()
-                Text(formattedKilometres)
-                    .monospacedDigit()
+            LabStatGrid {
+                LabStat(label: text("lab.percent.statPart"), value: formattedPart, tint: .orange)
+                LabStat(label: text("lab.percent.statFraction"), value: representation.fractionDescription, tint: .purple)
+                LabStat(label: text("lab.percent.statDecimal"), value: formattedDecimal, tint: .teal)
             }
-            Slider(value: $kilometres, in: 0...10, step: 0.5)
-                .tint(.teal)
-                .accessibilityLabel(L10n.text("lab.percent.kilometres", store.language))
-
-            Text(L10n.text("lab.percent.unitEquation", store.language)
-                .replacingOccurrences(of: "%1", with: formattedKilometres)
-                .replacingOccurrences(of: "%2", with: formattedMetres))
-                .font(.headline.monospacedDigit())
-                .accessibilityElement(children: .combine)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.percent.challenge"),
+                         solved: abs(part - 150) < 0.001, solvedText: text("lab.percent.challengeSolved"))
+            VStack(alignment: .leading, spacing: 8) {
+                Text(text("lab.percent.unitsTitle")).font(.headline)
+                percentSlider(title: text("lab.percent.kilometres"), value: $kilometres, range: 0...10, step: 0.5, display: formattedKilometres, tint: .teal)
+                Text(text("lab.percent.unitEquation").replacingOccurrences(of: "%1", with: formattedKilometres).replacingOccurrences(of: "%2", with: formattedMetres))
+                    .font(.title3.weight(.semibold).monospacedDigit())
+                    .accessibilityElement(children: .combine)
+            }
+            .padding(12)
+            .background(Color.teal.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.percent.help"), text("lab.percent.gridNote")])
         }
+    }
+
+    // One hundred squares: each is 1 %. Filled squares are the chosen share.
+    private func hundredGrid(size: CGSize) -> some View {
+        Canvas { context, size in
+            let cell = min(size.width, size.height) / 10
+            for index in 0..<100 {
+                let row = index / 10, column = index % 10
+                let rect = CGRect(x: CGFloat(column) * cell + 1, y: CGFloat(row) * cell + 1, width: cell - 2, height: cell - 2)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3),
+                             with: .color(index < representation.percent ? .orange : .secondary.opacity(0.15)))
+            }
+        }
+    }
+
+    /// Dragging over the grid fills it up to the square under the pointer.
+    private func paint(at location: CGPoint, size: CGSize) {
+        let cell = min(size.width, size.height) / 10
+        let column = min(max(Int(location.x / cell), 0), 9)
+        let row = min(max(Int(location.y / cell), 0), 9)
+        percent = Double(row * 10 + column + 1)
+    }
+
+    private func percentSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, display: String, tint: Color) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 170, alignment: .leading)
+            // Rounded to the step without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step }), in: range)
+                .tint(tint)
+                .accessibilityLabel(Text(title))
+            Text(verbatim: display)
+                .monospacedDigit()
+                .frame(width: 60, alignment: .trailing)
+        }
+        .font(.callout)
     }
 }
 
@@ -2748,6 +2807,7 @@ private struct LinearEquationLab: View {
     @State private var didCheckSolution = false
     @State private var feedbackKey: String?
     @State private var feedbackIsCorrect = false
+    @State private var solvedCount = 0
 
     init() {
         let equation = LinearEquation.random()
@@ -2755,17 +2815,12 @@ private struct LinearEquationLab: View {
         _operationOrders = State(initialValue: equation.operationChoiceOrders())
     }
 
-    private var variableTerm: String {
-        equation.coefficient == 1 ? "x" : "\(equation.coefficient)x"
-    }
-
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var variableTerm: String { equation.coefficient == 1 ? "x" : "\(equation.coefficient)x" }
     private var initialLeftSide: String {
-        let offsetTerm = equation.offset < 0
-            ? "− \(abs(equation.offset))"
-            : "+ \(equation.offset)"
+        let offsetTerm = equation.offset < 0 ? "− \(abs(equation.offset))" : "+ \(equation.offset)"
         return "\(variableTerm) \(offsetTerm)"
     }
-
     private var visibleLeftSide: String {
         switch completedSteps {
         case 0: initialLeftSide
@@ -2773,7 +2828,6 @@ private struct LinearEquationLab: View {
         default: "x"
         }
     }
-
     private var visibleRightSide: String {
         switch completedSteps {
         case 0: "\(equation.rightSide)"
@@ -2781,27 +2835,29 @@ private struct LinearEquationLab: View {
         default: "\(equation.valueAfterDivision)"
         }
     }
-
-    private var operationChoices: [LinearEquationOperation] {
-        equation.operationChoices(at: completedSteps)
+    /// What each pan holds now: x tiles and signed unit tiles.
+    private var leftTiles: (x: Int, units: Int) {
+        switch completedSteps {
+        case 0: (equation.coefficient, equation.offset)
+        case 1: (equation.coefficient, 0)
+        default: (1, 0)
+        }
     }
-
-    private var progressActionTitle: String {
-        didCheckSolution
-            ? L10n.text("lab.equation.newExample", store.language)
-            : L10n.text("lab.equation.check", store.language)
+    private var rightUnits: Int {
+        switch completedSteps {
+        case 0: equation.rightSide
+        case 1: equation.isolatedVariableRightSide
+        default: equation.valueAfterDivision
+        }
     }
+    private var operationChoices: [LinearEquationOperation] { equation.operationChoices(at: completedSteps) }
 
     private func operationTitle(_ operation: LinearEquationOperation) -> String {
         switch operation {
-        case .add(let value):
-            return localized("lab.equation.add", value: String(value))
-        case .subtract(let value):
-            return localized("lab.equation.subtract", value: String(value))
-        case .divide(let value):
-            return localized("lab.equation.divide", value: String(value))
-        case .multiply(let value):
-            return localized("lab.equation.multiply", value: String(value))
+        case .add(let value): return localized("lab.equation.add", value: String(value))
+        case .subtract(let value): return localized("lab.equation.subtract", value: String(value))
+        case .divide(let value): return localized("lab.equation.divide", value: String(value))
+        case .multiply(let value): return localized("lab.equation.multiply", value: String(value))
         }
     }
 
@@ -2811,49 +2867,28 @@ private struct LinearEquationLab: View {
             feedbackIsCorrect = false
             return
         }
-
-        completedSteps += 1
+        withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { completedSteps += 1 }
         feedbackKey = completedSteps == 1 ? "lab.equation.firstCorrect" : "lab.equation.secondCorrect"
         feedbackIsCorrect = true
     }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Label(L10n.text("lab.equation.title", store.language), systemImage: "scalemass")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.indigo)
-                Text(L10n.text("lab.equation.help", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: text("lab.equation.title"), instruction: text("lab.equation.subtitle"))
+            Text(verbatim: "\(visibleLeftSide) = \(visibleRightSide)")
+                .font(.system(size: 30, weight: .semibold, design: .rounded).monospacedDigit())
+                .frame(maxWidth: .infinity)
+                .accessibilityLabel("\(visibleLeftSide) = \(visibleRightSide)")
+            balance
+            HStack(spacing: 16) {
+                legendTile(color: .green, label: "x", wide: true)
+                legendTile(color: .yellow, label: "+1", wide: false)
+                legendTile(color: .red, label: "−1", wide: false)
             }
-
-            HStack(spacing: 10) {
-                equationSide(
-                    title: L10n.text("lab.equation.left", store.language),
-                    expression: visibleLeftSide
-                )
-                Text("=")
-                    .font(.title2.weight(.bold).monospacedDigit())
-                    .accessibilityLabel(L10n.text("lab.equation.equals", store.language))
-                equationSide(
-                    title: L10n.text("lab.equation.right", store.language),
-                    expression: visibleRightSide
-                )
-            }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("\(visibleLeftSide) = \(visibleRightSide)")
-
-            Text(L10n.text("lab.equation.operationHint", store.language))
-                .font(.callout.weight(.medium))
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(11)
-                .background(Color.indigo.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-
+            .font(.caption)
             if completedSteps < 2 {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(L10n.text("lab.equation.chooseOperation", store.language))
+                    Text(text("lab.equation.chooseOperation"))
                         .font(.callout.weight(.semibold))
                     ForEach(Array(operationOrders[completedSteps].displayedOriginalIndices.enumerated()), id: \.offset) { _, originalIndex in
                         let operation = operationChoices[originalIndex]
@@ -2867,84 +2902,124 @@ private struct LinearEquationLab: View {
                     }
                 }
             }
-
             if let feedbackKey {
-                Label(
-                    L10n.text(feedbackKey, store.language),
-                    systemImage: feedbackIsCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .font(.callout.weight(.medium))
-                .foregroundStyle(feedbackIsCorrect ? Color.green : Color.orange)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityElement(children: .combine)
+                Label(text(feedbackKey), systemImage: feedbackIsCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(feedbackIsCorrect ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
             }
-
             HStack {
-                Label(
-                    String(
-                        format: L10n.text("lab.equation.progress", store.language),
-                        min(completedSteps, 2),
-                        2
-                    ),
-                    systemImage: didCheckSolution ? "checkmark.seal.fill" : "equal.circle"
-                )
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(didCheckSolution ? .green : .secondary)
+                LabStatusBadge(kind: didCheckSolution ? .good : .info,
+                               text: String(format: text("lab.equation.progress"), min(completedSteps, 2), 2))
                 Spacer()
                 if completedSteps == 2 {
                     Button {
                         if !didCheckSolution {
                             didCheckSolution = true
+                            solvedCount += 1
                         } else {
-                            let nextEquation = LinearEquation.random()
-                            equation = nextEquation
-                            operationOrders = nextEquation.operationChoiceOrders()
-                            completedSteps = 0
-                            didCheckSolution = false
-                            feedbackKey = nil
-                            feedbackIsCorrect = false
+                            nextExample()
                         }
                     } label: {
-                        Label(
-                            progressActionTitle,
-                            systemImage: didCheckSolution ? "shuffle" : "checkmark.circle"
-                        )
+                        Label(text(didCheckSolution ? "lab.equation.newExample" : "lab.equation.check"),
+                              systemImage: didCheckSolution ? "shuffle" : "checkmark.circle")
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(.indigo)
                 }
             }
-
             if didCheckSolution {
-                Label(
-                    localized(
-                        "lab.equation.substitution",
-                        value: "\(equation.coefficient) × \(equation.solution) \(equation.offset < 0 ? "− \(abs(equation.offset))" : "+ \(equation.offset)") = \(equation.rightSide)"
-                    ),
-                    systemImage: equation.isSolution(equation.solution) ? "checkmark.circle.fill" : "xmark.circle.fill"
-                )
-                .font(.callout.weight(.semibold))
-                .foregroundStyle(equation.isSolution(equation.solution) ? .green : .red)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityElement(children: .combine)
+                Label(localized("lab.equation.substitution", value: substitutionText),
+                      systemImage: equation.isSolution(equation.solution) ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(equation.isSolution(equation.solution) ? .green : .red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityElement(children: .combine)
             }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.equation.challenge"),
+                         solved: solvedCount >= 3, solvedText: text("lab.equation.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.equation.help"), text("lab.equation.operationHint"), text("lab.equation.tilesNote")])
         }
     }
 
-    private func equationSide(title: String, expression: String) -> some View {
-        VStack(spacing: 6) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .foregroundStyle(.secondary)
-            Text(expression)
-                .font(.system(size: 23, weight: .semibold, design: .rounded).monospacedDigit())
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-                .frame(maxWidth: .infinity)
+    private var substitutionText: String {
+        let offset = equation.offset < 0 ? "− \(abs(equation.offset))" : "+ \(equation.offset)"
+        return "\(equation.coefficient) × \(equation.solution) \(offset) = \(equation.rightSide)"
+    }
+
+    // Two pans on a level beam: whatever is done to one pan is done to the other, so the beam stays level.
+    // Before dividing, the right pan is laid out in one row per x, which is what dividing by the coefficient means.
+    private var balance: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .bottom, spacing: 18) {
+                pan(xCount: leftTiles.x, units: leftTiles.units, rows: 1)
+                Text(verbatim: "=")
+                    .font(.title.weight(.bold))
+                    .foregroundStyle(.secondary)
+                pan(xCount: 0, units: rightUnits, rows: completedSteps == 1 ? equation.coefficient : 1)
+            }
+            Rectangle()
+                .fill(Color.secondary.opacity(0.6))
+                .frame(height: 5)
+                .clipShape(Capsule())
+            Image(systemName: "triangle.fill")
+                .font(.system(size: 30))
+                .foregroundStyle(Color.secondary.opacity(0.6))
         }
-        .padding(12)
-        .frame(maxWidth: .infinity, minHeight: 68)
-        .background(Color.indigo.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.equation.balance"))
+        .accessibilityValue(Text(verbatim: "\(visibleLeftSide) = \(visibleRightSide)"))
+    }
+
+    private func pan(xCount: Int, units: Int, rows: Int) -> some View {
+        let columns = rows > 1 ? max(1, abs(units) / rows) : 12
+        return VStack(alignment: .leading, spacing: 6) {
+            if xCount > 0 {
+                HStack(spacing: 4) {
+                    ForEach(0..<xCount, id: \.self) { _ in
+                        Text(verbatim: "x")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 34, height: 18)
+                            .background(Color.green, in: RoundedRectangle(cornerRadius: 4))
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+            }
+            if units != 0 {
+                LazyVGrid(columns: Array(repeating: GridItem(.fixed(14), spacing: 3), count: columns), alignment: .leading, spacing: rows > 1 ? 7 : 3) {
+                    ForEach(0..<abs(units), id: \.self) { _ in
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(units > 0 ? Color.yellow : Color.red)
+                            .frame(width: 14, height: 14)
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+            } else if xCount == 0 {
+                Text(verbatim: "0").font(.title3.weight(.semibold)).foregroundStyle(.secondary)
+            }
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 90, alignment: .bottomLeading)
+        .background(Color.indigo.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func legendTile(color: Color, label: String, wide: Bool) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 3).fill(color).frame(width: wide ? 24 : 12, height: 12)
+            Text(verbatim: label).foregroundStyle(.secondary)
+        }
+    }
+
+    private func nextExample() {
+        let nextEquation = LinearEquation.random()
+        equation = nextEquation
+        operationOrders = nextEquation.operationChoiceOrders()
+        completedSteps = 0
+        didCheckSolution = false
+        feedbackKey = nil
+        feedbackIsCorrect = false
     }
 
     private func localized(_ key: String, value: String) -> String {
@@ -2956,72 +3031,81 @@ private struct RationalExpressionLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var input = 0.0
 
-    private var originalValue: Double? {
-        RationalExpressionPractice.originalValue(at: input)
-    }
-
-    private var simplifiedValue: Double {
-        RationalExpressionPractice.simplifiedValue(at: input)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double) -> String { L10n.number(value, fractionDigits: 2, store.language) }
+    private var originalValue: Double? { RationalExpressionPractice.originalValue(at: input) }
+    private var simplifiedValue: Double { RationalExpressionPractice.simplifiedValue(at: input) }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.RationalExpressionLab", store.language), instruction: L10n.text("lab.rationalHint", store.language))
-
+            LabHeader(title: text("labkit.title.RationalExpressionLab"), instruction: text("lab.rationalSubtitle"))
             Text("f(x) = (x² − 9) / (x − 3)")
                 .font(.title3.monospaced().weight(.semibold))
-                .accessibilityLabel(L10n.text("lab.rationalFormula", store.language))
-
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Text("−5")
-                    Spacer()
-                    Text(String(format: L10n.text("lab.rationalSelectedInput", store.language), L10n.number(input, fractionDigits: 2, store.language)))
-                        .font(.caption.monospacedDigit().weight(.semibold))
-                    Spacer()
-                    Text("5")
-                }
-                Slider(value: $input, in: -5...5, step: 0.25)
-                    .accessibilityLabel(L10n.text("lab.rationalInput", store.language))
-                    .accessibilityValue(L10n.number(input, fractionDigits: 2, store.language))
+                .accessibilityLabel(text("lab.rationalFormula"))
+            GeometryReader { proxy in
+                let plot = LabPlotGeometry(size: proxy.size, x: -5...5, y: -3...9, leading: 34, bottom: 26)
+                graph(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        input = min(max((plot.value(at: drag.location).x * 4).rounded() / 4, -5), 5)
+                    })
             }
-
-            HStack(alignment: .top, spacing: 12) {
-                valueCard(
-                    title: L10n.text("lab.rationalOriginal", store.language),
-                    value: originalValue.map { L10n.number($0, fractionDigits: 2, store.language) }
-                        ?? L10n.text("lab.rationalUndefined", store.language),
-                    emphasized: originalValue == nil
-                )
-                valueCard(
-                    title: L10n.text("lab.rationalReduced", store.language),
-                    value: L10n.number(simplifiedValue, fractionDigits: 2, store.language),
-                    emphasized: false
-                )
+            .frame(height: 260)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.rationalGraph"))
+            .accessibilityValue(Text(verbatim: "x = " + number(input) + ", f(x) = " + (originalValue.map(number) ?? text("lab.rationalUndefined"))))
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.rationalSelectedInput"), number(input)))
+                    .font(.callout.monospacedDigit().weight(.semibold))
+                    .frame(width: 160, alignment: .leading)
+                // Quarter steps without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { input }, set: { input = ($0 * 4).rounded() / 4 }), in: -5...5)
+                    .accessibilityLabel(text("lab.rationalInput"))
+                    .accessibilityValue(number(input))
             }
-
-            Label(
-                L10n.text(originalValue == nil ? "lab.rationalExcluded" : "lab.rationalDefined", store.language),
-                systemImage: originalValue == nil ? "xmark.circle.fill" : "equal.circle.fill"
-            )
-            .foregroundStyle(originalValue == nil ? Color.orange : Color.secondary)
-            .fixedSize(horizontal: false, vertical: true)
+            LabStatGrid {
+                LabStat(label: text("lab.rationalOriginal"), value: originalValue.map(number) ?? text("lab.rationalUndefined"),
+                        tint: originalValue == nil ? .orange : .accentColor)
+                LabStat(label: text("lab.rationalReduced"), value: number(simplifiedValue), tint: .purple)
+            }
+            Label(text(originalValue == nil ? "lab.rationalExcluded" : "lab.rationalDefined"),
+                  systemImage: originalValue == nil ? "xmark.circle.fill" : "equal.circle.fill")
+                .foregroundStyle(originalValue == nil ? Color.orange : Color.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.rationalChallenge"),
+                         solved: originalValue == nil, solvedText: text("lab.rationalChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.rationalHint"), text("lab.rationalHoleNote")])
         }
     }
 
-    private func valueCard(title: String, value: String, emphasized: Bool) -> some View {
-        VStack(alignment: .leading, spacing: 5) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.title2.monospacedDigit().weight(.semibold))
-                .foregroundStyle(emphasized ? Color.orange : Color.primary)
+    // f equals x + 3 everywhere except x = 3, where the original fraction divides by zero: an open circle marks the hole.
+    private func graph(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "y", xTicks: [-4, -2, 0, 2, 4], yTicks: [0, 3, 6, 9],
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            var line = Path()
+            line.move(to: plot.point(-5, -2))
+            line.addLine(to: plot.point(5, 8))
+            context.stroke(line, with: .color(.accentColor), lineWidth: 3)
+            let hole = plot.point(3, 6)
+            context.fill(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(Color(nsColor: .windowBackgroundColor)))
+            context.stroke(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(.orange), lineWidth: 2.5)
+            var asymptote = Path()
+            asymptote.move(to: plot.point(3, -3))
+            asymptote.addLine(to: plot.point(3, 9))
+            context.stroke(asymptote, with: .color(.orange.opacity(0.4)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+            let marker = plot.point(input, simplifiedValue)
+            if originalValue == nil {
+                context.draw(Text(verbatim: "x = 3 ?").font(.callout.weight(.bold)).foregroundColor(.orange),
+                             at: CGPoint(x: hole.x + 12, y: hole.y + 18), anchor: .leading)
+            } else {
+                var guide = Path()
+                guide.move(to: plot.point(input, 0))
+                guide.addLine(to: marker)
+                context.stroke(guide, with: .color(.secondary.opacity(0.6)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+                context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(.accentColor))
+            }
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -3146,6 +3230,11 @@ private struct ConstrainedOptimizationLab: View {
             ConstrainedOptimizationPoint(angleRadians: 0)!
     }
 
+    private var isAtMaximum: Bool {
+        if case .maximum = point.extremum { return true }
+        return false
+    }
+
     private var statusKey: String {
         switch point.extremum {
         case .maximum: "lab.optimization.maximum"
@@ -3156,13 +3245,9 @@ private struct ConstrainedOptimizationLab: View {
 
     var body: some View {
         LabCard {
+            LabHeader(title: L10n.text("lab.optimization.title", store.language), instruction: L10n.text("lab.optimization.hint", store.language))
             Text("f(x, y) = xy     subject to     x² + y² = 1")
                 .font(.system(.headline, design: .monospaced))
-
-            Text(L10n.text("lab.optimization.hint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
 
             Picker(L10n.text("lab.optimization.viewMode", store.language), selection: $showsSurface) {
                 Text(L10n.text("lab.optimization.view2D", store.language)).tag(false)
@@ -3310,11 +3395,13 @@ private struct ConstrainedOptimizationLab: View {
                 }
             }
             .font(.callout.monospacedDigit())
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(12)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
 
-            Text(L10n.text("lab.optimization.limits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.optimization.challenge", store.language),
+                         solved: isAtMaximum, solvedText: L10n.text("lab.optimization.challengeSolved", store.language))
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.optimization.limits", store.language)])
         }
     }
 }
@@ -3323,14 +3410,13 @@ private struct DomainRangeLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var selectedScenario = 0
     @State private var bound = 4.0
+    @State private var probe = 0.6
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 1) -> String { L10n.number(value, fractionDigits: digits, store.language) }
     private var integerBound: Int { Int(bound) }
-    private var inputLowerBound: Double {
-        selectedScenario == 1 ? -bound : 0
-    }
-    private var inputUpperBound: Double {
-        selectedScenario == 2 ? bound * bound : bound
-    }
+    private var inputLowerBound: Double { selectedScenario == 1 ? -bound : 0 }
+    private var inputUpperBound: Double { selectedScenario == 2 ? bound * bound : bound }
     private var outputUpperBound: Double {
         switch selectedScenario {
         case 0: return 2 + 3 * bound
@@ -3338,6 +3424,7 @@ private struct DomainRangeLab: View {
         default: return bound
         }
     }
+    private var outputLowerBound: Double { selectedScenario == 0 ? 2 : 0 }
     private var equation: String {
         switch selectedScenario {
         case 0: return "C(k) = 2 + 3k"
@@ -3359,96 +3446,102 @@ private struct DomainRangeLab: View {
         default: return "0 ≤ g(x) ≤ \(integerBound)"
         }
     }
+    private var probeInput: Double { inputLowerBound + probe * (inputUpperBound - inputLowerBound) }
+    private func output(_ input: Double) -> Double {
+        switch selectedScenario {
+        case 0: return 2 + 3 * input
+        case 1: return input * input
+        default: return max(input, 0).squareRoot()
+        }
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.DomainRangeLab", store.language), instruction: L10n.text("lab.domainHint", store.language))
-
-            Picker("", selection: $selectedScenario) {
-                Text(L10n.text("lab.domainTaxi", store.language)).tag(0)
-                Text(L10n.text("lab.domainSquare", store.language)).tag(1)
-                Text(L10n.text("lab.domainRoot", store.language)).tag(2)
+            LabHeader(title: text("labkit.title.DomainRangeLab"), instruction: text("lab.domainSubtitle"))
+            Picker(text("session.lab"), selection: $selectedScenario) {
+                Text(text("lab.domainTaxi")).tag(0)
+                Text(text("lab.domainSquare")).tag(1)
+                Text(text("lab.domainRoot")).tag(2)
             }
             .pickerStyle(.segmented)
-            .accessibilityLabel(Text(L10n.text("session.lab", store.language)))
-
+            .labelsHidden()
             Text(equation)
-                .font(.system(.headline, design: .monospaced))
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("\(L10n.text("lab.domainInput", store.language)): \(inputInterval)")
-                Text("\(L10n.text("lab.domainOutput", store.language)): \(outputInterval)")
+                .font(.system(.title3, design: .monospaced, weight: .semibold))
+            GeometryReader { proxy in
+                let plot = plotGeometry(proxy.size)
+                graph(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        let x = plot.value(at: drag.location).x
+                        probe = min(max((x - inputLowerBound) / max(inputUpperBound - inputLowerBound, 0.001), 0), 1)
+                    })
             }
-            .font(.callout.monospacedDigit())
-            .foregroundStyle(.secondary)
-
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0, inputUpperBound > inputLowerBound else { return }
-
-                var grid = Path()
-                for step in 0...4 {
-                    let fraction = CGFloat(step) / 4
-                    let x = size.width * fraction
-                    let y = size.height * fraction
-                    grid.move(to: CGPoint(x: x, y: 0))
-                    grid.addLine(to: CGPoint(x: x, y: size.height))
-                    grid.move(to: CGPoint(x: 0, y: y))
-                    grid.addLine(to: CGPoint(x: size.width, y: y))
-                }
-                context.stroke(grid, with: .color(.secondary.opacity(0.14)), lineWidth: 1)
-
-                var axes = Path()
-                axes.move(to: CGPoint(x: 0, y: size.height))
-                axes.addLine(to: CGPoint(x: size.width, y: size.height))
-                let zeroXFraction = (0 - inputLowerBound) / (inputUpperBound - inputLowerBound)
-                let zeroX = CGFloat(zeroXFraction) * size.width
-                axes.move(to: CGPoint(x: zeroX, y: 0))
-                axes.addLine(to: CGPoint(x: zeroX, y: size.height))
-                context.stroke(axes, with: .color(.secondary.opacity(0.55)), lineWidth: 1)
-
-                var curve = Path()
-                for sample in 0...80 {
-                    let fraction = Double(sample) / 80
-                    let input = inputLowerBound + fraction * (inputUpperBound - inputLowerBound)
-                    let output: Double
-                    switch selectedScenario {
-                    case 0: output = 2 + 3 * input
-                    case 1: output = input * input
-                    default: output = input.squareRoot()
-                    }
-                    let yFraction = min(max(output / outputUpperBound, 0), 1)
-                    let point = CGPoint(
-                        x: CGFloat(fraction) * size.width,
-                        y: size.height * (1 - CGFloat(yFraction))
-                    )
-                    if sample == 0 {
-                        curve.move(to: point)
-                    } else {
-                        curve.addLine(to: point)
-                    }
-                }
-                context.stroke(curve, with: .color(.indigo), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            }
-            .frame(height: 150)
+            .frame(height: 260)
             .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(String(
-                format: L10n.text("lab.domainGraphLabel", store.language),
-                inputInterval,
-                outputInterval
-            )))
-
-            HStack {
-                Text("\(L10n.text("lab.domainBound", store.language)): N = \(integerBound)")
+            .accessibilityLabel(Text(String(format: text("lab.domainGraphLabel"), inputInterval, outputInterval)))
+            .accessibilityValue(Text(verbatim: number(probeInput) + " → " + number(output(probeInput))))
+            HStack(spacing: 12) {
+                Text(verbatim: text("lab.domainBound") + ": N = \(integerBound)")
                     .monospacedDigit()
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Text("1…8")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.tertiary)
+                    .frame(width: 150, alignment: .leading)
+                // Whole numbers without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { bound }, set: { bound = $0.rounded() }), in: 1...8)
+                    .accessibilityLabel(Text(text("lab.domainBound")))
             }
-            Slider(value: $bound, in: 1...8, step: 1)
-                .accessibilityLabel(Text(L10n.text("lab.domainBound", store.language)))
+            LabStatGrid {
+                LabStat(label: text("lab.domainInput"), value: inputInterval, tint: .teal)
+                LabStat(label: text("lab.domainOutput"), value: outputInterval, tint: .orange)
+                LabStat(label: text("lab.domainProbe"), value: number(probeInput) + " → " + number(output(probeInput)), tint: .indigo)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.domainChallenge"),
+                         solved: selectedScenario == 2 && integerBound == 5, solvedText: text("lab.domainChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.domainHint"), text("lab.domainNote")])
+        }
+    }
+
+    private func plotGeometry(_ size: CGSize) -> LabPlotGeometry {
+        let xPad = (inputUpperBound - inputLowerBound) * 0.08
+        return LabPlotGeometry(size: size, x: (inputLowerBound - xPad)...(inputUpperBound + xPad),
+                               y: -outputUpperBound * 0.08...(outputUpperBound * 1.1), leading: 40, bottom: 28)
+    }
+
+    // The teal bar on the x-axis is the domain, the orange bar on the y-axis is the range; the probe maps one input to its output.
+    private func graph(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: selectedScenario == 0 ? "k" : "x", yLabel: "y", format: { number($0, 0) })
+            var zeroAxes = Path()
+            zeroAxes.move(to: plot.point(plot.x.lowerBound, 0))
+            zeroAxes.addLine(to: plot.point(plot.x.upperBound, 0))
+            if plot.x.contains(0) {
+                zeroAxes.move(to: plot.point(0, plot.y.lowerBound))
+                zeroAxes.addLine(to: plot.point(0, plot.y.upperBound))
+            }
+            context.stroke(zeroAxes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            let domainStart = plot.point(inputLowerBound, 0), domainEnd = plot.point(inputUpperBound, 0)
+            context.fill(Path(roundedRect: CGRect(x: domainStart.x, y: domainStart.y - 4, width: domainEnd.x - domainStart.x, height: 8), cornerRadius: 4),
+                         with: .color(.teal.opacity(0.75)))
+            let rangeLow = plot.point(plot.x.lowerBound, outputLowerBound), rangeHigh = plot.point(plot.x.lowerBound, outputUpperBound)
+            context.fill(Path(roundedRect: CGRect(x: rangeLow.x - 4, y: rangeHigh.y, width: 8, height: rangeLow.y - rangeHigh.y), cornerRadius: 4),
+                         with: .color(.orange.opacity(0.75)))
+            var curve = Path()
+            for sample in 0...120 {
+                let input = inputLowerBound + Double(sample) / 120 * (inputUpperBound - inputLowerBound)
+                let point = plot.point(input, output(input))
+                if sample == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+            }
+            context.stroke(curve, with: .color(.indigo), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            let value = output(probeInput)
+            let onCurve = plot.point(probeInput, value)
+            var mapping = Path()
+            mapping.move(to: plot.point(probeInput, 0))
+            mapping.addLine(to: onCurve)
+            mapping.addLine(to: plot.point(plot.x.lowerBound, value))
+            context.stroke(mapping, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            context.fill(Path(ellipseIn: CGRect(x: onCurve.x - 7, y: onCurve.y - 7, width: 14, height: 14)), with: .color(.indigo))
+            if selectedScenario == 1, abs(probeInput) > 0.05 {
+                let mirror = plot.point(-probeInput, value)
+                context.stroke(Path(ellipseIn: CGRect(x: mirror.x - 6, y: mirror.y - 6, width: 12, height: 12)), with: .color(.indigo), lineWidth: 2)
+            }
         }
     }
 }
@@ -4247,10 +4340,12 @@ private struct ReportedSpeechLab: View {
 
 private struct OsmosisLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var insideConcentration = 4.0
     @State private var outsideConcentration = 6.0
     @State private var prediction: InteractivePredictionAttempt
     @State private var selectedDisplayIndex = -1
+    @State private var revealStart: Date?
 
     private let predictionOptionKeys = [
         "lab.osmosisOptionEnters",
@@ -4258,101 +4353,179 @@ private struct OsmosisLab: View {
         "lab.osmosisOptionBalanced"
     ]
     private static let predictionItemID = "biology.passive_transport_osmosis.water_flow"
+    private static let solutePoints = scatter(600, seed: 7)
+    private static let waterMolecules = 16
 
     init() {
         _prediction = State(initialValue: Self.makePrediction(insideSolute: 4, outsideSolute: 6))
     }
 
-    private var flow: OsmosisWaterFlow {
-        OsmosisWaterFlow.predict(
-            insideSolute: Int(insideConcentration.rounded()),
-            outsideSolute: Int(outsideConcentration.rounded())
-        )
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var inside: Int { Int(insideConcentration.rounded()) }
+    private var outside: Int { Int(outsideConcentration.rounded()) }
+    private var flow: OsmosisWaterFlow { OsmosisWaterFlow.predict(insideSolute: inside, outsideSolute: outside) }
+    private var revealed: Bool { prediction.hasAnswered && prediction.isCorrect }
+
+    /// Tonicity of the outside solution relative to the cell.
+    private var tonicityKey: String {
+        if outside < inside { return "lab.osmosisHypotonic" }
+        if outside > inside { return "lab.osmosisHypertonic" }
+        return "lab.osmosisIsotonic"
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.OsmosisLab", store.language), instruction: L10n.text("lab.osmosisHint", store.language))
-
-            HStack(alignment: .center, spacing: 14) {
-                concentrationDisplay(
-                    title: L10n.text("lab.osmosisOutside", store.language),
-                    value: outsideConcentration
-                )
-                Image(systemName: prediction.hasAnswered && prediction.isCorrect ? flow.arrowSymbol : "questionmark.circle")
-                    .font(.title2.weight(.semibold))
-                    .foregroundStyle(.blue)
-                    .accessibilityLabel(Text(L10n.text(
-                        prediction.hasAnswered && prediction.isCorrect ? flow.explanationKey : "lab.osmosisArrowHidden",
-                        store.language
-                    )))
-                ZStack {
-                    Circle()
-                        .fill(Color.cyan.opacity(0.12))
-                        .frame(width: 118, height: 118)
-                    Circle()
-                        .strokeBorder(Color.cyan.opacity(0.75), lineWidth: 3)
-                        .frame(width: 118, height: 118)
-                    VStack(spacing: 5) {
-                        Text(L10n.text("lab.osmosisInside", store.language))
-                            .font(.caption.weight(.semibold))
-                        Text("\(insideConcentration, specifier: "%.0f")")
-                            .font(.title2.monospacedDigit().weight(.bold))
-                        soluteDots(insideConcentration)
-                    }
-                }
-                .accessibilityElement(children: .combine)
-                .accessibilityLabel(Text(L10n.text("lab.osmosisInside", store.language) + ", \(Int(insideConcentration))"))
+            LabHeader(title: text("labkit.title.OsmosisLab"), instruction: text("lab.osmosisSubtitle"))
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: revealStart == nil || reduceMotion)) { timeline in
+                cellScene(elapsed: revealStart.map { timeline.date.timeIntervalSince($0) } ?? 0)
             }
-            .frame(maxWidth: .infinity)
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.osmosisCanvas"))
+            .accessibilityValue(Text(verbatim: text("lab.osmosisInside") + " \(inside), " + text("lab.osmosisOutside") + " \(outside). "
+                                     + text(revealed ? flow.explanationKey : "lab.osmosisArrowHidden")))
+            HStack(spacing: 16) {
+                legendItem(.purple, text("lab.osmosisLegendSolute"))
+                legendItem(.blue, text("lab.osmosisLegendWater"))
+            }
+            .font(.caption)
+            LabStatGrid {
+                LabStat(label: text("lab.osmosisInside"), value: "\(inside)", tint: .purple)
+                LabStat(label: text("lab.osmosisOutside"), value: "\(outside)", tint: .purple)
+                LabStat(label: text("lab.osmosisStatFlow"), value: revealed ? text(predictionOptionKeys[flow.answerOriginalIndex]) : "?", tint: .blue)
+                LabStat(label: text("lab.osmosisStatTonicity"), value: revealed ? text(tonicityKey) : "?", tint: .cyan)
+            }
+            concentrationSlider(title: text("lab.osmosisOutside"), value: $outsideConcentration)
+            concentrationSlider(title: text("lab.osmosisInside"), value: $insideConcentration)
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.osmosisChallenge"),
+                         solved: revealed && flow == .waterEntersCell, solvedText: text("lab.osmosisChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.osmosisHint"), text("lab.osmosisTonicity"), text("lab.osmosisLimit")])
+        }
+        .onChange(of: insideConcentration) { _ in startNewPrediction() }
+        .onChange(of: outsideConcentration) { _ in startNewPrediction() }
+    }
 
-            concentrationSlider(title: L10n.text("lab.osmosisOutside", store.language), value: $outsideConcentration)
-                .onChange(of: outsideConcentration) { _ in startNewPrediction() }
-            concentrationSlider(title: L10n.text("lab.osmosisInside", store.language), value: $insideConcentration)
-                .onChange(of: insideConcentration) { _ in startNewPrediction() }
+    // A cell in a beaker. Purple dots are solute that cannot cross; blue dots are water molecules crossing the membrane.
+    // The cell keeps its solute, so when it swells the same dots spread thinner.
+    private func cellScene(elapsed: Double) -> some View {
+        let progress = revealed ? (reduceMotion ? 1 : min(1, elapsed / 2.4)) : 0
+        let eased = progress * progress * (3 - 2 * progress)
+        let swell = Double(min(max(inside - outside, -6), 6)) / 6
+        return Canvas { context, size in
+            let beaker = CGRect(origin: .zero, size: size).insetBy(dx: 6, dy: 6)
+            let centre = CGPoint(x: beaker.midX, y: beaker.midY)
+            let baseRadius = min(beaker.width, beaker.height) * 0.3
+            let radius = baseRadius * CGFloat(1 + 0.22 * swell * eased)
+            context.fill(Path(roundedRect: beaker, cornerRadius: 18), with: .color(.blue.opacity(0.06)))
+            context.stroke(Path(roundedRect: beaker, cornerRadius: 18), with: .color(.secondary.opacity(0.5)), lineWidth: 1.5)
+            drawOutsideSolute(context: context, beaker: beaker, centre: centre, radius: radius, baseRadius: baseRadius)
+            let cell = Path(ellipseIn: CGRect(x: centre.x - radius, y: centre.y - radius, width: radius * 2, height: radius * 2))
+            context.fill(cell, with: .color(.cyan.opacity(0.12)))
+            context.stroke(cell, with: .color(.cyan.opacity(0.85)), lineWidth: 3)
+            drawInsideSolute(context: context, centre: centre, radius: radius)
+            if revealed {
+                drawWater(context: context, centre: centre, radius: radius, elapsed: elapsed, settled: progress >= 1)
+            }
+            context.draw(Text(text("lab.osmosisOutside")).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: beaker.minX + 12, y: beaker.minY + 10), anchor: .topLeading)
+            context.draw(Text(text("lab.osmosisInside")).font(.caption.weight(.semibold)).foregroundColor(.cyan),
+                         at: CGPoint(x: centre.x, y: centre.y - radius - 10))
+        }
+    }
 
-            Text(L10n.text("lab.osmosisPredictionPrompt", store.language))
+    // Outside dots get the same density per unit of concentration as the cell at its starting size.
+    private func drawOutsideSolute(context: GraphicsContext, beaker: CGRect, centre: CGPoint, radius: CGFloat, baseRadius: CGFloat) {
+        let cellArea = Double.pi * Double(baseRadius * baseRadius)
+        let perUnit = 2 * (Double(beaker.width * beaker.height) - cellArea) / cellArea
+        let count = min(Self.solutePoints.count, Int((Double(outside) * perUnit).rounded()))
+        for unit in Self.solutePoints.prefix(count) {
+            let point = CGPoint(x: beaker.minX + 8 + unit.x * (beaker.width - 16), y: beaker.minY + 8 + unit.y * (beaker.height - 16))
+            guard hypot(point.x - centre.x, point.y - centre.y) > radius + 6 else { continue }
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 2.5, y: point.y - 2.5, width: 5, height: 5)), with: .color(.purple.opacity(0.7)))
+        }
+    }
+
+    private func drawInsideSolute(context: GraphicsContext, centre: CGPoint, radius: CGFloat) {
+        for unit in Self.solutePoints.suffix(inside * 2) {
+            let distance = sqrt(unit.x) * 0.82 * radius
+            let angle = unit.y * 2 * .pi
+            let point = CGPoint(x: centre.x + distance * cos(angle), y: centre.y + distance * sin(angle))
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 2.5, y: point.y - 2.5, width: 5, height: 5)), with: .color(.purple.opacity(0.85)))
+        }
+    }
+
+    // Water crosses both ways all the time; while the cell changes size more molecules go the net way, then the two directions even out.
+    private func drawWater(context: GraphicsContext, centre: CGPoint, radius: CGFloat, elapsed: Double, settled: Bool) {
+        let total = Self.waterMolecules
+        let inward: Int
+        switch flow {
+        case .waterEntersCell: inward = settled ? 8 : 13
+        case .waterLeavesCell: inward = settled ? 8 : 3
+        case .dynamicEquilibrium: inward = 8
+        }
+        let outer = Double(radius) + 30
+        let inner = Double(radius) - 24
+        for index in 0..<total {
+            let goesIn = (index * inward) / total != ((index + 1) * inward) / total
+            let angle = Double(index) / Double(total) * 2 * .pi + 0.2
+            func spot(_ distance: Double) -> CGPoint {
+                CGPoint(x: centre.x + CGFloat(distance * cos(angle)), y: centre.y + CGFloat(distance * sin(angle)))
+            }
+            let start = goesIn ? outer : inner
+            let end = goesIn ? inner : outer
+            if reduceMotion {
+                var arrow = Path()
+                arrow.move(to: spot(start))
+                arrow.addLine(to: spot(end))
+                context.stroke(arrow, with: .color(.blue.opacity(0.6)), lineWidth: 1.5)
+                let head = spot(end)
+                context.fill(Path(ellipseIn: CGRect(x: head.x - 3, y: head.y - 3, width: 6, height: 6)), with: .color(.blue))
+            } else {
+                let phase = (elapsed * 0.45 + Double(index) * 0.37).truncatingRemainder(dividingBy: 1)
+                let point = spot(start + (end - start) * phase)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3, y: point.y - 3, width: 6, height: 6)),
+                             with: .color(.blue.opacity(sin(.pi * phase))))
+            }
+        }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.osmosisPredictionPrompt"))
                 .font(.callout.weight(.medium))
                 .fixedSize(horizontal: false, vertical: true)
-
-            Picker(L10n.text("lab.osmosisPredictionPrompt", store.language), selection: $selectedDisplayIndex) {
+            Picker(text("lab.osmosisPredictionPrompt"), selection: $selectedDisplayIndex) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(predictionOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(predictionOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
-
-            Button(L10n.text("lab.osmosisCheckPrediction", store.language)) {
-                prediction.select(displayedIndex: selectedDisplayIndex)
-                guard let evidence = prediction.currentAnswerEventEvidence() else { return }
-                store.recordStudyAssessment(lessonID: "biology.passive_transport_osmosis", evidence: evidence)
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(prediction.hasAnswered || selectedDisplayIndex < 0)
-
+            Button(text("lab.osmosisCheckPrediction"), action: checkPrediction)
+                .buttonStyle(.borderedProminent)
+                .disabled(prediction.hasAnswered || selectedDisplayIndex < 0)
             if prediction.hasAnswered {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.osmosisCorrect", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.osmosisCorrect"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.green)
-                    Label(L10n.text(flow.explanationKey, store.language), systemImage: flow.arrowSymbol)
+                    Label(text(flow.explanationKey), systemImage: flow.arrowSymbol)
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.blue)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.osmosisNewPrediction", store.language)) {
-                        startNewPrediction()
-                    }
-                    .buttonStyle(.link)
+                    Button(text("lab.osmosisNewPrediction"), action: startNewPrediction)
+                        .buttonStyle(.link)
                 } else {
-                    Label(L10n.text("lab.osmosisIncorrect", store.language), systemImage: "arrow.uturn.backward.circle")
+                    Label(text("lab.osmosisIncorrect"), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.orange)
-                    Text(L10n.text("lab.osmosisHintAfterWrong", store.language))
+                    Text(text("lab.osmosisHintAfterWrong"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.osmosisRetry", store.language)) {
+                    Button(text("lab.osmosisRetry")) {
                         prediction.retry()
                         selectedDisplayIndex = -1
                     }
@@ -4360,6 +4533,38 @@ private struct OsmosisLab: View {
                 }
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
+        }
+    }
+
+    private func concentrationSlider(title: String, value: Binding<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 190, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { newValue in
+                let rounded = newValue.rounded()
+                if rounded != value.wrappedValue { value.wrappedValue = rounded }
+            }), in: 0...10)
+                .accessibilityLabel(Text(title))
+            Text(verbatim: "\(Int(value.wrappedValue))")
+                .monospacedDigit()
+                .frame(width: 28, alignment: .trailing)
+        }
+        .font(.callout)
+    }
+
+    private func checkPrediction() {
+        prediction.select(displayedIndex: selectedDisplayIndex)
+        if prediction.isCorrect { revealStart = Date() }
+        guard let evidence = prediction.currentAnswerEventEvidence() else { return }
+        store.recordStudyAssessment(lessonID: "biology.passive_transport_osmosis", evidence: evidence)
     }
 
     private static func makePrediction(insideSolute: Int, outsideSolute: Int) -> InteractivePredictionAttempt {
@@ -4374,46 +4579,19 @@ private struct OsmosisLab: View {
     }
 
     private func startNewPrediction() {
-        prediction = Self.makePrediction(
-            insideSolute: Int(insideConcentration.rounded()),
-            outsideSolute: Int(outsideConcentration.rounded())
-        )
+        prediction = Self.makePrediction(insideSolute: inside, outsideSolute: outside)
         selectedDisplayIndex = -1
+        revealStart = nil
     }
 
-    private func concentrationDisplay(title: String, value: Double) -> some View {
-        VStack(spacing: 8) {
-            Text(title)
-                .font(.caption.weight(.medium))
-                .multilineTextAlignment(.center)
-            Text("\(value, specifier: "%.0f")")
-                .font(.title2.monospacedDigit().weight(.bold))
-            soluteDots(value)
+    /// Fixed pseudo-random points in the unit square, so the dots stay put while the sliders move.
+    private static func scatter(_ count: Int, seed: UInt64) -> [CGPoint] {
+        var state = seed
+        func next() -> CGFloat {
+            state = state &* 6_364_136_223_846_793_005 &+ 1_442_695_040_888_963_407
+            return CGFloat(state >> 33) / CGFloat(UInt64(1) << 31)
         }
-        .frame(maxWidth: .infinity)
-        .accessibilityElement(children: .combine)
-    }
-
-    private func soluteDots(_ value: Double) -> some View {
-        HStack(spacing: 3) {
-            ForEach(0..<Int(value), id: \.self) { _ in
-                Circle().fill(Color.purple.opacity(0.78)).frame(width: 6, height: 6)
-            }
-        }
-        .accessibilityHidden(true)
-    }
-
-    private func concentrationSlider(title: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(value.wrappedValue, format: .number.precision(.fractionLength(0)))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: 0...10, step: 1)
-        }
+        return (0..<count).map { _ in CGPoint(x: next(), y: next()) }
     }
 }
 
@@ -4428,218 +4606,219 @@ private struct BiologyInvestigationLab: View {
     )
     @State private var didReviewDesign = false
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 6) {
-                Label(L10n.text("lab.investigation.title", store.language), systemImage: "leaf")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.green)
-                Text(L10n.text("lab.investigation.scenario", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            HStack(spacing: 12) {
-                lightGroup(
-                    title: L10n.text("lab.investigation.groupA", store.language),
-                    hours: "4"
-                )
-                Image(systemName: "arrow.left.and.right")
-                    .foregroundStyle(.secondary)
-                    .accessibilityHidden(true)
-                lightGroup(
-                    title: L10n.text("lab.investigation.groupB", store.language),
-                    hours: "8"
-                )
-            }
-
-            VStack(alignment: .leading, spacing: 10) {
-                Picker(
-                    L10n.text("lab.investigation.change", store.language),
-                    selection: Binding(
-                        get: { design.factorToChange },
-                        set: { design.factorToChange = $0; didReviewDesign = false }
-                    )
-                ) {
-                    ForEach(BiologyStudyFactor.allCases, id: \.self) { factor in
-                        Text(L10n.text(factorTitleKey(factor), store.language)).tag(factor)
-                    }
-                }
-                .pickerStyle(.menu)
-
-                Picker(
-                    L10n.text("lab.investigation.measure", store.language),
-                    selection: Binding(
-                        get: { design.outcomeToMeasure },
-                        set: { design.outcomeToMeasure = $0; didReviewDesign = false }
-                    )
-                ) {
-                    ForEach(BiologyStudyOutcome.allCases, id: \.self) { outcome in
-                        Text(L10n.text(outcomeTitleKey(outcome), store.language)).tag(outcome)
-                    }
-                }
-                .pickerStyle(.menu)
-            }
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.text("lab.investigation.keepSame", store.language))
-                    .font(.callout.weight(.semibold))
-                ForEach(BiologyStudyControl.allCases, id: \.self) { control in
-                    Toggle(
-                        L10n.text(controlTitleKey(control), store.language),
-                        isOn: Binding(
-                            get: { design.controls.contains(control) },
-                            set: { isSelected in
-                                if isSelected {
-                                    design.controls.insert(control)
-                                } else {
-                                    design.controls.remove(control)
-                                }
-                                didReviewDesign = false
-                            }
-                        )
-                    )
-                    .toggleStyle(.checkbox)
-                }
-            }
-
-            Stepper(
-                value: Binding(
-                    get: { design.independentUnitsPerCondition },
-                    set: { design.independentUnitsPerCondition = $0; didReviewDesign = false }
-                ),
-                in: 1...12
-            ) {
-                Text(
-                    String(
-                        format: L10n.text("lab.investigation.replicates", store.language),
-                        design.independentUnitsPerCondition
-                    )
-                )
-                .monospacedDigit()
-            }
-
-            Stepper(
-                value: Binding(
-                    get: { design.plantsPerUnit },
-                    set: { design.plantsPerUnit = $0; didReviewDesign = false }
-                ),
-                in: 1...12
-            ) {
-                Text(
-                    String(
-                        format: L10n.text("lab.investigation.plantsPerUnit", store.language),
-                        design.plantsPerUnit
-                    )
-                )
-                .monospacedDigit()
-            }
-
-            Text(L10n.text("lab.investigation.replicationHint", store.language))
+            LabHeader(title: text("lab.investigation.title"), instruction: text("lab.investigation.scenario"))
+            Canvas { context, size in drawBench(context, size: size) }
+                .frame(height: 210)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.investigation.bench"))
+                .accessibilityValue(Text(verbatim: design.issues.isEmpty ? text("lab.investigation.ready")
+                                         : design.issues.map { text(issueTitleKey($0)) }.joined(separator: " ")))
+            Text(text("lab.investigation.benchLegend"))
                 .font(.caption)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
-
-            Button {
-                didReviewDesign = true
-            } label: {
-                Label(
-                    L10n.text("lab.investigation.check", store.language),
-                    systemImage: "checkmark.magnifyingglass"
-                )
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(.green)
-
-            if didReviewDesign {
-                if design.isReadyToCollectData {
-                    Label(
-                        L10n.text("lab.investigation.ready", store.language),
-                        systemImage: "checkmark.seal.fill"
-                    )
-                    .font(.callout.weight(.semibold))
-                    .foregroundStyle(.green)
-                    .fixedSize(horizontal: false, vertical: true)
-                    Text(L10n.text("lab.investigation.noResults", store.language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Label(
-                            L10n.text("lab.investigation.review", store.language),
-                            systemImage: "exclamationmark.circle"
-                        )
-                            .font(.callout.weight(.semibold))
-                            .foregroundStyle(.orange)
-                        ForEach(design.issues, id: \.self) { issue in
-                            Label(
-                                L10n.text(issueTitleKey(issue), store.language),
-                                systemImage: "arrow.turn.down.right"
-                            )
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Picker(text("lab.investigation.change"), selection: Binding(
+                        get: { design.factorToChange },
+                        set: { design.factorToChange = $0; didReviewDesign = false }
+                    )) {
+                        ForEach(BiologyStudyFactor.allCases, id: \.self) { factor in
+                            Text(text(factorTitleKey(factor))).tag(factor)
                         }
                     }
+                    .pickerStyle(.menu)
+                    Picker(text("lab.investigation.measure"), selection: Binding(
+                        get: { design.outcomeToMeasure },
+                        set: { design.outcomeToMeasure = $0; didReviewDesign = false }
+                    )) {
+                        ForEach(BiologyStudyOutcome.allCases, id: \.self) { outcome in
+                            Text(text(outcomeTitleKey(outcome))).tag(outcome)
+                        }
+                    }
+                    .pickerStyle(.menu)
+                    Stepper(value: Binding(
+                        get: { design.independentUnitsPerCondition },
+                        set: { design.independentUnitsPerCondition = $0; didReviewDesign = false }
+                    ), in: 1...12) {
+                        Text(String(format: text("lab.investigation.replicates"), design.independentUnitsPerCondition))
+                            .monospacedDigit()
+                    }
+                    Stepper(value: Binding(
+                        get: { design.plantsPerUnit },
+                        set: { design.plantsPerUnit = $0; didReviewDesign = false }
+                    ), in: 1...12) {
+                        Text(String(format: text("lab.investigation.plantsPerUnit"), design.plantsPerUnit))
+                            .monospacedDigit()
+                    }
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(text("lab.investigation.keepSame"))
+                        .font(.callout.weight(.semibold))
+                    ForEach(BiologyStudyControl.allCases, id: \.self) { control in
+                        Toggle(text(controlTitleKey(control)), isOn: Binding(
+                            get: { design.controls.contains(control) },
+                            set: { isSelected in
+                                if isSelected { design.controls.insert(control) } else { design.controls.remove(control) }
+                                didReviewDesign = false
+                            }
+                        ))
+                        .toggleStyle(.checkbox)
+                    }
+                }
+            }
+            Text(text("lab.investigation.replicationHint"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 12) {
+                Button {
+                    didReviewDesign = true
+                } label: {
+                    Label(text("lab.investigation.check"), systemImage: "checkmark.magnifyingglass")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.green)
+                LabStatusBadge(kind: design.isReadyToCollectData ? .good : .warning,
+                               text: String(format: text("lab.investigation.issueCount"), design.issues.count))
+            }
+            if didReviewDesign { reviewResult }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.investigation.challenge"),
+                         solved: didReviewDesign && design.isReadyToCollectData, solvedText: text("lab.investigation.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.investigation.noResults")])
+        }
+    }
+
+    @ViewBuilder
+    private var reviewResult: some View {
+        if design.isReadyToCollectData {
+            Label(text("lab.investigation.ready"), systemImage: "checkmark.seal.fill")
+                .font(.callout.weight(.semibold))
+                .foregroundStyle(.green)
+                .fixedSize(horizontal: false, vertical: true)
+        } else {
+            VStack(alignment: .leading, spacing: 6) {
+                Label(text("lab.investigation.review"), systemImage: "exclamationmark.circle")
+                    .font(.callout.weight(.semibold))
+                    .foregroundStyle(.orange)
+                ForEach(design.issues, id: \.self) { issue in
+                    Label(text(issueTitleKey(issue)), systemImage: "arrow.turn.down.right")
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
         }
     }
 
-    private func lightGroup(title: String, hours: String) -> some View {
-        VStack(spacing: 7) {
-            Image(systemName: "sun.max.fill")
-                .font(.title2)
-                .foregroundStyle(.orange)
-                .accessibilityHidden(true)
-            Text(title)
-                .font(.caption.weight(.medium))
-            Text(
-                String(
-                    format: L10n.text("lab.investigation.hours", store.language),
-                    hours
-                )
-            )
-            .font(.callout.weight(.semibold).monospacedDigit())
+    // Two groups of pots. The factor being changed differs on purpose; anything not held constant differs too, and then
+    // a difference in growth could not be pinned on the factor.
+    private func drawBench(_ context: GraphicsContext, size: CGSize) {
+        let half = size.width / 2
+        for group in 0..<2 {
+            let origin = CGFloat(group) * half
+            let lightDiffers = design.factorToChange == .lightExposure
+            let hours = lightDiffers ? (group == 0 ? 4 : 8) : 6
+            drawLamp(context, centre: CGPoint(x: origin + half / 2, y: 26), rays: hours)
+            let warm = !design.controls.contains(.temperatureAndDuration) && group == 1
+            context.draw(Text(verbatim: warm ? "26 °C" : "20 °C").font(.caption2.weight(.semibold)).foregroundColor(warm ? .red : .secondary),
+                         at: CGPoint(x: origin + half - 30, y: 22))
+            let units = design.independentUnitsPerCondition
+            let columns = min(units, 6)
+            let rows = units > 6 ? 2 : 1
+            let potWidth = min(58, (half - 30) / CGFloat(max(columns, 3)) - 6)
+            for unit in 0..<units {
+                let column = unit % 6, row = unit / 6
+                let x = origin + 15 + (half - 30 - CGFloat(columns) * (potWidth + 6)) / 2 + CGFloat(column) * (potWidth + 6)
+                let y = size.height - 30 - CGFloat(rows - 1 - row) * 62
+                drawPot(context, x: x, bottom: y, width: potWidth, group: group, unit: unit)
+            }
+            let label = text(group == 0 ? "lab.investigation.groupA" : "lab.investigation.groupB")
+                + (lightDiffers ? " · " + String(format: text("lab.investigation.hours"), "\(hours)") : "")
+            context.draw(Text(verbatim: label).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: origin + half / 2, y: size.height - 10))
         }
-        .frame(maxWidth: .infinity)
-        .padding(12)
-        .background(Color.green.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+        var divider = Path()
+        divider.move(to: CGPoint(x: half, y: 10))
+        divider.addLine(to: CGPoint(x: half, y: size.height - 22))
+        context.stroke(divider, with: .color(.secondary.opacity(0.3)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
+    }
+
+    private func drawLamp(_ context: GraphicsContext, centre: CGPoint, rays: Int) {
+        var beams = Path()
+        for ray in 0..<rays {
+            let angle = Double(ray) / Double(rays) * 2 * .pi
+            beams.move(to: CGPoint(x: centre.x + 11 * CGFloat(cos(angle)), y: centre.y + 11 * CGFloat(sin(angle))))
+            beams.addLine(to: CGPoint(x: centre.x + 19 * CGFloat(cos(angle)), y: centre.y + 19 * CGFloat(sin(angle))))
+        }
+        context.stroke(beams, with: .color(.orange), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+        context.fill(Path(ellipseIn: CGRect(x: centre.x - 8, y: centre.y - 8, width: 16, height: 16)), with: .color(.yellow))
+    }
+
+    private func drawPot(_ context: GraphicsContext, x: CGFloat, bottom: CGFloat, width: CGFloat, group: Int, unit: Int) {
+        let varied = { (control: BiologyStudyControl) -> Bool in !design.controls.contains(control) }
+        let seed = (group * 7 + unit * 3) % 5
+        let potHeight: CGFloat = varied(.potAndSoil) ? 18 + CGFloat(seed) * 3 : 24
+        let potColor: Color = varied(.potAndSoil) && seed % 2 == 1 ? .gray : .brown
+        let pot = CGRect(x: x, y: bottom - potHeight, width: width, height: potHeight)
+        context.fill(Path(roundedRect: pot, cornerRadius: 3), with: .color(potColor.opacity(0.75)))
+        let waterDiffers = design.factorToChange == .waterAmount || varied(.waterAmount)
+        let water: CGFloat = waterDiffers ? (design.factorToChange == .waterAmount ? (group == 0 ? 0.25 : 0.75) : CGFloat(seed) / 5 + 0.1) : 0.5
+        context.fill(Path(CGRect(x: pot.minX + 2, y: pot.maxY - 2 - (potHeight - 4) * water, width: pot.width - 4, height: (potHeight - 4) * water)),
+                     with: .color(.blue.opacity(0.55)))
+        let plantDiffers = design.factorToChange == .plantType || varied(.seedType)
+        let altKind = plantDiffers && (design.factorToChange == .plantType ? group == 1 : seed % 2 == 0)
+        let stems = min(design.plantsPerUnit, 5)
+        for stem in 0..<stems {
+            let stemX = pot.minX + pot.width * (CGFloat(stem) + 0.5) / CGFloat(stems)
+            var line = Path()
+            line.move(to: CGPoint(x: stemX, y: pot.minY))
+            line.addLine(to: CGPoint(x: stemX, y: pot.minY - 26))
+            context.stroke(line, with: .color(.green), lineWidth: 2)
+            let leaf = CGRect(x: stemX - 5, y: pot.minY - 34, width: 10, height: 10)
+            if altKind {
+                var spike = Path()
+                spike.move(to: CGPoint(x: stemX, y: pot.minY - 38))
+                spike.addLine(to: CGPoint(x: stemX - 5, y: pot.minY - 25))
+                spike.addLine(to: CGPoint(x: stemX + 5, y: pot.minY - 25))
+                spike.closeSubpath()
+                context.fill(spike, with: .color(.mint))
+            } else {
+                context.fill(Path(ellipseIn: leaf), with: .color(.green))
+            }
+        }
+        if design.plantsPerUnit > 5 {
+            context.draw(Text(verbatim: "+\(design.plantsPerUnit - 5)").font(.system(size: 9, weight: .bold)).foregroundColor(.secondary),
+                         at: CGPoint(x: pot.midX, y: pot.maxY + 7))
+        }
     }
 
     private func factorTitleKey(_ factor: BiologyStudyFactor) -> String {
         switch factor {
-        case .lightExposure:
-            return "lab.investigation.factor.light"
-        case .waterAmount:
-            return "lab.investigation.factor.water"
-        case .plantType:
-            return "lab.investigation.factor.plant"
+        case .lightExposure: return "lab.investigation.factor.light"
+        case .waterAmount: return "lab.investigation.factor.water"
+        case .plantType: return "lab.investigation.factor.plant"
         }
     }
 
     private func outcomeTitleKey(_ outcome: BiologyStudyOutcome) -> String {
         switch outcome {
-        case .heightChange:
-            return "lab.investigation.outcome.height"
-        case .leafCount:
-            return "lab.investigation.outcome.leaves"
-        case .soilMoisture:
-            return "lab.investigation.outcome.soil"
+        case .heightChange: return "lab.investigation.outcome.height"
+        case .leafCount: return "lab.investigation.outcome.leaves"
+        case .soilMoisture: return "lab.investigation.outcome.soil"
         }
     }
 
     private func controlTitleKey(_ control: BiologyStudyControl) -> String {
         switch control {
-        case .waterAmount:
-            return "lab.investigation.control.water"
-        case .seedType:
-            return "lab.investigation.control.seed"
-        case .potAndSoil:
-            return "lab.investigation.control.pot"
-        case .temperatureAndDuration:
-            return "lab.investigation.control.conditions"
+        case .waterAmount: return "lab.investigation.control.water"
+        case .seedType: return "lab.investigation.control.seed"
+        case .potAndSoil: return "lab.investigation.control.pot"
+        case .temperatureAndDuration: return "lab.investigation.control.conditions"
         }
     }
 
@@ -4873,115 +5052,92 @@ private struct LinearFunctionLab: View {
         self.lessonID = lessonID
     }
 
-    private var function: LinearFunctionModel {
-        LinearFunctionModel(slope: slope, intercept: intercept)!
-    }
-
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var function: LinearFunctionModel { LinearFunctionModel(slope: slope, intercept: intercept)! }
     private var formula: String {
         let slopeTerm = slope < 0 ? "− \(format(abs(slope)))x" : "\(format(slope))x"
         let interceptTerm = intercept < 0 ? "− \(format(abs(intercept)))" : "+ \(format(intercept))"
         return "y = \(slopeTerm) \(interceptTerm)"
     }
-
     private var parsedAnswer: Double? {
-        let normalized = predictionText
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-            .replacingOccurrences(of: ",", with: ".")
-        return Double(normalized)
+        Double(predictionText.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: ",", with: "."))
     }
-
+    private var revealed: Bool { round.lastAnswerCorrect == true || round.attempts >= 2 }
     private var solutionText: String {
-        String(
-            format: L10n.text("lab.linear.solution", store.language),
-            format(slope),
-            format(input),
-            format(intercept),
-            format(function.value(at: input)!)
-        )
+        String(format: text("lab.linear.solution"), format(slope), format(input), format(intercept), format(function.value(at: input)!))
     }
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.linear.prompt", store.language))
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-
+            LabHeader(title: text("lab.linear.title"), instruction: text("lab.linear.prompt"))
             Text(formula)
                 .font(.system(.title2, design: .monospaced, weight: .semibold))
-                .accessibilityLabel(Text(String(format: L10n.text("lab.linear.formula", store.language), formula)))
-
+                .accessibilityLabel(Text(String(format: text("lab.linear.formula"), formula)))
             LinearFunctionPlot(function: function, input: input, language: store.language)
-                .frame(height: 230)
-
-            Text(String(format: L10n.text("lab.linear.currentInput", store.language), format(input)))
-                .font(.callout.monospacedDigit())
-                .foregroundStyle(.secondary)
-
+                .frame(height: 260)
             VStack(spacing: 10) {
                 parameterRow("lab.linear.slope", value: $slope, range: -2...2, step: 0.5)
                 parameterRow("lab.linear.intercept", value: $intercept, range: -4...4, step: 0.5)
                 parameterRow("lab.linear.input", value: $input, range: -3...3, step: 0.5)
             }
-
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                TextField(L10n.text("lab.linear.placeholder", store.language), text: $predictionText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 240)
-                    .accessibilityLabel(Text(L10n.text("lab.linear.prediction", store.language)))
-                    .onSubmit { checkPrediction() }
-                    .disabled(round.lastAnswerCorrect == true || round.attempts >= 2)
-
-                if round.submittedAnswer == nil {
-                    Button(L10n.text("lab.linear.check", store.language)) {
-                        checkPrediction()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(parsedAnswer == nil)
-                } else if round.lastAnswerCorrect == false && round.attempts < 2 {
-                    Button(L10n.text("lab.linear.retry", store.language)) {
-                        retryPrediction()
-                    }
-                    .buttonStyle(.bordered)
-                }
+            LabStatGrid {
+                LabStat(label: text("lab.linear.slope"), value: format(slope), tint: .purple)
+                LabStat(label: text("lab.linear.statIntercept"), value: format(intercept), tint: .orange)
+                LabStat(label: "x", value: format(input), tint: .teal)
+                LabStat(label: "y", value: revealed ? format(function.value(at: input)!) : "?", tint: .accentColor)
             }
-
-            if let isCorrect = round.lastAnswerCorrect {
-                Label(
-                    L10n.text(isCorrect ? "lab.linear.correct" : "lab.linear.incorrect", store.language),
-                    systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .foregroundStyle(isCorrect ? Color.green : Color.orange)
-                .fixedSize(horizontal: false, vertical: true)
-
-                if isCorrect || round.attempts >= 2 {
-                    Text(solutionText)
-                        .font(.callout.monospacedDigit())
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                } else {
-                    Text(L10n.text("lab.linear.hint", store.language))
-                        .font(.callout)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.linear.challenge"),
+                         solved: slope == 2 && intercept == 1, solvedText: text("lab.linear.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.linear.hint"), text("lab.linear.slopeNote")])
         }
         .onChange(of: slope) { _ in resetPrediction() }
         .onChange(of: intercept) { _ in resetPrediction() }
         .onChange(of: input) { _ in resetPrediction() }
     }
 
-    private func parameterRow(
-        _ labelKey: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        step: Double
-    ) -> some View {
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(String(format: text("lab.linear.currentInput"), format(input)))
+                .font(.callout.weight(.medium).monospacedDigit())
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                TextField(text("lab.linear.placeholder"), text: $predictionText)
+                    .textFieldStyle(.roundedBorder)
+                    .frame(maxWidth: 240)
+                    .accessibilityLabel(Text(text("lab.linear.prediction")))
+                    .onSubmit { checkPrediction() }
+                    .disabled(round.lastAnswerCorrect == true || round.attempts >= 2)
+                if round.submittedAnswer == nil {
+                    Button(text("lab.linear.check")) { checkPrediction() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(parsedAnswer == nil)
+                } else if round.lastAnswerCorrect == false && round.attempts < 2 {
+                    Button(text("lab.linear.retry")) { retryPrediction() }
+                        .buttonStyle(.bordered)
+                }
+            }
+            if let isCorrect = round.lastAnswerCorrect {
+                Label(text(isCorrect ? "lab.linear.correct" : "lab.linear.incorrect"),
+                      systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .foregroundStyle(isCorrect ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(isCorrect || round.attempts >= 2 ? solutionText : text("lab.linear.hint"))
+                    .font(.callout.monospacedDigit())
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func parameterRow(_ labelKey: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double) -> some View {
         HStack(spacing: 10) {
-            Text(L10n.text(labelKey, store.language))
-                .frame(width: 146, alignment: .leading)
-            Slider(value: value, in: range, step: step)
-                .accessibilityLabel(Text(L10n.text(labelKey, store.language)))
+            Text(text(labelKey))
+                .frame(width: 200, alignment: .leading)
+            // Rounded to the step without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step }), in: range)
+                .accessibilityLabel(Text(text(labelKey)))
             Text(format(value.wrappedValue))
                 .font(.callout.monospacedDigit())
                 .frame(width: 54, alignment: .trailing)
@@ -5006,11 +5162,7 @@ private struct LinearFunctionLab: View {
     }
 
     private func format(_ value: Double) -> String {
-        value.formatted(
-            .number
-                .locale(Locale(identifier: store.language == .ru ? "ru_RU" : "en_US"))
-                .precision(.fractionLength(0...2))
-        )
+        value.formatted(.number.locale(Locale(identifier: store.language == .ru ? "ru_RU" : "en_US")).precision(.fractionLength(0...2)))
     }
 }
 
@@ -5180,58 +5332,67 @@ private struct ForceLab: View {
         _prediction = State(initialValue: Self.makePrediction())
     }
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
     private var motion: ForceMotion { ForceMotion(force: force, mass: mass, time: elapsed) }
     private var isRunning: Bool { startedAt != nil }
 
     var body: some View {
         LabCard {
+            LabHeader(title: text("lab.forceTitle"), instruction: text("lab.forceSubtitle"))
             if lessonID != nil {
                 predictionView
             }
             Force3DVisualization(force: force, mass: mass, displacement: motion.displacement, language: store.language)
-                .frame(height: 240)
+                .frame(height: 220)
                 .clipShape(RoundedRectangle(cornerRadius: 14))
-                .accessibilityLabel(Text(L10n.text("lab.force3DHint", store.language)))
-            Text(L10n.text("lab.force3DHint", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text("F = ma   ·   v = at   ·   x = ½at²")
-                .font(.system(.headline, design: .monospaced))
-            Text(L10n.text("lab.forceAssumptions", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-            valueSlider(title: L10n.text("lab.force", store.language), value: $force, range: -30...30, unit: "N")
-            valueSlider(title: L10n.text("lab.mass", store.language), value: $mass, range: 1...10, unit: "kg")
+                .accessibilityLabel(Text(text("lab.force3DHint")))
+            HStack(spacing: 14) {
+                Canvas { context, size in drawMotionChart(context, size: size, showsVelocity: true) }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.forceVelocityChart"))
+                    .accessibilityValue(Text(verbatim: measure(motion.velocity, 2, "m/s")))
+                Canvas { context, size in drawMotionChart(context, size: size, showsVelocity: false) }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.forcePositionChart"))
+                    .accessibilityValue(Text(verbatim: measure(motion.displacement, 2, "m")))
+            }
+            .frame(height: 160)
+            valueSlider(title: text("lab.force"), value: $force, range: -30...30, unit: "N")
+            valueSlider(title: text("lab.mass"), value: $mass, range: 1...10, unit: "kg")
             HStack {
                 Button {
                     if isRunning { pause() } else { start() }
                 } label: {
-                    Label(L10n.text(isRunning ? "lab.motionPause" : "lab.motionPlay", store.language),
-                          systemImage: isRunning ? "pause.fill" : "play.fill")
+                    Label(text(isRunning ? "lab.motionPause" : "lab.motionPlay"), systemImage: isRunning ? "pause.fill" : "play.fill")
                 }
+                .buttonStyle(.borderedProminent)
                 .disabled(reduceMotion || scenePhase != .active)
-                Button(L10n.text("lab.motionStep", store.language)) {
+                Button(text("lab.motionStep")) {
                     elapsed = min(ForceMotion.duration, elapsed + 0.1)
                 }
                 .disabled(isRunning || motion.hasFinished)
-                Button(L10n.text("lab.motionReset", store.language), action: reset)
+                Button(text("lab.motionReset"), action: reset)
+                ProgressView(value: elapsed, total: ForceMotion.duration)
+                    .accessibilityLabel(Text(text("lab.motionTime")))
+                    .accessibilityValue(Text(verbatim: L10n.number(elapsed, fractionDigits: 1, store.language) + " / " + measure(ForceMotion.duration, 0, "s")))
             }
-            ProgressView(value: elapsed, total: ForceMotion.duration)
-                .accessibilityLabel(Text(L10n.text("lab.motionTime", store.language)))
-                .accessibilityValue(Text(verbatim: L10n.number(elapsed, fractionDigits: 1, store.language) + " / " + L10n.measurement(ForceMotion.duration, fractionDigits: 0, unit: "s", store.language)))
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 145), alignment: .leading)], alignment: .leading, spacing: 12) {
-                reading("lab.motionTime", value: elapsed, unit: "s")
-                reading("lab.acceleration", value: motion.acceleration, unit: "m/s²")
-                reading("lab.motionVelocity", value: motion.velocity, unit: "m/s")
-                reading("lab.motionDisplacement", value: motion.displacement, unit: "m")
+            LabStatGrid {
+                LabStat(label: text("lab.motionTime"), value: measure(elapsed, 2, "s"), tint: .secondary)
+                LabStat(label: text("lab.acceleration"), value: measure(motion.acceleration, 2, "m/s²"), tint: .purple)
+                LabStat(label: text("lab.motionVelocity"), value: measure(motion.velocity, 2, "m/s"), tint: .blue)
+                LabStat(label: text("lab.motionDisplacement"), value: measure(motion.displacement, 2, "m"), tint: .orange)
             }
             if reduceMotion {
-                Text(L10n.text("lab.motionReduced", store.language)).font(.caption).foregroundStyle(.secondary)
+                Text(text("lab.motionReduced")).font(.caption).foregroundStyle(.secondary)
             }
             if motion.hasFinished {
-                Text(L10n.text("lab.motionFinished", store.language)).font(.callout)
+                Text(text("lab.motionFinished")).font(.callout)
             }
-            Text(L10n.text("lab.forceExperiment", store.language)).font(.callout)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.forceChallenge"),
+                         solved: abs(motion.acceleration - 2) < 0.001 && motion.hasFinished, solvedText: text("lab.forceChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: ["F = ma   ·   v = at   ·   x = ½at²", text("lab.forceAssumptions"),
+                                                                 text("lab.forceExperiment"), text("lab.force3DHint")])
         }
         .onReceive(timer) { _ in advance() }
         .onChange(of: force) { _ in reset() }
@@ -5241,9 +5402,40 @@ private struct ForceLab: View {
         .onDisappear(perform: pause)
     }
 
+    /// Axis limits that change only in round steps, so a steeper line still looks steeper after a slider move.
+    private static func niceLimit(_ value: Double) -> Double {
+        [2.0, 5, 10, 20, 40, 60, 120].first { $0 >= abs(value) } ?? 120
+    }
+
+    // v(t) = at is a straight line; x(t) = ½at² is a parabola. Dashed: the whole 2 s run; solid: the part already travelled.
+    private func drawMotionChart(_ context: GraphicsContext, size: CGSize, showsVelocity: Bool) {
+        let duration = ForceMotion.duration
+        let acceleration = force / mass
+        let value: (Double) -> Double = { t in showsVelocity ? acceleration * t : 0.5 * acceleration * t * t }
+        let limit = Self.niceLimit(value(duration))
+        let plot = LabPlotGeometry(size: size, x: 0...duration, y: -limit...limit, leading: 40, bottom: 26)
+        plot.drawAxes(in: context, xLabel: "t, " + L10n.unit("s", store.language),
+                      yLabel: showsVelocity ? "v, " + L10n.unit("m/s", store.language) : "x, " + L10n.unit("m", store.language),
+                      xTicks: [0, 0.5, 1, 1.5, 2], yTicks: [-limit, 0, limit], format: { L10n.number($0, fractionDigits: $0 == $0.rounded() ? 0 : 1, store.language) })
+        let colour: Color = showsVelocity ? .blue : .orange
+        var whole = Path(), travelled = Path()
+        for step in 0...80 {
+            let t = duration * Double(step) / 80
+            let point = plot.point(t, value(t))
+            if step == 0 { whole.move(to: point) } else { whole.addLine(to: point) }
+            if t <= elapsed + 0.0001 {
+                if step == 0 { travelled.move(to: point) } else { travelled.addLine(to: point) }
+            }
+        }
+        context.stroke(whole, with: .color(colour.opacity(0.35)), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+        context.stroke(travelled, with: .color(colour), lineWidth: 3)
+        let now = plot.point(elapsed, value(elapsed))
+        context.fill(Path(ellipseIn: CGRect(x: now.x - 5, y: now.y - 5, width: 10, height: 10)), with: .color(colour))
+    }
+
     private var predictionView: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text(L10n.text("lab.forcePredictionPrompt", store.language))
+            Text(text("lab.forcePredictionPrompt"))
                 .font(.headline)
                 .fixedSize(horizontal: false, vertical: true)
             ForEach(0..<prediction.choiceOrder.displayedOriginalIndices.count, id: \.self) { displayedIndex in
@@ -5255,7 +5447,7 @@ private struct ForceLab: View {
                         if prediction.selectedOriginalIndex == optionIndex {
                             Image(systemName: prediction.isCorrect ? "checkmark.circle.fill" : "xmark.circle.fill")
                         }
-                        Text(L10n.text("lab.forcePredictionOption.\(optionIndex)", store.language))
+                        Text(text("lab.forcePredictionOption.\(optionIndex)"))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
@@ -5264,20 +5456,20 @@ private struct ForceLab: View {
             }
             if prediction.hasAnswered {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.forcePredictionCorrect", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.forcePredictionCorrect"), systemImage: "checkmark.circle.fill")
                         .font(.callout)
                         .foregroundStyle(.green)
-                    Button(L10n.text("lab.forcePredictionNew", store.language), action: startNewPrediction)
+                    Button(text("lab.forcePredictionNew"), action: startNewPrediction)
                         .buttonStyle(.link)
                 } else {
-                    Label(L10n.text("lab.forcePredictionWrong", store.language), systemImage: "arrow.counterclockwise.circle")
+                    Label(text("lab.forcePredictionWrong"), systemImage: "arrow.counterclockwise.circle")
                         .font(.callout)
                         .foregroundStyle(.orange)
-                    Text(L10n.text("lab.forcePredictionHint", store.language))
+                    Text(text("lab.forcePredictionHint"))
                         .font(.caption)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.forcePredictionRetry", store.language), action: retryPrediction)
+                    Button(text("lab.forcePredictionRetry"), action: retryPrediction)
                         .buttonStyle(.link)
                 }
             }
@@ -5314,14 +5506,6 @@ private struct ForceLab: View {
         return attempt
     }
 
-    private func reading(_ key: String, value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(key, store.language)).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: L10n.measurement(value, fractionDigits: 2, unit: unit, store.language)).monospacedDigit()
-        }
-        .accessibilityElement(children: .combine)
-    }
-
     private func start() {
         guard !reduceMotion, scenePhase == .active else { return }
         if motion.hasFinished { elapsed = 0 }
@@ -5349,17 +5533,19 @@ private struct ForceLab: View {
     }
 
     private func valueSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, step: 1)
+        HStack(spacing: 12) {
+            Text(title).frame(width: 150, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { newValue in
+                let rounded = newValue.rounded()
+                if rounded != value.wrappedValue { value.wrappedValue = rounded }
+            }), in: range)
                 .accessibilityLabel(Text(title))
+            Text(verbatim: measure(value.wrappedValue, 0, unit))
+                .monospacedDigit()
+                .frame(width: 64, alignment: .trailing)
         }
+        .font(.callout)
     }
 }
 
@@ -5370,79 +5556,104 @@ private struct LengthMeasurementLab: View {
 
     private let scaleCentimetres = 32.0
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
     private var measurement: LengthMeasurement {
         LengthMeasurement(centimetres: length, uncertaintyCentimetres: uncertainty)
     }
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.measurementTitle", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.measurementHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
+            LabHeader(title: text("lab.measurementTitle"), instruction: text("lab.measurementSubtitle"))
+            GeometryReader { proxy in
+                ruler(size: proxy.size)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                        let usable = proxy.size.width - 32
+                        let centimetres = Double((drag.location.x - 16) / usable) * scaleCentimetres
+                        length = min(max((centimetres * 10).rounded() / 10, 3), 30)
+                    })
+            }
+            .frame(height: 150)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(text("lab.measurementBand")))
+            .accessibilityValue(Text(verbatim: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language)
+                + "–" + measure(measurement.upperCentimetres, 1, "cm")))
+            measurementSlider(title: text("lab.measurementLength"), value: $length, range: 3...30)
+            measurementSlider(title: text("lab.measurementUncertainty"), value: $uncertainty, range: 0.1...2)
+            Text(verbatim: L10n.number(length, fractionDigits: 1, store.language) + " ± " + measure(uncertainty, 1, "cm")
+                + " = " + L10n.number(measurement.metres, fractionDigits: 3, store.language) + " ± " + measure(measurement.uncertaintyMetres, 3, "m"))
+                .font(.title3.monospacedDigit().weight(.semibold))
+                .textSelection(.enabled)
+            LabStatGrid {
+                LabStat(label: text("lab.measurementInterval"),
+                        value: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language) + "–" + measure(measurement.upperCentimetres, 1, "cm"), tint: .accentColor)
+                LabStat(label: text("lab.measurementRelative"), value: measure(measurement.relativeUncertaintyPercent, 1, "%"),
+                        tint: measurement.relativeUncertaintyPercent < 1 ? .green : .orange)
+                LabStat(label: text("lab.measurementInMetres"), value: measure(measurement.metres, 3, "m"), tint: .purple)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.measurementChallenge"),
+                         solved: length >= 10 && measurement.relativeUncertaintyPercent < 1, solvedText: text("lab.measurementChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.measurementHint"), text("lab.measurementLimits")])
+        }
+    }
 
-            GeometryReader { geometry in
-                let trackWidth = max(geometry.size.width - 12, 0)
-                let lowerX = measurement.lowerCentimetres / scaleCentimetres * trackWidth
-                let centreX = measurement.centimetres / scaleCentimetres * trackWidth
-                let bandWidth = 2 * uncertainty / scaleCentimetres * trackWidth
-                ZStack(alignment: .topLeading) {
-                    Capsule()
-                        .fill(.secondary.opacity(0.5))
-                        .frame(width: trackWidth, height: 3)
-                        .offset(x: 6, y: 25)
-                    Capsule()
-                        .fill(Color.accentColor.opacity(0.35))
-                        .frame(width: bandWidth, height: 18)
-                        .offset(x: 6 + lowerX, y: 17)
-                    Circle()
-                        .fill(Color.accentColor)
-                        .frame(width: 10, height: 10)
-                        .offset(x: 1 + centreX, y: 21)
+    // A ruler with millimetre ticks; the measured strip ends at the reading, and the blue band is the range the true length can lie in.
+    private func ruler(size: CGSize) -> some View {
+        Canvas { context, size in
+            let left: CGFloat = 16
+            let usable = size.width - 32
+            let perCentimetre = usable / CGFloat(scaleCentimetres)
+            let top: CGFloat = 70
+            let body = CGRect(x: left - 6, y: top, width: usable + 12, height: 52)
+            context.fill(Path(roundedRect: body, cornerRadius: 6), with: .color(Color(red: 0.93, green: 0.82, blue: 0.55).opacity(0.85)))
+            var ticks = Path()
+            for millimetre in 0...Int(scaleCentimetres * 10) {
+                let x = left + CGFloat(millimetre) / 10 * perCentimetre
+                let tall: CGFloat = millimetre % 10 == 0 ? 18 : (millimetre % 5 == 0 ? 12 : 7)
+                ticks.move(to: CGPoint(x: x, y: top))
+                ticks.addLine(to: CGPoint(x: x, y: top + tall))
+                if millimetre % 10 == 0, (millimetre / 10) % 2 == 0 || perCentimetre > 26 {
+                    context.draw(Text(verbatim: "\(millimetre / 10)").font(.caption2.weight(.semibold)).foregroundColor(.black),
+                                 at: CGPoint(x: x, y: top + 30))
                 }
             }
-            .frame(height: 54)
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel(Text(L10n.text("lab.measurementBand", store.language)))
-            .accessibilityValue(Text(verbatim: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language)
-                + "–" + L10n.measurement(measurement.upperCentimetres, fractionDigits: 1, unit: "cm", store.language)))
-
-            HStack {
-                Text(verbatim: L10n.measurement(0, fractionDigits: 0, unit: "cm", store.language))
-                Spacer()
-                Text(verbatim: L10n.measurement(scaleCentimetres, fractionDigits: 0, unit: "cm", store.language))
+            context.stroke(ticks, with: .color(.black.opacity(0.75)), lineWidth: 0.8)
+            context.draw(Text(verbatim: L10n.unit("cm", store.language)).font(.caption2).foregroundColor(.black.opacity(0.7)),
+                         at: CGPoint(x: body.maxX - 14, y: top + 44))
+            let lower = left + CGFloat(measurement.lowerCentimetres) * perCentimetre
+            let upper = left + CGFloat(measurement.upperCentimetres) * perCentimetre
+            let end = left + CGFloat(length) * perCentimetre
+            context.fill(Path(roundedRect: CGRect(x: left, y: top - 30, width: end - left, height: 22), cornerRadius: 4), with: .color(.teal.opacity(0.85)))
+            context.fill(Path(CGRect(x: lower, y: top - 40, width: max(upper - lower, 1), height: 92)), with: .color(.blue.opacity(0.18)))
+            var edges = Path()
+            for x in [lower, upper] {
+                edges.move(to: CGPoint(x: x, y: top - 40))
+                edges.addLine(to: CGPoint(x: x, y: top + 52))
             }
-            .font(.caption.monospacedDigit())
-            .foregroundStyle(.secondary)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L10n.text("lab.measurementLength", store.language))
-                Slider(value: $length, in: 3...30, step: 0.1)
-                    .accessibilityLabel(Text(L10n.text("lab.measurementLength", store.language)))
-                    .accessibilityValue(Text(verbatim: L10n.measurement(length, fractionDigits: 1, unit: "cm", store.language)))
-            }
-            VStack(alignment: .leading, spacing: 4) {
-                Text(L10n.text("lab.measurementUncertainty", store.language))
-                Slider(value: $uncertainty, in: 0.1...2, step: 0.1)
-                    .accessibilityLabel(Text(L10n.text("lab.measurementUncertainty", store.language)))
-                    .accessibilityValue(Text(verbatim: L10n.measurement(uncertainty, fractionDigits: 1, unit: "cm", store.language)))
-            }
-
-            Text(verbatim: L10n.number(length, fractionDigits: 1, store.language)
-                + " ± " + L10n.measurement(uncertainty, fractionDigits: 1, unit: "cm", store.language)
-                + " = " + L10n.number(measurement.metres, fractionDigits: 3, store.language)
-                + " ± " + L10n.measurement(measurement.uncertaintyMetres, fractionDigits: 3, unit: "m", store.language))
-                .font(.headline.monospacedDigit())
-                .textSelection(.enabled)
-            Text(verbatim: L10n.text("lab.measurementRelative", store.language) + ": "
-                + L10n.measurement(measurement.relativeUncertaintyPercent, fractionDigits: 1, unit: "%", store.language))
-                .font(.callout.monospacedDigit())
-            Text(L10n.text("lab.measurementLimits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            context.stroke(edges, with: .color(.blue.opacity(0.7)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+            var reading = Path()
+            reading.move(to: CGPoint(x: end, y: top - 46))
+            reading.addLine(to: CGPoint(x: end, y: top + 52))
+            context.stroke(reading, with: .color(.red), lineWidth: 2)
+            context.draw(Text(verbatim: measure(length, 1, "cm") + " ± " + L10n.number(uncertainty, fractionDigits: 1, store.language))
+                            .font(.caption.weight(.bold)).foregroundColor(.red),
+                         at: CGPoint(x: min(max(end, 70), size.width - 70), y: top - 56))
         }
+    }
+
+    private func measurementSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 200, alignment: .leading)
+            // Tenths without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 * 10).rounded() / 10 }), in: range)
+                .accessibilityLabel(Text(title))
+                .accessibilityValue(Text(verbatim: measure(value.wrappedValue, 1, "cm")))
+            Text(verbatim: measure(value.wrappedValue, 1, "cm"))
+                .monospacedDigit()
+                .frame(width: 70, alignment: .trailing)
+        }
+        .font(.callout)
     }
 }
 
@@ -5470,42 +5681,14 @@ private struct FrictionLab: View {
             LabHeader(title: L10n.text("labkit.title.FrictionLab", store.language), instruction: L10n.text("lab.frictionHint", store.language),
                       instructionIdentifier: "lesson.friction.model")
 
-            GeometryReader { geometry in
-                let width = max(geometry.size.width - 64, 0)
-                let travel = min(width, motion.displacement * 16)
-                ZStack(alignment: .leading) {
-                    VStack(spacing: 0) {
-                        Spacer()
-                        Rectangle()
-                            .fill(.secondary.opacity(0.45))
-                            .frame(height: 3)
-                    }
-                    RoundedRectangle(cornerRadius: 10)
-                        .fill(Color.accentColor.gradient)
-                        .overlay {
-                            Image(systemName: "shippingbox.fill")
-                                .foregroundStyle(.white)
-                        }
-                        .frame(width: 54, height: 42)
-                        .offset(x: travel, y: 0)
-                        .accessibilityHidden(true)
-                }
+            Canvas { context, size in drawForces(context, size: size) }
+                .frame(height: 130)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(Text(L10n.text("lab.frictionBlock", store.language)))
                 .accessibilityValue(Text(motion.isSliding
                     ? L10n.text("lab.frictionSliding", store.language)
                     : L10n.text("lab.frictionResting", store.language)))
-            }
-            .frame(height: 64)
-            .accessibilityElement(children: .contain)
-
-            HStack(spacing: 14) {
-                Label("F = " + L10n.measurement(appliedForce, fractionDigits: 1, unit: "N", store.language), systemImage: "arrow.right")
-                Label("f = " + L10n.measurement(motion.frictionForce, fractionDigits: 1, unit: "N", store.language), systemImage: "arrow.left")
-            }
-            .font(.callout.monospacedDigit())
-            .accessibilityElement(children: .combine)
-
             Text(L10n.text(motion.isSliding ? "lab.frictionSliding" : "lab.frictionResting", store.language))
                 .font(.headline)
                 .foregroundStyle(motion.isSliding ? Color.orange : Color.primary)
@@ -5514,6 +5697,12 @@ private struct FrictionLab: View {
                 + L10n.measurement(motion.maximumStaticFriction, fractionDigits: 2, unit: "N", store.language))
                 .font(.callout.monospacedDigit())
                 .accessibilityIdentifier("lesson.friction.threshold")
+            Canvas { context, size in drawFrictionGraph(context, size: size) }
+                .frame(height: 190)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(L10n.text("lab.frictionGraph", store.language)))
+                .accessibilityValue(Text(verbatim: "F = " + L10n.measurement(appliedForce, fractionDigits: 1, unit: "N", store.language)
+                                         + ", f = " + L10n.measurement(motion.frictionForce, fractionDigits: 1, unit: "N", store.language)))
 
             slider("lab.mass", value: $mass, range: 1...10, step: 0.5, unit: "kg", identifier: "mass")
             slider("lab.frictionPush", value: $appliedForce, range: 0...60, step: 1, unit: "N", identifier: "push")
@@ -5532,13 +5721,84 @@ private struct FrictionLab: View {
             Text(L10n.text("lab.frictionPrediction", store.language))
                 .font(.callout)
             predictionPracticeView
-            Text(L10n.text("lab.frictionLimits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.frictionChallenge", store.language),
+                         solved: !motion.isSliding && appliedForce + 1 > motion.maximumStaticFriction,
+                         solvedText: L10n.text("lab.frictionChallengeSolved", store.language))
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.frictionLimits", store.language)])
         }
         .onChange(of: staticCoefficient) { newValue in
             kineticCoefficient = min(kineticCoefficient, newValue)
         }
+    }
+
+    // The block on the floor with its forces: the push to the right, friction to the left, and the normal force up.
+    private func drawForces(_ context: GraphicsContext, size: CGSize) {
+        let floor = size.height - 16
+        let margin: CGFloat = 132
+        let usable = max(size.width - margin * 2 - 64, 0)
+        let blockX = margin + min(usable, CGFloat(motion.displacement) * 16)
+        var ground = Path()
+        ground.move(to: CGPoint(x: 8, y: floor))
+        ground.addLine(to: CGPoint(x: size.width - 8, y: floor))
+        context.stroke(ground, with: .color(.secondary.opacity(0.6)), lineWidth: 3)
+        let block = CGRect(x: blockX, y: floor - 44, width: 64, height: 44)
+        context.fill(Path(roundedRect: block, cornerRadius: 8), with: .color(motion.isSliding ? .orange : .accentColor))
+        context.draw(Text(verbatim: L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)).font(.caption.weight(.bold)).foregroundColor(.white),
+                     at: CGPoint(x: block.midX, y: block.midY))
+        let pixelsPerNewton: CGFloat = 1.6
+        forceArrow(context, from: CGPoint(x: block.maxX, y: block.midY), to: CGPoint(x: block.maxX + CGFloat(appliedForce) * pixelsPerNewton, y: block.midY),
+                   colour: .blue, label: "F = " + L10n.measurement(appliedForce, fractionDigits: 0, unit: "N", store.language), labelOffset: CGPoint(x: 6, y: 0), anchor: .leading)
+        forceArrow(context, from: CGPoint(x: block.minX, y: floor - 8), to: CGPoint(x: block.minX - CGFloat(motion.frictionForce) * pixelsPerNewton, y: floor - 8),
+                   colour: .red, label: "f = " + L10n.measurement(motion.frictionForce, fractionDigits: 1, unit: "N", store.language), labelOffset: CGPoint(x: -6, y: 0), anchor: .trailing)
+        forceArrow(context, from: CGPoint(x: block.midX, y: block.minY), to: CGPoint(x: block.midX, y: block.minY - 34),
+                   colour: .green, label: "N = " + L10n.measurement(motion.normalForce, fractionDigits: 1, unit: "N", store.language), labelOffset: CGPoint(x: 8, y: 8), anchor: .leading)
+    }
+
+    private func forceArrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, colour: Color, label: String, labelOffset: CGPoint, anchor: UnitPoint) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 2 else { return }
+        let ux = dx / length, uy = dy / length
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 9 - uy * 5, y: end.y - uy * 9 + ux * 5))
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 9 + uy * 5, y: end.y - uy * 9 - ux * 5))
+        context.stroke(path, with: .color(colour), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+        context.draw(Text(verbatim: label).font(.caption2.weight(.semibold)).foregroundColor(colour),
+                     at: CGPoint(x: end.x + labelOffset.x, y: end.y + labelOffset.y), anchor: anchor)
+    }
+
+    // Friction against push: at rest f matches F up to the static limit, then the block slips and f drops to the smaller kinetic value.
+    private func drawFrictionGraph(_ context: GraphicsContext, size: CGSize) {
+        let threshold = motion.maximumStaticFriction
+        let kinetic = min(kineticCoefficient, staticCoefficient) * motion.normalForce
+        let plot = LabPlotGeometry(size: size, x: 0...60, y: 0...max(min(threshold, 60) * 1.25, 10), leading: 40, bottom: 28)
+        let unit = L10n.unit("N", store.language)
+        plot.drawAxes(in: context, xLabel: "F, " + unit, yLabel: "f, " + unit, format: { L10n.number($0, fractionDigits: 0, store.language) })
+        let limit = min(threshold, 60)
+        var curve = Path()
+        curve.move(to: plot.point(0, 0))
+        curve.addLine(to: plot.point(limit, limit))
+        context.stroke(curve, with: .color(.accentColor), lineWidth: 3)
+        if threshold < 60 {
+            var drop = Path()
+            drop.move(to: plot.point(threshold, threshold))
+            drop.addLine(to: plot.point(threshold, kinetic))
+            context.stroke(drop, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            var sliding = Path()
+            sliding.move(to: plot.point(threshold, kinetic))
+            sliding.addLine(to: plot.point(60, kinetic))
+            context.stroke(sliding, with: .color(.orange), lineWidth: 3)
+            context.draw(Text(L10n.text("lab.frictionZoneSlide", store.language)).font(.caption.weight(.semibold)).foregroundColor(.orange),
+                         at: CGPoint(x: plot.point((threshold + 60) / 2, 0).x, y: plot.point(0, kinetic).y - 12))
+        }
+        context.draw(Text(L10n.text("lab.frictionZoneRest", store.language)).font(.caption.weight(.semibold)).foregroundColor(.accentColor),
+                     at: CGPoint(x: plot.point(limit / 2, 0).x + 26, y: plot.point(0, limit / 2).y + 6))
+        let now = plot.point(appliedForce, motion.frictionForce)
+        context.fill(Path(ellipseIn: CGRect(x: now.x - 7, y: now.y - 7, width: 14, height: 14)), with: .color(motion.isSliding ? .orange : .accentColor))
     }
 
     private var predictionPracticeView: some View {
@@ -5639,7 +5899,8 @@ private struct FrictionLab: View {
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
             }
-            Slider(value: value, in: range, step: step)
+            // Rounded to the step without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 / step).rounded() * step }), in: range)
                 .accessibilityLabel(Text(L10n.text(titleKey, store.language)))
                 .accessibilityValue(Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 2, unit: unit, store.language)))
                 .accessibilityIdentifier("lesson.friction.slider.\(identifier)")
@@ -5661,144 +5922,198 @@ private struct FrictionLab: View {
 
 private struct ProjectileMotionLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var launchSpeed = 20.0
     @State private var angleDegrees = 35.0
     @State private var elapsed = 0.0
     @State private var comparesComplement = true
+    @State private var flying = false
 
-    private var motion: ProjectileMotion {
-        ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: angleDegrees)
-    }
-    private var complement: ProjectileMotion {
-        ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: 90 - angleDegrees)
-    }
-    private var displayedMaximumRange: Double {
-        max(max(motion.horizontalRange, comparesComplement ? complement.horizontalRange : 0), 1) * 1.12
-    }
-    private var displayedMaximumHeight: Double {
-        max(max(motion.maximumHeight, comparesComplement ? complement.maximumHeight : 0), 1) * 1.16
-    }
+    private static let targetDistance = 60.0
+    private static let worldWidth = 96.0
+    /// Pixels of aiming arrow per m/s of launch speed.
+    private static let aimScale: CGFloat = 4.5
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
+    private var motion: ProjectileMotion { ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: angleDegrees) }
+    private var complement: ProjectileMotion { ProjectileMotion(launchSpeed: launchSpeed, angleDegrees: 90 - angleDegrees) }
+    private var hitsTarget: Bool { abs(motion.horizontalRange - Self.targetDistance) < 1.5 }
+    private var verticalVelocityNow: Double { motion.verticalVelocity - motion.gravity * elapsed }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("lab.projectile.title", store.language), instruction: L10n.text("lab.projectile.hint", store.language))
-
-            Canvas { context, size in
-                guard size.width > 0, size.height > 0 else { return }
-                let inset: CGFloat = 12
-                func location(_ x: Double, _ y: Double) -> CGPoint {
-                    CGPoint(
-                        x: inset + CGFloat(x / displayedMaximumRange) * (size.width - 2 * inset),
-                        y: size.height - inset - CGFloat(y / displayedMaximumHeight) * (size.height - 2 * inset)
-                    )
-                }
-
-                var grid = Path()
-                for step in 0...4 {
-                    let fraction = CGFloat(step) / 4
-                    let x = inset + fraction * (size.width - 2 * inset)
-                    let y = inset + fraction * (size.height - 2 * inset)
-                    grid.move(to: CGPoint(x: x, y: inset))
-                    grid.addLine(to: CGPoint(x: x, y: size.height - inset))
-                    grid.move(to: CGPoint(x: inset, y: y))
-                    grid.addLine(to: CGPoint(x: size.width - inset, y: y))
-                }
-                context.stroke(grid, with: .color(.secondary.opacity(0.14)), lineWidth: 1)
-
-                func trajectoryPath(for model: ProjectileMotion) -> Path {
-                    var path = Path()
-                    let samples = 100
-                    for index in 0...samples {
-                        let t = model.flightTime * Double(index) / Double(samples)
-                        let point = model.position(at: t)
-                        let plotted = location(point.x, point.y)
-                        if index == 0 { path.move(to: plotted) } else { path.addLine(to: plotted) }
-                    }
-                    return path
-                }
-
-                if comparesComplement {
-                    context.stroke(
-                        trajectoryPath(for: complement),
-                        with: .color(.orange.opacity(0.85)),
-                        style: StrokeStyle(lineWidth: 2, dash: [6, 4])
-                    )
-                }
-                context.stroke(trajectoryPath(for: motion), with: .color(.accentColor), lineWidth: 3)
-                let current = motion.position(at: elapsed)
-                let point = location(current.x, current.y)
-                context.fill(Path(ellipseIn: CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)), with: .color(.accentColor))
+            LabHeader(title: text("lab.projectile.title"), instruction: text("lab.projectile.subtitle"))
+            GeometryReader { proxy in
+                let plot = plotGeometry(proxy.size)
+                trajectoryCanvas(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0).onChanged { drag in aim(at: drag.location, plot: plot) })
             }
-            .frame(height: 230)
-            .accessibilityLabel(Text(L10n.text("lab.projectile.chart", store.language)))
-
-            HStack(spacing: 16) {
-                Label(L10n.text("lab.projectile.current", store.language), systemImage: "circle.fill")
-                    .foregroundStyle(.tint)
-                if comparesComplement {
-                    Label("90° − θ", systemImage: "line.diagonal")
-                        .foregroundStyle(.orange)
-                }
+            .frame(height: 300)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.projectile.chart"))
+            .accessibilityValue(Text(verbatim: measure(launchSpeed, 0, "m/s") + ", " + L10n.number(angleDegrees, fractionDigits: 0, store.language) + "°, "
+                                     + text("lab.projectile.range") + " " + measure(motion.horizontalRange, 1, "m")))
+            HStack(spacing: 14) {
+                legendItem(.accentColor, text("lab.projectile.current"))
+                if comparesComplement { legendItem(.orange, "90° − θ") }
+                legendItem(.blue, "vx")
+                legendItem(.pink, "vy")
                 Spacer()
-                Button(L10n.text(comparesComplement ? "lab.projectile.hideCompare" : "lab.projectile.compare", store.language)) {
-                    comparesComplement.toggle()
-                }
-                .buttonStyle(.bordered)
+                Toggle(text("lab.projectile.compare"), isOn: $comparesComplement)
+                    .toggleStyle(.checkbox)
             }
             .font(.caption)
-
-            projectileSlider(title: L10n.text("lab.projectile.speed", store.language), value: $launchSpeed, range: 5...30, unit: "m/s")
-            projectileSlider(title: L10n.text("lab.projectile.angle", store.language), value: $angleDegrees, range: 15...75, unit: "°")
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text(L10n.text("lab.projectile.time", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                Slider(value: $elapsed, in: 0...max(motion.flightTime, 0.05), step: 0.05)
-                    .accessibilityLabel(Text(L10n.text("lab.projectile.time", store.language)))
-                Text(verbatim: "t = " + L10n.measurement(elapsed, fractionDigits: 2, unit: "s", store.language))
-                    .monospacedDigit()
-                    .font(.caption)
+            HStack(spacing: 10) {
+                Button {
+                    if reduceMotion { elapsed = motion.flightTime } else { elapsed = 0; flying = true }
+                } label: { Label(text("lab.projectile.launch"), systemImage: "paperplane.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(flying)
+                // Hundredths of a second without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { elapsed }, set: { flying = false; elapsed = ($0 * 20).rounded() / 20 }), in: 0...max(motion.flightTime, 0.05))
+                    .accessibilityLabel(Text(text("lab.projectile.time")))
+                Text(verbatim: "t = " + measure(elapsed, 2, "s"))
+                    .font(.callout.monospacedDigit())
+                    .frame(width: 92, alignment: .trailing)
             }
-
-            LazyVGrid(columns: [GridItem(.adaptive(minimum: 140), alignment: .leading)], alignment: .leading, spacing: 12) {
-                projectileReading("lab.projectile.range", value: motion.horizontalRange, unit: "m")
-                projectileReading("lab.projectile.height", value: motion.maximumHeight, unit: "m")
-                projectileReading("lab.projectile.flight", value: motion.flightTime, unit: "s")
-                projectileReading("lab.projectile.position", value: motion.position(at: elapsed).x, unit: "m")
+            projectileSlider(title: text("lab.projectile.speed"), value: $launchSpeed, range: 5...30, unit: "m/s")
+            projectileSlider(title: text("lab.projectile.angle"), value: $angleDegrees, range: 15...75, unit: "°")
+            LabStatGrid {
+                LabStat(label: text("lab.projectile.range"), value: measure(motion.horizontalRange, 1, "m"), tint: hitsTarget ? .green : .accentColor)
+                LabStat(label: text("lab.projectile.height"), value: measure(motion.maximumHeight, 1, "m"), tint: .purple)
+                LabStat(label: text("lab.projectile.flight"), value: measure(motion.flightTime, 2, "s"), tint: .orange)
+                LabStat(label: "vx", value: measure(motion.horizontalVelocity, 1, "m/s"), tint: .blue)
+                LabStat(label: "vy(t)", value: measure(verticalVelocityNow, 1, "m/s"), tint: .pink)
             }
-            Text(L10n.text("lab.projectile.compareTask", store.language))
-                .font(.callout)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.projectile.limits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.projectile.challenge"),
+                         solved: hitsTarget, solvedText: text("lab.projectile.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.projectile.hint"), text("lab.projectile.compareTask"), text("lab.projectile.limits")])
         }
         .onChange(of: angleDegrees) { _ in elapsed = min(elapsed, motion.flightTime) }
         .onChange(of: launchSpeed) { _ in elapsed = min(elapsed, motion.flightTime) }
+        .task(id: flying) {
+            guard flying else { return }
+            let start = Date()
+            while flying {
+                try? await Task.sleep(nanoseconds: 16_000_000)
+                let now = Date().timeIntervalSince(start)
+                elapsed = min(now, motion.flightTime)
+                if now >= motion.flightTime { break }
+            }
+            flying = false
+        }
+    }
+
+    /// Equal metres on both axes, so the arc has its true shape.
+    private func plotGeometry(_ size: CGSize) -> LabPlotGeometry {
+        let plotWidth = max(1, size.width - 46 - 12)
+        let plotHeight = max(1, size.height - 10 - 30)
+        return LabPlotGeometry(size: size, x: 0...Self.worldWidth, y: 0...(Self.worldWidth * Double(plotHeight / plotWidth)))
+    }
+
+    // The arc, a trace of positions every quarter second (equal horizontal steps), the velocity split into vx and vy, and the target flag.
+    private func trajectoryCanvas(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: "x, " + L10n.unit("m", store.language), yLabel: "y, " + L10n.unit("m", store.language),
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            drawTarget(context, plot: plot)
+            if comparesComplement {
+                context.stroke(arc(complement, plot: plot), with: .color(.orange.opacity(0.85)), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+            }
+            context.stroke(arc(motion, plot: plot), with: .color(.accentColor), lineWidth: 3)
+            var tick = 0.0
+            while tick <= elapsed {
+                let point = motion.position(at: tick)
+                let spot = plot.point(point.x, point.y)
+                context.fill(Path(ellipseIn: CGRect(x: spot.x - 2.5, y: spot.y - 2.5, width: 5, height: 5)), with: .color(.accentColor.opacity(0.45)))
+                tick += 0.25
+            }
+            let origin = plot.point(0, 0)
+            let aimEnd = CGPoint(x: origin.x + CGFloat(cos(angleDegrees * .pi / 180)) * CGFloat(launchSpeed) * Self.aimScale,
+                                 y: origin.y - CGFloat(sin(angleDegrees * .pi / 180)) * CGFloat(launchSpeed) * Self.aimScale)
+            arrow(context, from: origin, to: aimEnd, color: .accentColor.opacity(0.75), width: 3)
+            context.stroke(Path(ellipseIn: CGRect(x: aimEnd.x - 8, y: aimEnd.y - 8, width: 16, height: 16)), with: .color(.accentColor), lineWidth: 2)
+            let now = motion.position(at: elapsed)
+            let ball = plot.point(now.x, now.y)
+            arrow(context, from: ball, to: CGPoint(x: ball.x + CGFloat(motion.horizontalVelocity) * 2.4, y: ball.y), color: .blue, width: 2)
+            arrow(context, from: ball, to: CGPoint(x: ball.x, y: ball.y - CGFloat(verticalVelocityNow) * 2.4), color: .pink, width: 2)
+            context.fill(Path(ellipseIn: CGRect(x: ball.x - 7, y: ball.y - 7, width: 14, height: 14)), with: .color(.accentColor))
+        }
+    }
+
+    private func arc(_ model: ProjectileMotion, plot: LabPlotGeometry) -> Path {
+        var path = Path()
+        for index in 0...120 {
+            let point = model.position(at: model.flightTime * Double(index) / 120)
+            let location = plot.point(point.x, point.y)
+            if index == 0 { path.move(to: location) } else { path.addLine(to: location) }
+        }
+        return path
+    }
+
+    private func drawTarget(_ context: GraphicsContext, plot: LabPlotGeometry) {
+        let base = plot.point(Self.targetDistance, 0)
+        context.fill(Path(CGRect(x: base.x - 14, y: base.y - 4, width: 28, height: 4)), with: .color(hitsTarget ? .green : .red))
+        var pole = Path()
+        pole.move(to: base)
+        pole.addLine(to: CGPoint(x: base.x, y: base.y - 30))
+        context.stroke(pole, with: .color(.secondary), lineWidth: 1.5)
+        var flag = Path()
+        flag.move(to: CGPoint(x: base.x, y: base.y - 30))
+        flag.addLine(to: CGPoint(x: base.x + 14, y: base.y - 25))
+        flag.addLine(to: CGPoint(x: base.x, y: base.y - 20))
+        flag.closeSubpath()
+        context.fill(flag, with: .color(hitsTarget ? .green : .red))
+        context.draw(Text(verbatim: measure(Self.targetDistance, 0, "m")).font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                     at: CGPoint(x: base.x + 4, y: base.y - 38))
+    }
+
+    private func arrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, color: Color, width: CGFloat) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 3 else { return }
+        let ux = dx / length, uy = dy / length
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 8 - uy * 4, y: end.y - uy * 8 + ux * 4))
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 8 + uy * 4, y: end.y - uy * 8 - ux * 4))
+        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
+    }
+
+    /// Dragging from the launcher aims: the direction sets the angle, the length sets the speed.
+    private func aim(at location: CGPoint, plot: LabPlotGeometry) {
+        let origin = plot.point(0, 0)
+        let dx = Double(location.x - origin.x), dy = Double(origin.y - location.y)
+        guard dx > 4 else { return }
+        flying = false
+        angleDegrees = min(max((atan2(dy, dx) * 180 / .pi).rounded(), 15), 75)
+        launchSpeed = min(max(((dx * dx + dy * dy).squareRoot() / Double(Self.aimScale)).rounded(), 5), 30)
+        elapsed = 0
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(verbatim: label).foregroundStyle(.secondary)
+        }
     }
 
     private func projectileSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, step: 1)
+        HStack(spacing: 12) {
+            Text(title).frame(width: 170, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { flying = false; value.wrappedValue = $0.rounded() }), in: range)
                 .accessibilityLabel(Text(title))
+            Text(verbatim: unit == "°" ? L10n.number(value.wrappedValue, fractionDigits: 0, store.language) + "°" : measure(value.wrappedValue, 0, unit))
+                .monospacedDigit()
+                .frame(width: 70, alignment: .trailing)
         }
-    }
-
-    private func projectileReading(_ key: String, value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text(key, store.language)).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: L10n.measurement(value, fractionDigits: 2, unit: unit, store.language)).monospacedDigit()
-        }
-        .accessibilityElement(children: .combine)
+        .font(.callout)
     }
 }
 
@@ -6039,282 +6354,280 @@ private struct KineticEnergyLab: View {
 
 private struct MomentumCollisionLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var firstMass = 2.0
     @State private var firstVelocity = 4.0
     @State private var secondMass = 2.0
     @State private var secondVelocity = -2.0
-    @State private var showingAfter = false
     @State private var prediction: Int?
     @State private var selectedMode: CollisionOutcomeMode
+    @State private var time = 0.0
+    @State private var playing = false
+
+    private static let trackLength = 20.0
 
     init(initialMode: CollisionOutcomeMode = .perfectlyInelastic) {
         _selectedMode = State(initialValue: initialMode)
     }
 
-    private var collision: MomentumCollision {
-        MomentumCollision(
-            firstMass: firstMass,
-            firstVelocity: firstVelocity,
-            secondMass: secondMass,
-            secondVelocity: secondVelocity
-        )
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
 
+    private var collision: MomentumCollision {
+        MomentumCollision(firstMass: firstMass, firstVelocity: firstVelocity, secondMass: secondMass, secondVelocity: secondVelocity)
+    }
+    private var elasticCollision: ElasticCollision {
+        ElasticCollision(firstMass: firstMass, firstVelocity: firstVelocity, secondMass: secondMass, secondVelocity: secondVelocity)
+    }
+    private var isElastic: Bool { selectedMode == .elastic }
+    private var firstFinalVelocity: Double { isElastic ? elasticCollision.firstFinalVelocity : collision.finalVelocity }
+    private var secondFinalVelocity: Double { isElastic ? elasticCollision.secondFinalVelocity : collision.finalVelocity }
+    private var momentumBefore: Double { isElastic ? elasticCollision.momentumBefore : collision.momentumBefore }
+    private var momentumAfter: Double { isElastic ? elasticCollision.momentumAfter : collision.momentumAfter }
+    private var kineticEnergyBefore: Double { isElastic ? elasticCollision.kineticEnergyBefore : collision.kineticEnergyBefore }
+    private var kineticEnergyAfter: Double { isElastic ? elasticCollision.kineticEnergyAfter : collision.kineticEnergyAfter }
     private var correctPrediction: Int {
         if abs(firstFinalVelocity) < 0.05 { return 1 }
         return firstFinalVelocity < 0 ? 0 : 2
     }
 
-    private var elasticCollision: ElasticCollision {
-        ElasticCollision(
-            firstMass: firstMass,
-            firstVelocity: firstVelocity,
-            secondMass: secondMass,
-            secondVelocity: secondVelocity
-        )
+    // Cart widths in metres grow with mass; cart 1 starts at 5 m, cart 2 at 15 m.
+    private var firstWidth: Double { 0.9 + 0.16 * firstMass }
+    private var secondWidth: Double { 0.9 + 0.16 * secondMass }
+    /// Time when the carts touch, or nil when they never meet.
+    private var contactTime: Double? {
+        let gap = 10 - (firstWidth + secondWidth) / 2
+        let closing = firstVelocity - secondVelocity
+        return closing > 0.0001 ? gap / closing : nil
+    }
+    private var endTime: Double { (contactTime ?? 2.5) + 2.5 }
+    private var collided: Bool { contactTime.map { time >= $0 } ?? false }
+
+    private func positions(at t: Double) -> (Double, Double) {
+        guard let contact = contactTime, t > contact else { return (5 + firstVelocity * t, 15 + secondVelocity * t) }
+        let first = 5 + firstVelocity * contact, second = 15 + secondVelocity * contact
+        let after = t - contact
+        return (first + firstFinalVelocity * after, second + secondFinalVelocity * after)
     }
 
-    private var firstFinalVelocity: Double {
-        selectedMode == .elastic ? elasticCollision.firstFinalVelocity : collision.finalVelocity
-    }
-
-    private var secondFinalVelocity: Double {
-        selectedMode == .elastic ? elasticCollision.secondFinalVelocity : collision.finalVelocity
-    }
-
-    private var momentumBefore: Double {
-        selectedMode == .elastic ? elasticCollision.momentumBefore : collision.momentumBefore
-    }
-
-    private var momentumAfter: Double {
-        selectedMode == .elastic ? elasticCollision.momentumAfter : collision.momentumAfter
-    }
-
-    private var kineticEnergyBefore: Double {
-        selectedMode == .elastic ? elasticCollision.kineticEnergyBefore : collision.kineticEnergyBefore
-    }
-
-    private var kineticEnergyAfter: Double {
-        selectedMode == .elastic ? elasticCollision.kineticEnergyAfter : collision.kineticEnergyAfter
-    }
-
-    private var kineticEnergyConverted: Double {
-        max(0, kineticEnergyBefore - kineticEnergyAfter)
+    private var challengeSolved: Bool {
+        isElastic ? (abs(firstFinalVelocity) < 0.05 && abs(firstVelocity) > 0.5 && contactTime != nil)
+                  : (abs(momentumBefore) < 0.05 && abs(firstVelocity) > 0.5 && contactTime != nil)
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.MomentumCollisionLab", store.language), instruction: L10n.text("lab.momentumHint", store.language))
-
-            Canvas { context, size in
-                let baseline = size.height * 0.69
-                var track = Path()
-                track.move(to: CGPoint(x: 18, y: baseline))
-                track.addLine(to: CGPoint(x: size.width - 18, y: baseline))
-                context.stroke(track, with: .color(.secondary.opacity(0.45)), lineWidth: 2)
-
-                if showingAfter {
-                    if selectedMode == .elastic {
-                        let firstX = size.width * 0.31
-                        let secondX = size.width * 0.69
-                        drawBlock(
-                            in: &context,
-                            centerX: firstX,
-                            baseline: baseline,
-                            width: CGFloat(min(92, 34 + firstMass * 6)),
-                            height: 38,
-                            label: String(format: L10n.text("lab.momentumCart", store.language), 1, firstMass),
-                            color: .blue
-                        )
-                        drawBlock(
-                            in: &context,
-                            centerX: secondX,
-                            baseline: baseline,
-                            width: CGFloat(min(92, 34 + secondMass * 6)),
-                            height: 38,
-                            label: String(format: L10n.text("lab.momentumCart", store.language), 2, secondMass),
-                            color: .orange
-                        )
-                        drawVelocityArrow(in: &context, centerX: firstX, baseline: baseline, velocity: firstFinalVelocity, label: nil)
-                        drawVelocityArrow(in: &context, centerX: secondX, baseline: baseline, velocity: secondFinalVelocity, label: nil)
-                    } else {
-                        drawBlock(
-                            in: &context,
-                            centerX: size.width * 0.5,
-                            baseline: baseline,
-                            width: CGFloat(min(128, 42 + collision.totalMass * 5)),
-                            height: 43,
-                            label: String(format: L10n.text("lab.momentumJoinedMass", store.language), collision.totalMass),
-                            color: .purple
-                        )
-                        drawVelocityArrow(
-                            in: &context,
-                            centerX: size.width * 0.5,
-                            baseline: baseline,
-                            velocity: collision.finalVelocity,
-                            label: String(
-                                format: L10n.text("lab.momentumVelocity", store.language),
-                                L10n.measurement(collision.finalVelocity, fractionDigits: 1, unit: "m/s", store.language)
-                            )
-                        )
-                    }
-                } else {
-                    let firstX = size.width * 0.28
-                    let secondX = size.width * 0.72
-                    drawBlock(
-                        in: &context,
-                        centerX: firstX,
-                        baseline: baseline,
-                        width: CGFloat(min(92, 34 + firstMass * 6)),
-                        height: 38,
-                        label: String(format: L10n.text("lab.momentumCart", store.language), 1, firstMass),
-                        color: .blue
-                    )
-                    drawBlock(
-                        in: &context,
-                        centerX: secondX,
-                        baseline: baseline,
-                        width: CGFloat(min(92, 34 + secondMass * 6)),
-                        height: 38,
-                        label: String(format: L10n.text("lab.momentumCart", store.language), 2, secondMass),
-                        color: .orange
-                    )
-                    drawVelocityArrow(in: &context, centerX: firstX, baseline: baseline, velocity: firstVelocity, label: nil)
-                    drawVelocityArrow(in: &context, centerX: secondX, baseline: baseline, velocity: secondVelocity, label: nil)
+            LabHeader(title: text("labkit.title.MomentumCollisionLab"), instruction: text("lab.momentumSubtitle"))
+            Picker(text("lab.collisionType"), selection: $selectedMode) {
+                Text(text("lab.collisionInelastic")).tag(CollisionOutcomeMode.perfectlyInelastic)
+                Text(text("lab.collisionElastic")).tag(CollisionOutcomeMode.elastic)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            Canvas { context, size in drawTrack(context, size: size) }
+                .frame(height: 150)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.momentumCanvas"))
+                .accessibilityValue(Text(verbatim: "v₁ = " + measure(collided ? firstFinalVelocity : firstVelocity, 1, "m/s")
+                                         + ", v₂ = " + measure(collided ? secondFinalVelocity : secondVelocity, 1, "m/s")))
+            HStack(spacing: 10) {
+                Button {
+                    if reduceMotion { time = endTime } else { time = 0; playing = true }
+                } label: { Label(text("lab.momentumPlay"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(playing)
+                Button {
+                    playing = false
+                    time = 0
+                } label: { Label(text("lab.momentumResetRun"), systemImage: "arrow.counterclockwise") }
+                if contactTime == nil {
+                    Label(text("lab.momentumNoMeet"), systemImage: "exclamationmark.triangle")
+                        .font(.caption)
+                        .foregroundStyle(.orange)
                 }
             }
-            .frame(height: 160)
-            .accessibilityLabel(Text(L10n.text("lab.momentumCanvas", store.language)))
-
-            Picker(L10n.text("lab.momentumStage", store.language), selection: $showingAfter) {
-                Text(L10n.text("lab.momentumBefore", store.language)).tag(false)
-                Text(L10n.text("lab.momentumAfter", store.language)).tag(true)
+            Canvas { context, size in drawMomentumBars(context, size: size) }
+                .frame(height: 150)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.momentumBars"))
+                .accessibilityValue(Text(verbatim: measure(momentumBefore, 1, "kg·m/s") + " → " + measure(momentumAfter, 1, "kg·m/s")))
+            LabStatGrid {
+                LabStat(label: text("lab.momentumBeforeValue"), value: measure(momentumBefore, 1, "kg·m/s"), tint: .purple)
+                LabStat(label: text("lab.momentumAfterValue"), value: measure(momentumAfter, 1, "kg·m/s"), tint: .purple)
+                LabStat(label: text("lab.momentumEnergyBefore"), value: measure(kineticEnergyBefore, 1, "J"), tint: .orange)
+                LabStat(label: text("lab.momentumEnergyAfterFull"), value: measure(kineticEnergyAfter, 1, "J"), tint: .orange)
+                LabStat(label: text("lab.momentumEnergyConverted"), value: measure(max(0, kineticEnergyBefore - kineticEnergyAfter), 1, "J"), tint: .red)
             }
-            .pickerStyle(.segmented)
-
-            Picker(L10n.text("lab.collisionType", store.language), selection: $selectedMode) {
-                Text(L10n.text("lab.collisionInelastic", store.language)).tag(CollisionOutcomeMode.perfectlyInelastic)
-                Text(L10n.text("lab.collisionElastic", store.language)).tag(CollisionOutcomeMode.elastic)
+            VStack(alignment: .leading, spacing: 8) {
+                valueSlider(title: text("lab.momentumMassOne"), value: $firstMass, range: 1...8, unit: "kg")
+                valueSlider(title: text("lab.momentumVelocityOne"), value: $firstVelocity, range: -8...8, unit: "m/s")
+                valueSlider(title: text("lab.momentumMassTwo"), value: $secondMass, range: 1...8, unit: "kg")
+                valueSlider(title: text("lab.momentumVelocityTwo"), value: $secondVelocity, range: -8...8, unit: "m/s")
             }
-            .pickerStyle(.segmented)
-
-            Text(L10n.text(
-                selectedMode == .elastic ? "lab.collisionElasticHint" : "lab.collisionInelasticHint",
-                store.language
-            ))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-
-            Text("p = mv   ·   J = Δp = Fₙₑₜ Δt")
-                .font(.system(.headline, design: .monospaced))
-            valueSlider(title: L10n.text("lab.momentumMassOne", store.language), value: $firstMass, range: 1...8, step: 1, unit: "kg")
-            valueSlider(title: L10n.text("lab.momentumVelocityOne", store.language), value: $firstVelocity, range: -8...8, step: 1, unit: "m/s")
-            valueSlider(title: L10n.text("lab.momentumMassTwo", store.language), value: $secondMass, range: 1...8, step: 1, unit: "kg")
-            valueSlider(title: L10n.text("lab.momentumVelocityTwo", store.language), value: $secondVelocity, range: -8...8, step: 1, unit: "m/s")
-
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                readout(title: L10n.text("lab.momentumBeforeValue", store.language), value: momentumBefore, unit: "kg·m/s")
-                readout(title: L10n.text("lab.momentumAfterValue", store.language), value: momentumAfter, unit: "kg·m/s")
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text(isElastic ? "lab.momentumChallengeElastic" : "lab.momentumChallengeInelastic"),
+                         solved: challengeSolved, solvedText: text(isElastic ? "lab.momentumChallengeElasticSolved" : "lab.momentumChallengeInelasticSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                "p = mv   ·   J = Δp = Fₙₑₜ Δt",
+                text(isElastic ? "lab.collisionElasticHint" : "lab.collisionInelasticHint"),
+                text(isElastic ? "lab.collisionElasticLimit" : "lab.momentumLimit")
+            ])
+        }
+        .onChange(of: firstMass) { _ in resetRun() }
+        .onChange(of: firstVelocity) { _ in resetRun() }
+        .onChange(of: secondMass) { _ in resetRun() }
+        .onChange(of: secondVelocity) { _ in resetRun() }
+        .onChange(of: selectedMode) { _ in resetRun() }
+        .task(id: playing) {
+            guard playing else { return }
+            let start = Date()
+            while playing {
+                try? await Task.sleep(nanoseconds: 16_000_000)
+                let now = Date().timeIntervalSince(start)
+                time = min(now, endTime)
+                if now >= endTime { break }
             }
-            HStack(alignment: .firstTextBaseline, spacing: 18) {
-                readout(title: L10n.text("lab.momentumEnergyBefore", store.language), value: kineticEnergyBefore, unit: "J")
-                readout(title: L10n.text("lab.momentumEnergyAfter", store.language), value: kineticEnergyAfter, unit: "J")
-                readout(title: L10n.text("lab.momentumEnergyConverted", store.language), value: kineticEnergyConverted, unit: "J")
-            }
+            playing = false
+        }
+    }
 
-            Text(L10n.text(
-                selectedMode == .elastic ? "lab.collisionPredictFirst" : "lab.momentumPredict",
-                store.language
-            ))
-                .font(.headline)
+    // A 20 m track: carts with velocity arrows, joined into one block after a sticking collision.
+    private func drawTrack(_ context: GraphicsContext, size: CGSize) {
+        let left: CGFloat = 16, right = size.width - 16
+        let scale = (right - left) / CGFloat(Self.trackLength)
+        let baseline = size.height - 34
+        var track = Path()
+        track.move(to: CGPoint(x: left, y: baseline))
+        track.addLine(to: CGPoint(x: right, y: baseline))
+        context.stroke(track, with: .color(.secondary.opacity(0.5)), lineWidth: 2)
+        for metre in stride(from: 0, through: Int(Self.trackLength), by: 5) {
+            let x = left + CGFloat(metre) * scale
+            context.draw(Text(verbatim: measure(Double(metre), 0, "m")).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x, y: baseline + 14))
+        }
+        let (first, second) = positions(at: time)
+        let joined = collided && !isElastic
+        cart(context, centre: left + CGFloat(first) * scale, width: CGFloat(firstWidth) * scale, baseline: baseline,
+             color: joined ? .purple : .blue, label: joined ? "" : "1 · " + measure(firstMass, 0, "kg"))
+        cart(context, centre: left + CGFloat(second) * scale, width: CGFloat(secondWidth) * scale, baseline: baseline,
+             color: joined ? .purple : .orange, label: joined ? "" : "2 · " + measure(secondMass, 0, "kg"))
+        if joined {
+            let middle = left + CGFloat((first + second) / 2) * scale
+            context.draw(Text(verbatim: String(format: text("lab.momentumJoinedMass"), collision.totalMass)).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         at: CGPoint(x: middle, y: baseline - 52))
+            velocityArrow(context, centre: middle, y: baseline - 70, velocity: firstFinalVelocity, scale: scale)
+        } else {
+            velocityArrow(context, centre: left + CGFloat(first) * scale, y: baseline - 70, velocity: collided ? firstFinalVelocity : firstVelocity, scale: scale)
+            velocityArrow(context, centre: left + CGFloat(second) * scale, y: baseline - 70, velocity: collided ? secondFinalVelocity : secondVelocity, scale: scale)
+        }
+        if let contact = contactTime, abs(time - contact) < 0.25 {
+            let x = left + CGFloat(5 + firstVelocity * contact + firstWidth / 2) * scale
+            var burst = Path()
+            for ray in 0..<8 {
+                let angle = Double(ray) * .pi / 4
+                burst.move(to: CGPoint(x: x + 6 * CGFloat(cos(angle)), y: baseline - 20 + 6 * CGFloat(sin(angle))))
+                burst.addLine(to: CGPoint(x: x + 16 * CGFloat(cos(angle)), y: baseline - 20 + 16 * CGFloat(sin(angle))))
+            }
+            context.stroke(burst, with: .color(.yellow), lineWidth: 2)
+        }
+    }
+
+    private func cart(_ context: GraphicsContext, centre: CGFloat, width: CGFloat, baseline: CGFloat, color: Color, label: String) {
+        let body = CGRect(x: centre - width / 2, y: baseline - 38, width: width, height: 30)
+        context.fill(Path(roundedRect: body, cornerRadius: 6), with: .color(color.opacity(0.85)))
+        for wheel in [body.minX + 8, body.maxX - 8] {
+            context.fill(Path(ellipseIn: CGRect(x: wheel - 5, y: baseline - 10, width: 10, height: 10)), with: .color(.secondary))
+        }
+        if !label.isEmpty {
+            context.draw(Text(verbatim: label).font(.caption2.weight(.bold)).foregroundColor(.white), at: CGPoint(x: body.midX, y: body.midY))
+        }
+    }
+
+    private func velocityArrow(_ context: GraphicsContext, centre: CGFloat, y: CGFloat, velocity: Double, scale: CGFloat) {
+        guard abs(velocity) > 0.05 else {
+            context.draw(Text(verbatim: "v = 0").font(.caption2.monospacedDigit()).foregroundColor(.secondary), at: CGPoint(x: centre, y: y))
+            return
+        }
+        let direction: CGFloat = velocity < 0 ? -1 : 1
+        let length = CGFloat(abs(velocity)) * scale * 0.35
+        var arrow = Path()
+        arrow.move(to: CGPoint(x: centre, y: y))
+        arrow.addLine(to: CGPoint(x: centre + direction * length, y: y))
+        arrow.move(to: CGPoint(x: centre + direction * length, y: y))
+        arrow.addLine(to: CGPoint(x: centre + direction * (length - 7), y: y - 5))
+        arrow.move(to: CGPoint(x: centre + direction * length, y: y))
+        arrow.addLine(to: CGPoint(x: centre + direction * (length - 7), y: y + 5))
+        context.stroke(arrow, with: .color(.primary), style: StrokeStyle(lineWidth: 2, lineCap: .round))
+        context.draw(Text(verbatim: measure(velocity, 1, "m/s")).font(.caption2.monospacedDigit()).foregroundColor(.secondary),
+                     at: CGPoint(x: centre, y: y - 12))
+    }
+
+    // Signed momentum bars before and after: the carts' shares change, the purple total stays the same length.
+    private func drawMomentumBars(_ context: GraphicsContext, size: CGSize) {
+        let before = [firstMass * firstVelocity, secondMass * secondVelocity, momentumBefore]
+        let after = [firstMass * firstFinalVelocity, secondMass * secondFinalVelocity, momentumAfter]
+        let largest = max((before + after).map(abs).max() ?? 1, 4) * 1.1
+        let labelWidth: CGFloat = 110
+        let zero = labelWidth + (size.width - labelWidth - 12) / 2
+        let half = (size.width - labelWidth - 12) / 2
+        let rowHeight = (size.height - 8) / 6
+        let names = ["p₁", "p₂", "Σp"]
+        let colors: [Color] = [.blue, .orange, .purple]
+        var axis = Path()
+        axis.move(to: CGPoint(x: zero, y: 2))
+        axis.addLine(to: CGPoint(x: zero, y: size.height - 2))
+        context.stroke(axis, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+        for (group, values) in [before, after].enumerated() {
+            for (index, value) in values.enumerated() {
+                let row = CGFloat(group * 3 + index)
+                let y = 4 + row * rowHeight
+                let width = CGFloat(value / largest) * half
+                let bar = CGRect(x: min(zero, zero + width), y: y + 3, width: abs(width), height: rowHeight - 6)
+                context.fill(Path(roundedRect: bar, cornerRadius: 3), with: .color(colors[index].opacity(group == 1 && !collided ? 0.25 : 0.85)))
+                let caption = (group == 0 ? text("lab.momentumBeforeShort") : text("lab.momentumAfterShort")) + " " + names[index]
+                context.draw(Text(verbatim: caption).font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                             at: CGPoint(x: 4, y: y + rowHeight / 2), anchor: .leading)
+                context.draw(Text(verbatim: L10n.number(value, fractionDigits: 1, store.language)).font(.caption2.monospacedDigit()).foregroundColor(.primary),
+                             at: CGPoint(x: zero + width + (width < 0 ? -4 : 4), y: y + rowHeight / 2), anchor: width < 0 ? .trailing : .leading)
+            }
+        }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text(isElastic ? "lab.collisionPredictFirst" : "lab.momentumPredict"))
+                .font(.callout.weight(.medium))
             HStack {
-                predictionButton(title: L10n.text("lab.momentumLeft", store.language), tag: 0)
-                predictionButton(title: L10n.text("lab.momentumRest", store.language), tag: 1)
-                predictionButton(title: L10n.text("lab.momentumRight", store.language), tag: 2)
+                predictionButton(title: text("lab.momentumLeft"), tag: 0)
+                predictionButton(title: text("lab.momentumRest"), tag: 1)
+                predictionButton(title: text("lab.momentumRight"), tag: 2)
             }
             if let prediction {
-                Label(
-                    L10n.text(prediction == correctPrediction ? "lab.momentumCorrect" : "lab.momentumTryAgain", store.language),
-                    systemImage: prediction == correctPrediction ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .font(.callout)
-                .foregroundStyle(prediction == correctPrediction ? Color.green : Color.orange)
+                Label(text(prediction == correctPrediction ? "lab.momentumCorrect" : "lab.momentumTryAgain"),
+                      systemImage: prediction == correctPrediction ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .font(.callout)
+                    .foregroundStyle(prediction == correctPrediction ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            Text(L10n.text(
-                selectedMode == .elastic ? "lab.collisionElasticLimit" : "lab.momentumLimit",
-                store.language
-            ))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .onChange(of: firstMass) { _ in prediction = nil }
-        .onChange(of: firstVelocity) { _ in prediction = nil }
-        .onChange(of: secondMass) { _ in prediction = nil }
-        .onChange(of: secondVelocity) { _ in prediction = nil }
-        .onChange(of: selectedMode) { _ in prediction = nil }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func drawBlock(
-        in context: inout GraphicsContext,
-        centerX: CGFloat,
-        baseline: CGFloat,
-        width: CGFloat,
-        height: CGFloat,
-        label: String,
-        color: Color
-    ) {
-        let rect = CGRect(x: centerX - width / 2, y: baseline - height, width: width, height: height)
-        context.fill(Path(roundedRect: rect, cornerRadius: 8), with: .color(color.opacity(0.78)))
-        context.draw(Text(label).font(.caption.weight(.semibold)).foregroundColor(.primary), at: CGPoint(x: centerX, y: rect.minY - 13))
-    }
-
-    private func drawVelocityArrow(
-        in context: inout GraphicsContext,
-        centerX: CGFloat,
-        baseline: CGFloat,
-        velocity: Double,
-        label: String?
-    ) {
-        let direction: CGFloat = velocity < 0 ? -1 : 1
-        let length = CGFloat(min(62, max(12, abs(velocity) * 8)))
-        let start = CGPoint(x: centerX, y: baseline + 13)
-        let end = CGPoint(x: centerX + direction * length, y: baseline + 13)
-        var arrow = Path()
-        arrow.move(to: start)
-        arrow.addLine(to: end)
-        arrow.move(to: end)
-        arrow.addLine(to: CGPoint(x: end.x - direction * 8, y: end.y - 5))
-        arrow.move(to: end)
-        arrow.addLine(to: CGPoint(x: end.x - direction * 8, y: end.y + 5))
-        context.stroke(arrow, with: .color(.primary), style: StrokeStyle(lineWidth: 2, lineCap: .round, lineJoin: .round))
-        if let label {
-            context.draw(Text(label).font(.caption.monospacedDigit()).foregroundColor(.secondary), at: CGPoint(x: centerX, y: baseline + 34))
-        }
-    }
-
-    private func valueSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, step: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Text(title)
-                Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, step: step)
+    private func valueSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
+        HStack(spacing: 12) {
+            Text(title).frame(width: 180, alignment: .leading)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { newValue in
+                let rounded = newValue.rounded()
+                if rounded != value.wrappedValue { value.wrappedValue = rounded }
+            }), in: range)
                 .accessibilityLabel(Text(title))
+            Text(verbatim: measure(value.wrappedValue, 0, unit))
+                .monospacedDigit()
+                .frame(width: 70, alignment: .trailing)
         }
-    }
-
-    private func readout(title: String, value: Double, unit: String) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.caption).foregroundStyle(.secondary)
-            Text(verbatim: L10n.measurement(value, fractionDigits: 1, unit: unit, store.language))
-                .font(.callout.monospacedDigit().weight(.semibold))
-        }
-        .accessibilityElement(children: .combine)
+        .font(.callout)
     }
 
     private func predictionButton(title: String, tag: Int) -> some View {
@@ -6322,6 +6635,12 @@ private struct MomentumCollisionLab: View {
             .buttonStyle(.bordered)
             .tint(prediction == tag ? .accentColor : nil)
             .accessibilityAddTraits(prediction == tag ? .isSelected : [])
+    }
+
+    private func resetRun() {
+        prediction = nil
+        playing = false
+        time = 0
     }
 }
 
@@ -6532,124 +6851,148 @@ private struct GeneRegulationLab: View {
         signalPresent: true
     )
 
-    private var productMade: Bool {
-        GeneRegulationPractice.isProductMade(variant: variant, signalPresent: signalPresent)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var productMade: Bool { GeneRegulationPractice.isProductMade(variant: variant, signalPresent: signalPresent) }
+    private var revealed: Bool { prediction.isCorrect }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.GeneRegulationLab", store.language), instruction: L10n.text("lab.dnaModelHint", store.language))
-
-            Picker(L10n.text("lab.dnaVariant", store.language), selection: $variant) {
-                Text(L10n.text("lab.dnaVariant0", store.language)).tag(0)
-                Text(L10n.text("lab.dnaVariant1", store.language)).tag(1)
+            LabHeader(title: text("labkit.title.GeneRegulationLab"), instruction: text("lab.dnaSubtitle"))
+            Picker(text("lab.dnaVariant"), selection: $variant) {
+                Text(text("lab.dnaVariant0")).tag(0)
+                Text(text("lab.dnaVariant1")).tag(1)
             }
             .pickerStyle(.segmented)
             .onChange(of: variant) { _ in resetPrediction() }
-
-            DNAHelixVisualization(variant: variant)
-                .frame(height: 230)
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .accessibilityLabel(Text(L10n.text("lab.dna3DHint", store.language)))
-            Text(L10n.text("lab.dna3DHint", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(L10n.text(variant == 0 ? "lab.dnaPairAT" : "lab.dnaPairCG", store.language))
-                .font(.callout.weight(.medium))
-                .accessibilityLabel(Text(L10n.text(variant == 0 ? "lab.dnaPairAT" : "lab.dnaPairCG", store.language)))
-
-            Toggle(L10n.text("lab.dnaSignal", store.language), isOn: $signalPresent)
+            Toggle(text("lab.dnaSignal"), isOn: $signalPresent)
                 .onChange(of: signalPresent) { _ in resetPrediction() }
-
-            let outcomeRevealed = prediction.isCorrect
-
-            HStack(spacing: 8) {
-                flowNode(title: L10n.text("lab.dnaSequence", store.language), value: "A · T · C · G")
-                Image(systemName: "arrow.right").foregroundStyle(.secondary)
-                flowNode(
-                    title: L10n.text("lab.dnaGeneActivity", store.language),
-                    value: L10n.text(
-                        GeneRegulationPractice.geneActivityKey(
-                            productMade: productMade,
-                            outcomeRevealed: outcomeRevealed
-                        ),
-                        store.language
-                    )
-                )
-                Image(systemName: "arrow.right").foregroundStyle(.secondary)
-                flowNode(
-                    title: L10n.text("lab.dnaProduct", store.language),
-                    value: L10n.text(
-                        GeneRegulationPractice.productKey(
-                            productMade: productMade,
-                            outcomeRevealed: outcomeRevealed
-                        ),
-                        store.language
-                    )
-                )
+            Canvas { context, size in drawSwitch(context: context, size: size) }
+                .frame(height: 160)
+                .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.dnaSwitchDiagram"))
+                .accessibilityValue(Text(verbatim: text(variant == 0 ? "lab.dnaVariant0" : "lab.dnaVariant1") + ", "
+                                         + text(signalPresent ? "lab.dnaSignalOn" : "lab.dnaSignalOff") + ", "
+                                         + text(GeneRegulationPractice.productKey(productMade: productMade, outcomeRevealed: revealed))))
+            HStack(spacing: 16) {
+                legendItem(.green, text("lab.dnaLegendSite"))
+                legendItem(.orange, text("lab.dnaLegendSignal"))
+                legendItem(.teal, text("lab.dnaLegendProduct"))
             }
-            .accessibilityElement(children: .combine)
+            .font(.caption)
+            predictionPanel
+            LabStatGrid {
+                LabStat(label: text("lab.dnaGeneActivity"),
+                        value: revealed ? text(GeneRegulationPractice.geneActivityKey(productMade: productMade, outcomeRevealed: true)) : "?", tint: .purple)
+                LabStat(label: text("lab.dnaProduct"),
+                        value: revealed ? text(GeneRegulationPractice.productKey(productMade: productMade, outcomeRevealed: true)) : "?", tint: .teal)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.dnaChallenge"),
+                         solved: revealed && productMade, solvedText: text("lab.dnaChallengeSolved"))
+            DNAHelixVisualization(variant: variant)
+                .frame(height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .accessibilityLabel(Text(text("lab.dna3DHint")))
+            Text(text(variant == 0 ? "lab.dnaPairAT" : "lab.dnaPairCG"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.dnaModelHint"), text("lab.dna3DHint")])
+        }
+    }
 
-            Text(L10n.text("lab.dnaPredict", store.language))
+    // DNA as a line: the regulatory site on the left, the gene box on the right. A bound signal switches the gene on;
+    // variant B's changed site cannot hold the signal. Products appear only after a correct prediction.
+    private func drawSwitch(context: GraphicsContext, size: CGSize) {
+        let lineY = size.height * 0.55
+        var strand = Path()
+        strand.move(to: CGPoint(x: 16, y: lineY))
+        strand.addLine(to: CGPoint(x: size.width - 16, y: lineY))
+        context.stroke(strand, with: .color(.secondary.opacity(0.7)), lineWidth: 4)
+
+        let site = CGRect(x: size.width * 0.12, y: lineY - 14, width: size.width * 0.16, height: 28)
+        let siteIntact = variant == 0
+        context.fill(Path(roundedRect: site, cornerRadius: 6), with: .color(siteIntact ? .green.opacity(0.8) : .red.opacity(0.7)))
+        context.draw(Text(text("lab.dnaSiteLabel")).font(.caption2.weight(.semibold)).foregroundColor(.white), at: CGPoint(x: site.midX, y: site.midY))
+        if !siteIntact {
+            context.draw(Text(verbatim: "✕").font(.title3.weight(.bold)).foregroundColor(.red), at: CGPoint(x: site.midX, y: site.maxY + 14))
+        }
+
+        let gene = CGRect(x: size.width * 0.36, y: lineY - 18, width: size.width * 0.3, height: 36)
+        let geneOn = revealed && productMade
+        context.fill(Path(roundedRect: gene, cornerRadius: 8), with: .color(geneOn ? .purple : .purple.opacity(0.35)))
+        context.draw(Text(text("lab.dnaGeneLabel")).font(.caption.weight(.bold)).foregroundColor(.white), at: CGPoint(x: gene.midX, y: gene.midY))
+
+        if signalPresent {
+            let bound = siteIntact
+            let centre = bound ? CGPoint(x: site.midX, y: site.minY - 16) : CGPoint(x: site.midX - 6, y: site.minY - 52)
+            context.fill(Path(ellipseIn: CGRect(x: centre.x - 14, y: centre.y - 14, width: 28, height: 28)), with: .color(.orange))
+            context.draw(Text(verbatim: "S").font(.callout.weight(.bold)).foregroundColor(.white), at: centre)
+            if !bound {
+                context.draw(Text(text("lab.dnaSignalCannotBind")).font(.caption2).foregroundColor(.secondary),
+                             at: CGPoint(x: centre.x + 22, y: centre.y), anchor: .leading)
+            }
+        }
+
+        let productArea = CGRect(x: size.width * 0.72, y: 14, width: size.width * 0.25, height: size.height - 28)
+        if !revealed {
+            context.draw(Text(verbatim: "?").font(.largeTitle.weight(.bold)).foregroundColor(.secondary),
+                         at: CGPoint(x: productArea.midX, y: productArea.midY))
+        } else if productMade {
+            var arrow = Path()
+            arrow.move(to: CGPoint(x: gene.maxX + 4, y: lineY))
+            arrow.addLine(to: CGPoint(x: productArea.minX + 4, y: lineY))
+            context.stroke(arrow, with: .color(.teal), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+            for index in 0..<6 {
+                let column = CGFloat(index % 3), row = CGFloat(index / 3)
+                let centre = CGPoint(x: productArea.minX + 18 + column * 26, y: lineY - 26 + row * 30)
+                context.fill(Path(roundedRect: CGRect(x: centre.x - 10, y: centre.y - 8, width: 20, height: 16), cornerRadius: 5), with: .color(.teal))
+            }
+        } else {
+            context.draw(Text(text("lab.dnaNoProduct")).font(.caption.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: productArea.midX, y: lineY))
+        }
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
+        }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.dnaPredict"))
                 .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
             HStack {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    answerButton(
-                        displayIndex: displayIndex,
-                        originalIndex: originalIndex,
-                        key: originalIndex == 0 ? "lab.dnaPredictOption0" : "lab.dnaPredictOption1"
-                    )
+                    answerButton(displayIndex: displayIndex, originalIndex: originalIndex,
+                                 key: originalIndex == 0 ? "lab.dnaPredictOption0" : "lab.dnaPredictOption1")
                 }
             }
-
             if prediction.hasAnswered {
                 let isCorrect = prediction.isCorrect
-                Label(
-                    L10n.text(
-                        isCorrect ? "lab.dnaPredictCorrect" : "lab.dnaPredictIncorrect",
-                        store.language
-                    ),
-                    systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.clockwise.circle"
-                )
-                .font(.callout)
-                .foregroundStyle(isCorrect ? Color.green : Color.secondary)
-
-                Text(L10n.text(GeneRegulationPractice.explanationKey(isCorrect: isCorrect), store.language))
+                Label(text(isCorrect ? "lab.dnaPredictCorrect" : "lab.dnaPredictIncorrect"),
+                      systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.clockwise.circle")
+                    .font(.callout)
+                    .foregroundStyle(isCorrect ? Color.green : Color.secondary)
+                Text(text(GeneRegulationPractice.explanationKey(isCorrect: isCorrect)))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-
                 if prediction.canRetry {
-                    Button(L10n.text("lab.dnaRetry", store.language)) {
-                        prediction.retry()
-                    }
-                    .buttonStyle(.bordered)
+                    Button(text("lab.dnaRetry")) { prediction.retry() }
+                        .buttonStyle(.bordered)
                 }
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func resetPrediction() {
-        prediction = GeneRegulationPractice.makePredictionAttempt(
-            variant: variant,
-            signalPresent: signalPresent
-        )
-    }
-
-    private func flowNode(title: String, value: String) -> some View {
-        VStack(spacing: 5) {
-            Text(title)
-                .font(.caption2)
-                .foregroundStyle(.secondary)
-                .multilineTextAlignment(.center)
-            Text(value)
-                .font(.callout.weight(.semibold))
-                .multilineTextAlignment(.center)
-                .frame(maxWidth: .infinity, minHeight: 42)
-        }
-        .padding(8)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
-        .frame(maxWidth: .infinity)
+        prediction = GeneRegulationPractice.makePredictionAttempt(variant: variant, signalPresent: signalPresent)
     }
 
     private func answerButton(displayIndex: Int, originalIndex: Int, key: String) -> some View {
@@ -6658,7 +7001,7 @@ private struct GeneRegulationLab: View {
             guard let evidence = prediction.currentAnswerEventEvidence() else { return }
             store.recordStudyAssessment(lessonID: "biology.dna_genes_and_traits", evidence: evidence)
         } label: {
-            Text(L10n.text(key, store.language))
+            Text(text(key))
                 .frame(maxWidth: .infinity, minHeight: 34)
         }
         .buttonStyle(.bordered)
@@ -6670,8 +7013,10 @@ private struct GeneRegulationLab: View {
 
 private struct GeneExpressionLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var transcriptionEnabled = true
-    @State private var selectedStage = 0
+    @State private var step = 0
+    @State private var playing = false
     @State private var selectedAnswer = -1
     @State private var didCheckAnswer = false
     @State private var prediction = GeneExpressionPractice.makeStopCodonAttempt()
@@ -6681,112 +7026,250 @@ private struct GeneExpressionLab: View {
         "lab.geneExpressionOptionB",
         "lab.geneExpressionOptionC"
     ]
+    private static let baseCount = 9
+    private static let finalStep = 12
+    private static let tileWidth: CGFloat = 34
 
-    private var snapshot: GeneExpressionSnapshot {
-        GeneExpressionPractice.snapshot(promoterIsActive: transcriptionEnabled)
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var snapshot: GeneExpressionSnapshot { GeneExpressionPractice.snapshot(promoterIsActive: transcriptionEnabled) }
+    private var templateBases: [Character] { Array(GeneExpressionPractice.templateStrand.filter { !$0.isWhitespace }) }
+    private var messengerBases: [Character] { Array((snapshot.messengerRNA ?? "").filter { !$0.isWhitespace }) }
+    private var peptide: [String] { snapshot.peptide ?? [] }
+    /// Steps 1–9 copy one base each; steps 10–12 let the ribosome read one codon each.
+    private var transcribed: Int { min(step, Self.baseCount) }
+    private var codonsRead: Int { max(0, step - Self.baseCount) }
+    private var aminoAcidCount: Int { peptide.prefix(codonsRead).filter { $0 != "Stop" }.count }
+
+    private var phaseKey: String {
+        if !transcriptionEnabled { return "lab.geneExpressionPhaseBlocked" }
+        if step == 0 { return "lab.geneExpressionPhaseIdle" }
+        if step <= Self.baseCount { return "lab.geneExpressionPhaseTranscription" }
+        return step >= Self.finalStep ? "lab.geneExpressionPhaseDone" : "lab.geneExpressionPhaseTranslation"
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.GeneExpressionLab", store.language), instruction: L10n.text("lab.geneExpressionHint", store.language))
-
-            Toggle(L10n.text("lab.geneExpressionRegulator", store.language), isOn: $transcriptionEnabled)
+            LabHeader(title: text("labkit.title.GeneExpressionLab"), instruction: text("lab.geneExpressionSubtitle"))
+            Toggle(text("lab.geneExpressionRegulator"), isOn: $transcriptionEnabled)
                 .onChange(of: transcriptionEnabled) { _ in
+                    playing = false
+                    step = 0
                     resetPrediction()
                 }
-
-            Picker(L10n.text("lab.geneExpressionStage", store.language), selection: $selectedStage) {
-                Text(L10n.text("lab.geneExpressionDNA", store.language)).tag(0)
-                Text(L10n.text("lab.geneExpressionRNA", store.language)).tag(1)
-                Text(L10n.text("lab.geneExpressionProtein", store.language)).tag(2)
+            ScrollView(.horizontal, showsIndicators: false) {
+                diagram.padding(.vertical, 6)
             }
-            .pickerStyle(.segmented)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text(stageTitleKey, store.language))
-                    .font(.headline)
-                Text(stageValue)
-                    .font(.title3.monospaced())
-                    .textSelection(.enabled)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(stageExplanationKey, store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.geneExpressionDiagram"))
+            .accessibilityValue(Text(verbatim: accessibilitySummary))
+            HStack(spacing: 10) {
+                Button {
+                    if step >= Self.finalStep { step = 0 }
+                    if reduceMotion { step = Self.finalStep } else { playing = true }
+                } label: { Label(text("lab.geneExpressionPlay"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(!transcriptionEnabled || playing)
+                Button {
+                    withAnimation(.easeOut(duration: 0.25)) { step = min(step + 1, Self.finalStep) }
+                } label: { Label(text("lab.geneExpressionStep"), systemImage: "forward.frame.fill") }
+                    .disabled(!transcriptionEnabled || playing || step >= Self.finalStep)
+                Button {
+                    playing = false
+                    step = 0
+                } label: { Label(text("lab.geneExpressionReset"), systemImage: "arrow.counterclockwise") }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.geneExpressionStatPhase"), value: text(phaseKey), tint: transcriptionEnabled ? .purple : .red)
+                LabStat(label: text("lab.geneExpressionStatRNA"), value: "\(transcriptionEnabled ? transcribed : 0) / \(Self.baseCount)", tint: .orange)
+                LabStat(label: text("lab.geneExpressionStatAmino"), value: "\(aminoAcidCount)", tint: .teal)
+            }
+            quizPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.geneExpressionChallenge"),
+                         solved: transcriptionEnabled && step >= Self.finalStep && prediction.isCorrect,
+                         solvedText: text("lab.geneExpressionChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.geneExpressionDNAExplain"), text("lab.geneExpressionRNAExplain"),
+                                                                 text("lab.geneExpressionProteinExplain"), text("lab.geneExpressionLimit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && step < Self.finalStep {
+                try? await Task.sleep(nanoseconds: 420_000_000)
+                guard playing else { return }
+                withAnimation(.easeOut(duration: 0.25)) { step += 1 }
+            }
+            playing = false
+        }
+    }
 
-            Text(L10n.text("lab.geneExpressionQuiz", store.language))
+    // DNA template on top, the growing mRNA under it, then the peptide the ribosome builds codon by codon.
+    private var diagram: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 0) {
+                rowLabel(text("lab.geneExpressionPolymerase"))
+                ForEach(0..<Self.baseCount, id: \.self) { index in
+                    ZStack {
+                        if transcriptionEnabled && step > 0 && step <= Self.baseCount && index == step - 1 {
+                            Image(systemName: "arrowtriangle.down.fill").foregroundStyle(.purple)
+                        }
+                    }
+                    .frame(width: Self.tileWidth, height: 14)
+                    .padding(.trailing, gap(after: index))
+                }
+            }
+            baseRow(label: text("lab.geneExpressionTemplate"), ends: ("3′", "5′"), bases: templateBases, visible: Self.baseCount)
+            HStack(spacing: 0) {
+                rowLabel("")
+                ForEach(0..<Self.baseCount, id: \.self) { index in
+                    Rectangle()
+                        .fill(index < transcribed && transcriptionEnabled ? Color.secondary.opacity(0.6) : Color.clear)
+                        .frame(width: 2, height: 12)
+                        .frame(width: Self.tileWidth)
+                        .padding(.trailing, gap(after: index))
+                }
+            }
+            if transcriptionEnabled {
+                baseRow(label: text("lab.geneExpressionRNA"), ends: ("5′", "3′"), bases: messengerBases, visible: transcribed)
+                    .overlay(alignment: .leading) { ribosome }
+                peptideRow
+            } else {
+                Label(text("lab.geneExpressionBlocked"), systemImage: "xmark.octagon.fill")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(.red)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 6)
+            }
+        }
+    }
+
+    // The ribosome sits over the codon it is reading.
+    @ViewBuilder
+    private var ribosome: some View {
+        if codonsRead > 0 {
+            let codon = codonsRead - 1
+            let codonWidth = Self.tileWidth * 3 + 6
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.purple, lineWidth: 3)
+                .frame(width: codonWidth + 8, height: 46)
+                .offset(x: 116 + CGFloat(codon) * (codonWidth + 12) - 4)
+                .accessibilityHidden(true)
+        }
+    }
+
+    private var peptideRow: some View {
+        HStack(spacing: 0) {
+            rowLabel(text("lab.geneExpressionPeptide"))
+            ForEach(0..<3, id: \.self) { codon in
+                ZStack {
+                    if codon < codonsRead, codon < peptide.count {
+                        let isStop = peptide[codon] == "Stop"
+                        Text(verbatim: isStop ? text("lab.geneExpressionStop") : peptide[codon])
+                            .font(.callout.weight(.bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 7)
+                            .background(isStop ? Color.red : Color.teal, in: isStop ? AnyShape(RoundedRectangle(cornerRadius: 4)) : AnyShape(Capsule()))
+                            .transition(.scale.combined(with: .opacity))
+                    }
+                }
+                .frame(width: Self.tileWidth * 3 + 6, height: 36)
+                .padding(.trailing, 12)
+            }
+        }
+    }
+
+    private func baseRow(label: String, ends: (String, String), bases: [Character], visible: Int) -> some View {
+        HStack(spacing: 0) {
+            rowLabel(label)
+            ForEach(0..<Self.baseCount, id: \.self) { index in
+                Group {
+                    if index < visible, index < bases.count {
+                        Text(String(bases[index]))
+                            .font(.title3.monospaced().weight(.bold))
+                            .foregroundStyle(.white)
+                            .frame(width: Self.tileWidth, height: 38)
+                            .background(Self.color(for: bases[index]), in: RoundedRectangle(cornerRadius: 7))
+                            .transition(.scale.combined(with: .opacity))
+                    } else {
+                        RoundedRectangle(cornerRadius: 7)
+                            .strokeBorder(Color.secondary.opacity(0.35), style: StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
+                            .frame(width: Self.tileWidth, height: 38)
+                    }
+                }
+                .padding(.trailing, gap(after: index))
+            }
+            Text(verbatim: ends.1).font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.leading, 2)
+        }
+        .overlay(alignment: .leading) {
+            Text(verbatim: ends.0).font(.caption.weight(.semibold)).foregroundStyle(.secondary).offset(x: 100)
+        }
+    }
+
+    private func rowLabel(_ label: String) -> some View {
+        Text(label)
+            .font(.caption.weight(.semibold))
+            .foregroundStyle(.secondary)
+            .lineLimit(2)
+            .frame(width: 96, alignment: .leading)
+            .frame(width: 116, alignment: .leading)
+    }
+
+    /// Extra space after every third base separates the codons.
+    private func gap(after index: Int) -> CGFloat { index % 3 == 2 ? 12 : 3 }
+
+    private static func color(for base: Character) -> Color {
+        switch base {
+        case "A": return .green
+        case "T": return .red
+        case "U": return .orange
+        case "C": return .blue
+        default: return Color(red: 0.85, green: 0.6, blue: 0.05)
+        }
+    }
+
+    private var accessibilitySummary: String {
+        let rna = String(messengerBases.prefix(transcribed))
+        let protein = peptide.prefix(codonsRead).joined(separator: "–")
+        return text(phaseKey) + ". " + text("lab.geneExpressionRNA") + ": " + (rna.isEmpty ? "—" : rna) + ". "
+            + text("lab.geneExpressionPeptide") + ": " + (protein.isEmpty ? "—" : protein)
+    }
+
+    private var quizPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.geneExpressionQuiz"))
                 .font(.callout.weight(.medium))
-            Picker(L10n.text("lab.geneExpressionQuiz", store.language), selection: $selectedAnswer) {
+            Picker(text("lab.geneExpressionQuiz"), selection: $selectedAnswer) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(answerOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(answerOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.radioGroup)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
             .onChange(of: selectedAnswer) { _ in didCheckAnswer = false }
-
-            Button(L10n.text("lab.geneExpressionCheck", store.language)) {
+            Button(text("lab.geneExpressionCheck")) {
                 prediction.select(displayedIndex: selectedAnswer)
                 guard let evidence = prediction.currentAnswerEventEvidence() else { return }
-                store.recordStudyAssessment(
-                    lessonID: "biology.gene_expression_and_regulation",
-                    evidence: evidence
-                )
+                store.recordStudyAssessment(lessonID: "biology.gene_expression_and_regulation", evidence: evidence)
                 didCheckAnswer = true
             }
             .buttonStyle(.borderedProminent)
             .disabled(selectedAnswer < 0 || prediction.hasAnswered)
-
             if didCheckAnswer {
-                Label(
-                    L10n.text(prediction.isCorrect ? "lab.geneExpressionCorrect" : "lab.geneExpressionReview", store.language),
-                    systemImage: prediction.isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                )
-                .font(.callout.weight(.medium))
-                .foregroundStyle(prediction.isCorrect ? .green : .orange)
-                .fixedSize(horizontal: false, vertical: true)
-
+                Label(text(prediction.isCorrect ? "lab.geneExpressionCorrect" : "lab.geneExpressionReview"),
+                      systemImage: prediction.isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
+                    .font(.callout.weight(.medium))
+                    .foregroundStyle(prediction.isCorrect ? .green : .orange)
+                    .fixedSize(horizontal: false, vertical: true)
                 if prediction.canRetry {
-                    Button(L10n.text("lab.geneExpressionRetry", store.language), action: retryPrediction)
+                    Button(text("lab.geneExpressionRetry"), action: retryPrediction)
                         .buttonStyle(.link)
                 }
             }
-
-            Text(L10n.text("lab.geneExpressionLimit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
         }
-    }
-
-    private var stageTitleKey: String {
-        ["lab.geneExpressionDNA", "lab.geneExpressionRNA", "lab.geneExpressionProtein"][selectedStage]
-    }
-
-    private var stageExplanationKey: String {
-        ["lab.geneExpressionDNAExplain", "lab.geneExpressionRNAExplain", "lab.geneExpressionProteinExplain"][selectedStage]
-    }
-
-    private var stageValue: String {
-        switch selectedStage {
-        case 0:
-            return "3′ \(GeneExpressionPractice.templateStrand) 5′"
-        case 1:
-            guard let messengerRNA = snapshot.messengerRNA else {
-                return L10n.text("lab.geneExpressionNoTranscript", store.language)
-            }
-            return "5′ \(messengerRNA) 3′"
-        default:
-            guard let peptide = snapshot.peptide else {
-                return L10n.text("lab.geneExpressionNoProtein", store.language)
-            }
-            return peptide.joined(separator: " – ")
-        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func retryPrediction() {
@@ -6804,7 +7287,9 @@ private struct GeneExpressionLab: View {
 
 private struct CellCycleLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selectedStage: CellCycleStage = .g1
+    @State private var playing = false
     @State private var selectedAnswer = -1
     @State private var didCheckAnswer = false
     @State private var prediction = CellCyclePractice.makeKnowledgeCheckAttempt()
@@ -6814,100 +7299,383 @@ private struct CellCycleLab: View {
         "lab.cellCycle.optionAnaphase",
         "lab.cellCycle.optionCytokinesis"
     ]
+    private static let stages = CellCycleStage.allCases
+    /// Wheel sectors in degrees from the top, clockwise. Interphase is roughly to scale; mitosis is enlarged so its five stages can be clicked.
+    private static let sectors: [(start: Double, end: Double)] = [
+        (0, 120), (120, 210), (210, 270), (270, 288), (288, 306), (306, 324), (324, 342), (342, 360)
+    ]
+    private static let sectorColors: [Color] = [.teal, .orange, .blue, .purple, .purple, .purple, .purple, .purple]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var stageIndex: Int { Self.stages.firstIndex(of: selectedStage) ?? 0 }
+    private var isMitosis: Bool { stageIndex >= 3 }
+
+    private var dnaLabel: String {
+        switch selectedStage {
+        case .g1: return "2C"
+        case .s: return "2C → 4C"
+        default: return "4C"
+        }
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.CellCycleLab", store.language), instruction: L10n.text("lab.cellCycle.hint", store.language))
-
-            Picker(L10n.text("lab.cellCycle.chooseStage", store.language), selection: $selectedStage) {
-                ForEach(CellCycleStage.allCases) { stage in
-                    Text(L10n.text(stage.localizationKey, store.language)).tag(stage)
+            LabHeader(title: text("labkit.title.CellCycleLab"), instruction: text("lab.cellCycle.subtitle"))
+            HStack(alignment: .center, spacing: 16) {
+                GeometryReader { proxy in
+                    wheel(size: proxy.size)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onEnded { drag in select(at: drag.location, size: proxy.size) })
                 }
+                .frame(width: 210, height: 210)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.cellCycle.wheel"))
+                .accessibilityValue(Text(text(selectedStage.localizationKey)))
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: move(by: 1)
+                    case .decrement: move(by: -1)
+                    @unknown default: break
+                    }
+                }
+                Canvas { context, size in drawCell(context, size: size) }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 210)
+                    .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.cellCycle.cellDrawing"))
+                    .accessibilityValue(Text(text("lab.cellCycle.explain.\(selectedStage.rawValue)")))
             }
-            .pickerStyle(.menu)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text(selectedStage.localizationKey, store.language))
-                    .font(.headline)
-                Text(L10n.text("lab.cellCycle.explain.\(selectedStage.rawValue)", store.language))
+            Text(text("lab.cellCycle.wheelNote") + " " + text("lab.cellCycle.legend"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text(selectedStage.localizationKey)).font(.headline)
+                Text(text("lab.cellCycle.explain.\(selectedStage.rawValue)"))
                     .font(.callout)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(statusKey, store.language))
-                    .font(.caption.weight(.medium))
-                    .foregroundStyle(.tint)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
-            HStack {
-                Button(L10n.text("lab.cellCycle.previous", store.language)) {
-                    move(by: -1)
-                }
-                .disabled(selectedStage == CellCycleStage.allCases.first)
-                Spacer()
-                Text("\((CellCycleStage.allCases.firstIndex(of: selectedStage) ?? 0) + 1) / \(CellCycleStage.allCases.count)")
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
-                    .accessibilityLabel(L10n.text("lab.cellCycle.position", store.language))
-                Spacer()
-                Button(L10n.text("lab.cellCycle.next", store.language)) {
-                    move(by: 1)
-                }
-                .disabled(selectedStage == CellCycleStage.allCases.last)
+            .background(Self.sectorColors[stageIndex].opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+            HStack(spacing: 10) {
+                Button { move(by: -1) } label: { Label(text("lab.cellCycle.previous"), systemImage: "chevron.left") }
+                    .disabled(stageIndex == 0 || playing)
+                Button {
+                    if stageIndex == Self.stages.count - 1 { selectedStage = Self.stages[0] }
+                    playing = true
+                } label: { Label(text("lab.cellCycle.play"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(playing)
+                Button { move(by: 1) } label: { Label(text("lab.cellCycle.next"), systemImage: "chevron.right") }
+                    .disabled(stageIndex == Self.stages.count - 1 || playing)
             }
-
-            VStack(alignment: .leading, spacing: 10) {
-                conceptCard(
-                    titleKey: "lab.cellCycle.cytokinesisTitle",
-                    descriptionKey: "lab.cellCycle.cytokinesisDescription",
-                    systemImage: "arrow.left.and.right"
-                )
-                conceptCard(
-                    titleKey: "lab.cellCycle.differentiationTitle",
-                    descriptionKey: "lab.cellCycle.differentiationDescription",
-                    systemImage: "sparkles"
-                )
+            Canvas { context, size in drawDNAChart(context, size: size) }
+                .frame(height: 130)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.cellCycle.dnaChart"))
+                .accessibilityValue(Text(verbatim: dnaLabel))
+            LabStatGrid {
+                LabStat(label: text("lab.cellCycle.statStage"), value: "\(stageIndex + 1) / \(Self.stages.count)", tint: Self.sectorColors[stageIndex])
+                LabStat(label: text("lab.cellCycle.statPeriod"), value: text(isMitosis ? "lab.cellCycle.mitosis" : "lab.cellCycle.interphase"), tint: .purple)
+                LabStat(label: text("lab.cellCycle.dnaChart"), value: dnaLabel, tint: .orange)
             }
+            quizPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.cellCycle.challenge"),
+                         solved: selectedStage == .metaphase, solvedText: text("lab.cellCycle.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.cellCycle.cytokinesisDescription"),
+                                                                 text("lab.cellCycle.differentiationDescription"),
+                                                                 text("lab.cellCycle.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && stageIndex < Self.stages.count - 1 {
+                try? await Task.sleep(nanoseconds: 1_100_000_000)
+                guard playing else { return }
+                if reduceMotion { move(by: 1) } else { withAnimation(.easeInOut(duration: 0.3)) { move(by: 1) } }
+            }
+            playing = false
+        }
+    }
 
-            Text(L10n.text("lab.cellCycle.quiz", store.language))
+    // MARK: Wheel
+
+    private func wheel(size: CGSize) -> some View {
+        Canvas { context, size in
+            let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+            let outer = min(size.width, size.height) / 2 - 10
+            let inner = outer * 0.58
+            for (index, sector) in Self.sectors.enumerated() {
+                let selected = index == stageIndex
+                let path = ring(centre, inner: inner, outer: selected ? outer + 8 : outer, from: sector.start + 0.8, to: sector.end - 0.8)
+                context.fill(path, with: .color(Self.sectorColors[index].opacity(selected ? 1 : (index >= 3 ? 0.35 + Double(index - 3) * 0.1 : 0.45))))
+            }
+            for (index, label) in ["G₁", "S", "G₂"].enumerated() {
+                let middle = (Self.sectors[index].start + Self.sectors[index].end) / 2
+                context.draw(Text(verbatim: label).font(.callout.weight(.bold)).foregroundColor(.white),
+                             at: polar(centre, radius: (inner + outer) / 2, degrees: middle))
+            }
+            context.draw(Text(verbatim: "M").font(.callout.weight(.bold)).foregroundColor(.purple),
+                         at: polar(centre, radius: outer + 2, degrees: 315).applying(CGAffineTransform(translationX: -14, y: -14)))
+            let title = text(selectedStage.localizationKey)
+            context.draw(Text(verbatim: title).font(.caption.weight(.semibold)).foregroundColor(.primary),
+                         in: CGRect(x: centre.x - inner * 0.72, y: centre.y - 18, width: inner * 1.44, height: 40))
+        }
+    }
+
+    private func ring(_ centre: CGPoint, inner: CGFloat, outer: CGFloat, from start: Double, to end: Double) -> Path {
+        var path = Path()
+        path.addArc(center: centre, radius: outer, startAngle: .degrees(start - 90), endAngle: .degrees(end - 90), clockwise: false)
+        path.addArc(center: centre, radius: inner, startAngle: .degrees(end - 90), endAngle: .degrees(start - 90), clockwise: true)
+        path.closeSubpath()
+        return path
+    }
+
+    private func polar(_ centre: CGPoint, radius: CGFloat, degrees: Double) -> CGPoint {
+        let radians = (degrees - 90) * .pi / 180
+        return CGPoint(x: centre.x + radius * CGFloat(cos(radians)), y: centre.y + radius * CGFloat(sin(radians)))
+    }
+
+    private func select(at location: CGPoint, size: CGSize) {
+        let dx = Double(location.x - size.width / 2), dy = Double(location.y - size.height / 2)
+        guard (dx * dx + dy * dy).squareRoot() > Double(min(size.width, size.height)) * 0.2 else { return }
+        var degrees = atan2(dy, dx) * 180 / .pi + 90
+        if degrees < 0 { degrees += 360 }
+        guard let index = Self.sectors.firstIndex(where: { degrees >= $0.start && degrees < $0.end }) else { return }
+        playing = false
+        selectedStage = Self.stages[index]
+    }
+
+    // MARK: Cell drawing
+
+    // Two chromosome pairs (2n = 4): red from one parent, blue from the other; long and short pairs.
+    private func drawCell(_ context: GraphicsContext, size: CGSize) {
+        let centre = CGPoint(x: size.width / 2, y: size.height / 2)
+        let r = min(size.width * 0.32, size.height * 0.42)
+        let colors: [Color] = [.red, .blue, .red, .blue]
+        let lengths: [CGFloat] = [r * 0.36, r * 0.36, r * 0.22, r * 0.22]
+        switch selectedStage {
+        case .g1, .s, .g2:
+            let grow: CGFloat = selectedStage == .g1 ? 0.86 : (selectedStage == .s ? 0.93 : 1)
+            membrane(context, ellipse(centre, rx: r * grow, ry: r * grow * 0.86))
+            let nucleus = r * 0.52
+            context.fill(ellipse(centre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.12)))
+            context.stroke(ellipse(centre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.6)), lineWidth: 1.5)
+            let spots: [CGPoint] = [CGPoint(x: -0.5, y: -0.32), CGPoint(x: 0.1, y: -0.55), CGPoint(x: -0.35, y: 0.4), CGPoint(x: 0.2, y: 0.25)]
+            for index in 0..<4 {
+                let start = CGPoint(x: centre.x + spots[index].x * nucleus, y: centre.y + spots[index].y * nucleus)
+                let doubled = selectedStage == .g2 || (selectedStage == .s && index < 2)
+                looseChromosome(context, start: start, length: lengths[index] * 1.3, color: colors[index], doubled: doubled)
+            }
+        case .prophase:
+            membrane(context, ellipse(centre, rx: r, ry: r * 0.86))
+            let nucleus = r * 0.55
+            context.stroke(ellipse(centre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.4)), lineWidth: 1.5)
+            pole(context, CGPoint(x: centre.x - nucleus - 12, y: centre.y - 10))
+            pole(context, CGPoint(x: centre.x + nucleus + 12, y: centre.y + 10))
+            let spots: [CGPoint] = [CGPoint(x: -0.35, y: -0.3), CGPoint(x: 0.3, y: -0.25), CGPoint(x: -0.25, y: 0.35), CGPoint(x: 0.35, y: 0.3)]
+            for index in 0..<4 {
+                let point = CGPoint(x: centre.x + spots[index].x * nucleus, y: centre.y + spots[index].y * nucleus)
+                duplicated(context, centre: point, length: lengths[index], color: colors[index], angle: Double(index) * 0.7)
+            }
+        case .prometaphase:
+            membrane(context, ellipse(centre, rx: r, ry: r * 0.86))
+            context.stroke(ellipse(centre, rx: r * 0.55, ry: r * 0.55), with: .color(.purple.opacity(0.35)),
+                           style: StrokeStyle(lineWidth: 1.5, dash: [3, 7]))
+            let left = CGPoint(x: centre.x - r * 0.82, y: centre.y), right = CGPoint(x: centre.x + r * 0.82, y: centre.y)
+            let spots: [CGPoint] = [CGPoint(x: -0.2, y: -0.3), CGPoint(x: 0.22, y: -0.12), CGPoint(x: -0.15, y: 0.3), CGPoint(x: 0.18, y: 0.32)]
+            for index in 0..<4 {
+                let point = CGPoint(x: centre.x + spots[index].x * r, y: centre.y + spots[index].y * r)
+                fiber(context, from: index % 2 == 0 ? left : right, to: point)
+                duplicated(context, centre: point, length: lengths[index], color: colors[index], angle: 0.4 + Double(index) * 0.5)
+            }
+            pole(context, left)
+            pole(context, right)
+        case .metaphase:
+            membrane(context, ellipse(centre, rx: r, ry: r * 0.86))
+            let left = CGPoint(x: centre.x - r * 0.85, y: centre.y), right = CGPoint(x: centre.x + r * 0.85, y: centre.y)
+            let rows: [CGFloat] = [-0.5, -0.17, 0.15, 0.45]
+            for index in 0..<4 {
+                let point = CGPoint(x: centre.x, y: centre.y + rows[index] * r)
+                fiber(context, from: left, to: CGPoint(x: point.x - 3, y: point.y))
+                fiber(context, from: right, to: CGPoint(x: point.x + 3, y: point.y))
+                duplicated(context, centre: point, length: lengths[index], color: colors[index], angle: .pi / 2)
+            }
+            pole(context, left)
+            pole(context, right)
+        case .anaphase:
+            membrane(context, ellipse(centre, rx: r * 1.12, ry: r * 0.78))
+            let left = CGPoint(x: centre.x - r * 0.98, y: centre.y), right = CGPoint(x: centre.x + r * 0.98, y: centre.y)
+            let rows: [CGFloat] = [-0.42, -0.14, 0.14, 0.42]
+            for index in 0..<4 {
+                for side in [-1.0, 1.0] {
+                    let lead = CGPoint(x: centre.x + CGFloat(side) * r * 0.5, y: centre.y + rows[index] * r * 0.8)
+                    fiber(context, from: side < 0 ? left : right, to: lead)
+                    trailingChromatid(context, lead: lead, length: lengths[index], color: colors[index], towardCentre: CGFloat(-side))
+                }
+            }
+            pole(context, left)
+            pole(context, right)
+        case .telophase:
+            membrane(context, peanut(centre, halfWidth: r * 1.18, height: r * 0.8))
+            for side in [-1.0, 1.0] {
+                let nucleusCentre = CGPoint(x: centre.x + CGFloat(side) * r * 0.6, y: centre.y)
+                let nucleus = r * 0.3
+                context.fill(ellipse(nucleusCentre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.12)))
+                context.stroke(ellipse(nucleusCentre, rx: nucleus, ry: nucleus), with: .color(.purple.opacity(0.6)), lineWidth: 1.5)
+                for index in 0..<4 {
+                    let start = CGPoint(x: nucleusCentre.x - nucleus * 0.6, y: nucleusCentre.y + (CGFloat(index) - 1.5) * nucleus * 0.42)
+                    looseChromosome(context, start: start, length: lengths[index] * 0.9, color: colors[index], doubled: false)
+                }
+            }
+        }
+    }
+
+    private func ellipse(_ centre: CGPoint, rx: CGFloat, ry: CGFloat) -> Path {
+        Path(ellipseIn: CGRect(x: centre.x - rx, y: centre.y - ry, width: rx * 2, height: ry * 2))
+    }
+
+    private func membrane(_ context: GraphicsContext, _ path: Path) {
+        context.fill(path, with: .color(.green.opacity(0.08)))
+        context.stroke(path, with: .color(.green.opacity(0.7)), lineWidth: 2.5)
+    }
+
+    /// A cell pinching in the middle: the cleavage furrow of late telophase and cytokinesis.
+    private func peanut(_ centre: CGPoint, halfWidth: CGFloat, height: CGFloat) -> Path {
+        let waist = height * 0.55
+        var path = Path()
+        path.move(to: CGPoint(x: centre.x, y: centre.y - waist))
+        path.addCurve(to: CGPoint(x: centre.x + halfWidth, y: centre.y),
+                      control1: CGPoint(x: centre.x + halfWidth * 0.4, y: centre.y - height * 1.15),
+                      control2: CGPoint(x: centre.x + halfWidth, y: centre.y - height * 0.9))
+        path.addCurve(to: CGPoint(x: centre.x, y: centre.y + waist),
+                      control1: CGPoint(x: centre.x + halfWidth, y: centre.y + height * 0.9),
+                      control2: CGPoint(x: centre.x + halfWidth * 0.4, y: centre.y + height * 1.15))
+        path.addCurve(to: CGPoint(x: centre.x - halfWidth, y: centre.y),
+                      control1: CGPoint(x: centre.x - halfWidth * 0.4, y: centre.y + height * 1.15),
+                      control2: CGPoint(x: centre.x - halfWidth, y: centre.y + height * 0.9))
+        path.addCurve(to: CGPoint(x: centre.x, y: centre.y - waist),
+                      control1: CGPoint(x: centre.x - halfWidth, y: centre.y - height * 0.9),
+                      control2: CGPoint(x: centre.x - halfWidth * 0.4, y: centre.y - height * 1.15))
+        path.closeSubpath()
+        return path
+    }
+
+    /// Uncondensed chromatin: a thin wavy thread; after S phase it is doubled.
+    private func looseChromosome(_ context: GraphicsContext, start: CGPoint, length: CGFloat, color: Color, doubled: Bool) {
+        for copy in 0..<(doubled ? 2 : 1) {
+            var thread = Path()
+            for step in 0...20 {
+                let t = CGFloat(step) / 20
+                let point = CGPoint(x: start.x + t * length, y: start.y + CGFloat(copy) * 4 + 3 * CGFloat(sin(Double(t) * 4 * .pi)))
+                if step == 0 { thread.move(to: point) } else { thread.addLine(to: point) }
+            }
+            context.stroke(thread, with: .color(color.opacity(0.85)), lineWidth: 1.6)
+        }
+    }
+
+    /// A condensed duplicated chromosome: two sister chromatids joined at the centromere.
+    private func duplicated(_ context: GraphicsContext, centre: CGPoint, length: CGFloat, color: Color, angle: Double) {
+        let along = CGPoint(x: CGFloat(cos(angle)) * length / 2, y: CGFloat(sin(angle)) * length / 2)
+        let across = CGPoint(x: CGFloat(-sin(angle)) * 3.2, y: CGFloat(cos(angle)) * 3.2)
+        for side in [-1.0, 1.0] {
+            var chromatid = Path()
+            chromatid.move(to: CGPoint(x: centre.x - along.x + across.x * CGFloat(side), y: centre.y - along.y + across.y * CGFloat(side)))
+            chromatid.addLine(to: CGPoint(x: centre.x + along.x + across.x * CGFloat(side), y: centre.y + along.y + across.y * CGFloat(side)))
+            context.stroke(chromatid, with: .color(color), style: StrokeStyle(lineWidth: 5.5, lineCap: .round))
+        }
+        context.fill(Path(ellipseIn: CGRect(x: centre.x - 3, y: centre.y - 3, width: 6, height: 6)), with: .color(.white.opacity(0.9)))
+    }
+
+    /// A separated chromatid pulled by its centromere, arms trailing back toward the cell's middle.
+    private func trailingChromatid(_ context: GraphicsContext, lead: CGPoint, length: CGFloat, color: Color, towardCentre: CGFloat) {
+        var shape = Path()
+        shape.move(to: CGPoint(x: lead.x + towardCentre * length * 0.45, y: lead.y - length * 0.35))
+        shape.addLine(to: lead)
+        shape.addLine(to: CGPoint(x: lead.x + towardCentre * length * 0.45, y: lead.y + length * 0.35))
+        context.stroke(shape, with: .color(color), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+    }
+
+    private func pole(_ context: GraphicsContext, _ point: CGPoint) {
+        var aster = Path()
+        for ray in 0..<8 {
+            let angle = Double(ray) * .pi / 4
+            aster.move(to: point)
+            aster.addLine(to: CGPoint(x: point.x + 10 * CGFloat(cos(angle)), y: point.y + 10 * CGFloat(sin(angle))))
+        }
+        context.stroke(aster, with: .color(.orange.opacity(0.6)), lineWidth: 1)
+        context.fill(Path(ellipseIn: CGRect(x: point.x - 4.5, y: point.y - 4.5, width: 9, height: 9)), with: .color(.orange))
+    }
+
+    private func fiber(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint) {
+        var line = Path()
+        line.move(to: start)
+        line.addLine(to: end)
+        context.stroke(line, with: .color(.secondary.opacity(0.45)), lineWidth: 1)
+    }
+
+    // MARK: DNA chart
+
+    // DNA per cell: 2C in G1, doubling through S, 4C until cytokinesis makes two 2C cells.
+    private func drawDNAChart(_ context: GraphicsContext, size: CGSize) {
+        let plot = LabPlotGeometry(size: size, x: 0...9, y: 0...5, leading: 40, bottom: 26)
+        plot.drawAxes(in: context, xLabel: text("lab.cellCycle.axisStage"), yLabel: text("lab.cellCycle.dnaChart"),
+                      xTicks: [], yTicks: [2, 4], format: { "\(Int($0))C" })
+        let band = CGRect(x: plot.point(Double(stageIndex), 0).x, y: plot.rect.minY,
+                          width: plot.rect.width / 9, height: plot.rect.height)
+        context.fill(Path(band), with: .color(Self.sectorColors[stageIndex].opacity(0.18)))
+        let points: [(Double, Double)] = [(0, 2), (1, 2), (2, 4), (8, 4), (8, 2), (9, 2)]
+        var line = Path()
+        for (index, point) in points.enumerated() {
+            let location = plot.point(point.0, point.1)
+            if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+        }
+        context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        let labels: [(String, Double)] = [("G₁", 0.5), ("S", 1.5), ("G₂", 2.5), ("M", 5.5), (text("lab.cellCycle.twoCells"), 8.5)]
+        for label in labels {
+            context.draw(Text(verbatim: label.0).font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: plot.point(label.1, 0).x, y: plot.rect.maxY + 9))
+        }
+    }
+
+    // MARK: Quiz
+
+    private var quizPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.cellCycle.quiz"))
                 .font(.callout.weight(.medium))
-            Picker(L10n.text("lab.cellCycle.quiz", store.language), selection: $selectedAnswer) {
+            Picker(text("lab.cellCycle.quiz"), selection: $selectedAnswer) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(answerOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(answerOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.radioGroup)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
             .onChange(of: selectedAnswer) { _ in didCheckAnswer = false }
-
-            Button(L10n.text("lab.cellCycle.check", store.language)) {
+            Button(text("lab.cellCycle.check")) {
                 prediction.select(displayedIndex: selectedAnswer)
                 didCheckAnswer = true
                 if let evidence = prediction.currentAnswerEventEvidence() {
-                    store.recordStudyAssessment(
-                        lessonID: "biology.cell_cycle_and_differentiation",
-                        evidence: evidence
-                    )
+                    store.recordStudyAssessment(lessonID: "biology.cell_cycle_and_differentiation", evidence: evidence)
                 }
             }
             .buttonStyle(.borderedProminent)
             .disabled(selectedAnswer < 0 || prediction.hasAnswered)
-
             if didCheckAnswer {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.cellCycle.correct", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.cellCycle.correct"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.green)
                         .fixedSize(horizontal: false, vertical: true)
                 } else {
-                    Label(L10n.text("lab.cellCycle.review", store.language), systemImage: "arrow.uturn.backward.circle")
+                    Label(text("lab.cellCycle.review"), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.cellCycle.retry", store.language)) {
+                    Button(text("lab.cellCycle.retry")) {
                         prediction.retry()
                         selectedAnswer = -1
                         didCheckAnswer = false
@@ -6915,37 +7683,15 @@ private struct CellCycleLab: View {
                     .buttonStyle(.link)
                 }
             }
-
-            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.cellCycle.limit", store.language)])
         }
-    }
-
-    private var statusKey: String {
-        if CellCyclePractice.isDNAReplicationStage(selectedStage) { return "lab.cellCycle.statusDNA" }
-        if CellCyclePractice.isNuclearDivision(selectedStage) { return "lab.cellCycle.statusNucleus" }
-        return "lab.cellCycle.statusPrepare"
-    }
-
-    private func conceptCard(titleKey: String, descriptionKey: String, systemImage: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label(L10n.text(titleKey, store.language), systemImage: systemImage)
-                .font(.headline)
-            Text(L10n.text(descriptionKey, store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-        .accessibilityElement(children: .combine)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private func move(by offset: Int) {
-        guard let index = CellCycleStage.allCases.firstIndex(of: selectedStage) else { return }
-        let nextIndex = index + offset
-        guard CellCycleStage.allCases.indices.contains(nextIndex) else { return }
-        selectedStage = CellCycleStage.allCases[nextIndex]
+        let next = stageIndex + offset
+        guard Self.stages.indices.contains(next) else { return }
+        selectedStage = Self.stages[next]
     }
 }
 
@@ -6955,6 +7701,7 @@ private struct AnimalFunctionLab: View {
     @State private var selectedAnswer = -1
     @State private var didCheckAnswer = false
     @State private var prediction = AnimalFunctionPractice.makeComparisonAttempt()
+    @State private var visitedFunctions: Set<AnimalFunction> = [.feeding]
 
     private let answerOptionKeys = [
         "lab.zoology.optionA",
@@ -6971,8 +7718,12 @@ private struct AnimalFunctionLab: View {
                     Text(L10n.text(function.titleKey, store.language)).tag(function)
                 }
             }
-            .pickerStyle(.menu)
-            .onChange(of: selectedFunction) { _ in resetPrediction() }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .onChange(of: selectedFunction) { function in
+                visitedFunctions.insert(function)
+                resetPrediction()
+            }
 
             VStack(alignment: .leading, spacing: 8) {
                 Label(L10n.text(selectedFunction.titleKey, store.language), systemImage: systemSymbol)
@@ -7030,6 +7781,9 @@ private struct AnimalFunctionLab: View {
                 }
             }
 
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.zoology.challenge", store.language),
+                         solved: visitedFunctions.count == AnimalFunction.allCases.count && prediction.isCorrect,
+                         solvedText: L10n.text("lab.zoology.challengeSolved", store.language))
             LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.zoology.limit", store.language)])
         }
     }
@@ -7095,10 +7849,7 @@ private struct ThermoregulationLab: View {
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.zoology.thermo.intro", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            LabHeader(title: L10n.text("lab.zoology.thermo.title", store.language), instruction: L10n.text("lab.zoology.thermo.intro", store.language))
 
             HStack(alignment: .top, spacing: 16) {
                 ThermalProxyBirdVisualization()
@@ -7232,6 +7983,8 @@ private struct ThermoregulationLab: View {
                 .foregroundStyle(correct ? .green : .orange)
                 .fixedSize(horizontal: false, vertical: true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.zoology.thermo.challenge", store.language),
+                         solved: answerSolved, solvedText: L10n.text("lab.zoology.thermo.challengeSolved", store.language))
         }
     }
 
@@ -7522,136 +8275,234 @@ private struct CellLab: View {
 
 private struct BiomoleculeLab: View {
     @EnvironmentObject private var store: LearningStore
-    @State private var selectedExample: BiomoleculeExample = .enzyme
+    @State private var selectedExample: BiomoleculeExample = .starch
+    @State private var units = 3
     @State private var selectedGroup: BiomoleculeGroup? = nil
     @State private var checkedGroup: BiomoleculeGroup?
-    @State private var reactionJoins = true
     @State private var assessmentTracker = BiomoleculeAssessmentTracker()
+    @State private var puffID = 0
+    @State private var puffReleases = true
+    @State private var showPuff = false
 
-    private var exampleInfoKey: String {
-        "biology.moleculeLab.info.\(selectedExample.rawValue)"
-    }
+    private static let aminoAcids = ["Gly", "Ala", "Ser", "Lys", "Val", "Leu", "Cys", "Asp"]
+    private static let aminoColors: [Color] = [.teal, .orange, .pink, .blue, .green, .purple, .yellow, .red]
+    private static let dnaBases: [Character] = Array("ATGCGTAC")
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var isLipid: Bool { selectedExample == .triglyceride }
+    private var range: ClosedRange<Int> { isLipid ? 0...3 : 1...8 }
+    /// Each condensation bond releases one water molecule: n monomers need n − 1 bonds; a triglyceride has one ester bond per fatty acid.
+    private var bonds: Int { isLipid ? units : max(0, units - 1) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 14) {
-                HStack(spacing: 12) {
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: 28, weight: .medium))
-                        .foregroundStyle(.teal)
-                        .accessibilityHidden(true)
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text(L10n.text("biology.moleculeLab.title", store.language))
-                            .font(.headline)
-                        Text(L10n.text("biology.moleculeLab.subtitle", store.language))
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
+            LabHeader(title: text("biology.moleculeLab.title2"), instruction: text("biology.moleculeLab.subtitle2"))
+            Picker(text("biology.moleculeLab.example"), selection: $selectedExample) {
+                ForEach(BiomoleculeExample.allCases, id: \.self) { example in
+                    Text(text("biology.moleculeLab.\(example.rawValue)")).tag(example)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .onChange(of: selectedExample) { example in
+                units = example == .triglyceride ? 1 : 3
+                selectedGroup = nil
+                checkedGroup = nil
+            }
+            ZStack(alignment: .top) {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    Group {
+                        if isLipid { triglyceride } else { chain }
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.top, 36)
+                    .padding(.bottom, 12)
+                    .frame(minWidth: 520, alignment: .leading)
+                }
+                if showPuff {
+                    Text(verbatim: "H₂O")
+                        .font(.callout.weight(.bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 4)
+                        .background(Color.blue, in: Capsule())
+                        .padding(.top, 4)
+                        .transition(.asymmetric(insertion: .move(edge: puffReleases ? .bottom : .top).combined(with: .opacity),
+                                                removal: .move(edge: puffReleases ? .top : .bottom).combined(with: .opacity)))
+                        .id(puffID)
+                }
+            }
+            .frame(height: 170)
+            .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: 14))
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("biology.moleculeLab.chain"))
+            .accessibilityValue(Text(verbatim: "\(units), " + text("biology.moleculeLab.bond.\(selectedExample.rawValue)")))
+            Text(text("biology.moleculeLab.bond.\(selectedExample.rawValue)"))
+                .font(.caption.weight(.medium))
+                .foregroundStyle(.secondary)
+            HStack(spacing: 10) {
+                Button { change(by: 1) } label: { Label(text("biology.moleculeLab.joinOne"), systemImage: "plus.circle.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(units >= range.upperBound)
+                Button { change(by: -1) } label: { Label(text("biology.moleculeLab.splitOne"), systemImage: "scissors") }
+                    .disabled(units <= range.lowerBound)
+                Text(verbatim: text(puffReleases ? "biology.moleculeLab.waterOut" : "biology.moleculeLab.waterIn"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.blue)
+                    .opacity(showPuff ? 1 : 0)
+            }
+            LabStatGrid {
+                LabStat(label: text(isLipid ? "biology.moleculeLab.statFattyAcids" : "biology.moleculeLab.statUnits"), value: "\(units)", tint: .teal)
+                LabStat(label: text("biology.moleculeLab.statBonds"), value: "\(bonds)", tint: .purple)
+                LabStat(label: text("biology.moleculeLab.statWater"), value: "\(bonds)", tint: .blue)
+            }
+            groupPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("biology.moleculeLab.challenge"),
+                         solved: selectedExample == .starch && units == 6, solvedText: text("biology.moleculeLab.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("biology.moleculeLab.info.\(selectedExample.rawValue)"),
+                                                                 text(selectedExample.isPolymer ? "biology.moleculeLab.polymerExample" : "biology.moleculeLab.nonPolymerExample"),
+                                                                 text("biology.moleculeLab.caveat")])
+        }
+        .task(id: puffID) {
+            guard puffID > 0 else { return }
+            try? await Task.sleep(nanoseconds: 900_000_000)
+            withAnimation(.easeIn(duration: 0.4)) { showPuff = false }
+        }
+    }
+
+    // Monomers in a row joined by bonds; each new link appears with a released water molecule.
+    private var chain: some View {
+        HStack(spacing: 0) {
+            ForEach(0..<units, id: \.self) { index in
+                if index > 0 {
+                    Rectangle().fill(Color.secondary.opacity(0.7)).frame(width: 14, height: 4)
+                }
+                monomer(index)
+                    .transition(.scale.combined(with: .opacity))
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func monomer(_ index: Int) -> some View {
+        switch selectedExample {
+        case .enzyme:
+            Text(verbatim: Self.aminoAcids[index % Self.aminoAcids.count])
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 46, height: 46)
+                .background(Self.aminoColors[index % Self.aminoColors.count], in: Circle())
+        case .starch:
+            ZStack {
+                Image(systemName: "hexagon.fill").font(.system(size: 50)).foregroundStyle(.orange)
+                Text(verbatim: "Glc").font(.caption.weight(.bold)).foregroundStyle(.white)
+            }
+        case .dna:
+            let base = Self.dnaBases[index % Self.dnaBases.count]
+            VStack(spacing: 2) {
+                Text(verbatim: "P").font(.caption2.weight(.bold)).foregroundStyle(.black)
+                    .frame(width: 20, height: 20).background(Color.yellow, in: Circle())
+                Image(systemName: "pentagon.fill").font(.system(size: 26)).foregroundStyle(.gray)
+                Text(String(base)).font(.callout.monospaced().weight(.bold)).foregroundStyle(.white)
+                    .frame(width: 30, height: 30).background(baseColor(base), in: RoundedRectangle(cornerRadius: 6))
+            }
+        case .triglyceride:
+            EmptyView()
+        }
+    }
+
+    private func baseColor(_ base: Character) -> Color {
+        switch base {
+        case "A": return .green
+        case "T": return .red
+        case "C": return .blue
+        default: return Color(red: 0.85, green: 0.6, blue: 0.05)
+        }
+    }
+
+    // One glycerol with up to three fatty acids, each attached by an ester bond.
+    private var triglyceride: some View {
+        HStack(alignment: .center, spacing: 0) {
+            Text(text("biology.moleculeLab.glycerol"))
+                .font(.caption.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 84, height: 108)
+                .background(Color.indigo, in: RoundedRectangle(cornerRadius: 10))
+            VStack(alignment: .leading, spacing: 12) {
+                ForEach(0..<3, id: \.self) { slot in
+                    HStack(spacing: 0) {
+                        Rectangle().fill(slot < units ? Color.secondary.opacity(0.7) : Color.clear).frame(width: 14, height: 4)
+                        if slot < units {
+                            Canvas { context, size in
+                                var zigzag = Path()
+                                for step in 0...14 {
+                                    let point = CGPoint(x: CGFloat(step) / 14 * size.width, y: step.isMultiple(of: 2) ? size.height * 0.2 : size.height * 0.8)
+                                    if step == 0 { zigzag.move(to: point) } else { zigzag.addLine(to: point) }
+                                }
+                                context.stroke(zigzag, with: .color(.yellow), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                            }
+                            .frame(width: 180, height: 22)
+                            .transition(.move(edge: .trailing).combined(with: .opacity))
+                        } else {
+                            Text(text("biology.moleculeLab.fattyAcid"))
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .frame(width: 180, height: 22, alignment: .leading)
+                                .overlay(RoundedRectangle(cornerRadius: 5).strokeBorder(Color.secondary.opacity(0.3), style: StrokeStyle(lineWidth: 1, dash: [4, 3])))
+                        }
                     }
                 }
+            }
+        }
+    }
 
-                Picker(L10n.text("biology.moleculeLab.example", store.language), selection: $selectedExample) {
-                    ForEach(BiomoleculeExample.allCases, id: \.self) { example in
-                        Text(L10n.text("biology.moleculeLab.\(example.rawValue)", store.language)).tag(example)
-                    }
+    private var groupPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("biology.moleculeLab.chooseGroup"))
+                .font(.callout.weight(.medium))
+            Picker(text("biology.moleculeLab.chooseGroup"), selection: $selectedGroup) {
+                Text(text("biology.moleculeLab.chooseGroupPrompt")).tag(nil as BiomoleculeGroup?)
+                ForEach(BiomoleculeGroup.allCases, id: \.self) { group in
+                    Text(text("biology.moleculeLab.group.\(group.rawValue)")).tag(Optional(group))
                 }
-                .pickerStyle(.menu)
-                .onChange(of: selectedExample) { _ in
-                    selectedGroup = nil
-                    checkedGroup = nil
-                }
-
-                Picker(L10n.text("biology.moleculeLab.chooseGroup", store.language), selection: $selectedGroup) {
-                    Text(L10n.text("biology.moleculeLab.chooseGroupPrompt", store.language))
-                        .tag(nil as BiomoleculeGroup?)
-                    ForEach(BiomoleculeGroup.allCases, id: \.self) { group in
-                        Text(L10n.text("biology.moleculeLab.group.\(group.rawValue)", store.language))
-                            .tag(Optional(group))
-                    }
-                }
-                .pickerStyle(.menu)
-                .onChange(of: selectedGroup) { _ in checkedGroup = nil }
-
-                Button {
-                    guard let selectedGroup,
-                          let evidence = assessmentTracker.recordSubmission(
-                            group: selectedGroup,
-                            for: selectedExample
-                          ) else { return }
-                    store.recordStudyAssessment(
-                        lessonID: "biology.biomolecules_and_building_blocks",
-                        evidence: evidence
-                    )
-                    checkedGroup = selectedGroup
-                } label: {
-                    Label(L10n.text("biology.moleculeLab.check", store.language), systemImage: "checkmark.circle")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedGroup == nil || selectedGroup == checkedGroup)
-
-                if let checkedGroup {
-                    let isCorrect = checkedGroup == selectedExample.correctGroup
-                    Label(
-                        L10n.text(isCorrect ? "biology.moleculeLab.correct" : "biology.moleculeLab.tryAgain", store.language),
-                        systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                    )
+            }
+            .pickerStyle(.menu)
+            .labelsHidden()
+            .frame(maxWidth: 260)
+            .onChange(of: selectedGroup) { _ in checkedGroup = nil }
+            Button {
+                guard let selectedGroup,
+                      let evidence = assessmentTracker.recordSubmission(group: selectedGroup, for: selectedExample) else { return }
+                store.recordStudyAssessment(lessonID: "biology.biomolecules_and_building_blocks", evidence: evidence)
+                checkedGroup = selectedGroup
+            } label: {
+                Label(text("biology.moleculeLab.check"), systemImage: "checkmark.circle")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(selectedGroup == nil || selectedGroup == checkedGroup)
+            if let checkedGroup {
+                let isCorrect = checkedGroup == selectedExample.correctGroup
+                Label(text(isCorrect ? "biology.moleculeLab.correct" : "biology.moleculeLab.tryAgain"),
+                      systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
                     .font(.callout.weight(.medium))
                     .foregroundStyle(isCorrect ? .green : .orange)
-                }
-
-                Text(L10n.text(exampleInfoKey, store.language))
-                    .font(.callout)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 9))
-
-                Divider()
-
-                HStack {
-                    Text(L10n.text("biology.moleculeLab.reaction", store.language))
-                        .font(.subheadline.weight(.semibold))
-                    Spacer()
-                    Picker("", selection: $reactionJoins) {
-                        Text(L10n.text("biology.moleculeLab.join", store.language)).tag(true)
-                        Text(L10n.text("biology.moleculeLab.split", store.language)).tag(false)
-                    }
-                    .labelsHidden()
-                    .pickerStyle(.segmented)
-                    .frame(maxWidth: 220)
-                }
-
-                HStack(spacing: 10) {
-                    Text(L10n.text(reactionJoins ? "biology.moleculeLab.components" : "biology.moleculeLab.polymer", store.language))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 9))
-                    Image(systemName: "arrow.right")
-                        .foregroundStyle(.secondary)
-                        .accessibilityHidden(true)
-                    Text(L10n.text(reactionJoins ? "biology.moleculeLab.polymer" : "biology.moleculeLab.components", store.language))
-                        .frame(maxWidth: .infinity, minHeight: 44)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 9))
-                    Text(L10n.text(reactionJoins ? "biology.moleculeLab.waterOut" : "biology.moleculeLab.waterIn", store.language))
-                        .font(.caption.weight(.medium))
-                        .foregroundStyle(.teal)
-                }
-                .font(.caption)
-
-                Text(L10n.text(
-                    selectedExample.isPolymer
-                        ? "biology.moleculeLab.polymerExample"
-                        : "biology.moleculeLab.nonPolymerExample",
-                    store.language
-                ))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
-                Text(L10n.text("biology.moleculeLab.caveat", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func change(by delta: Int) {
+        let next = units + delta
+        guard range.contains(next) else { return }
+        puffReleases = delta > 0
+        withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
+            units = next
+            showPuff = true
+        }
+        puffID += 1
     }
 }
 
@@ -7664,113 +8515,189 @@ private struct NaturalSelectionLab: View {
     @State private var population = NaturalSelectionPopulation(traitMean: 35, traitSpread: 20, generation: 0)
     @State private var prediction = NaturalSelectionPractice.makePredictionAttempt(for: .increase)
     @State private var selectedDisplayIndex = -1
-    @State private var previousMean: Double?
+    @State private var previousPopulation: NaturalSelectionPopulation?
+    @State private var meanHistory: [Double] = [35]
 
     private let trendOptionKeys = [
         "lab.naturalSelection.option.decrease",
         "lab.naturalSelection.option.noChange",
         "lab.naturalSelection.option.increase"
     ]
+    private static let binWidth = 4.0
+    private static let binCount = 25
+    private static let individuals = 80.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var gap: Double { abs(environmentOptimum - population.traitMean) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                header
-                distributionChart
-                chartLegend
-                populationSummary
-                controls
-                predictionPrompt
-                predictionFeedback
-                actions
-                generationOutcome
-                modelRule
-                limitations
+            LabHeader(title: text("lab.naturalSelection.title"), instruction: text("lab.naturalSelection.subtitle"))
+            GeometryReader { proxy in
+                let plot = LabPlotGeometry(size: proxy.size, x: 0...100, y: 0...1, leading: 18)
+                populationChart(plot)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 0)
+                        .onChanged { drag in environmentOptimum = min(max(plot.value(at: drag.location).x.rounded(), 0), 100) }
+                        .onEnded { _ in startNewPrediction() })
             }
+            .frame(height: 230)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.naturalSelection.chart"))
+            .accessibilityValue(Text(verbatim: text("lab.naturalSelection.meanValue") + " " + number(population.traitMean, 1) + ", "
+                                     + text("lab.naturalSelection.environment") + " " + number(environmentOptimum, 0)))
+            .accessibilityAdjustableAction(moveEnvironment)
+            legend
+            LabStatGrid {
+                LabStat(label: text("lab.naturalSelection.generation"), value: "\(population.generation)", tint: .secondary)
+                LabStat(label: text("lab.naturalSelection.meanValue"), value: number(population.traitMean, 1), tint: .teal)
+                LabStat(label: text("lab.naturalSelection.statGap"), value: number(gap, 1), tint: .orange)
+                LabStat(label: text("lab.naturalSelection.statSpread"), value: "± " + number(population.traitSpread, 1), tint: .purple)
+            }
+            if meanHistory.count > 1 { historyChart }
+            VStack(alignment: .leading, spacing: 8) {
+                parameterSlider("lab.naturalSelection.strength", value: $selectionStrength)
+                parameterSlider("lab.naturalSelection.heritable", value: $heritability)
+            }
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.naturalSelection.challenge"),
+                         solved: population.generation > 0 && gap < 3, solvedText: text("lab.naturalSelection.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.naturalSelection.rule"),
+                                                                 text("lab.naturalSelection.heritabilityNote"),
+                                                                 text("lab.naturalSelection.limit")])
         }
     }
 
-    private var header: some View {
-        Label(L10n.text("lab.naturalSelection.title", store.language), systemImage: "chart.xyaxis.line")
-            .font(.headline)
+    // Eighty individuals stacked in bins four trait units wide form the bell of the population; green ones sit near the favoured value.
+    private func populationChart(_ plot: LabPlotGeometry) -> some View {
+        Canvas { context, _ in
+            plot.drawAxes(in: context, xLabel: text("lab.naturalSelection.axisTrait"), yLabel: text("lab.naturalSelection.axisCount"),
+                          xTicks: [0, 25, 50, 75, 100], yTicks: [], format: { number($0, 0) })
+            let counts = Self.binCounts(population)
+            let tallest = CGFloat(max(counts.max() ?? 1, 8))
+            let step = min(plot.rect.width / CGFloat(Self.binCount), (plot.rect.height - 22) / tallest)
+            if let previousPopulation {
+                context.stroke(outline(previousPopulation, plot: plot, step: step), with: .color(.secondary),
+                               style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            }
+            for (index, count) in counts.enumerated() where count > 0 {
+                let centre = (Double(index) + 0.5) * Self.binWidth
+                let tint: Color = abs(centre - environmentOptimum) <= 10 ? .green : Color.teal.opacity(0.5)
+                let x = plot.point(centre, 0).x
+                for level in 0..<count {
+                    let y = plot.rect.maxY - step * (CGFloat(level) + 0.5)
+                    let dot = CGRect(x: x - step * 0.41, y: y - step * 0.41, width: step * 0.82, height: step * 0.82)
+                    context.fill(Path(ellipseIn: dot), with: .color(tint))
+                }
+            }
+            let meanX = plot.point(population.traitMean, 0).x
+            drawMarker(at: meanX, color: .teal, dashed: false, plot: plot, context: context)
+            context.draw(Text(verbatim: "x̄").font(.callout.weight(.bold)).foregroundColor(.teal),
+                         at: CGPoint(x: meanX + 10, y: plot.rect.minY + 8))
+            let optimumX = plot.point(environmentOptimum, 0).x
+            drawMarker(at: optimumX, color: .orange, dashed: true, plot: plot, context: context)
+            let handle = CGRect(x: optimumX - 10, y: plot.rect.minY, width: 20, height: 20)
+            context.fill(Path(ellipseIn: handle), with: .color(.orange))
+            context.draw(Text(verbatim: "↔").font(.caption.weight(.bold)).foregroundColor(.white), at: CGPoint(x: handle.midX, y: handle.midY))
+        }
     }
 
-    private var distributionChart: some View {
+    // The mean across generations climbing toward the favoured value (dashed).
+    private var historyChart: some View {
         Canvas { context, size in
-            var curve = Path()
-            for step in 0...100 {
-                let trait = Double(step)
-                let distance = (trait - population.traitMean) / max(population.traitSpread, 1)
-                let height = exp(-0.5 * distance * distance)
-                let point = CGPoint(
-                    x: CGFloat(step) / 100 * size.width,
-                    y: size.height - 8 - CGFloat(height) * max(0, size.height - 18)
-                )
-                if step == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+            let last = Double(max(meanHistory.count - 1, 4))
+            let plot = LabPlotGeometry(size: size, x: 0...last, y: 0...100, leading: 34, bottom: 28)
+            plot.drawAxes(in: context, xLabel: text("lab.naturalSelection.generation"), yLabel: text("lab.naturalSelection.meanValue"),
+                          yTicks: [0, 50, 100], format: { number($0, 0) })
+            var target = Path()
+            target.move(to: plot.point(0, environmentOptimum))
+            target.addLine(to: plot.point(last, environmentOptimum))
+            context.stroke(target, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            var trace = Path()
+            for (generation, mean) in meanHistory.enumerated() {
+                let point = plot.point(Double(generation), mean)
+                if generation == 0 { trace.move(to: point) } else { trace.addLine(to: point) }
             }
-            context.stroke(curve, with: .color(.teal), lineWidth: 2.5)
-            drawMarker(population.traitMean, color: .teal, context: context, size: size)
-            drawMarker(environmentOptimum, color: .orange, context: context, size: size)
+            context.stroke(trace, with: .color(.teal), lineWidth: 2)
+            for (generation, mean) in meanHistory.enumerated() {
+                let point = plot.point(Double(generation), mean)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 3.5, y: point.y - 3.5, width: 7, height: 7)), with: .color(.teal))
+            }
         }
-        .frame(height: 116)
-        .padding(.horizontal, 4)
-        .accessibilityLabel(Text(L10n.text("lab.naturalSelection.chart", store.language)))
+        .frame(height: 130)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.naturalSelection.history"))
+        .accessibilityValue(Text(verbatim: meanHistory.map { number($0, 1) }.joined(separator: ", ")))
     }
 
-    private var chartLegend: some View {
-        HStack {
-            Label(L10n.text("lab.naturalSelection.mean", store.language), systemImage: "line.diagonal")
-                .foregroundStyle(.teal)
-            Spacer()
-            Label(L10n.text("lab.naturalSelection.environment", store.language), systemImage: "line.diagonal")
-                .foregroundStyle(.orange)
+    private var legend: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 14) {
+                legendItem(.teal, text("lab.naturalSelection.mean"))
+                legendItem(.orange, text("lab.naturalSelection.environment"))
+                if previousPopulation != nil { legendItem(.secondary, text("lab.naturalSelection.legendPrevious")) }
+            }
+            legendItem(.green, text("lab.naturalSelection.legendFavoured"))
         }
         .font(.caption)
     }
 
-    private var populationSummary: some View {
-        HStack {
-            Text("\(L10n.text("lab.naturalSelection.generation", store.language)) \(population.generation)")
-            Spacer()
-            Text(verbatim: L10n.text("lab.naturalSelection.meanValue", store.language) + " " + L10n.number(population.traitMean, fractionDigits: 1, store.language))
-        }
-        .font(.subheadline.monospacedDigit())
-    }
-
-    private var controls: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            parameterSlider(
-                "lab.naturalSelection.environment",
-                value: $environmentOptimum,
-                range: 0...100,
-                onChange: { startNewPrediction() }
-            )
-            parameterSlider(
-                "lab.naturalSelection.strength",
-                value: $selectionStrength,
-                onChange: { startNewPrediction() }
-            )
-            parameterSlider(
-                "lab.naturalSelection.heritable",
-                value: $heritability,
-                onChange: { startNewPrediction() }
-            )
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
         }
     }
 
-    private var predictionPrompt: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(L10n.text("lab.naturalSelection.predictionPrompt", store.language))
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.naturalSelection.predictionPrompt"))
                 .font(.callout.weight(.medium))
                 .fixedSize(horizontal: false, vertical: true)
-
-            Picker(L10n.text("lab.naturalSelection.predictionPrompt", store.language), selection: $selectedDisplayIndex) {
+            Picker(text("lab.naturalSelection.predictionPrompt"), selection: $selectedDisplayIndex) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(trendOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(trendOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
+            actions
+            predictionFeedback
+            if let previousPopulation {
+                Text(verbatim: text("lab.naturalSelection.outcome") + " " + number(previousPopulation.traitMean, 1) + " → " + number(population.traitMean, 1))
+                    .font(.caption.weight(.medium).monospacedDigit())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var actions: some View {
+        HStack {
+            if !prediction.hasAnswered {
+                Button(action: checkPrediction) {
+                    Label(text("lab.naturalSelection.check"), systemImage: "checkmark")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedDisplayIndex < 0)
+            } else if prediction.canRetry {
+                Button(action: retryPrediction) {
+                    Label(text("lab.naturalSelection.retry"), systemImage: "arrow.uturn.backward")
+                }
+                .buttonStyle(.borderedProminent)
+            } else {
+                Button(action: advanceGeneration) {
+                    Label(text("lab.naturalSelection.next"), systemImage: "forward.end.fill")
+                }
+                .buttonStyle(.borderedProminent)
+            }
+            Button(action: resetSimulation) {
+                Label(text("lab.naturalSelection.reset"), systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bordered)
         }
     }
 
@@ -7778,76 +8705,64 @@ private struct NaturalSelectionLab: View {
     private var predictionFeedback: some View {
         if prediction.hasAnswered {
             if prediction.isCorrect {
-                Label(L10n.text("lab.naturalSelection.correct", store.language), systemImage: "checkmark.circle.fill")
+                Label(text("lab.naturalSelection.correct"), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
-                Text(L10n.text(expectedTrend.explanationKey, store.language))
+                Text(text(expectedTrend.explanationKey))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
             } else {
-                Label(L10n.text("lab.naturalSelection.review", store.language), systemImage: "arrow.uturn.backward.circle")
+                Label(text("lab.naturalSelection.review"), systemImage: "arrow.uturn.backward.circle")
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
 
-    private var actions: some View {
-        HStack {
-            if !prediction.hasAnswered {
-                Button(action: checkPrediction) {
-                    Label(L10n.text("lab.naturalSelection.check", store.language), systemImage: "checkmark")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(selectedDisplayIndex < 0)
-            } else if prediction.canRetry {
-                Button(action: retryPrediction) {
-                    Label(L10n.text("lab.naturalSelection.retry", store.language), systemImage: "arrow.uturn.backward")
-                }
-                .buttonStyle(.borderedProminent)
-            } else {
-                Button(action: advanceGeneration) {
-                    Label(L10n.text("lab.naturalSelection.next", store.language), systemImage: "forward.end.fill")
-                }
-                .buttonStyle(.borderedProminent)
-            }
-
-            Button(action: resetSimulation) {
-                Label(L10n.text("lab.naturalSelection.reset", store.language), systemImage: "arrow.counterclockwise")
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    @ViewBuilder
-    private var generationOutcome: some View {
-        if let previousMean {
-            HStack(spacing: 6) {
-                Text(L10n.text("lab.naturalSelection.outcome", store.language))
-                Text(verbatim: L10n.number(previousMean, fractionDigits: 1, store.language) + " → " + L10n.number(population.traitMean, fractionDigits: 1, store.language))
+    private func parameterSlider(_ labelKey: String, value: Binding<Double>) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            HStack {
+                Text(text(labelKey))
+                Spacer()
+                Text(verbatim: number(value.wrappedValue, 2))
                     .monospacedDigit()
+                    .foregroundStyle(.secondary)
             }
-            .font(.caption.weight(.medium))
-            .foregroundStyle(.secondary)
+            // Steps of 0.05 without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = ($0 * 20).rounded() / 20 }), in: 0...1,
+                   onEditingChanged: { editing in if !editing { startNewPrediction() } })
+                .accessibilityLabel(Text(text(labelKey)))
+        }
+        .font(.callout)
+    }
+
+    private func drawMarker(at x: CGFloat, color: Color, dashed: Bool, plot: LabPlotGeometry, context: GraphicsContext) {
+        var line = Path()
+        line.move(to: CGPoint(x: x, y: plot.rect.minY))
+        line.addLine(to: CGPoint(x: x, y: plot.rect.maxY))
+        context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 2, dash: dashed ? [5, 4] : []))
+    }
+
+    private func outline(_ previous: NaturalSelectionPopulation, plot: LabPlotGeometry, step: CGFloat) -> Path {
+        var path = Path()
+        for trait in stride(from: 0.0, through: 100.0, by: 1.0) {
+            let height = CGFloat(Self.individuals * Self.binWidth * Self.density(trait, previous)) * step
+            let point = CGPoint(x: plot.point(trait, 0).x, y: plot.rect.maxY - height)
+            if trait == 0 { path.move(to: point) } else { path.addLine(to: point) }
+        }
+        return path
+    }
+
+    /// Expected head count per bin when the trait follows a normal curve with the population's mean and spread.
+    private static func binCounts(_ population: NaturalSelectionPopulation) -> [Int] {
+        (0..<binCount).map { index in
+            Int((individuals * binWidth * density((Double(index) + 0.5) * binWidth, population)).rounded())
         }
     }
 
-    private var limitations: some View {
-        LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.naturalSelection.limit", store.language)])
-    }
-
-    private var modelRule: some View {
-        Text(L10n.text("lab.naturalSelection.rule", store.language))
-            .font(.caption)
-            .foregroundStyle(.secondary)
-            .fixedSize(horizontal: false, vertical: true)
-    }
-
-    private func drawMarker(_ value: Double, color: Color, context: GraphicsContext, size: CGSize) {
-        let x = CGFloat(value / 100) * size.width
-        var marker = Path()
-        marker.move(to: CGPoint(x: x, y: 0))
-        marker.addLine(to: CGPoint(x: x, y: size.height))
-        context.stroke(marker, with: .color(color.opacity(0.75)), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+    private static func density(_ trait: Double, _ population: NaturalSelectionPopulation) -> Double {
+        let spread = max(population.traitSpread, 1)
+        let distance = (trait - population.traitMean) / spread
+        return exp(-0.5 * distance * distance) / (spread * (2 * Double.pi).squareRoot())
     }
 
     private var expectedTrend: NaturalSelectionTrend {
@@ -7857,6 +8772,15 @@ private struct NaturalSelectionLab: View {
             selectionStrength: selectionStrength,
             heritability: heritability
         )
+    }
+
+    private func moveEnvironment(_ direction: AccessibilityAdjustmentDirection) {
+        switch direction {
+        case .increment: environmentOptimum = min(100, environmentOptimum + 5)
+        case .decrement: environmentOptimum = max(0, environmentOptimum - 5)
+        @unknown default: return
+        }
+        startNewPrediction()
     }
 
     private func checkPrediction() {
@@ -7872,22 +8796,22 @@ private struct NaturalSelectionLab: View {
 
     private func advanceGeneration() {
         guard prediction.isCorrect else { return }
-        previousMean = population.traitMean
-        population = NaturalSelectionPractice.advanceGeneration(
-            from: population,
-            environmentOptimum: environmentOptimum,
-            selectionStrength: selectionStrength,
-            heritability: heritability
-        )
-        startNewPrediction(clearOutcome: false)
+        previousPopulation = population
+        withAnimation(.easeInOut(duration: 0.4)) {
+            population = NaturalSelectionPractice.advanceGeneration(
+                from: population,
+                environmentOptimum: environmentOptimum,
+                selectionStrength: selectionStrength,
+                heritability: heritability
+            )
+        }
+        meanHistory.append(population.traitMean)
+        startNewPrediction()
     }
 
-    private func startNewPrediction(clearOutcome: Bool = true) {
+    private func startNewPrediction() {
         prediction = NaturalSelectionPractice.makePredictionAttempt(for: expectedTrend)
         selectedDisplayIndex = -1
-        if clearOutcome {
-            previousMean = nil
-        }
     }
 
     private func resetSimulation() {
@@ -7895,32 +8819,9 @@ private struct NaturalSelectionLab: View {
         selectionStrength = 0.45
         heritability = 0.8
         population = NaturalSelectionPopulation(traitMean: 35, traitSpread: 20, generation: 0)
-        previousMean = nil
+        previousPopulation = nil
+        meanHistory = [35]
         startNewPrediction()
-    }
-
-    private func parameterSlider(
-        _ labelKey: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double> = 0...1,
-        onChange: @escaping () -> Void
-    ) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            HStack {
-                Text(L10n.text(labelKey, store.language))
-                Spacer()
-                Text(verbatim: L10n.number(value.wrappedValue, fractionDigits: 2, store.language))
-                    .monospacedDigit()
-                    .foregroundStyle(.secondary)
-            }
-            Slider(value: value, in: range, onEditingChanged: { isEditing in
-                if !isEditing {
-                    onChange()
-                }
-            })
-                .accessibilityLabel(Text(L10n.text(labelKey, store.language)))
-        }
-        .font(.caption)
     }
 }
 
@@ -8004,51 +8905,66 @@ private struct FoodWebLab: View {
 
     private let species = ["algae", "zooplankton", "snails", "smallFish", "heron"]
 
-    private var visibleLinks: [PondFoodWebLink] {
-        PondFoodWebModel.visibleLinks(excluding: removedNode)
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var visibleLinks: [PondFoodWebLink] { PondFoodWebModel.visibleLinks(excluding: removedNode) }
+    private var directConsumers: [String] { PondFoodWebModel.directConsumers(of: removedNode) }
+    private var consumerCount: Int { PondFoodWebModel.nodes.filter { $0.kind == .consumer }.count }
+    private var fedConsumers: Int {
+        PondFoodWebModel.nodes.filter { $0.kind == .consumer && $0.id != removedNode && !starving.contains($0.id) }.count
     }
 
-    private var directConsumers: [String] {
-        PondFoodWebModel.directConsumers(of: removedNode)
+    /// Consumers left with no food arrow from a remaining organism, followed down the chain: if every food source of a consumer
+    /// is gone or itself left without food, it loses its food too. A statement about arrows on this diagram, not a population forecast.
+    private var starving: Set<String> {
+        guard removedNode != "none" else { return [] }
+        var lost: Set<String> = []
+        var changed = true
+        while changed {
+            changed = false
+            for node in PondFoodWebModel.nodes where node.kind == .consumer && node.id != removedNode && !lost.contains(node.id) {
+                let food = PondFoodWebModel.links.filter { $0.to == node.id && $0.kind == .feeding }
+                    .filter { $0.from != removedNode && !lost.contains($0.from) }
+                if food.isEmpty {
+                    lost.insert(node.id)
+                    changed = true
+                }
+            }
+        }
+        return lost
     }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                Label(L10n.text("biology.foodWebLab.title", store.language), systemImage: "point.3.connected.trianglepath.dotted")
-                    .font(.headline)
-
-                Text(L10n.text("biology.foodWebLab.arrow", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                diagram
-                    .frame(height: 280)
-                    .padding(.vertical, 4)
-                    .accessibilityElement(children: .contain)
-
-                selectedNodeDetails
-
-                Picker(L10n.text("biology.foodWebLab.scenario", store.language), selection: $removedNode) {
-                    Text(L10n.text("biology.foodWebLab.none", store.language)).tag("none")
-                    ForEach(species, id: \.self) { id in
-                        Text(nodeName(id)).tag(id)
-                    }
+            LabHeader(title: text("biology.foodWebLab.title"), instruction: text("biology.foodWebLab.subtitle"))
+            diagram
+                .frame(height: 280)
+                .padding(.vertical, 4)
+                .accessibilityElement(children: .contain)
+            Text(text("biology.foodWebLab.arrow"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(text("biology.foodWebLab.scenario"), selection: $removedNode) {
+                Text(text("biology.foodWebLab.none")).tag("none")
+                ForEach(species, id: \.self) { id in
+                    Text(nodeName(id)).tag(id)
                 }
-                .pickerStyle(.menu)
-                .onChange(of: removedNode) { newValue in
-                    if selectedNode == newValue { selectedNode = "none" }
-                }
-
-                if removedNode != "none" {
-                    removalSummary
-                }
-
-                Text(L10n.text("biology.foodWebLab.limit", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
             }
+            .pickerStyle(.menu)
+            .frame(maxWidth: 420)
+            .onChange(of: removedNode) { newValue in
+                if selectedNode == newValue { selectedNode = "none" }
+            }
+            LabStatGrid {
+                LabStat(label: text("biology.foodWebLab.statConsumers"), value: "\(fedConsumers) / \(consumerCount)", tint: .orange)
+                LabStat(label: text("biology.foodWebLab.statDirect"), value: "\(directConsumers.count)", tint: .purple)
+                LabStat(label: text("biology.foodWebLab.statLost"), value: "\(starving.count)", tint: .red)
+            }
+            if removedNode != "none" { removalSummary }
+            selectedNodeDetails
+            LabChallenge(caption: text("lab.kit.task"), task: text("biology.foodWebLab.challenge"),
+                         solved: starving.count == consumerCount, solvedText: text("biology.foodWebLab.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("biology.foodWebLab.cascadeNote"), text("biology.foodWebLab.limit")])
         }
     }
 
@@ -8059,61 +8975,74 @@ private struct FoodWebLab: View {
                     for link in visibleLinks {
                         guard let from = PondFoodWebModel.nodes.first(where: { $0.id == link.from }),
                               let to = PondFoodWebModel.nodes.first(where: { $0.id == link.to }) else { continue }
-                        let start = CGPoint(x: from.x * size.width, y: from.y * size.height)
-                        let end = CGPoint(x: to.x * size.width, y: to.y * size.height)
-                        let dx = end.x - start.x
-                        let dy = end.y - start.y
-                        let distance = max(hypot(dx, dy), 1)
-                        let ux = dx / distance
-                        let uy = dy / distance
-                        let lineStart = CGPoint(x: start.x + ux * 50, y: start.y + uy * 22)
-                        let tip = CGPoint(x: end.x - ux * 51, y: end.y - uy * 22)
-                        let base = CGPoint(x: tip.x - ux * 9, y: tip.y - uy * 9)
-                        let opacity = selectedNode == "none" || link.from == selectedNode || link.to == selectedNode ? 0.78 : 0.16
-                        var shaft = Path()
-                        shaft.move(to: lineStart)
-                        shaft.addLine(to: tip)
-                        let isMatterCycle = link.kind == .matterCycle
-                        let linkColor = isMatterCycle ? Color.teal : Color.secondary
-                        context.stroke(
-                            shaft,
-                            with: .color(linkColor.opacity(opacity)),
-                            style: StrokeStyle(lineWidth: 1.7, lineCap: .round, dash: isMatterCycle ? [4, 3] : [])
-                        )
-
-                        let wing = CGPoint(x: -uy * 4, y: ux * 4)
-                        var arrow = Path()
-                        arrow.move(to: tip)
-                        arrow.addLine(to: CGPoint(x: base.x + wing.x, y: base.y + wing.y))
-                        arrow.addLine(to: CGPoint(x: base.x - wing.x, y: base.y - wing.y))
-                        arrow.closeSubpath()
-                        context.fill(arrow, with: .color(linkColor.opacity(opacity)))
+                        drawArrow(context, from: CGPoint(x: from.x * size.width, y: from.y * size.height),
+                                  to: CGPoint(x: to.x * size.width, y: to.y * size.height), link: link)
                     }
                 }
-
                 ForEach(PondFoodWebModel.nodes) { node in
                     if node.id != removedNode {
-                        Button {
-                            selectedNode = node.id
-                        } label: {
-                            Text(nodeName(node.id))
-                                .font(.caption.weight(.medium))
-                                .multilineTextAlignment(.center)
-                                .lineLimit(2)
-                                .minimumScaleFactor(0.8)
-                                .frame(width: 104, height: 42)
-                                .background(node.id == selectedNode ? Color.accentColor.opacity(0.18) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
-                                .overlay(RoundedRectangle(cornerRadius: 9).stroke(nodeColor(node.kind).opacity(0.7), lineWidth: node.id == selectedNode ? 2 : 1))
-                        }
-                        .buttonStyle(.plain)
-                        .accessibilityLabel(nodeName(node.id))
-                        .accessibilityHint(Text(L10n.text("biology.foodWebLab.select", store.language)))
-                        .position(x: node.x * geometry.size.width, y: node.y * geometry.size.height)
+                        nodeButton(node)
+                            .position(x: node.x * geometry.size.width, y: node.y * geometry.size.height)
                     }
                 }
             }
         }
-        .accessibilityLabel(L10n.text("biology.foodWebLab.title", store.language))
+        .accessibilityLabel(text("biology.foodWebLab.title"))
+    }
+
+    private func drawArrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, link: PondFoodWebLink) {
+        let dx = end.x - start.x
+        let dy = end.y - start.y
+        let distance = max(hypot(dx, dy), 1)
+        let ux = dx / distance
+        let uy = dy / distance
+        let lineStart = CGPoint(x: start.x + ux * 50, y: start.y + uy * 22)
+        let tip = CGPoint(x: end.x - ux * 51, y: end.y - uy * 22)
+        let base = CGPoint(x: tip.x - ux * 9, y: tip.y - uy * 9)
+        let highlighted = selectedNode == "none" || link.from == selectedNode || link.to == selectedNode
+        let lostLink = starving.contains(link.from) || starving.contains(link.to)
+        let opacity = lostLink ? 0.12 : (highlighted ? 0.8 : 0.16)
+        let isMatterCycle = link.kind == .matterCycle
+        let linkColor = isMatterCycle ? Color.teal : Color.secondary
+        var shaft = Path()
+        shaft.move(to: lineStart)
+        shaft.addLine(to: tip)
+        context.stroke(shaft, with: .color(linkColor.opacity(opacity)),
+                       style: StrokeStyle(lineWidth: highlighted && !lostLink ? 2 : 1.5, lineCap: .round, dash: isMatterCycle ? [4, 3] : []))
+        let wing = CGPoint(x: -uy * 4, y: ux * 4)
+        var arrow = Path()
+        arrow.move(to: tip)
+        arrow.addLine(to: CGPoint(x: base.x + wing.x, y: base.y + wing.y))
+        arrow.addLine(to: CGPoint(x: base.x - wing.x, y: base.y - wing.y))
+        arrow.closeSubpath()
+        context.fill(arrow, with: .color(linkColor.opacity(opacity)))
+    }
+
+    private func nodeButton(_ node: PondFoodWebNode) -> some View {
+        let lost = starving.contains(node.id)
+        let selected = node.id == selectedNode
+        return Button {
+            selectedNode = node.id
+        } label: {
+            VStack(spacing: 1) {
+                Text(nodeName(node.id))
+                    .font(.caption.weight(.medium))
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.8)
+                if lost {
+                    Text(text("biology.foodWebLab.noFood")).font(.caption2.weight(.semibold)).foregroundStyle(.red)
+                }
+            }
+            .frame(width: 104, height: 44)
+            .background(selected ? Color.accentColor.opacity(0.18) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
+            .overlay(RoundedRectangle(cornerRadius: 9).stroke(lost ? Color.red : nodeColor(node.kind).opacity(0.7),
+                                                              style: StrokeStyle(lineWidth: selected || lost ? 2 : 1, dash: lost ? [4, 3] : [])))
+            .opacity(lost ? 0.6 : 1)
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(nodeName(node.id) + (lost ? ", " + text("biology.foodWebLab.noFood") : ""))
+        .accessibilityHint(Text(text("biology.foodWebLab.select")))
     }
 
     private var selectedNodeDetails: some View {
@@ -8123,39 +9052,45 @@ private struct FoodWebLab: View {
             Text(nodeName(selectedNode))
                 .font(.subheadline.weight(.semibold))
             if !incoming.isEmpty {
-                Text("\(L10n.text("biology.foodWebLab.incoming", store.language)): \(incoming.map(nodeName).joined(separator: ", "))")
+                Text(verbatim: text("biology.foodWebLab.incoming") + ": " + incoming.map(nodeName).joined(separator: ", "))
             }
             if !outgoing.isEmpty {
-                Text("\(L10n.text("biology.foodWebLab.outgoing", store.language)): \(outgoing.map(nodeName).joined(separator: ", "))")
+                Text(verbatim: text("biology.foodWebLab.outgoing") + ": " + outgoing.map(nodeName).joined(separator: ", "))
             }
             if incoming.isEmpty && outgoing.isEmpty {
-                Text(L10n.text("biology.foodWebLab.noDirectLinks", store.language))
+                Text(text("biology.foodWebLab.noDirectLinks"))
             }
         }
         .font(.caption)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 10))
         .fixedSize(horizontal: false, vertical: true)
     }
 
     private var removalSummary: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(L10n.text("biology.foodWebLab.removal", store.language))
+            Text(text("biology.foodWebLab.removal"))
                 .font(.caption.weight(.semibold))
-            if directConsumers.isEmpty {
-                Text(L10n.text("biology.foodWebLab.noConsumers", store.language))
-                    .font(.caption)
-            } else {
-                Text(directConsumers.map(nodeName).joined(separator: ", "))
+            Text(directConsumers.isEmpty ? text("biology.foodWebLab.noConsumers") : directConsumers.map(nodeName).joined(separator: ", "))
+                .font(.caption)
+            if !starving.isEmpty {
+                Text(text("biology.foodWebLab.lostAll"))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.red)
+                    .padding(.top, 2)
+                Text(species.filter(starving.contains).map(nodeName).joined(separator: " → "))
                     .font(.caption)
             }
         }
         .padding(10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 8))
+        .background(Color.red.opacity(starving.isEmpty ? 0.04 : 0.08), in: RoundedRectangle(cornerRadius: 10))
     }
 
     private func nodeName(_ id: String) -> String {
-        if id == "none" { return L10n.text("biology.foodWebLab.network", store.language) }
-        return L10n.text("biology.foodweb.node.\(id)", store.language)
+        if id == "none" { return text("biology.foodWebLab.network") }
+        return text("biology.foodweb.node.\(id)")
     }
 
     private func nodeColor(_ kind: PondFoodWebNodeKind) -> Color {
@@ -8183,74 +9118,68 @@ private struct EukaryoticCellLab: View {
     @State private var selectedPart = "nucleus"
     @State private var sceneTapSequence = 0
     @State private var sceneTapDiagnostic = "not tapped"
+    @State private var visitedParts: Set<String> = ["nucleus"]
 
     private var isCell3DUITestRoute: Bool {
         ProcessInfo.processInfo.arguments.contains("-colidev.uiTestCell3D")
     }
 
     private let parts = CellOrganelleID.all
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         LabCard {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label(
-                        L10n.text("lab.cell3d.title", store.language),
-                        systemImage: "cube.transparent"
-                    )
+            LabHeader(title: text("lab.cell3d.title"), instruction: L10n.text("lab.cell3d.interactionHint", store.language))
+            EukaryoticCellScene(
+                selectedPart: $selectedPart,
+                tapSequence: $sceneTapSequence,
+                tapDiagnostic: $sceneTapDiagnostic
+            )
+                .frame(height: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(text("lab.cell3d.accessibility")))
+                .accessibilityValue(Text(L10n.text("biology.cell3d.\(selectedPart)", store.language)))
+                .accessibilityIdentifier("biology.cell3d.scene")
+                .overlay(alignment: .topLeading) {
+                    if isCell3DUITestRoute {
+                        let diagnostic = "tap=\(sceneTapSequence), part=\(selectedPart), \(sceneTapDiagnostic)"
+                        Text(diagnostic)
+                            .font(.system(size: 1))
+                            .foregroundStyle(.clear)
+                            .frame(width: 1, height: 1)
+                            .accessibilityLabel(Text(diagnostic))
+                            .accessibilityValue(Text(diagnostic))
+                            .accessibilityIdentifier("biology.cell3d.tapState")
+                    }
+                }
+            Picker(L10n.text("lab.cellPart", store.language), selection: $selectedPart) {
+                ForEach(parts, id: \.self) { part in
+                    Text(text("biology.cell3d.\(part)")).tag(part)
+                }
+            }
+            .pickerStyle(.menu)
+            .frame(maxWidth: 360)
+            .accessibilityIdentifier("biology.cell3d.organelles")
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text("biology.cell3d.\(selectedPart)"))
                     .font(.headline)
-                    Spacer()
-                    Text(L10n.text("lab.cell3d.interactionHint", store.language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-
-                EukaryoticCellScene(
-                    selectedPart: $selectedPart,
-                    tapSequence: $sceneTapSequence,
-                    tapDiagnostic: $sceneTapDiagnostic
-                )
-                    .frame(height: 260)
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(Text(L10n.text("lab.cell3d.accessibility", store.language)))
-                    .accessibilityValue(Text(L10n.text("biology.cell3d.\(selectedPart)", store.language)))
-                    .accessibilityIdentifier("biology.cell3d.scene")
-                    .overlay(alignment: .topLeading) {
-                        if isCell3DUITestRoute {
-                            let diagnostic = "tap=\(sceneTapSequence), part=\(selectedPart), \(sceneTapDiagnostic)"
-                            Text(diagnostic)
-                                .font(.system(size: 1))
-                                .foregroundStyle(.clear)
-                                .frame(width: 1, height: 1)
-                                .accessibilityLabel(Text(diagnostic))
-                                .accessibilityValue(Text(diagnostic))
-                                .accessibilityIdentifier("biology.cell3d.tapState")
-
-                        }
-                    }
-
-                Picker(L10n.text("lab.cellPart", store.language), selection: $selectedPart) {
-                    ForEach(parts, id: \.self) { part in
-                        Text(L10n.text("biology.cell3d.\(part)", store.language)).tag(part)
-                    }
-                }
-                .pickerStyle(.menu)
-                .accessibilityIdentifier("biology.cell3d.organelles")
-
                 Text(L10n.text("biology.cell3d.\(selectedPart).function", store.language))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 10))
                     .accessibilityIdentifier("biology.cell3d.description")
-
-                Text(L10n.text("lab.cell3d.scaleNote", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.teal.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+            LabStatGrid {
+                LabStat(label: text("lab.cell3d.statVisited"), value: "\(visitedParts.count) / \(parts.count)", tint: .teal)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.cell3d.challenge"),
+                         solved: selectedPart == "mitochondria", solvedText: text("lab.cell3d.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.cell3d.scaleNote")])
         }
+        .onChange(of: selectedPart) { part in visitedParts.insert(part) }
     }
 }
 
@@ -8618,97 +9547,140 @@ private struct VariablesTypesLab: View {
     @State private var inputText = "12"
     @State private var conversionResult: PythonInputPracticeResult?
     @State private var practiceTracker = PythonInputPracticeTracker()
+    @State private var sawValueError = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
 
     var body: some View {
         LabCard {
-            Text(L10n.text("lab.variableCodeInitial", store.language))
-                .font(.system(.body, design: .monospaced).weight(.medium))
-            Toggle(L10n.text("lab.variableReassign", store.language), isOn: $reassignToText)
-                .toggleStyle(.switch)
-            Text(L10n.text("lab.variableCodeUpdate", store.language))
-                .font(.system(.body, design: .monospaced).weight(.medium))
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("lab.variableCurrentBinding", store.language))
-                    .font(.caption.weight(.semibold))
+            LabHeader(title: text("lab.variableTitle"), instruction: text("lab.variableSubtitle"))
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    codeLine(text("lab.variableCodeInitial"), active: !reassignToText)
+                    codeLine(text("lab.variableCodeUpdate"), active: reassignToText)
+                    Toggle(text("lab.variableReassign"), isOn: $reassignToText.animation(.spring(response: 0.4, dampingFraction: 0.8)))
+                        .toggleStyle(.switch)
+                        .padding(.top, 6)
+                }
+                .frame(maxWidth: 280, alignment: .leading)
+                bindingDiagram
+            }
+            Label(text(reassignToText ? "lab.variableAfter" : "lab.variableBefore"), systemImage: reassignToText ? "textformat" : "number")
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(text("lab.input.title")).font(.headline)
+                Text(text("lab.input.explanation"))
+                    .font(.callout)
                     .foregroundStyle(.secondary)
-                HStack(alignment: .firstTextBaseline) {
-                    Text("score")
-                        .font(.system(.body, design: .monospaced).weight(.semibold))
-                    Spacer()
-                    Text(reassignToText ? "\"12\"" : "12")
-                        .font(.system(.title3, design: .monospaced).weight(.semibold))
-                        .textSelection(.enabled)
-                    Text(reassignToText ? "str" : "int")
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(text("lab.input.codeRead"))
+                    Text("count = int(raw_text)")
                 }
-                Label(
-                    L10n.text(reassignToText ? "lab.variableAfter" : "lab.variableBefore", store.language),
-                    systemImage: reassignToText ? "textformat" : "number"
-                )
-                .font(.callout)
-            }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
-            Divider()
-
-            Text(L10n.text("lab.input.title", store.language))
-                .font(.headline)
-            Text(L10n.text("lab.input.explanation", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.input.practiceHint", store.language))
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(L10n.text("lab.input.codeRead", store.language))
                 .font(.system(.body, design: .monospaced).weight(.medium))
-            Text("count = int(raw_text)")
-                .font(.system(.body, design: .monospaced).weight(.medium))
-            HStack(alignment: .firstTextBaseline, spacing: 10) {
-                TextField(L10n.text("lab.input.placeholder", store.language), text: $inputText)
-                    .textFieldStyle(.roundedBorder)
-                    .frame(maxWidth: 260)
-                    .accessibilityLabel(Text(L10n.text("lab.input.accessibility", store.language)))
-                    .onSubmit(convertInput)
-
-                Button(L10n.text("lab.input.convert", store.language), action: convertInput)
-                    .buttonStyle(.borderedProminent)
-            }
-
-            if let conversionResult {
-                switch conversionResult {
-                case .integer(let value):
-                    Label(
-                        String(format: L10n.text("lab.input.integerResult", store.language), value),
-                        systemImage: "checkmark.circle.fill"
-                    )
-                    .foregroundStyle(.green)
-                case .valueError:
-                    Label(L10n.text("lab.input.valueError", store.language), systemImage: "exclamationmark.circle.fill")
-                        .foregroundStyle(.orange)
-                case .outsideSimulatorRange:
-                    Label(L10n.text("lab.input.rangeLimit", store.language), systemImage: "info.circle.fill")
-                        .foregroundStyle(.secondary)
+                HStack(alignment: .firstTextBaseline, spacing: 10) {
+                    TextField(text("lab.input.placeholder"), text: $inputText)
+                        .textFieldStyle(.roundedBorder)
+                        .frame(maxWidth: 260)
+                        .accessibilityLabel(Text(text("lab.input.accessibility")))
+                        .onSubmit(convertInput)
+                    Button(text("lab.input.convert"), action: convertInput)
+                        .buttonStyle(.borderedProminent)
                 }
+                conversionPipeline
             }
-
-            Text(L10n.text("lab.input.simulatorLimit", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-
+            .padding(12)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.variableChallenge"),
+                         solved: sawValueError, solvedText: text("lab.variableChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.input.practiceHint"), text("lab.input.simulatorLimit")])
             Divider()
             PracticeMinutesRunner()
         }
     }
 
+    private func codeLine(_ code: String, active: Bool) -> some View {
+        Text(code)
+            .font(.system(.body, design: .monospaced).weight(.medium))
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(active ? Color.accentColor.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+    }
+
+    // A name is a label pointing at an object. Reassigning moves the arrow to a new object; the old int is not converted.
+    private var bindingDiagram: some View {
+        HStack(alignment: .center, spacing: 10) {
+            Text(verbatim: "score")
+                .font(.system(.title3, design: .monospaced).weight(.semibold))
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color.secondary.opacity(0.15), in: Capsule())
+            Image(systemName: "arrow.right")
+                .font(.title2.weight(.semibold))
+                .foregroundStyle(Color.accentColor)
+            VStack(spacing: 10) {
+                objectBox(value: "12", type: "int", colour: .blue, current: !reassignToText)
+                objectBox(value: "\"12\"", type: "str", colour: .orange, current: reassignToText)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.variableCurrentBinding"))
+        .accessibilityValue(Text(verbatim: reassignToText ? "\"12\" (str)" : "12 (int)"))
+    }
+
+    private func objectBox(value: String, type: String, colour: Color, current: Bool) -> some View {
+        HStack(spacing: 8) {
+            Text(verbatim: value)
+                .font(.system(.title3, design: .monospaced).weight(.bold))
+            Text(verbatim: type)
+                .font(.system(.caption, design: .monospaced).weight(.semibold))
+                .padding(.horizontal, 6)
+                .padding(.vertical, 2)
+                .background(colour.opacity(0.25), in: Capsule())
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(colour.opacity(current ? 0.22 : 0.06), in: RoundedRectangle(cornerRadius: 10))
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(colour.opacity(current ? 0.9 : 0.25), lineWidth: current ? 2 : 1))
+        .opacity(current ? 1 : 0.45)
+        .scaleEffect(current ? 1 : 0.94)
+    }
+
+    // raw_text (always str) → int() → an int, or a ValueError when the text is not a whole number.
+    @ViewBuilder
+    private var conversionPipeline: some View {
+        if let conversionResult {
+            HStack(spacing: 8) {
+                objectBox(value: "\"" + inputText + "\"", type: "str", colour: .orange, current: true)
+                Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                Text(verbatim: "int()").font(.system(.callout, design: .monospaced).weight(.semibold))
+                Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                switch conversionResult {
+                case .integer(let value):
+                    objectBox(value: "\(value)", type: "int", colour: .blue, current: true)
+                case .valueError:
+                    Label(text("lab.input.valueError"), systemImage: "exclamationmark.octagon.fill")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                case .outsideSimulatorRange:
+                    Label(text("lab.input.rangeLimit"), systemImage: "info.circle.fill")
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .accessibilityElement(children: .combine)
+        }
+    }
+
     private func convertInput() {
-        conversionResult = PythonInputPractice.convert(inputText)
+        let result = PythonInputPractice.convert(inputText)
+        withAnimation(.easeOut(duration: 0.25)) { conversionResult = result }
+        if case .valueError = result { sawValueError = true }
         if let evidence = practiceTracker.recordSubmission(text: inputText) {
             store.recordStudyAssessment(lessonID: "programming.variables_and_types", evidence: evidence)
         }
@@ -8946,6 +9918,9 @@ private struct AlgorithmicThinkingLab: View {
     var body: some View {
         LabCard {
             LabHeader(title: L10n.text("labkit.title.AlgorithmicThinkingLab", store.language), instruction: L10n.text("lab.algorithmHint", store.language))
+            ProgressView(value: Double(completedSteps.count), total: Double(max(stepOrder.count, 1)))
+                .tint(session.isComplete ? .green : .accentColor)
+                .accessibilityLabel(Text(String(format: L10n.text("lab.algorithmProgress", store.language), min(completedSteps.count + 1, stepOrder.count), stepOrder.count)))
 
             if let currentQuestion = session.currentQuestion {
                 Text(L10n.text(currentQuestion.contextKey, store.language))
@@ -8972,6 +9947,7 @@ private struct AlgorithmicThinkingLab: View {
                                let actual = AlgorithmicThinkingPractice.faultyMaximumInitializedAtZero(of: values) {
                                 Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(values))]")
                                     .font(.system(.callout, design: .monospaced))
+                                valueBars(values)
                                 Text(String(format: L10n.text("lab.algorithmDebugFaultyOutput", store.language), actual))
                                     .font(.system(.callout, design: .monospaced))
                                 Text(String(format: L10n.text("lab.algorithmDebugExpectedOutput", store.language), expected))
@@ -8988,6 +9964,7 @@ private struct AlgorithmicThinkingLab: View {
                             .font(.callout)
                         Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(scenario.values))]")
                             .font(.system(.body, design: .monospaced))
+                        valueBars(scenario.values)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -8998,6 +9975,7 @@ private struct AlgorithmicThinkingLab: View {
                             .font(.callout)
                         Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(AlgorithmicThinkingPractice.maximumListValues))]")
                             .font(.system(.body, design: .monospaced))
+                        valueBars(AlgorithmicThinkingPractice.maximumListValues)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -9008,6 +9986,7 @@ private struct AlgorithmicThinkingLab: View {
                             .font(.callout)
                         Text("\(L10n.text("lab.algorithmTestCaseInput", store.language)): [\(formattedValues(scenario.values))]")
                             .font(.system(.body, design: .monospaced))
+                        valueBars(scenario.values)
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -9189,7 +10168,39 @@ private struct AlgorithmicThinkingLab: View {
 
                 PythonCodePracticeView()
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.algorithmChallenge", store.language),
+                         solved: session.isComplete, solvedText: L10n.text("lab.algorithmChallengeSolved", store.language))
         }
+    }
+
+    // The input list as signed bars around zero: negative values hang below the line, an empty list has no bars at all.
+    private func valueBars(_ values: [Int]) -> some View {
+        Canvas { context, size in
+            guard !values.isEmpty else {
+                context.draw(Text(verbatim: "[ ]").font(.title3.monospaced()).foregroundColor(.secondary), at: CGPoint(x: size.width / 2, y: size.height / 2))
+                return
+            }
+            let top = CGFloat(max(values.max() ?? 0, 0)), bottom = CGFloat(min(values.min() ?? 0, 0))
+            let span = max(top - bottom, 1)
+            let unit = (size.height - 32) / span
+            let zero = 16 + top * unit
+            let slot = min(size.width / CGFloat(values.count), 54)
+            var axis = Path()
+            axis.move(to: CGPoint(x: 0, y: zero))
+            axis.addLine(to: CGPoint(x: size.width, y: zero))
+            context.stroke(axis, with: .color(.secondary.opacity(0.7)), lineWidth: 1)
+            for (index, value) in values.enumerated() {
+                let height = max(CGFloat(abs(value)) * unit, 2)
+                let x = CGFloat(index) * slot + slot / 2
+                let y = value >= 0 ? zero - height : zero
+                context.fill(Path(roundedRect: CGRect(x: x - slot * 0.32, y: y, width: slot * 0.64, height: height), cornerRadius: 3),
+                             with: .color(value >= 0 ? Color.teal : Color.orange))
+                context.draw(Text(verbatim: value < 0 ? "−\(-value)" : "\(value)").font(.caption.monospacedDigit().weight(.semibold)).foregroundColor(.primary),
+                             at: CGPoint(x: x, y: value >= 0 ? y - 8 : y + height + 8))
+            }
+        }
+        .frame(height: 96)
+        .accessibilityHidden(true)
     }
 
     private func select(displayedIndex: Int) {
@@ -9452,46 +10463,130 @@ private struct FileReadingLab: View {
         optionCount: FileReadingOutcome.allCases.count,
         answerOriginalIndex: FileReadingPractice.scenarios[0].expectedOutcome.rawValue
     )
+    @State private var solvedScenarios: Set<String> = []
 
-    private var scenario: FileReadingScenario {
-        FileReadingPractice.scenario(id: scenarioID) ?? FileReadingPractice.scenarios[0]
+    /// How far a run gets: every stage before `failingStage` succeeds; the failing stage stops the program.
+    private enum StageState { case passed, failed, notReached }
+    private static let stageKeys = ["lab.fileTrace.stepOpen", "lab.fileTrace.stepRead", "lab.fileTrace.stepConvert", "lab.fileTrace.stepSum"]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: FileReadingScenario { FileReadingPractice.scenario(id: scenarioID) ?? FileReadingPractice.scenarios[0] }
+    private var answeredCorrectly: Bool { selectedOutcome.map { FileReadingPractice.isCorrect($0, for: scenarioID) } ?? false }
+    private var fileLines: [String]? {
+        switch scenario.expectedOutcome {
+        case .missingFile: return nil
+        case .invalidNumber: return ["7", "twelve"]
+        case .successfulSum: return ["7", "-3"]
+        }
+    }
+    private var failingStage: Int? {
+        switch scenario.expectedOutcome {
+        case .missingFile: return 0
+        case .invalidNumber: return 2
+        case .successfulSum: return nil
+        }
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.FileReadingLab", store.language), instruction: L10n.text("lab.fileTrace.hint", store.language))
-
-            Picker(L10n.text("lab.fileTrace.scenario", store.language), selection: $scenarioID) {
+            LabHeader(title: text("labkit.title.FileReadingLab"), instruction: text("lab.fileTrace.hint"))
+            Picker(text("lab.fileTrace.scenario"), selection: $scenarioID) {
                 ForEach(FileReadingPractice.scenarios) { item in
-                    Text(L10n.text("lab.fileTrace.scenario.\(item.id)", store.language)).tag(item.id)
+                    Text(text("lab.fileTrace.scenario.\(item.id)")).tag(item.id)
                 }
             }
             .pickerStyle(.menu)
-            .onChange(of: scenarioID) { _ in
-                selectedOutcome = nil
-                hasCheckedAnswer = false
-                outcomeOrder = QuizAnswerOrder(
-                    optionCount: FileReadingOutcome.allCases.count,
-                    answerOriginalIndex: scenario.expectedOutcome.rawValue
-                )
+            .frame(maxWidth: 420)
+            .onChange(of: scenarioID) { _ in resetAttempt() }
+            HStack(alignment: .top, spacing: 14) {
+                filePanel
+                Text("""
+                with path.open("r", encoding="utf-8") as file:
+                    total = sum(int(line.strip()) for line in file if line.strip())
+                """)
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(12)
+                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityLabel(Text(text("lab.fileTrace.code")))
             }
+            pipeline
+            answerPanel
+            LabStatGrid {
+                LabStat(label: text("lab.fileTrace.statSolved"), value: "\(solvedScenarios.count) / \(FileReadingPractice.scenarios.count)", tint: .green)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.fileTrace.challenge"),
+                         solved: solvedScenarios.count == FileReadingPractice.scenarios.count, solvedText: text("lab.fileTrace.challengeSolved"))
+        }
+    }
 
-            Text("""
-            with path.open("r", encoding="utf-8") as file:
-                total = sum(int(line.strip()) for line in file if line.strip())
-            """)
-            .font(.system(.callout, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityLabel(Text(L10n.text("lab.fileTrace.code", store.language)))
+    // The file on disk: its lines, or a dashed outline when it does not exist.
+    private var filePanel: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Label {
+                Text(verbatim: "scores.txt").font(.system(.caption, design: .monospaced).weight(.semibold))
+            } icon: {
+                Image(systemName: fileLines == nil ? "doc.badge.ellipsis" : "doc.text")
+            }
+            .foregroundStyle(fileLines == nil ? Color.orange : Color.secondary)
+            if let fileLines {
+                ForEach(Array(fileLines.enumerated()), id: \.offset) { _, line in
+                    Text(verbatim: line).font(.system(.title3, design: .monospaced).weight(.semibold))
+                }
+            } else {
+                Text(text("lab.fileTrace.fileMissing")).font(.caption).foregroundStyle(.secondary)
+            }
+        }
+        .padding(12)
+        .frame(width: 150, alignment: .leading)
+        .frame(minHeight: 96, alignment: .topLeading)
+        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(Color.secondary.opacity(0.5),
+                                                                 style: StrokeStyle(lineWidth: 1.5, dash: fileLines == nil ? [5, 4] : [])))
+        .accessibilityElement(children: .combine)
+    }
 
-            Text(L10n.text("lab.fileTrace.question", store.language))
-                .font(.headline)
+    // The stages of the run. After the answer is checked they show how far the program got and where it stopped.
+    private var pipeline: some View {
+        HStack(spacing: 6) {
+            ForEach(Self.stageKeys.indices, id: \.self) { index in
+                if index > 0 {
+                    Image(systemName: "arrow.right").font(.caption).foregroundStyle(.secondary)
+                }
+                stageChip(index)
+            }
+        }
+    }
+
+    private func stageState(_ index: Int) -> StageState {
+        guard let failingStage else { return .passed }
+        if index < failingStage { return .passed }
+        return index == failingStage ? .failed : .notReached
+    }
+
+    private func stageChip(_ index: Int) -> some View {
+        let state = stageState(index)
+        let colour: Color = !hasCheckedAnswer ? .secondary : (state == .passed ? .green : (state == .failed ? .red : .secondary))
+        let symbol = !hasCheckedAnswer ? "questionmark.circle" : (state == .passed ? "checkmark.circle.fill" : (state == .failed ? "xmark.octagon.fill" : "circle.dashed"))
+        return VStack(spacing: 4) {
+            Image(systemName: symbol).font(.title3).foregroundStyle(colour)
+            Text(text(Self.stageKeys[index]))
+                .font(.caption.weight(.medium))
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(8)
+        .frame(maxWidth: .infinity, minHeight: 66)
+        .background(colour.opacity(hasCheckedAnswer ? 0.12 : 0.06), in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .combine)
+    }
 
-            ForEach(Array(outcomeOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
+    private var answerPanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(text("lab.fileTrace.question"))
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(outcomeOrder.displayedOriginalIndices.enumerated()), id: \.offset) { _, originalIndex in
                 let outcome = FileReadingPractice.outcomes[originalIndex]
                 Button {
                     guard !hasCheckedAnswer else { return }
@@ -9499,57 +10594,59 @@ private struct FileReadingLab: View {
                 } label: {
                     HStack(spacing: 10) {
                         Image(systemName: selectedOutcome == outcome ? "largecircle.fill.circle" : "circle")
-                        Text(L10n.text(outcome.localizationKey, store.language))
+                        Text(text(outcome.localizationKey))
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(10)
-                    .background(
-                        selectedOutcome == outcome ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06),
-                        in: RoundedRectangle(cornerRadius: 10)
-                    )
+                    .background(selectedOutcome == outcome ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06),
+                                in: RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
                 .disabled(hasCheckedAnswer)
                 .accessibilityAddTraits(selectedOutcome == outcome ? .isSelected : [])
             }
-
-            if hasCheckedAnswer {
-                let correct = selectedOutcome.map { FileReadingPractice.isCorrect($0, for: scenarioID) } ?? false
-                Label(
-                    L10n.text(correct ? "lab.fileTrace.correct" : "lab.fileTrace.incorrect", store.language),
-                    systemImage: correct ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                )
-                .foregroundStyle(correct ? Color.green : Color.orange)
-
-                Label(
-                    L10n.text(scenario.explanationKey, store.language),
-                    systemImage: "info.circle"
-                )
-                .font(.callout)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
-            }
-
-            Button {
-                if let selectedOutcome,
-                   let evidence = assessmentTracker.recordSubmission(
-                    selectedAnswerIndex: selectedOutcome.rawValue,
-                    correctAnswerIndex: scenario.expectedOutcome.rawValue,
-                    optionCount: FileReadingOutcome.allCases.count,
-                    itemID: scenario.id
-                   ) {
-                    store.recordStudyAssessment(
-                        lessonID: "programming.strings_files_and_exceptions",
-                        evidence: evidence
-                    )
+            HStack(spacing: 10) {
+                Button(action: checkAnswer) {
+                    Label(text("lab.fileTrace.check"), systemImage: "checkmark")
                 }
-                hasCheckedAnswer = true
-            } label: {
-                Label(L10n.text("lab.fileTrace.check", store.language), systemImage: "checkmark")
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedOutcome == nil || hasCheckedAnswer)
+                if hasCheckedAnswer && !answeredCorrectly {
+                    Button(text("lab.fileTrace.retry"), action: resetAttempt)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedOutcome == nil || hasCheckedAnswer)
+            if hasCheckedAnswer {
+                Label(text(answeredCorrectly ? "lab.fileTrace.correct" : "lab.fileTrace.incorrect"),
+                      systemImage: answeredCorrectly ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .foregroundStyle(answeredCorrectly ? Color.green : Color.orange)
+                Label(text(scenario.explanationKey), systemImage: "info.circle")
+                    .font(.callout)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func checkAnswer() {
+        if let selectedOutcome,
+           let evidence = assessmentTracker.recordSubmission(
+            selectedAnswerIndex: selectedOutcome.rawValue,
+            correctAnswerIndex: scenario.expectedOutcome.rawValue,
+            optionCount: FileReadingOutcome.allCases.count,
+            itemID: scenario.id
+           ) {
+            store.recordStudyAssessment(lessonID: "programming.strings_files_and_exceptions", evidence: evidence)
+        }
+        hasCheckedAnswer = true
+        if answeredCorrectly { solvedScenarios.insert(scenarioID) }
+    }
+
+    private func resetAttempt() {
+        selectedOutcome = nil
+        hasCheckedAnswer = false
+        outcomeOrder = QuizAnswerOrder(optionCount: FileReadingOutcome.allCases.count, answerOriginalIndex: scenario.expectedOutcome.rawValue)
     }
 }
 
@@ -9794,93 +10891,180 @@ private struct DebuggingLab: View {
         optionCount: DebuggingPractice.scenarios[0].choiceKeys.count,
         answerOriginalIndex: DebuggingPractice.scenarios[0].correctChoice
     )
+    @State private var solvedScenarios: Set<String> = []
 
-    private var scenario: DebuggingScenario {
-        DebuggingPractice.scenario(id: scenarioID) ?? DebuggingPractice.scenarios[0]
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: DebuggingScenario { DebuggingPractice.scenario(id: scenarioID) ?? DebuggingPractice.scenarios[0] }
+    private var codeLines: [String] { scenario.code.components(separatedBy: "\n") }
+    private var answeredCorrectly: Bool { hasChecked && optionOrder.isCorrect(displayedIndex: selectedChoice) }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             LabCard {
-                LabHeader(title: L10n.text("labkit.title.DebuggingLab", store.language), instruction: L10n.text("lab.debugging.hint", store.language))
-
-                Picker(L10n.text("lab.debugging.scenarioPicker", store.language), selection: $scenarioID) {
+                LabHeader(title: text("labkit.title.DebuggingLab"), instruction: text("lab.debugging.hint"))
+                Picker(text("lab.debugging.scenarioPicker"), selection: $scenarioID) {
                     ForEach(DebuggingPractice.scenarios) { item in
-                        Text(L10n.text(item.promptKey, store.language)).tag(item.id)
+                        Text(text(item.promptKey)).tag(item.id)
                     }
                 }
-                .pickerStyle(.menu)
+                .pickerStyle(.segmented)
+                .labelsHidden()
                 .onChange(of: scenarioID) { newScenarioID in
                     selectedChoice = -1
                     hasChecked = false
                     if let newScenario = DebuggingPractice.scenario(id: newScenarioID) {
-                        optionOrder = QuizAnswerOrder(
-                            optionCount: newScenario.choiceKeys.count,
-                            answerOriginalIndex: newScenario.correctChoice
-                        )
+                        optionOrder = QuizAnswerOrder(optionCount: newScenario.choiceKeys.count, answerOriginalIndex: newScenario.correctChoice)
                     }
                 }
-
-                Text(scenario.code)
-                    .font(.system(.callout, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityLabel(Text(L10n.text("lab.debugging.code", store.language)))
-
+                codePanel
                 Label(scenario.traceback, systemImage: "exclamationmark.triangle.fill")
-                    .font(.system(.callout, design: .monospaced))
-                    .foregroundStyle(.orange)
+                    .font(.system(.callout, design: .monospaced).weight(.medium))
+                    .foregroundStyle(.red)
+                    .padding(10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.red.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
                     .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityLabel(Text(L10n.text("lab.debugging.traceback", store.language)))
-
-                Text(L10n.text("lab.debugging.choose", store.language))
-                    .font(.callout.weight(.medium))
-
-                Picker(L10n.text("lab.debugging.choicePicker", store.language), selection: $selectedChoice) {
-                    ForEach(Array(optionOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                        Text(L10n.text(scenario.choiceKeys[originalIndex], store.language)).tag(displayIndex)
-                    }
+                    .accessibilityLabel(Text(text("lab.debugging.traceback") + ": " + scenario.traceback))
+                choicePanel
+                if hasChecked { evidencePanel }
+                LabStatGrid {
+                    LabStat(label: text("lab.debugging.statSolved"), value: "\(solvedScenarios.count) / \(DebuggingPractice.scenarios.count)", tint: .green)
                 }
-                .pickerStyle(.radioGroup)
-                .disabled(hasChecked)
+                LabChallenge(caption: text("lab.kit.task"), task: text("lab.debugging.challenge"),
+                             solved: solvedScenarios.count == DebuggingPractice.scenarios.count, solvedText: text("lab.debugging.challengeSolved"))
+            }
+            GitWorkflowLab()
+        }
+    }
 
-                if hasChecked {
-                    Label(
-                        L10n.text(scenario.explanationKey, store.language),
-                        systemImage: optionOrder.isCorrect(displayedIndex: selectedChoice)
-                            ? "checkmark.circle.fill" : "arrow.counterclockwise.circle"
-                    )
-                    .font(.callout)
-                    .foregroundStyle(optionOrder.isCorrect(displayedIndex: selectedChoice) ? Color.green : Color.orange)
-                    .fixedSize(horizontal: false, vertical: true)
+    // Numbered code. In these three examples the error appears on the last line; it lights up only after the answer is checked.
+    private var codePanel: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            ForEach(Array(codeLines.enumerated()), id: \.offset) { index, line in
+                let failing = hasChecked && index == codeLines.count - 1
+                HStack(spacing: 10) {
+                    Text(verbatim: "\(index + 1)")
+                        .foregroundStyle(.secondary)
+                        .frame(width: 18, alignment: .trailing)
+                    Text(verbatim: line)
+                        .textSelection(.enabled)
+                    Spacer(minLength: 0)
                 }
+                .font(.system(.callout, design: .monospaced))
+                .padding(.vertical, 3)
+                .padding(.horizontal, 6)
+                .background(failing ? Color.red.opacity(0.2) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+            }
+        }
+        .padding(10)
+        .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(Text(text("lab.debugging.code")))
+    }
 
-                Button {
-                    hasChecked = true
-                    guard let selectedOriginalIndex = optionOrder.originalIndex(forDisplayedIndex: selectedChoice),
-                          let evidence = assessmentTracker.recordSubmission(
-                            selectedAnswerIndex: selectedOriginalIndex,
-                            correctAnswerIndex: scenario.correctChoice,
-                            optionCount: scenario.choiceKeys.count,
-                            itemID: scenario.id
-                          ) else {
-                        return
-                    }
-                    store.recordStudyAssessment(
-                        lessonID: "programming.debugging_tests_and_git",
-                        evidence: evidence
-                    )
-                } label: {
-                    Label(L10n.text("lab.debugging.check", store.language), systemImage: "checkmark")
+    private var choicePanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.debugging.choose"))
+                .font(.callout.weight(.medium))
+            Picker(text("lab.debugging.choicePicker"), selection: $selectedChoice) {
+                ForEach(Array(optionOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
+                    Text(text(scenario.choiceKeys[originalIndex])).tag(displayIndex)
+                }
+            }
+            .pickerStyle(.radioGroup)
+            .labelsHidden()
+            .disabled(hasChecked)
+            HStack(spacing: 10) {
+                Button(action: checkAnswer) {
+                    Label(text("lab.debugging.check"), systemImage: "checkmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(hasChecked || selectedChoice < 0)
+                if hasChecked && !answeredCorrectly {
+                    Button(text("lab.debugging.retry")) {
+                        hasChecked = false
+                        selectedChoice = -1
+                        optionOrder = QuizAnswerOrder(optionCount: scenario.choiceKeys.count, answerOriginalIndex: scenario.correctChoice)
+                    }
+                }
             }
-
-            GitWorkflowLab()
+            if hasChecked {
+                Label(text(scenario.explanationKey), systemImage: answeredCorrectly ? "checkmark.circle.fill" : "arrow.counterclockwise.circle")
+                    .font(.callout)
+                    .foregroundStyle(answeredCorrectly ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    // What the program actually had at the moment of the error, drawn for each kind of bug.
+    private var evidencePanel: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(text("lab.debugging.evidenceTitle")).font(.callout.weight(.semibold))
+            switch scenarioID {
+            case "index-error":
+                HStack(spacing: 6) {
+                    ForEach(Array(["\"a\"", "\"b\"", "\"c\""].enumerated()), id: \.offset) { index, value in
+                        indexCell(index: index, value: value, exists: true)
+                    }
+                    indexCell(index: 3, value: "?", exists: false)
+                }
+            case "assertion-error":
+                HStack(spacing: 10) {
+                    evidenceChip(label: text("lab.debugging.evidence.got"), value: "double(3) = 6", colour: .orange)
+                    evidenceChip(label: text("lab.debugging.evidence.expected"), value: "5", colour: .blue)
+                }
+            default:
+                HStack(spacing: 10) {
+                    evidenceChip(label: text("lab.debugging.evidence.known"), value: "total", colour: .green)
+                    evidenceChip(label: text("lab.debugging.evidence.asked"), value: "totel", colour: .red)
+                }
+            }
+        }
+        .accessibilityElement(children: .combine)
+    }
+
+    private func indexCell(index: Int, value: String, exists: Bool) -> some View {
+        VStack(spacing: 3) {
+            Text(verbatim: value)
+                .font(.system(.callout, design: .monospaced).weight(.bold))
+                .frame(width: 48, height: 36)
+                .background(exists ? Color.green.opacity(0.2) : Color.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+                .overlay(RoundedRectangle(cornerRadius: 7).strokeBorder(exists ? Color.green.opacity(0.6) : Color.red,
+                                                                        style: StrokeStyle(lineWidth: 1.5, dash: exists ? [] : [4, 3])))
+            Text(verbatim: "\(index)")
+                .font(.caption.monospacedDigit().weight(.semibold))
+                .foregroundStyle(exists ? Color.secondary : Color.red)
+        }
+    }
+
+    private func evidenceChip(label: String, value: String, colour: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(verbatim: value)
+                .font(.system(.title3, design: .monospaced).weight(.bold))
+                .foregroundStyle(colour)
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(colour.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    private func checkAnswer() {
+        hasChecked = true
+        if optionOrder.isCorrect(displayedIndex: selectedChoice) { solvedScenarios.insert(scenarioID) }
+        guard let selectedOriginalIndex = optionOrder.originalIndex(forDisplayedIndex: selectedChoice),
+              let evidence = assessmentTracker.recordSubmission(
+                selectedAnswerIndex: selectedOriginalIndex,
+                correctAnswerIndex: scenario.correctChoice,
+                optionCount: scenario.choiceKeys.count,
+                itemID: scenario.id
+              ) else {
+            return
+        }
+        store.recordStudyAssessment(lessonID: "programming.debugging_tests_and_git", evidence: evidence)
     }
 }
 
@@ -10080,89 +11264,143 @@ private struct LinearSystemLab: View {
     @State private var scenarioID = LinearSystemPractice.scenarios[0].id
     @State private var selectedDisplayIndex = -1
     @State private var prediction: InteractivePredictionAttempt
+    @State private var solvedScenarios: Set<String> = []
+
     private let predictionOptionKeys = ["lab.linearSystemOne", "lab.linearSystemNone", "lab.linearSystemInfinite"]
 
     init() {
         _prediction = State(initialValue: Self.makePrediction(for: LinearSystemPractice.scenarios[0]))
     }
 
-    private var scenario: LinearSystemScenario {
-        LinearSystemPractice.scenario(id: scenarioID)
-    }
-
-    private var equationOne: String {
-        equation(scenario.first.x, scenario.first.y, scenario.first.result)
-    }
-
-    private var equationTwo: String {
-        equation(scenario.second.x, scenario.second.y, scenario.second.result)
-    }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: LinearSystemScenario { LinearSystemPractice.scenario(id: scenarioID) }
+    private var revealed: Bool { prediction.hasAnswered && prediction.isCorrect }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.LinearSystemLab", store.language), instruction: L10n.text("lab.linearSystemHint", store.language))
-
-            Picker(L10n.text("lab.linearSystemScenario", store.language), selection: $scenarioID) {
-                Text(L10n.text("lab.linearSystemUnique", store.language)).tag("unique")
-                Text(L10n.text("lab.linearSystemParallel", store.language)).tag("parallel")
-                Text(L10n.text("lab.linearSystemSameLine", store.language)).tag("same-line")
+            LabHeader(title: text("labkit.title.LinearSystemLab"), instruction: text("lab.linearSystemSubtitle"))
+            Picker(text("lab.linearSystemScenario"), selection: $scenarioID) {
+                Text(text("lab.linearSystemUnique")).tag("unique")
+                Text(text("lab.linearSystemParallel")).tag("parallel")
+                Text(text("lab.linearSystemSameLine")).tag("same-line")
             }
             .pickerStyle(.segmented)
-            .disabled(prediction.hasAnswered)
+            .labelsHidden()
             .onChange(of: scenarioID) { newScenarioID in
                 selectedDisplayIndex = -1
                 prediction = Self.makePrediction(for: LinearSystemPractice.scenario(id: newScenarioID))
             }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(equationOne).font(.title3.monospaced())
-                Text(equationTwo).font(.title3.monospaced())
+            HStack(alignment: .top, spacing: 20) {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(equation(scenario.first.x, scenario.first.y, scenario.first.result))
+                        .font(.title3.monospaced().weight(.semibold))
+                        .foregroundStyle(.blue)
+                    Text(equation(scenario.second.x, scenario.second.y, scenario.second.result))
+                        .font(.title3.monospaced().weight(.semibold))
+                        .foregroundStyle(.orange)
+                    Label(text("lab.linearSystemEliminate"), systemImage: "arrow.down.to.line")
+                        .font(.callout.weight(.medium))
+                        .padding(.top, 6)
+                    Text(String(format: text("lab.linearSystemReduction"), scenario.eliminationResult.x, scenario.eliminationResult.result))
+                        .font(.title3.monospaced())
+                        .accessibilityLabel(text("lab.linearSystemReduction"))
+                }
+                .frame(maxWidth: 260, alignment: .leading)
+                .accessibilityElement(children: .combine)
+                Canvas { context, size in drawLines(context, size: size) }
+                    .frame(height: 260)
+                    .overlay {
+                        if !revealed {
+                            VStack(spacing: 6) {
+                                Image(systemName: "eye.slash").font(.title2)
+                                Text(text("lab.linearSystemGraphHidden")).font(.caption).multilineTextAlignment(.center)
+                            }
+                            .foregroundStyle(.secondary)
+                            .padding(12)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.linearSystemGraph"))
+                    .accessibilityValue(Text(revealed ? outcomeDescription : text("lab.linearSystemGraphHidden")))
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .accessibilityElement(children: .combine)
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.linearSystemChallenge"),
+                         solved: solvedScenarios.count == 3, solvedText: text("lab.linearSystemChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.linearSystemHint"), text("lab.linearSystemGraphNote")])
+        }
+    }
 
-            Label(L10n.text("lab.linearSystemEliminate", store.language), systemImage: "arrow.down.to.line")
+    // Each equation ax + by = c is a straight line; the solutions of the system are the points the two lines share.
+    private func drawLines(_ context: GraphicsContext, size: CGSize) {
+        let plot = LabPlotGeometry(size: size, x: -1...11, y: -1...11, leading: 30, bottom: 24)
+        plot.drawAxes(in: context, xLabel: "x", yLabel: "y", xTicks: [0, 2, 4, 6, 8, 10], yTicks: [0, 2, 4, 6, 8, 10],
+                      format: { L10n.number($0, fractionDigits: 0, store.language) })
+        guard revealed else { return }
+        let sameLine: Bool = { if case .infinitelyManySolutions = LinearSystemPractice.classify(scenario) { return true }; return false }()
+        context.stroke(line(scenario.first, plot: plot), with: .color(.blue), lineWidth: sameLine ? 7 : 3)
+        context.stroke(line(scenario.second, plot: plot), with: .color(.orange), style: StrokeStyle(lineWidth: 3, dash: sameLine ? [8, 6] : []))
+        if case let .oneSolution(x, y) = LinearSystemPractice.classify(scenario) {
+            let point = plot.point(x, y)
+            context.fill(Path(ellipseIn: CGRect(x: point.x - 7, y: point.y - 7, width: 14, height: 14)), with: .color(.green))
+            context.draw(Text(verbatim: "(" + L10n.number(x, fractionDigits: 0, store.language) + "; " + L10n.number(y, fractionDigits: 0, store.language) + ")").font(.callout.weight(.bold)).foregroundColor(.green),
+                         at: CGPoint(x: point.x + 12, y: point.y - 14), anchor: .leading)
+        }
+    }
+
+    private func line(_ equation: (x: Int, y: Int, result: Int), plot: LabPlotGeometry) -> Path {
+        var path = Path()
+        let a = Double(equation.x), b = Double(equation.y), c = Double(equation.result)
+        if b != 0 {
+            path.move(to: plot.point(-1, (c - a * -1) / b))
+            path.addLine(to: plot.point(11, (c - a * 11) / b))
+        } else if a != 0 {
+            path.move(to: plot.point(c / a, -1))
+            path.addLine(to: plot.point(c / a, 11))
+        }
+        return path
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.linearSystemPredict"))
                 .font(.callout.weight(.medium))
-            Text(String(format: L10n.text("lab.linearSystemReduction", store.language), scenario.eliminationResult.x, scenario.eliminationResult.result))
-                .font(.title3.monospaced())
-                .accessibilityLabel(L10n.text("lab.linearSystemReduction", store.language))
-
-            Picker(L10n.text("lab.linearSystemPredict", store.language), selection: $selectedDisplayIndex) {
+            Picker(text("lab.linearSystemPredict"), selection: $selectedDisplayIndex) {
                 ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
-                    Text(L10n.text(predictionOptionKeys[originalIndex], store.language)).tag(displayIndex)
+                    Text(text(predictionOptionKeys[originalIndex])).tag(displayIndex)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .disabled(prediction.hasAnswered)
-
-            Button(L10n.text("lab.linearSystemCheck", store.language)) {
+            Button(text("lab.linearSystemCheck")) {
                 prediction.select(displayedIndex: selectedDisplayIndex)
+                if prediction.isCorrect { solvedScenarios.insert(scenarioID) }
                 guard let evidence = prediction.currentAnswerEventEvidence() else { return }
                 store.recordStudyAssessment(lessonID: "mathematics.systems_of_linear_equations", evidence: evidence)
             }
             .buttonStyle(.borderedProminent)
             .disabled(prediction.hasAnswered || selectedDisplayIndex < 0)
-
             if prediction.hasAnswered {
                 if prediction.isCorrect {
-                    Label(L10n.text("lab.linearSystemCorrect", store.language), systemImage: "checkmark.circle.fill")
+                    Label(text("lab.linearSystemCorrect"), systemImage: "checkmark.circle.fill")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.green)
                     Text(outcomeDescription)
-                        .font(.caption)
+                        .font(.callout)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.linearSystemNew", store.language)) {
+                    Button(text("lab.linearSystemNew")) {
                         prediction = Self.makePrediction(for: scenario)
                         selectedDisplayIndex = -1
                     }
                     .buttonStyle(.link)
                 } else {
-                    Label(L10n.text("lab.linearSystemReview", store.language), systemImage: "arrow.uturn.backward.circle")
+                    Label(text("lab.linearSystemReview"), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.medium))
                         .foregroundStyle(.orange)
                         .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.linearSystemRetry", store.language)) {
+                    Button(text("lab.linearSystemRetry")) {
                         prediction.retry()
                         selectedDisplayIndex = -1
                     }
@@ -10170,6 +11408,8 @@ private struct LinearSystemLab: View {
                 }
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private static func makePrediction(for scenario: LinearSystemScenario) -> InteractivePredictionAttempt {
@@ -10185,12 +11425,9 @@ private struct LinearSystemLab: View {
 
     private var outcomeDescription: String {
         switch LinearSystemPractice.classify(scenario) {
-        case let .oneSolution(x, y):
-            return String(format: L10n.text("lab.linearSystemOutcomeOne", store.language), x, y)
-        case .noSolution:
-            return L10n.text("lab.linearSystemOutcomeNone", store.language)
-        case .infinitelyManySolutions:
-            return L10n.text("lab.linearSystemOutcomeInfinite", store.language)
+        case let .oneSolution(x, y): return String(format: text("lab.linearSystemOutcomeOne"), x, y)
+        case .noSolution: return text("lab.linearSystemOutcomeNone")
+        case .infinitelyManySolutions: return text("lab.linearSystemOutcomeInfinite")
         }
     }
 
@@ -10536,151 +11773,149 @@ private struct VectorKinematicsLab: View {
     @State private var angleDegrees = 30.0
     @State private var showsComponents = false
 
-    private var vector: VectorKinematics {
-        VectorKinematics(magnitude: magnitude, angleDegrees: angleDegrees)
-    }
+    private static let reach = 20.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func measure(_ value: Double, _ digits: Int, _ unit: String) -> String { L10n.measurement(value, fractionDigits: digits, unit: unit, store.language) }
+    private var vector: VectorKinematics { VectorKinematics(magnitude: magnitude, angleDegrees: angleDegrees) }
 
     private var vectorAccessibilityValue: String {
-        let language = store.language
-        var value = "r " + L10n.measurement(vector.magnitude, fractionDigits: 0, unit: "m", language)
-            + ", θ " + L10n.measurement(vector.angleDegrees, fractionDigits: 0, unit: "°", language)
+        var value = "r " + measure(vector.magnitude, 0, "m") + ", θ " + measure(vector.angleDegrees, 0, "°")
         if showsComponents {
-            value += ", Δx " + L10n.measurement(vector.xComponent, fractionDigits: 2, unit: "m", language)
-                + ", Δy " + L10n.measurement(vector.yComponent, fractionDigits: 2, unit: "m", language)
+            value += ", Δx " + measure(vector.xComponent, 2, "m") + ", Δy " + measure(vector.yComponent, 2, "m")
         }
         return value
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            LabHeader(title: L10n.text("lab.vector.title", store.language), instruction: L10n.text("lab.vector.hint", store.language))
-
-            HStack(alignment: .center, spacing: 24) {
-                vectorDiagram
-                    .frame(minWidth: 260, idealWidth: 340, maxWidth: 420, minHeight: 240)
+        LabCard {
+            LabHeader(title: text("lab.vector.title"), instruction: text("lab.vector.subtitle"))
+            HStack(alignment: .top, spacing: 20) {
+                GeometryReader { proxy in
+                    vectorDiagram(size: proxy.size)
+                        .contentShape(Rectangle())
+                        .gesture(DragGesture(minimumDistance: 0).onChanged { drag in setTip(drag.location, size: proxy.size) })
+                }
+                .frame(minWidth: 260, maxWidth: 420)
+                .frame(height: 320)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(Text(text("lab.vector.diagram")))
+                .accessibilityValue(Text(verbatim: vectorAccessibilityValue))
                 VStack(alignment: .leading, spacing: 14) {
-                    vectorSlider(
-                        title: L10n.text("lab.vector.magnitude", store.language),
-                        value: $magnitude,
-                        range: 1...20,
-                        step: 1,
-                        unit: "m"
-                    )
-                    vectorSlider(
-                        title: L10n.text("lab.vector.angle", store.language),
-                        value: $angleDegrees,
-                        range: 0...359,
-                        step: 1,
-                        unit: "°"
-                    )
+                    vectorSlider(title: text("lab.vector.magnitude"), value: $magnitude, range: 1...20, unit: "m")
+                    vectorSlider(title: text("lab.vector.angle"), value: $angleDegrees, range: 0...359, unit: "°")
                     Toggle(isOn: $showsComponents) {
-                        Text(L10n.text("lab.vector.showComponents", store.language))
+                        Text(text("lab.vector.showComponents"))
                     }
                     .toggleStyle(.switch)
-                    .accessibilityLabel(Text(L10n.text("lab.vector.showComponents", store.language)))
-                    .help(L10n.text("lab.vector.revealHelp", store.language))
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        if showsComponents {
-                            vectorReading("lab.vector.xComponent", value: vector.xComponent)
-                            vectorReading("lab.vector.yComponent", value: vector.yComponent)
-                            vectorReading("lab.vector.magnitudeResult", value: vector.reconstructedMagnitude)
-                        } else {
-                            Text(L10n.text("lab.vector.predictFirst", store.language))
-                                .font(.callout)
-                                .foregroundStyle(.secondary)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
+                    .accessibilityLabel(Text(text("lab.vector.showComponents")))
+                    .help(text("lab.vector.revealHelp"))
+                    if !showsComponents {
+                        Text(text("lab.vector.predictFirst"))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .padding(12)
-                    .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
-                    .background(.quaternary.opacity(0.45), in: RoundedRectangle(cornerRadius: 12))
                 }
                 .frame(maxWidth: 280)
             }
-
-            Text(L10n.text("lab.vector.challenge", store.language))
-                .font(.callout)
-                .padding(12)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            Text(L10n.text("lab.vector.limits", store.language))
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            LabStatGrid {
+                LabStat(label: text("lab.vector.magnitude"), value: measure(vector.magnitude, 0, "m"), tint: .accentColor)
+                LabStat(label: "θ", value: measure(vector.angleDegrees, 0, "°"), tint: .purple)
+                LabStat(label: text("lab.vector.xComponent"), value: showsComponents ? measure(vector.xComponent, 2, "m") : "?", tint: .orange)
+                LabStat(label: text("lab.vector.yComponent"), value: showsComponents ? measure(vector.yComponent, 2, "m") : "?", tint: .green)
+                LabStat(label: text("lab.vector.magnitudeResult"), value: showsComponents ? measure(vector.reconstructedMagnitude, 2, "m") : "?", tint: .teal)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.vector.challenge"),
+                         solved: magnitude == 10 && angleDegrees == 60 && showsComponents, solvedText: text("lab.vector.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.vector.hint"), text("lab.vector.limits")])
         }
-        .padding(.vertical, 8)
     }
 
-    private var vectorDiagram: some View {
+    // Square grid in metres; the components appear as an orange Δx along the x-axis and a green Δy up to the tip.
+    private func vectorDiagram(size: CGSize) -> some View {
         Canvas { context, size in
-            let inset: CGFloat = 28
             let origin = CGPoint(x: size.width / 2, y: size.height / 2)
-            let scale = min((size.width - inset * 2) / 40, (size.height - inset * 2) / 40)
-            let tip = CGPoint(
-                x: origin.x + vector.xComponent * scale,
-                y: origin.y - vector.yComponent * scale
-            )
-            var axes = Path()
-            axes.move(to: CGPoint(x: inset, y: origin.y))
-            axes.addLine(to: CGPoint(x: size.width - inset, y: origin.y))
-            axes.move(to: CGPoint(x: origin.x, y: size.height - inset))
-            axes.addLine(to: CGPoint(x: origin.x, y: inset))
-            context.stroke(axes, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
-
-            if showsComponents {
-                var projections = Path()
-                projections.move(to: origin)
-                projections.addLine(to: CGPoint(x: tip.x, y: origin.y))
-                projections.addLine(to: tip)
-                context.stroke(projections, with: .color(.orange.opacity(0.8)), style: StrokeStyle(lineWidth: 2, dash: [5, 4]))
+            let scale = (min(size.width, size.height) / 2 - 20) / CGFloat(Self.reach)
+            var grid = Path()
+            for metre in stride(from: -20, through: 20, by: 5) {
+                let offset = CGFloat(metre) * scale
+                grid.move(to: CGPoint(x: origin.x + offset, y: origin.y - CGFloat(Self.reach) * scale))
+                grid.addLine(to: CGPoint(x: origin.x + offset, y: origin.y + CGFloat(Self.reach) * scale))
+                grid.move(to: CGPoint(x: origin.x - CGFloat(Self.reach) * scale, y: origin.y + offset))
+                grid.addLine(to: CGPoint(x: origin.x + CGFloat(Self.reach) * scale, y: origin.y + offset))
             }
-
-            var arrow = Path()
-            arrow.move(to: origin)
-            arrow.addLine(to: tip)
-            context.stroke(arrow, with: .color(.accentColor), style: StrokeStyle(lineWidth: 3, lineCap: .round))
-            let direction = CGVector(dx: tip.x - origin.x, dy: tip.y - origin.y)
-            let length = max(hypot(direction.dx, direction.dy), 1)
-            let unit = CGVector(dx: direction.dx / length, dy: direction.dy / length)
-            let perpendicular = CGVector(dx: -unit.dy, dy: unit.dx)
-            var head = Path()
-            head.move(to: tip)
-            head.addLine(to: CGPoint(x: tip.x - unit.dx * 12 + perpendicular.dx * 6, y: tip.y - unit.dy * 12 + perpendicular.dy * 6))
-            head.move(to: tip)
-            head.addLine(to: CGPoint(x: tip.x - unit.dx * 12 - perpendicular.dx * 6, y: tip.y - unit.dy * 12 - perpendicular.dy * 6))
-            context.stroke(head, with: .color(.accentColor), style: StrokeStyle(lineWidth: 3, lineCap: .round))
+            context.stroke(grid, with: .color(.secondary.opacity(0.15)), lineWidth: 1)
+            var axes = Path()
+            axes.move(to: CGPoint(x: origin.x - CGFloat(Self.reach) * scale, y: origin.y))
+            axes.addLine(to: CGPoint(x: origin.x + CGFloat(Self.reach) * scale, y: origin.y))
+            axes.move(to: CGPoint(x: origin.x, y: origin.y + CGFloat(Self.reach) * scale))
+            axes.addLine(to: CGPoint(x: origin.x, y: origin.y - CGFloat(Self.reach) * scale))
+            context.stroke(axes, with: .color(.secondary.opacity(0.7)), lineWidth: 1.2)
+            context.draw(Text(verbatim: "+x").font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: origin.x + CGFloat(Self.reach) * scale - 8, y: origin.y - 10))
+            context.draw(Text(verbatim: "+y").font(.caption2.weight(.semibold)).foregroundColor(.secondary),
+                         at: CGPoint(x: origin.x + 12, y: origin.y - CGFloat(Self.reach) * scale + 8))
+            context.draw(Text(verbatim: measure(5, 0, "m")).font(.caption2).foregroundColor(.secondary),
+                         at: CGPoint(x: origin.x + 5 * scale, y: origin.y + 10))
+            let tip = CGPoint(x: origin.x + CGFloat(vector.xComponent) * scale, y: origin.y - CGFloat(vector.yComponent) * scale)
+            var arc = Path()
+            arc.addArc(center: origin, radius: 26, startAngle: .degrees(0), endAngle: .degrees(-angleDegrees), clockwise: true)
+            context.stroke(arc, with: .color(.purple), lineWidth: 1.5)
+            let middle = -angleDegrees / 2 * .pi / 180
+            context.draw(Text(verbatim: "θ").font(.caption.weight(.bold)).foregroundColor(.purple),
+                         at: CGPoint(x: origin.x + 38 * CGFloat(cos(middle)), y: origin.y + 38 * CGFloat(sin(middle))))
+            if showsComponents {
+                let corner = CGPoint(x: tip.x, y: origin.y)
+                arrow(context, from: origin, to: corner, color: .orange, width: 3)
+                arrow(context, from: corner, to: tip, color: .green, width: 3)
+                context.draw(Text(verbatim: "Δx").font(.caption.weight(.bold)).foregroundColor(.orange),
+                             at: CGPoint(x: (origin.x + corner.x) / 2, y: origin.y + (vector.yComponent >= 0 ? 12 : -12)))
+                context.draw(Text(verbatim: "Δy").font(.caption.weight(.bold)).foregroundColor(.green),
+                             at: CGPoint(x: corner.x + (vector.xComponent >= 0 ? 16 : -16), y: (origin.y + tip.y) / 2))
+            }
+            arrow(context, from: origin, to: tip, color: .accentColor, width: 3.5)
+            context.stroke(Path(ellipseIn: CGRect(x: tip.x - 9, y: tip.y - 9, width: 18, height: 18)), with: .color(.accentColor), lineWidth: 2)
             context.fill(Path(ellipseIn: CGRect(x: origin.x - 3, y: origin.y - 3, width: 6, height: 6)), with: .color(.primary))
         }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel(Text(L10n.text("lab.vector.diagram", store.language)))
-        .accessibilityValue(Text(verbatim: vectorAccessibilityValue))
     }
 
-    private func vectorSlider(
-        title: String,
-        value: Binding<Double>,
-        range: ClosedRange<Double>,
-        step: Double,
-        unit: String
-    ) -> some View {
+    private func arrow(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, color: Color, width: CGFloat) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = hypot(dx, dy)
+        guard length > 2 else { return }
+        let ux = dx / length, uy = dy / length
+        var path = Path()
+        path.move(to: start)
+        path.addLine(to: end)
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 11 - uy * 5.5, y: end.y - uy * 11 + ux * 5.5))
+        path.move(to: end)
+        path.addLine(to: CGPoint(x: end.x - ux * 11 + uy * 5.5, y: end.y - uy * 11 - ux * 5.5))
+        context.stroke(path, with: .color(color), style: StrokeStyle(lineWidth: width, lineCap: .round))
+    }
+
+    /// Dragging moves the arrow's tip: its distance from the origin is the magnitude, its direction the angle from +x.
+    private func setTip(_ location: CGPoint, size: CGSize) {
+        let scale = (min(size.width, size.height) / 2 - 20) / CGFloat(Self.reach)
+        let dx = Double((location.x - size.width / 2) / scale), dy = Double((size.height / 2 - location.y) / scale)
+        magnitude = min(max((dx * dx + dy * dy).squareRoot().rounded(), 1), 20)
+        var degrees = (atan2(dy, dx) * 180 / .pi).rounded()
+        if degrees < 0 { degrees += 360 }
+        angleDegrees = min(degrees, 359)
+    }
+
+    private func vectorSlider(title: String, value: Binding<Double>, range: ClosedRange<Double>, unit: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack {
                 Text(title)
                 Spacer()
-                Text(verbatim: L10n.measurement(value.wrappedValue, fractionDigits: 0, unit: unit, store.language)).monospacedDigit()
+                Text(verbatim: measure(value.wrappedValue, 0, unit)).monospacedDigit()
             }
-            Slider(value: value, in: range, step: step)
+            // Whole numbers without `step:`, which would draw a dense row of tick marks.
+            Slider(value: Binding(get: { value.wrappedValue }, set: { value.wrappedValue = $0.rounded() }), in: range)
                 .accessibilityLabel(Text(title))
         }
-    }
-
-    private func vectorReading(_ key: String, value: Double) -> some View {
-        HStack {
-            Text(L10n.text(key, store.language)).foregroundStyle(.secondary)
-            Spacer()
-            Text(verbatim: L10n.measurement(value, fractionDigits: 2, unit: "m", store.language)).monospacedDigit()
-        }
-        .accessibilityElement(children: .combine)
     }
 }
 
@@ -10690,93 +11925,124 @@ private struct ThermalStrategyLab: View {
     @State private var selectedEnvironment: ThermalEnvironment = .cool
     @State private var selectedResponse: ThermoregulatoryResponse?
     @State private var didCheck = false
+    @State private var solvedCases: Set<String> = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var totalCases: Int { ThermalAnimalMode.allCases.count * ThermalEnvironment.allCases.count }
+    private var isCorrect: Bool {
+        guard let selectedResponse else { return false }
+        return ThermoregulationModel.isCorrect(selectedAnimal, environment: selectedEnvironment, response: selectedResponse)
+    }
+    /// Illustrative outside temperatures for the three conditions, in °C.
+    private var outsideTemperature: Double {
+        switch selectedEnvironment {
+        case .cool: return 10
+        case .mild: return 24
+        case .hot: return 38
+        }
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.ThermalStrategyLab", store.language), instruction: L10n.text("lab.zoology.thermal.hint", store.language))
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("lab.zoology.thermal.modeTitle", store.language))
-                    .font(.headline)
-                Picker(L10n.text("lab.zoology.thermal.modeTitle", store.language), selection: $selectedAnimal) {
+            LabHeader(title: text("labkit.title.ThermalStrategyLab"), instruction: text("lab.zoology.thermal.hint"))
+            HStack(spacing: 14) {
+                Picker(text("lab.zoology.thermal.modeTitle"), selection: $selectedAnimal) {
                     ForEach(ThermalAnimalMode.allCases) { animal in
-                        Text(L10n.text(animal.titleKey, store.language)).tag(animal)
+                        Text(text(animal.titleKey)).tag(animal)
                     }
                 }
                 .pickerStyle(.segmented)
-                Text(L10n.text(selectedAnimal.heatSourceKey, store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(L10n.text("lab.zoology.thermal.environmentTitle", store.language))
-                    .font(.headline)
-                Picker(L10n.text("lab.zoology.thermal.environmentTitle", store.language), selection: $selectedEnvironment) {
+                Picker(text("lab.zoology.thermal.environmentTitle"), selection: $selectedEnvironment) {
                     ForEach(ThermalEnvironment.allCases) { environment in
-                        Text(L10n.text(environment.titleKey, store.language)).tag(environment)
+                        Text(text(environment.titleKey)).tag(environment)
                     }
                 }
                 .pickerStyle(.segmented)
             }
-
-            Label(
-                L10n.text(selectedAnimal == .ectotherm ? "lab.zoology.thermal.icon.ectotherm" : "lab.zoology.thermal.icon.endotherm", store.language),
-                systemImage: selectedAnimal == .ectotherm ? "sun.max" : "thermometer.medium"
-            )
-            .font(.callout.weight(.medium))
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
-            Text(L10n.text("lab.zoology.thermal.responseTitle", store.language))
-                .font(.headline)
-            Picker(L10n.text("lab.zoology.thermal.responseTitle", store.language), selection: $selectedResponse) {
-                Text(L10n.text("lab.zoology.thermal.chooseResponse", store.language)).tag(nil as ThermoregulatoryResponse?)
-                ForEach(ThermoregulatoryResponse.allCases) { response in
-                    Text(L10n.text(response.titleKey, store.language)).tag(response as ThermoregulatoryResponse?)
-                }
-            }
-            .pickerStyle(.menu)
-            .onChange(of: selectedResponse) { _ in didCheck = false }
-
-            Button(L10n.text("lab.zoology.thermal.check", store.language)) {
-                didCheck = true
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(selectedResponse == nil)
-
-            if didCheck, let selectedResponse {
-                let correct = ThermoregulationModel.isCorrect(
-                    selectedAnimal,
-                    environment: selectedEnvironment,
-                    response: selectedResponse
-                )
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(
-                        L10n.text(correct ? "lab.zoology.thermal.correct" : "lab.zoology.thermal.review", store.language),
-                        systemImage: correct ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                    )
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(correct ? .green : .orange)
-                    .fixedSize(horizontal: false, vertical: true)
-                    Text(L10n.text(ThermoregulationModel.recommendedResponse(for: selectedAnimal, in: selectedEnvironment).explanationKey, store.language))
-                        .font(.callout)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            Canvas { context, size in drawChart(context, size: size) }
+                .frame(height: 220)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.zoology.thermal.chart"))
+                .accessibilityValue(Text(text(selectedEnvironment.titleKey)))
+            Label(text(selectedAnimal == .ectotherm ? "lab.zoology.thermal.icon.ectotherm" : "lab.zoology.thermal.icon.endotherm"),
+                  systemImage: selectedAnimal == .ectotherm ? "sun.max" : "thermometer.medium")
+                .font(.callout.weight(.medium))
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(12)
                 .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-            }
-
-            Text(L10n.text("lab.zoology.thermal.limit", store.language))
-                .font(.caption)
+                .accessibilityElement(children: .combine)
+            Text(text(selectedAnimal.heatSourceKey))
+                .font(.callout)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+            VStack(alignment: .leading, spacing: 10) {
+                Text(text("lab.zoology.thermal.responseTitle"))
+                    .font(.callout.weight(.medium))
+                Picker(text("lab.zoology.thermal.responseTitle"), selection: $selectedResponse) {
+                    Text(text("lab.zoology.thermal.chooseResponse")).tag(nil as ThermoregulatoryResponse?)
+                    ForEach(ThermoregulatoryResponse.allCases) { response in
+                        Text(text(response.titleKey)).tag(response as ThermoregulatoryResponse?)
+                    }
+                }
+                .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 420)
+                .onChange(of: selectedResponse) { _ in didCheck = false }
+                Button(text("lab.zoology.thermal.check")) {
+                    didCheck = true
+                    if isCorrect { solvedCases.insert(selectedAnimal.rawValue + "-" + selectedEnvironment.rawValue) }
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(selectedResponse == nil)
+                if didCheck, selectedResponse != nil {
+                    Label(text(isCorrect ? "lab.zoology.thermal.correct" : "lab.zoology.thermal.review"),
+                          systemImage: isCorrect ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(isCorrect ? .green : .orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(text(ThermoregulationModel.recommendedResponse(for: selectedAnimal, in: selectedEnvironment).explanationKey))
+                        .font(.callout)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+            .padding(12)
+            .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            LabStatGrid {
+                LabStat(label: text("lab.zoology.thermal.statSolved"), value: "\(solvedCases.count) / \(totalCases)", tint: .green)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.zoology.thermal.challenge"),
+                         solved: solvedCases.count == totalCases, solvedText: text("lab.zoology.thermal.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.zoology.thermal.chartNote"), text("lab.zoology.thermal.limit")])
         }
         .onChange(of: selectedAnimal) { _ in resetPrediction() }
         .onChange(of: selectedEnvironment) { _ in resetPrediction() }
+    }
+
+    // Schematic: an ectotherm's body follows the surroundings, an endotherm's stays near a set value. The selected animal's line is bold.
+    private func drawChart(_ context: GraphicsContext, size: CGSize) {
+        let plot = LabPlotGeometry(size: size, x: 0...45, y: 0...45, leading: 40, bottom: 28)
+        let unit = L10n.unit("°C", store.language)
+        plot.drawAxes(in: context, xLabel: text("lab.zoology.thermal.axisOutside") + ", " + unit, yLabel: text("lab.zoology.thermal.axisBody") + ", " + unit,
+                      xTicks: [0, 10, 20, 30, 40], yTicks: [0, 10, 20, 30, 40], format: { L10n.number($0, fractionDigits: 0, store.language) })
+        let band = CGRect(x: plot.point(outsideTemperature - 3, 0).x, y: plot.rect.minY,
+                          width: plot.point(outsideTemperature + 3, 0).x - plot.point(outsideTemperature - 3, 0).x, height: plot.rect.height)
+        context.fill(Path(band), with: .color(.orange.opacity(0.16)))
+        let isEctotherm = selectedAnimal == .ectotherm
+        var ectotherm = Path()
+        ectotherm.move(to: plot.point(0, 2))
+        ectotherm.addLine(to: plot.point(43, 45))
+        context.stroke(ectotherm, with: .color(.teal.opacity(isEctotherm ? 1 : 0.3)), lineWidth: isEctotherm ? 3.5 : 2)
+        var endotherm = Path()
+        endotherm.move(to: plot.point(0, 37))
+        endotherm.addLine(to: plot.point(45, 37))
+        context.stroke(endotherm, with: .color(.red.opacity(isEctotherm ? 0.3 : 1)), lineWidth: isEctotherm ? 2 : 3.5)
+        context.draw(Text(text(ThermalAnimalMode.endotherm.titleKey)).font(.caption.weight(.semibold)).foregroundColor(.red.opacity(isEctotherm ? 0.5 : 1)),
+                     at: CGPoint(x: plot.point(8, 0).x, y: plot.point(0, 37).y - 11))
+        context.draw(Text(text(ThermalAnimalMode.ectotherm.titleKey)).font(.caption.weight(.semibold)).foregroundColor(.teal.opacity(isEctotherm ? 1 : 0.5)),
+                     at: CGPoint(x: plot.point(30, 0).x, y: plot.point(0, 24).y), anchor: .leading)
+        let body = isEctotherm ? outsideTemperature + 2 : 37
+        let dot = plot.point(outsideTemperature, body)
+        context.fill(Path(ellipseIn: CGRect(x: dot.x - 7, y: dot.y - 7, width: 14, height: 14)), with: .color(isEctotherm ? .teal : .red))
     }
 
     private func resetPrediction() {
@@ -10787,30 +12053,62 @@ private struct ThermalStrategyLab: View {
 
 private struct CirculationRouteLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var animal: CirculationAnimal = .fish
     @State private var predictedPasses: Int?
     @State private var didCheck = false
+    @State private var solvedAnimals: Set<String> = []
+
+    private static let oxygenRich = Color.red
+    private static let oxygenPoor = Color.blue
+    private static let mixed = Color.purple
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var solved: Bool { didCheck && predictedPasses.map { CirculationRouteModel.isCorrect(passes: $0, for: animal) } ?? false }
+
+    /// One stretch of vessel between organs, drawn in the colour of the blood it carries.
+    private struct Vessel {
+        let points: [CGPoint]
+        let colour: Color
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("lab.circulation.title", store.language), instruction: L10n.text("lab.circulation.hint", store.language))
-
-            Picker(L10n.text("lab.circulation.animalTitle", store.language), selection: $animal) {
+            LabHeader(title: text("lab.circulation.title"), instruction: text("lab.circulation.hint"))
+            Picker(text("lab.circulation.animalTitle"), selection: $animal) {
                 ForEach(CirculationAnimal.allCases) { option in
-                    Text(L10n.text(option.titleKey, store.language)).tag(option)
+                    Text(text(option.titleKey)).tag(option)
                 }
             }
             .pickerStyle(.segmented)
+            .labelsHidden()
             .accessibilityIdentifier("lab.circulation.animal")
-
+            TimelineView(.animation(minimumInterval: 1.0 / 30, paused: reduceMotion)) { timeline in
+                Canvas { context, size in
+                    drawRoute(context, size: size, time: timeline.date.timeIntervalSinceReferenceDate)
+                }
+            }
+            .frame(height: 260)
+            .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 14))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.circulation.diagram"))
+            .accessibilityValue(Text(text(animal.routeKey)))
+            HStack(spacing: 14) {
+                legendItem(Self.oxygenPoor, text("lab.circulation.legendPoor"))
+                legendItem(Self.oxygenRich, text("lab.circulation.legendRich"))
+                if CirculationRouteModel.flowsMixInVentricle(animal) {
+                    legendItem(Self.mixed, text("lab.circulation.legendMixed"))
+                }
+            }
+            .font(.caption)
             VStack(alignment: .leading, spacing: 6) {
-                Label(L10n.text(animal.routeKey, store.language), systemImage: "arrow.triangle.2.circlepath")
+                Label(text(animal.routeKey), systemImage: "arrow.triangle.2.circlepath")
                     .font(.callout.weight(.medium))
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(animal.heartKey, store.language))
+                Text(text(animal.heartKey))
                     .font(.callout)
                     .fixedSize(horizontal: false, vertical: true)
-                Text(L10n.text(animal.exchangeKey, store.language))
+                Text(text(animal.exchangeKey))
                     .font(.callout)
                     .foregroundStyle(.secondary)
             }
@@ -10818,52 +12116,176 @@ private struct CirculationRouteLab: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
             .accessibilityElement(children: .combine)
-
-            Text(L10n.text("lab.circulation.predict", store.language))
-                .font(.headline)
-                .fixedSize(horizontal: false, vertical: true)
-            Picker(L10n.text("lab.circulation.predict", store.language), selection: $predictedPasses) {
-                Text(L10n.text("lab.circulation.choose", store.language)).tag(nil as Int?)
-                ForEach(CirculationRouteModel.passOptions, id: \.self) { passes in
-                    Text("\(passes)").tag(passes as Int?)
-                }
-            }
-            .pickerStyle(.segmented)
-            .onChange(of: predictedPasses) { _ in didCheck = false }
-
-            Button(L10n.text("lab.circulation.check", store.language)) {
-                didCheck = true
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(predictedPasses == nil)
-
-            if didCheck, let predictedPasses {
-                let correct = CirculationRouteModel.isCorrect(passes: predictedPasses, for: animal)
-                VStack(alignment: .leading, spacing: 8) {
-                    Label(
-                        L10n.text(correct ? "lab.circulation.correct" : "lab.circulation.review", store.language),
-                        systemImage: correct ? "checkmark.circle.fill" : "arrow.uturn.backward.circle"
-                    )
-                    .font(.callout.weight(.medium))
-                    .foregroundStyle(correct ? .green : .orange)
-                    if correct {
-                        Text(L10n.text(animal.explanationKey, store.language))
-                            .font(.callout)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
-                .accessibilityIdentifier("lab.circulation.feedback")
-            }
-
-            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.circulation.limit", store.language)])
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.circulation.challenge"),
+                         solved: solvedAnimals.count == CirculationAnimal.allCases.count, solvedText: text("lab.circulation.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.circulation.limit")])
         }
         .onChange(of: animal) { _ in
             predictedPasses = nil
             didCheck = false
         }
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.circulation.predict"))
+                .font(.callout.weight(.medium))
+                .fixedSize(horizontal: false, vertical: true)
+            Picker(text("lab.circulation.predict"), selection: $predictedPasses) {
+                Text(text("lab.circulation.choose")).tag(nil as Int?)
+                ForEach(CirculationRouteModel.passOptions, id: \.self) { passes in
+                    Text("\(passes)").tag(passes as Int?)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .onChange(of: predictedPasses) { _ in didCheck = false }
+            Button(text("lab.circulation.check")) {
+                didCheck = true
+                if solved { solvedAnimals.insert(animal.rawValue) }
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(predictedPasses == nil)
+            if didCheck {
+                VStack(alignment: .leading, spacing: 8) {
+                    Label(text(solved ? "lab.circulation.correct" : "lab.circulation.review"),
+                          systemImage: solved ? "checkmark.circle.fill" : "arrow.uturn.backward.circle")
+                        .font(.callout.weight(.medium))
+                        .foregroundStyle(solved ? .green : .orange)
+                        .fixedSize(horizontal: false, vertical: true)
+                    if solved {
+                        Text(text(animal.explanationKey))
+                            .font(.callout)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+                .accessibilityIdentifier("lab.circulation.feedback")
+            }
+        }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func legendItem(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 5) {
+            Circle().fill(color).frame(width: 9, height: 9)
+            Text(label).foregroundStyle(.secondary)
+        }
+    }
+
+    // MARK: Diagram
+
+    // A fish has one ring through the heart; amphibians and mammals have two loops that meet at the heart.
+    // The heart's left side on the screen is the side receiving oxygen-poor blood, as in a textbook diagram.
+    private func vessels(in size: CGSize) -> [Vessel] {
+        let cx = size.width / 2
+        if animal == .fish {
+            let low = size.height - 44
+            return [
+                Vessel(points: [CGPoint(x: cx - 34, y: low), CGPoint(x: cx - 150, y: low), CGPoint(x: cx - 150, y: 54)], colour: Self.oxygenPoor),
+                Vessel(points: [CGPoint(x: cx - 96, y: 34), CGPoint(x: cx + 96, y: 34)], colour: Self.oxygenRich),
+                Vessel(points: [CGPoint(x: cx + 150, y: 54), CGPoint(x: cx + 150, y: low), CGPoint(x: cx + 34, y: low)], colour: Self.oxygenPoor)
+            ]
+        }
+        let cy = size.height / 2
+        let top: CGFloat = 30, bottom = size.height - 30
+        let outflow = CirculationRouteModel.flowsMixInVentricle(animal) ? Self.mixed : Self.oxygenPoor
+        let bodyFlow = CirculationRouteModel.flowsMixInVentricle(animal) ? Self.mixed : Self.oxygenRich
+        return [
+            Vessel(points: [CGPoint(x: cx - 34, y: cy - 16), CGPoint(x: cx - 130, y: cy - 16), CGPoint(x: cx - 130, y: top), CGPoint(x: cx - 64, y: top)], colour: outflow),
+            Vessel(points: [CGPoint(x: cx + 64, y: top), CGPoint(x: cx + 130, y: top), CGPoint(x: cx + 130, y: cy - 16), CGPoint(x: cx + 34, y: cy - 16)], colour: Self.oxygenRich),
+            Vessel(points: [CGPoint(x: cx + 34, y: cy + 16), CGPoint(x: cx + 130, y: cy + 16), CGPoint(x: cx + 130, y: bottom), CGPoint(x: cx + 64, y: bottom)], colour: bodyFlow),
+            Vessel(points: [CGPoint(x: cx - 64, y: bottom), CGPoint(x: cx - 130, y: bottom), CGPoint(x: cx - 130, y: cy + 16), CGPoint(x: cx - 34, y: cy + 16)], colour: Self.oxygenPoor)
+        ]
+    }
+
+    private func drawRoute(_ context: GraphicsContext, size: CGSize, time: Double) {
+        let routes = vessels(in: size)
+        for vessel in routes {
+            var path = Path()
+            path.addLines(vessel.points)
+            context.stroke(path, with: .color(vessel.colour.opacity(0.8)), style: StrokeStyle(lineWidth: 5, lineCap: .round, lineJoin: .round))
+            if let last = vessel.points.last, vessel.points.count >= 2 {
+                arrowHead(context, from: vessel.points[vessel.points.count - 2], to: last, colour: vessel.colour)
+            }
+        }
+        let cx = size.width / 2
+        if animal == .fish {
+            organ(context, centre: CGPoint(x: cx - 150, y: 34), label: text("lab.circulation.organGills"), colour: .teal)
+            organ(context, centre: CGPoint(x: cx + 150, y: 34), label: text("lab.circulation.organBody"), colour: .orange)
+            drawHeart(context, centre: CGPoint(x: cx, y: size.height - 44))
+        } else {
+            let lungs = animal == .amphibian ? "lab.circulation.organLungsSkin" : "lab.circulation.organLungs"
+            organ(context, centre: CGPoint(x: cx, y: 30), label: text(lungs), colour: .teal)
+            organ(context, centre: CGPoint(x: cx, y: size.height - 30), label: text("lab.circulation.organBody"), colour: .orange)
+            drawHeart(context, centre: CGPoint(x: cx, y: size.height / 2))
+        }
+        if !reduceMotion {
+            let spot = bloodDrop(along: routes, phase: (time / 6).truncatingRemainder(dividingBy: 1))
+            context.fill(Path(ellipseIn: CGRect(x: spot.x - 6, y: spot.y - 6, width: 12, height: 12)), with: .color(.white))
+        }
+    }
+
+    private func organ(_ context: GraphicsContext, centre: CGPoint, label: String, colour: Color) {
+        let box = CGRect(x: centre.x - 62, y: centre.y - 20, width: 124, height: 40)
+        context.fill(Path(roundedRect: box, cornerRadius: 10), with: .color(colour.opacity(0.85)))
+        context.draw(Text(verbatim: label).font(.caption.weight(.bold)).foregroundColor(.white), at: centre)
+    }
+
+    // The heart with its real chambers: atria in the top row, ventricles in the bottom row.
+    private func drawHeart(_ context: GraphicsContext, centre: CGPoint) {
+        let chambers = CirculationRouteModel.heartChambers(for: animal)
+        let width: CGFloat = 68, height: CGFloat = 56
+        let frame = CGRect(x: centre.x - width / 2, y: centre.y - height / 2, width: width, height: height)
+        for (row, count) in [chambers.atria, chambers.ventricles].enumerated() {
+            let cellWidth = width / CGFloat(count)
+            for column in 0..<count {
+                let cell = CGRect(x: frame.minX + CGFloat(column) * cellWidth + 1, y: frame.minY + CGFloat(row) * height / 2 + 1,
+                                  width: cellWidth - 2, height: height / 2 - 2)
+                let colour: Color
+                if animal == .fish {
+                    colour = Self.oxygenPoor
+                } else if count == 1 {
+                    colour = Self.mixed
+                } else {
+                    colour = column == 0 ? Self.oxygenPoor : Self.oxygenRich
+                }
+                context.fill(Path(roundedRect: cell, cornerRadius: 5), with: .color(colour))
+            }
+        }
+        context.stroke(Path(roundedRect: frame, cornerRadius: 7), with: .color(.primary.opacity(0.8)), lineWidth: 2)
+    }
+
+    private func arrowHead(_ context: GraphicsContext, from start: CGPoint, to end: CGPoint, colour: Color) {
+        let dx = end.x - start.x, dy = end.y - start.y
+        let length = max(hypot(dx, dy), 1)
+        let ux = dx / length, uy = dy / length
+        var head = Path()
+        head.move(to: end)
+        head.addLine(to: CGPoint(x: end.x - ux * 11 - uy * 7, y: end.y - uy * 11 + ux * 7))
+        head.addLine(to: CGPoint(x: end.x - ux * 11 + uy * 7, y: end.y - uy * 11 - ux * 7))
+        head.closeSubpath()
+        context.fill(head, with: .color(colour))
+    }
+
+    /// The drop's position along the vessels; `phase` 0…1 is one full route.
+    private func bloodDrop(along routes: [Vessel], phase: Double) -> CGPoint {
+        let points = routes.flatMap(\.points)
+        var lengths: [Double] = []
+        for index in 1..<points.count {
+            lengths.append(Double(hypot(points[index].x - points[index - 1].x, points[index].y - points[index - 1].y)))
+        }
+        var remaining = phase * lengths.reduce(0, +)
+        for (index, length) in lengths.enumerated() {
+            if remaining <= length, length > 0 {
+                let t = CGFloat(remaining / length)
+                let a = points[index], b = points[index + 1]
+                return CGPoint(x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t)
+            }
+            remaining -= length
+        }
+        return points.last ?? .zero
     }
 }
 
@@ -11258,8 +12680,8 @@ private struct PHScaleLab: View {
                     .accessibilityValue(Text(verbatim: String(Int(pH))))
                     .accessibilityIdentifier("lab.ph.slider")
             }
-            pHScale
-                .frame(height: 26)
+            Canvas { context, size in drawScale(context, size: size) }
+                .frame(height: 104)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(L10n.text("lab.ph.scale", store.language))
                 .accessibilityValue(Text(verbatim: String(Int(pH))))
@@ -11274,7 +12696,11 @@ private struct PHScaleLab: View {
                 .font(.callout.monospacedDigit())
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("lab.ph.comparison")
-            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.ph.limit", store.language)])
+            ionBar(label: "H⁺", share: (14 - pH) / 14, colour: .red)
+            ionBar(label: "OH⁻", share: pH / 14, colour: .blue)
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.ph.challenge", store.language),
+                         solved: pH == 2, solvedText: L10n.text("lab.ph.challengeSolved", store.language))
+            LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.ph.ionsNote", store.language), L10n.text("lab.ph.limit", store.language)])
         }
     }
 
@@ -11283,19 +12709,47 @@ private struct PHScaleLab: View {
         Binding(get: { pH }, set: { pH = $0.rounded() })
     }
 
-    // Acidic red through neutral green to basic blue, with the current pH marked.
-    private var pHScale: some View {
-        GeometryReader { geometry in
-            let fraction = pH / PHScaleModel.pHRange.upperBound
-            ZStack(alignment: .leading) {
-                Capsule().fill(LinearGradient(colors: [.red, .orange, .green, .teal, .blue], startPoint: .leading, endPoint: .trailing))
-                Circle()
-                    .strokeBorder(Color.primary, lineWidth: 3)
-                    .background(Circle().fill(Color.white.opacity(0.85)))
-                    .frame(width: 22, height: 22)
-                    .offset(x: max(0, geometry.size.width * CGFloat(fraction) - 11))
-            }
+    // The scale from acidic red through neutral green to basic blue, with everyday substances and the current pH marked.
+    private func drawScale(_ context: GraphicsContext, size: CGSize) {
+        let left: CGFloat = 14
+        let width = size.width - 28
+        let bar = CGRect(x: left, y: 30, width: width, height: 22)
+        func x(_ value: Double) -> CGFloat { left + width * CGFloat(value / PHScaleModel.pHRange.upperBound) }
+        context.fill(Path(roundedRect: bar, cornerRadius: 11),
+                     with: .linearGradient(Gradient(colors: [.red, .orange, .green, .teal, .blue]), startPoint: CGPoint(x: bar.minX, y: 0), endPoint: CGPoint(x: bar.maxX, y: 0)))
+        for value in stride(from: 0, through: 14, by: 2) {
+            context.draw(Text(verbatim: "\(value)").font(.caption2.monospacedDigit()).foregroundColor(.secondary), at: CGPoint(x: x(Double(value)), y: 60))
         }
+        let substances: [(Double, String, Bool)] = [(2, "lab.ph.sub.lemon", true), (5, "lab.ph.sub.coffee", false), (7, "lab.ph.sub.water", true),
+                                                    (7.4, "lab.ph.sub.blood", false), (10, "lab.ph.sub.soap", true), (13, "lab.ph.sub.bleach", false)]
+        for (value, key, above) in substances {
+            let y: CGFloat = above ? 12 : 84
+            var tick = Path()
+            tick.move(to: CGPoint(x: x(value), y: above ? 20 : 68))
+            tick.addLine(to: CGPoint(x: x(value), y: above ? 30 : 76))
+            context.stroke(tick, with: .color(.secondary.opacity(0.6)), lineWidth: 1)
+            context.draw(Text(L10n.text(key, store.language)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: x(value), y: y))
+        }
+        let knob = CGRect(x: x(pH) - 12, y: bar.midY - 12, width: 24, height: 24)
+        context.fill(Path(ellipseIn: knob), with: .color(.white.opacity(0.9)))
+        context.stroke(Path(ellipseIn: knob), with: .color(.black), lineWidth: 2.5)
+    }
+
+    // Bar length is the order of magnitude, so one pH step moves each bar by one factor of ten, in opposite directions.
+    private func ionBar(label: String, share: Double, colour: Color) -> some View {
+        HStack(spacing: 10) {
+            Text(verbatim: label)
+                .font(.callout.monospacedDigit().weight(.semibold))
+                .frame(width: 36, alignment: .leading)
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color.secondary.opacity(0.15))
+                    Capsule().fill(colour.opacity(0.8)).frame(width: proxy.size.width * CGFloat(share))
+                }
+            }
+            .frame(height: 12)
+        }
+        .accessibilityHidden(true)
     }
 }
 
@@ -11303,12 +12757,17 @@ private struct MoleculeBuilderLab: View {
     @EnvironmentObject private var store: LearningStore
     @State private var central = MoleculeBuilderModel.CentralAtom.carbon
     @State private var hydrogens = 2
+    @State private var builtMolecules: Set<String> = []
 
     private var status: MoleculeBuilderModel.Status {
         MoleculeBuilderModel.status(central: central, hydrogens: hydrogens)
     }
 
     private var atomName: String { L10n.text(central.nameKey, store.language) }
+
+    private func recordBuiltMolecule() {
+        if status == .complete { builtMolecules.insert(central.rawValue) }
+    }
 
     private var statusDescription: String {
         switch status {
@@ -11347,7 +12806,7 @@ private struct MoleculeBuilderLab: View {
 
             HStack(alignment: .center, spacing: 18) {
                 moleculeDrawing
-                    .frame(width: 150, height: 150)
+                    .frame(width: 210, height: 210)
                     .accessibilityElement(children: .ignore)
                     .accessibilityLabel(L10n.text("lab.molecule.drawing", store.language))
                     .accessibilityValue(Text(verbatim: MoleculeBuilderModel.formula(central: central, hydrogens: hydrogens)))
@@ -11361,8 +12820,13 @@ private struct MoleculeBuilderLab: View {
                         .accessibilityIdentifier("lab.molecule.status")
                 }
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.molecule.challenge", store.language),
+                         solved: builtMolecules.count == MoleculeBuilderModel.CentralAtom.allCases.count,
+                         solvedText: L10n.text("lab.molecule.challengeSolved", store.language))
             LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.molecule.limit", store.language)])
         }
+        .onChange(of: hydrogens) { _ in recordBuiltMolecule() }
+        .onChange(of: central) { _ in recordBuiltMolecule() }
     }
 
     // A flat sketch: bonds within the valence are solid, extra ones dashed red. Real 3D shapes and angles differ.
@@ -11442,7 +12906,7 @@ private struct ReactionEnergyLab: View {
             }
 
             profileChart
-                .frame(height: 190)
+                .frame(height: 240)
                 .accessibilityElement(children: .ignore)
                 .accessibilityLabel(L10n.text("lab.energy.chart", store.language))
                 .accessibilityValue(Text(String(format: L10n.text("lab.energy.barriers", store.language), energy(barrier), energy(catalyzedBarrier))))
@@ -11480,6 +12944,8 @@ private struct ReactionEnergyLab: View {
                     .foregroundStyle(.orange)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            LabChallenge(caption: L10n.text("lab.kit.task", store.language), task: L10n.text("lab.energy.challenge", store.language),
+                         solved: catalystOn && speedup >= 100_000, solvedText: L10n.text("lab.energy.challengeSolved", store.language))
             LabExplainer(title: L10n.text("lab.kit.how", store.language), paragraphs: [L10n.text("lab.energy.limit", store.language)])
         }
     }
@@ -11493,6 +12959,19 @@ private struct ReactionEnergyLab: View {
                 .accessibilityLabel(L10n.text(labelKey, store.language))
                 .accessibilityValue(Text(energy(value.wrappedValue)))
         }
+    }
+
+    private func energyArrow(_ context: GraphicsContext, x: CGFloat, from start: CGFloat, to end: CGFloat, label: String, colour: Color) {
+        guard abs(end - start) > 8 else { return }
+        let direction: CGFloat = end < start ? 1 : -1
+        var arrow = Path()
+        arrow.move(to: CGPoint(x: x, y: start))
+        arrow.addLine(to: CGPoint(x: x, y: end))
+        arrow.move(to: CGPoint(x: x - 5, y: end + direction * 8))
+        arrow.addLine(to: CGPoint(x: x, y: end))
+        arrow.addLine(to: CGPoint(x: x + 5, y: end + direction * 8))
+        context.stroke(arrow, with: .color(colour), style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+        context.draw(Text(verbatim: label).font(.caption.weight(.bold)).foregroundColor(colour), at: CGPoint(x: x + 8, y: (start + end) / 2), anchor: .leading)
     }
 
     // Energy on a fixed −70…125 kJ/mol axis so that changes stay comparable; reactants sit at 0.
@@ -11520,6 +12999,12 @@ private struct ReactionEnergyLab: View {
             if catalystOn {
                 context.stroke(path(barrier: catalyzedBarrier), with: .color(.green), style: StrokeStyle(lineWidth: 3, dash: [7, 5]))
             }
+            // The barrier measured up from the reactants at the curve's peak, and ΔG measured between the two levels.
+            let samples = (0...60).map { Double($0) / 60 }
+            let peakX = samples.max { Model.profileEnergy(at: $0, barrier: barrier, freeEnergyChange: freeEnergy) < Model.profileEnergy(at: $1, barrier: barrier, freeEnergyChange: freeEnergy) } ?? 0.5
+            let peak = Model.profileEnergy(at: peakX, barrier: barrier, freeEnergyChange: freeEnergy)
+            energyArrow(context, x: size.width * CGFloat(peakX), from: y(0), to: y(peak), label: "Eₐ", colour: .orange)
+            energyArrow(context, x: size.width * 0.9, from: y(0), to: y(freeEnergy), label: "ΔG", colour: .purple)
             // Labels sit under their levels, where the curve never goes; near the bottom edge they move above.
             let productLabelY = freeEnergy - 14 > lower ? y(freeEnergy) + 10 : y(freeEnergy) - 10
             context.draw(Text(L10n.text("lab.energy.reactants", store.language)).font(.caption), at: CGPoint(x: 6, y: y(0) + 10), anchor: .leading)
@@ -11646,6 +13131,1528 @@ private struct NeuronTrainingLab: View {
             }
             clipped.stroke(line, with: .color(.orange), lineWidth: 2)
         }
+    }
+}
+
+private struct XORNetworkLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = XORNetworkModel(architecture: .singleNeuron)
+    @State private var learningRate = 1.0
+    @State private var playing = false
+    @State private var sawSingleNeuronStall = false
+
+    private typealias Model = XORNetworkModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .training: return (.info, text("lab.xor.training"))
+        case .singleNeuronLimit: return (.bad, text("lab.xor.singleStalled"))
+        case .learned: return (.good, text("lab.xor.solved"))
+        case .plateau: return (.warning, text(model.start == .identical ? "lab.xor.identicalStalled" : "lab.xor.plateau"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.xor.title"), instruction: text("lab.xor.subtitle"))
+            HStack(spacing: 16) {
+                Text(text("lab.xor.architecture")).fixedSize()
+                Picker(text("lab.xor.architecture"), selection: Binding(get: { model.architecture }, set: { restart(architecture: $0, start: model.start) })) {
+                    Text(text("lab.xor.single")).tag(Model.Architecture.singleNeuron)
+                    Text(text("lab.xor.hiddenLayer")).tag(Model.Architecture.hiddenLayer)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityIdentifier("lab.xor.architecture")
+                Text(text("lab.xor.start")).fixedSize()
+                Picker(text("lab.xor.start"), selection: Binding(get: { model.start }, set: { restart(architecture: model.architecture, start: $0) })) {
+                    Text(text("lab.xor.start1")).tag(Model.Start.first)
+                    Text(text("lab.xor.start2")).tag(Model.Start.plateau)
+                    Text(text("lab.xor.identical")).tag(Model.Start.identical)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .disabled(model.architecture == .singleNeuron)
+                .accessibilityIdentifier("lab.xor.start")
+            }
+            HStack(spacing: 16) {
+                network
+                outputMap
+                    .frame(width: 250)
+            }
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.xor.chart"))
+            .accessibilityValue(Text(verbatim: number(model.loss, 4)))
+
+            lossChart
+                .frame(height: 120)
+
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.xor.rate"), number(learningRate, 1))).monospacedDigit().frame(minWidth: 220, alignment: .leading)
+                // Rounds to tenths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 10).rounded() / 10 }), in: Model.learningRateRange)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityIdentifier("lab.xor.rate")
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if model.iterations >= Model.iterationLimit { restart(architecture: model.architecture, start: model.start) }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.xor.play")
+                Button(text("lab.xor.advance")) { advance(by: 100) }
+                    .disabled(model.iterations >= Model.iterationLimit)
+                    .accessibilityIdentifier("lab.xor.advance")
+                Button(text("lab.neurontrain.reset")) { restart(architecture: model.architecture, start: model.start) }
+                    .accessibilityIdentifier("lab.xor.reset")
+            }
+            answers
+            LabStatGrid {
+                LabStat(label: text("lab.xor.statIterations"), value: String(model.iterations), identifier: "lab.xor.iterations")
+                LabStat(label: text("lab.xor.statLoss"), value: number(model.loss, 4), tint: .orange, identifier: "lab.xor.loss")
+                LabStat(label: text("lab.xor.statCorrect"), value: "\(model.correctAnswers) / \(Model.examples.count)", tint: .green, identifier: "lab.xor.correct")
+            }
+            LabStatusBadge(kind: status.0, text: status.1)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.xor.challenge"),
+                         solved: sawSingleNeuronStall && model.architecture == .hiddenLayer && model.correctAnswers == Model.examples.count,
+                         solvedText: text("lab.xor.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.xor.hint"), text("lab.xor.maps"), text("lab.xor.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                guard playing else { break }
+                advance(by: Model.iterationsPerFrame)
+                if model.iterations >= Model.iterationLimit { playing = false }
+            }
+        }
+    }
+
+    private func restart(architecture: Model.Architecture, start: Model.Start) {
+        playing = false
+        model = Model(architecture: architecture, start: start)
+    }
+
+    private func advance(by iterations: Int) {
+        for _ in 0..<iterations where model.iterations < Model.iterationLimit {
+            model.step(learningRate: learningRate)
+        }
+        if model.phase == .singleNeuronLimit { sawSingleNeuronStall = true }
+    }
+
+    // Teal for an answer near 0, a neutral band around 0.5, orange for an answer near 1.
+    private func mapColor(_ value: Double) -> Color {
+        let low = (0.05, 0.55, 0.60), middle = (0.88, 0.88, 0.86), high = (0.96, 0.52, 0.12)
+        let (from, to, share) = value < 0.5 ? (low, middle, value * 2) : (middle, high, (value - 0.5) * 2)
+        return Color(red: from.0 + (to.0 - from.0) * share, green: from.1 + (to.1 - from.1) * share, blue: from.2 + (to.2 - from.2) * share)
+    }
+
+    // Colours `rect` by a neuron's value over the input square, with (0, 0) at the bottom left.
+    private func drawMap(in context: GraphicsContext, rect: CGRect, cells: Int, value: (Double, Double) -> Double) {
+        let side = rect.width / CGFloat(cells)
+        for column in 0..<cells {
+            for row in 0..<cells {
+                let x1 = (Double(column) + 0.5) / Double(cells), x2 = (Double(row) + 0.5) / Double(cells)
+                let cell = CGRect(x: rect.minX + CGFloat(column) * side, y: rect.maxY - CGFloat(row + 1) * side, width: side + 0.5, height: side + 0.5)
+                context.fill(Path(cell), with: .color(mapColor(value(x1, x2))))
+            }
+        }
+    }
+
+    // Inputs on the left, each neuron as a small map of what it computes, and weights as blue or red lines.
+    private var network: some View {
+        Canvas { context, size in
+            let side: CGFloat = 62
+            let inputs = [CGPoint(x: 26, y: size.height * 0.28), CGPoint(x: 26, y: size.height * 0.72)]
+            let hidden = [CGPoint(x: size.width * 0.52, y: size.height * 0.24), CGPoint(x: size.width * 0.52, y: size.height * 0.72)]
+            let output = CGPoint(x: size.width - side / 2 - 4, y: size.height * 0.48)
+            func wire(_ start: CGPoint, _ end: CGPoint, _ weight: Double) {
+                var path = Path()
+                path.move(to: start)
+                path.addLine(to: end)
+                context.stroke(path, with: .color(weight >= 0 ? .blue.opacity(0.75) : .red.opacity(0.75)), lineWidth: min(0.8 + 0.7 * abs(weight), 7))
+            }
+            let w = model.weights
+            if model.architecture == .singleNeuron {
+                wire(inputs[0], output, w[0])
+                wire(inputs[1], output, w[1])
+            } else {
+                wire(inputs[0], hidden[0], w[0])
+                wire(inputs[1], hidden[0], w[1])
+                wire(inputs[0], hidden[1], w[3])
+                wire(inputs[1], hidden[1], w[4])
+                wire(hidden[0], output, w[6])
+                wire(hidden[1], output, w[7])
+            }
+            for (point, name) in zip(inputs, ["x₁", "x₂"]) {
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 20, y: point.y - 20, width: 40, height: 40)), with: .color(.teal))
+                context.draw(Text(verbatim: name).font(.callout.weight(.bold)).foregroundColor(.white), at: point)
+            }
+            func neuron(at center: CGPoint, name: String, value: @escaping (Double, Double) -> Double) {
+                let rect = CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side)
+                drawMap(in: context, rect: rect, cells: 14, value: value)
+                context.stroke(Path(rect), with: .color(.secondary), lineWidth: 1)
+                context.draw(Text(verbatim: name).font(.caption.weight(.bold)), at: CGPoint(x: center.x, y: rect.minY - 10))
+            }
+            if model.architecture == .hiddenLayer {
+                neuron(at: hidden[0], name: "h₁") { model.forward($0, $1).firstHidden }
+                neuron(at: hidden[1], name: "h₂") { model.forward($0, $1).secondHidden }
+            }
+            neuron(at: output, name: "y") { model.forward($0, $1).answer }
+        }
+    }
+
+    // The network's answer over the whole input square, with the four XOR examples in their target colours.
+    private var outputMap: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: -0.1...1.1, y: -0.1...1.1)
+            plot.drawAxes(in: context, xLabel: "x₁", yLabel: "x₂", xTicks: [0, 0.5, 1], yTicks: [0, 0.5, 1], format: { number($0, $0 == 0.5 ? 1 : 0) })
+            let square = CGRect(x: plot.point(0, 0).x, y: plot.point(0, 1).y, width: plot.point(1, 0).x - plot.point(0, 0).x, height: plot.point(0, 0).y - plot.point(0, 1).y)
+            drawMap(in: context, rect: square, cells: 40) { model.forward($0, $1).answer }
+            for example in Model.examples {
+                let center = plot.point(example.x1, example.x2)
+                let dot = CGRect(x: center.x - 9, y: center.y - 9, width: 18, height: 18)
+                context.fill(Path(ellipseIn: dot), with: .color(mapColor(example.target)))
+                context.stroke(Path(ellipseIn: dot), with: .color(.white), lineWidth: 2.5)
+            }
+        }
+    }
+
+    // The mean error per iteration, with the single-neuron limit of 0.25 dashed.
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = model.lossHistory + [model.loss]
+            let top = max(values.max() ?? 0.3, 0.3)
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.iterations, 500)), y: 0...top * 1.05)
+            plot.drawAxes(in: context, xLabel: text("lab.xor.axisIterations"), yLabel: "L", format: { number($0, $0 < 1 && $0 > 0 ? 2 : 0) })
+            var limit = Path()
+            limit.move(to: plot.point(plot.x.lowerBound, Model.singleNeuronLimit))
+            limit.addLine(to: plot.point(plot.x.upperBound, Model.singleNeuronLimit))
+            context.stroke(limit, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var line = Path()
+            let stride = max(values.count / 400, 1)
+            for index in Swift.stride(from: 0, to: values.count, by: stride) {
+                let location = plot.point(Double(index), values[index])
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            line.addLine(to: plot.point(Double(values.count - 1), values[values.count - 1]))
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        }
+    }
+
+    // Each example's input, target and current answer, green once the answer counts as correct.
+    private var answers: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(Model.examples.enumerated()), id: \.offset) { _, example in
+                let answer = model.forward(example.x1, example.x2).answer
+                let correct = Model.isCorrect(answer: answer, target: example.target)
+                VStack(spacing: 2) {
+                    Text(verbatim: "\(Int(example.x1)), \(Int(example.x2)) → \(Int(example.target))").font(.caption.weight(.semibold)).monospacedDigit()
+                    Text(verbatim: "y = " + number(answer, 2)).font(.callout.weight(.bold)).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background((correct ? Color.green : Color.secondary).opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+}
+
+private struct ErrorLandscapeLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = ErrorLandscapeModel()
+    @State private var rateExponent = 0.0
+    @State private var playing = false
+    @State private var solvedRun: (startLoss: Double, steps: Int)?
+
+    private typealias Model = ErrorLandscapeModel
+
+    private var rate: Double { Model.learningRate(exponent: rateExponent) }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text("lab.landscape.ready"))
+        case .training: return (.info, text("lab.landscape.training"))
+        case .learned: return (.good, text("lab.landscape.learned"))
+        case .stalled: return (.warning, String(format: text("lab.landscape.stalled"), String(XORNetworkModel.examples.count - model.correctAnswers)))
+        case .leftTerrain: return (.bad, text("lab.landscape.left"))
+        case .outOfSteps: return (.warning, text("lab.landscape.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.landscape.title"), instruction: text("lab.landscape.subtitle"))
+            ErrorLandscapeSceneView(model: model, learningRate: rate, language: store.language, onPick: pick)
+                .frame(height: 420)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.landscape.terrainLabel"))
+                .accessibilityValue(String(format: text("lab.landscape.terrainValue"), String(model.iterations), number(model.loss, 3), String(model.correctAnswers),
+                                           number(model.position.w11, 1), number(model.position.w12, 1)))
+                .accessibilityIdentifier("lab.landscape.terrain")
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.xor.rate"), number(rate, rate < 1 ? 2 : (rate < 10 ? 1 : 0)))).monospacedDigit().frame(minWidth: 210, alignment: .leading)
+                Slider(value: $rateExponent, in: Model.learningRateExponents)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityValue(Text(verbatim: number(rate, 2)))
+                    .accessibilityIdentifier("lab.landscape.rate")
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if !playing { model.resume() }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.landscape.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.landscape.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; model.restart() }
+                    .accessibilityIdentifier("lab.landscape.reset")
+                Button(text("lab.landscape.random")) {
+                    pick(.init(w11: Double.random(in: Model.domain), w12: Double.random(in: Model.domain)))
+                }
+                .accessibilityIdentifier("lab.landscape.random")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                lossChart
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.landscape.statStep"), value: String(model.iterations), identifier: "lab.landscape.iterations")
+                    LabStat(label: text("lab.landscape.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.landscape.loss")
+                    LabStat(label: text("lab.landscape.statCorrect"), value: "\(model.correctAnswers) / \(XORNetworkModel.examples.count)", tint: .green, identifier: "lab.landscape.correct")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.landscape.status")
+            TrainingNetworkSceneView(weights: model.network.weights, training: playing, language: store.language)
+                .frame(height: 390)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.landscape.networkLabel"))
+                .accessibilityIdentifier("lab.landscape.network")
+            Text(text("lab.landscape.networkCaption"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            legend
+            answers
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.landscape.challenge"), solved: solvedRun != nil,
+                         solvedText: String(format: text("lab.landscape.challengeSolved"), number(solvedRun?.startLoss ?? 0, 2), String(solvedRun?.steps ?? 0)),
+                         identifier: "lab.landscape.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.landscape.how1"), text("lab.landscape.how2"), text("lab.landscape.how3"), text("lab.landscape.how4")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                guard playing else { break }
+                advance()
+                if model.isFinished || model.phase == .stalled { playing = false }
+            }
+        }
+    }
+
+    private func pick(_ point: Model.Point) {
+        playing = false
+        model = Model(start: point)
+    }
+
+    private func advance() {
+        model.step(learningRate: rate)
+        if model.solvesChallenge, solvedRun == nil { solvedRun = (model.startLoss, model.iterations) }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 12) {
+            ForEach([(Color(nsColor: TrainingStage.forwardSignal), "lab.landscape.legendForward"),
+                     (Color(nsColor: TrainingStage.errorSignal), "lab.landscape.legendBackward"),
+                     (Color(nsColor: TrainingStage.trainedWeight), "lab.landscape.legendTrained")], id: \.1) { color, key in
+                HStack(spacing: 4) {
+                    Circle().fill(color).frame(width: 9, height: 9)
+                    Text(text(key)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
+            }
+        }
+    }
+
+    private var answers: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(XORNetworkModel.examples.enumerated()), id: \.offset) { _, example in
+                let answer = model.network.forward(example.x1, example.x2).answer
+                let correct = XORNetworkModel.isCorrect(answer: answer, target: example.target)
+                VStack(spacing: 2) {
+                    Text(verbatim: "\(Int(example.x1)),\(Int(example.x2))→\(Int(example.target))").font(.caption2.weight(.semibold)).monospacedDigit()
+                    Text(verbatim: number(answer, 2)).font(.callout.weight(.bold)).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background((correct ? Color.green : Color.secondary).opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+
+    // The error per step, with the heights of the shelf and the plateau dashed.
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = model.lossHistory + [model.loss]
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.iterations, 60)), y: 0...0.55)
+            plot.drawAxes(in: context, xLabel: text("lab.landscape.axisSteps"), yLabel: "L", yTicks: [0, 0.25, 0.5], format: { number($0, $0 > 0 && $0 < 1 ? 2 : 0) })
+            for level in [0.25, 0.5] {
+                var dash = Path()
+                dash.move(to: plot.point(plot.x.lowerBound, level))
+                dash.addLine(to: plot.point(plot.x.upperBound, level))
+                context.stroke(dash, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            }
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index), min(value, 0.55))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct CrossEntropyBowlLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = CrossEntropyBowlModel()
+    @State private var truthIndex = 0
+    @State private var playing = false
+    @State private var solvedRun: (startGap: Double, steps: Int)?
+
+    private typealias Model = CrossEntropyBowlModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text("lab.bowl.ready"))
+        case .training: return (.info, text("lab.bowl.training"))
+        case .reachedBottom: return (.good, text("lab.bowl.reached"))
+        case .outOfSteps: return (.warning, text("lab.bowl.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.bowl.title"), instruction: text("lab.bowl.subtitle"))
+            CrossEntropyBowlSceneView(model: model, language: store.language, onPick: place)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.bowl.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.bowl.sceneValue"), number(model.error), number(model.bottom)))
+                .accessibilityIdentifier("lab.bowl.scene")
+            Picker(text("lab.bowl.truth"), selection: Binding(get: { truthIndex }, set: { change(truth: $0) })) {
+                ForEach(Array(Model.truths.enumerated()), id: \.offset) { index, truth in
+                    Text(verbatim: truth.map { number($0) }.joined(separator: " · ")).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.bowl.truth")
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.bowl.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.bowl.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; model.restart() }
+                    .accessibilityIdentifier("lab.bowl.reset")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                bars
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.bowl.statError"), value: number(model.error, 3), tint: .orange, identifier: "lab.bowl.error")
+                    LabStat(label: text("lab.bowl.statBottom"), value: number(model.bottom, 3), tint: .green, identifier: "lab.bowl.bottomValue")
+                    LabStat(label: text("lab.bowl.statGap"), value: number(max(model.gap, 0), 3), identifier: "lab.bowl.gap")
+                    LabStat(label: text("lab.bowl.statSteps"), value: String(model.steps), identifier: "lab.bowl.steps")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.bowl.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.bowl.challenge"), solved: solvedRun != nil,
+                         solvedText: String(format: text("lab.bowl.challengeSolved"), number(solvedRun?.startGap ?? 0), String(solvedRun?.steps ?? 0)),
+                         identifier: "lab.bowl.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.bowl.how1"), text("lab.bowl.how2"), text("lab.bowl.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                guard playing else { break }
+                advance()
+                if model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func place(_ belief: [Double]) {
+        playing = false
+        model = Model(truth: model.truth, belief: belief)
+    }
+
+    private func change(truth index: Int) {
+        playing = false
+        truthIndex = index
+        model = Model(truth: Model.truths[index], belief: model.start)
+    }
+
+    private func advance() {
+        model.step()
+        if model.solvesChallenge, solvedRun == nil { solvedRun = (model.startGap, model.steps) }
+    }
+
+    // What the model believes against the truth, and its surprise at each symbol.
+    private var bars: some View {
+        HStack(alignment: .bottom, spacing: 14) {
+            ForEach(0..<3, id: \.self) { index in
+                VStack(spacing: 4) {
+                    HStack(alignment: .bottom, spacing: 3) {
+                        RoundedRectangle(cornerRadius: 3).fill(Color.green.opacity(0.75)).frame(width: 18, height: max(2, 90 * model.truth[index]))
+                        RoundedRectangle(cornerRadius: 3).fill(Color.orange).frame(width: 18, height: max(2, 90 * model.belief[index]))
+                    }
+                    .frame(height: 92, alignment: .bottom)
+                    Text(verbatim: ["A", "B", "C"][index]).font(.callout.weight(.semibold))
+                    Text(String(format: text("lab.bowl.surprise"), number(-log2(model.belief[index]), 1))).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) { RoundedRectangle(cornerRadius: 2).fill(Color.green.opacity(0.75)).frame(width: 10, height: 10); Text(text("lab.bowl.legendTruth")).font(.caption2) }
+                HStack(spacing: 4) { RoundedRectangle(cornerRadius: 2).fill(Color.orange).frame(width: 10, height: 10); Text(text("lab.bowl.legendBelief")).font(.caption2) }
+            }
+        }
+    }
+}
+
+private struct SoftmaxReliefLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = SoftmaxClassifierModel()
+    @State private var rateExponent = -1.0
+    @State private var chosenClass = 0
+    @State private var playing = false
+    @State private var lastPoint: (x1: Double, x2: Double)?
+    @State private var solvedSteps: Int?
+
+    private typealias Model = SoftmaxClassifierModel
+
+    private var rate: Double { Model.rate(exponent: rateExponent) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func classColor(_ index: Int) -> Color { Color(nsColor: SoftmaxReliefSceneView.classColor(index)) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text("lab.softmax.ready"))
+        case .training: return (.info, text("lab.softmax.training"))
+        case .stalled: return (.warning, String(format: text("lab.softmax.stalled"), number(model.loss)))
+        case .flewOff: return (.bad, text("lab.softmax.flewOff"))
+        case .outOfSteps: return (.warning, text("lab.softmax.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.softmax.title"), instruction: text("lab.softmax.subtitle"))
+            SoftmaxReliefSceneView(model: model, language: store.language, onPick: addPoint)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.softmax.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.softmax.sceneValue"), number(model.loss), String(model.correctCount), String(model.samples.count)))
+                .accessibilityIdentifier("lab.softmax.scene")
+            HStack(spacing: 14) {
+                Picker(text("lab.softmax.data"), selection: Binding(get: { model.dataSet }, set: { change(to: $0) })) {
+                    Text(text("lab.softmax.dataClouds")).tag(Model.DataSet.clouds)
+                    Text(text("lab.softmax.dataXor")).tag(Model.DataSet.xor)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("lab.softmax.data")
+                Picker(text("lab.softmax.newPoint"), selection: $chosenClass) {
+                    ForEach(0..<Model.classCount, id: \.self) { index in
+                        Text(verbatim: String(index + 1)).tag(index)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("lab.softmax.class")
+                Circle().fill(classColor(chosenClass)).frame(width: 14, height: 14)
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.xor.rate"), number(rate, rate < 1 ? 2 : (rate < 10 ? 1 : 0)))).monospacedDigit().frame(minWidth: 210, alignment: .leading)
+                Slider(value: $rateExponent, in: Model.rateExponents)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityValue(Text(verbatim: number(rate)))
+                    .accessibilityIdentifier("lab.softmax.rate")
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if !playing { model.resume() }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.softmax.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.softmax.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; lastPoint = nil; model.restart() }
+                    .accessibilityIdentifier("lab.softmax.reset")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                lossChart
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.softmax.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.softmax.loss")
+                    LabStat(label: text("lab.softmax.statCorrect"), value: "\(model.correctCount) / \(model.samples.count)", tint: .green, identifier: "lab.softmax.correct")
+                    LabStat(label: text("lab.softmax.statSteps"), value: String(model.steps), identifier: "lab.softmax.steps")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            if let point = lastPoint {
+                probabilities(at: point)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.softmax.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.softmax.challenge"), solved: solvedSteps != nil,
+                         solvedText: String(format: text("lab.softmax.challengeSolved"), String(solvedSteps ?? 0)),
+                         identifier: "lab.softmax.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.softmax.how1"), text("lab.softmax.how2"), text("lab.softmax.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 70_000_000)
+                guard playing else { break }
+                advance()
+                if model.isFinished || model.phase == .stalled { playing = false }
+            }
+        }
+    }
+
+    private func change(to dataSet: Model.DataSet) {
+        playing = false
+        lastPoint = nil
+        model = Model(dataSet: dataSet)
+    }
+
+    private func addPoint(_ x1: Double, _ x2: Double) {
+        playing = false
+        model.add(.init(x1: x1, x2: x2, label: chosenClass))
+        lastPoint = (x1, x2)
+    }
+
+    private func advance() {
+        model.step(rate: rate)
+        if model.solvesChallenge, solvedSteps == nil { solvedSteps = model.steps }
+    }
+
+    // What the model says about the last added point, as bars. / Что модель говорит о последней точке.
+    private func probabilities(at point: (x1: Double, x2: Double)) -> some View {
+        let q = model.probabilities(x1: point.x1, x2: point.x2)
+        return HStack(spacing: 12) {
+            Text(text("lab.softmax.pointAnswer")).font(.caption).foregroundStyle(.secondary)
+            ForEach(0..<Model.classCount, id: \.self) { index in
+                HStack(spacing: 6) {
+                    Circle().fill(classColor(index)).frame(width: 9, height: 9)
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3).fill(Color.secondary.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 3).fill(classColor(index)).frame(width: geometry.size.width * q[index])
+                        }
+                    }
+                    .frame(height: 10)
+                    Text(verbatim: number(q[index])).font(.caption).monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = model.history + [model.loss]
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.steps, 60)), y: 0...1.2)
+            plot.drawAxes(in: context, xLabel: text("lab.landscape.axisSteps"), yLabel: "L", yTicks: [0, log(2.0), log(3.0)], format: { number($0) })
+            for level in [log(2.0), log(3.0)] {
+                var dash = Path()
+                dash.move(to: plot.point(plot.x.lowerBound, level))
+                dash.addLine(to: plot.point(plot.x.upperBound, level))
+                context.stroke(dash, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            }
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index), min(value, 1.2))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct EmbeddingSpaceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = WordEmbeddingModel()
+    @State private var selected = WordEmbeddingModel.cat
+    @State private var playing = false
+    @State private var solved = false
+
+    private typealias Model = WordEmbeddingModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func word(_ index: Int) -> String { Model.word(index, language: store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if model.horseChangedPlace { return (.good, text("lab.embed.moved")) }
+        if model.extraSentences { return (.info, text("lab.embed.extraOn")) }
+        if model.isTrained { return (.good, text("lab.embed.trained")) }
+        return model.steps == 0 ? (.info, text("lab.embed.ready")) : (.info, text("lab.embed.training"))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.embed.title"), instruction: text("lab.embed.subtitle"))
+            EmbeddingSpaceSceneView(model: model, selected: selected, language: store.language, onSelect: { selected = $0 })
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.embed.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.embed.sceneValue"), word(selected), word(model.neighbours(of: selected)[0]), number(model.cosine(selected, model.neighbours(of: selected)[0]))))
+                .accessibilityIdentifier("lab.embed.scene")
+            legend
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.embed.play")
+                Button(text("lab.landscape.step")) { advance(by: 10) }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.embed.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; model = Model() }
+                    .accessibilityIdentifier("lab.embed.reset")
+                Spacer()
+                Toggle(text("lab.embed.extra"), isOn: Binding(get: { model.extraSentences }, set: { model.setExtraSentences($0) }))
+                    .accessibilityIdentifier("lab.embed.extra")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                neighbours
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.embed.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.embed.loss")
+                    LabStat(label: text("lab.embed.statSteps"), value: String(model.steps), identifier: "lab.embed.steps")
+                    LabStat(label: String(format: text("lab.embed.statPair"), word(Model.horse), word(Model.cat)), value: number(model.cosine(Model.horse, Model.cat)), tint: .blue, identifier: "lab.embed.horseCat")
+                    LabStat(label: String(format: text("lab.embed.statPair"), word(Model.horse), word(Model.car)), value: number(model.cosine(Model.horse, Model.car)), tint: .orange, identifier: "lab.embed.horseCar")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.embed.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.embed.challenge"), solved: solved,
+                         solvedText: text("lab.embed.challengeSolved"), identifier: "lab.embed.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.embed.how1"), text("lab.embed.how2"), text("lab.embed.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                guard playing else { break }
+                advance(by: 2)
+                if model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func advance(by count: Int) {
+        for _ in 0..<count { model.step() }
+        if model.horseChangedPlace { solved = true }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 12) {
+            ForEach([(Model.Group.animal, "lab.embed.groupAnimal"), (.food, "lab.embed.groupFood"), (.vehicle, "lab.embed.groupVehicle"), (.verb, "lab.embed.groupVerb"), (.other, "lab.embed.groupOther")], id: \.1) { group, key in
+                HStack(spacing: 4) {
+                    Circle().fill(Color(nsColor: EmbeddingSpaceSceneView.color(group))).frame(width: 9, height: 9)
+                    Text(text(key)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
+            }
+        }
+    }
+
+    // The nearest words to the selected one, with their true similarity. / Ближайшие к выбранному слова и их настоящее сходство.
+    private var neighbours: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(String(format: text("lab.embed.nearestTitle"), word(selected))).font(.caption.weight(.semibold))
+            ForEach(Array(model.neighbours(of: selected).prefix(4)), id: \.self) { index in
+                let similarity = model.cosine(selected, index)
+                HStack(spacing: 6) {
+                    Text(verbatim: word(index)).font(.caption).frame(width: 66, alignment: .leading)
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3).fill(Color.secondary.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 3).fill(Color(nsColor: EmbeddingSpaceSceneView.color(Model.group(index))))
+                                .frame(width: geometry.size.width * max(0, similarity))
+                        }
+                    }
+                    .frame(height: 10)
+                    Text(verbatim: number(similarity)).font(.caption).monospacedDigit().frame(width: 40, alignment: .trailing)
+                }
+            }
+        }
+    }
+}
+
+private struct AttentionTowersLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = PatternAttentionModel()
+    @State private var exampleIndex = 0
+    @State private var selectedRow = 6
+    @State private var playing = false
+    @State private var solved = false
+
+    private typealias Model = PatternAttentionModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var example: [Int] { model.unseen[exampleIndex % model.unseen.count] }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text(model.usesPositions ? "lab.attention.readyPositions" : "lab.attention.ready"))
+        case .training: return (.info, text("lab.attention.training"))
+        case .learned: return (.good, text("lab.attention.learned"))
+        case .stuck: return (.warning, String(format: text("lab.attention.stuck"), number(model.accuracy * 100, 0)))
+        case .outOfSteps: return (.warning, text("lab.attention.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.attention.title"), instruction: text("lab.attention.subtitle"))
+            AttentionTowersSceneView(model: model, example: example, selectedRow: selectedRow, language: store.language, onSelectRow: { selectedRow = $0 })
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.attention.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.attention.sceneValue"), String(selectedRow), number(model.accuracy * 100, 0)))
+                .accessibilityIdentifier("lab.attention.scene")
+            sequence
+            HStack(spacing: 14) {
+                Picker(text("lab.attention.period"), selection: Binding(get: { model.period }, set: { rebuild(period: $0, positions: model.usesPositions) })) {
+                    ForEach(Array(Model.periods), id: \.self) { Text(verbatim: String($0)).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 260)
+                .accessibilityIdentifier("lab.attention.period")
+                Toggle(text("lab.attention.positions"), isOn: Binding(get: { model.usesPositions }, set: { rebuild(period: model.period, positions: $0) }))
+                    .accessibilityIdentifier("lab.attention.positions")
+                Spacer()
+            }
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.attention.play")
+                Button(text("lab.landscape.step")) { advance(by: 5) }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.attention.step")
+                Button(text("lab.neurontrain.reset")) { rebuild(period: model.period, positions: model.usesPositions) }
+                    .accessibilityIdentifier("lab.attention.reset")
+                Button(text("lab.attention.nextExample")) { exampleIndex += 1 }
+                    .accessibilityIdentifier("lab.attention.next")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.attention.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.attention.loss")
+                LabStat(label: text("lab.attention.statAccuracy"), value: number(model.accuracy * 100, 0) + " %", tint: .green, identifier: "lab.attention.accuracy")
+                LabStat(label: text("lab.attention.statSteps"), value: String(model.steps), identifier: "lab.attention.steps")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.attention.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.attention.challenge"), solved: solved,
+                         solvedText: text("lab.attention.challengeSolved"), identifier: "lab.attention.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.attention.how1"), text("lab.attention.how2"), text("lab.attention.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                guard playing else { break }
+                advance(by: 2)
+                // Training goes on past the goal, so that the stripe grows tall. / Обучение идёт и после цели, чтобы полоса выросла.
+                if model.loss < 0.02 || model.phase == .stuck || model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func rebuild(period: Int, positions: Bool) {
+        playing = false
+        model = Model(period: period, usesPositions: positions)
+    }
+
+    private func advance(by count: Int) {
+        for _ in 0..<count { model.step() }
+        if model.solvesChallenge { solved = true }
+    }
+
+    // The example as letters, with the selected place, the right next letter and the model's answer.
+    private var sequence: some View {
+        let q = model.answer(example, at: selectedRow)
+        let top = q.indices.max { q[$0] < q[$1] } ?? 0
+        return HStack(spacing: 6) {
+            ForEach(0..<Model.length, id: \.self) { index in
+                Text(verbatim: Model.letters[example[index]])
+                    .font(.callout.monospaced().weight(index == selectedRow + 1 ? .bold : .regular))
+                    .frame(width: 26, height: 26)
+                    .background(index == selectedRow + 1 ? Color.green.opacity(0.3) : (index <= selectedRow ? Color.secondary.opacity(0.18) : Color.clear), in: RoundedRectangle(cornerRadius: 6))
+                    .opacity(index <= selectedRow + 1 ? 1 : 0.35)
+            }
+            Text(String(format: text("lab.attention.modelSays"), Model.letters[top], number(q[top])))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 8)
+        }
+        .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GradientTowerLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var depth = 12
+    @State private var bypass = false
+    @State private var solved = false
+
+    private typealias Model = GradientStackModel
+
+    private var model: Model { Model(depth: depth, bypass: bypass) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private func shown(_ value: Double) -> String { GradientTowerSceneView.scientific(value, language: store.language) }
+
+    private var status: (LabStatusKind, String) {
+        let bottom = model.bottomSignal
+        if bottom < 1e-3 { return (.bad, String(format: text("lab.tower.faded"), shown(bottom))) }
+        if bottom < Model.keptSignal.lowerBound { return (.warning, String(format: text("lab.tower.weak"), shown(bottom))) }
+        return (.good, String(format: text("lab.tower.kept"), shown(bottom)))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.tower.title"), instruction: text("lab.tower.subtitle"))
+            GradientTowerSceneView(model: model, language: store.language)
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.tower.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.tower.sceneValue"), String(depth), shown(model.bottomSignal)))
+                .accessibilityIdentifier("lab.tower.scene")
+            HStack(spacing: 14) {
+                Text(String(format: text("lab.tower.depth"), String(depth))).monospacedDigit().frame(minWidth: 120, alignment: .leading)
+                Slider(value: Binding(get: { Double(depth) }, set: { change(depth: Int($0.rounded()), bypass: bypass) }),
+                       in: Double(Model.depths.lowerBound)...Double(Model.depths.upperBound), step: 1)
+                    .accessibilityLabel(text("lab.tower.depthLabel"))
+                    .accessibilityValue(Text(verbatim: String(depth)))
+                    .accessibilityIdentifier("lab.tower.depth")
+                Toggle(text("lab.tower.bypass"), isOn: Binding(get: { bypass }, set: { change(depth: depth, bypass: $0) }))
+                    .accessibilityIdentifier("lab.tower.bypass")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.tower.statBottom"), value: shown(model.bottomSignal), tint: .orange, identifier: "lab.tower.bottom")
+                LabStat(label: text("lab.tower.statDepth"), value: String(depth), identifier: "lab.tower.layers")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.tower.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.tower.challenge"), solved: solved,
+                         solvedText: text("lab.tower.challengeSolved"), identifier: "lab.tower.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.tower.how1"), text("lab.tower.how2"), text("lab.tower.how3")])
+        }
+    }
+
+    private func change(depth newDepth: Int, bypass newBypass: Bool) {
+        depth = newDepth
+        bypass = newBypass
+        if Model(depth: newDepth, bypass: newBypass).solvesChallenge { solved = true }
+    }
+}
+
+private struct MinibatchReliefLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = MinibatchLineModel()
+    @State private var batch = 24
+    @State private var rate = 0.1
+    @State private var playing = false
+    @State private var solvedReads: Int?
+
+    private typealias Model = MinibatchLineModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if let reads = model.readsAtTarget {
+            return (reads <= Model.challengeReads ? .good : .info, String(format: text("lab.batch.reached"), String(reads)))
+        }
+        if model.reads == 0 { return (.info, text("lab.batch.ready")) }
+        return model.isFinished ? (.warning, text("lab.batch.outOfReads")) : (.info, text("lab.batch.training"))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.batch.title"), instruction: text("lab.batch.subtitle"))
+            MinibatchReliefSceneView(model: model, language: store.language)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.batch.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.batch.sceneValue"), number(model.loss, 3), String(model.reads)))
+                .accessibilityIdentifier("lab.batch.scene")
+            HStack(spacing: 14) {
+                Picker(text("lab.batch.size"), selection: Binding(get: { batch }, set: { batch = $0; restart() })) {
+                    ForEach(Model.batches, id: \.self) { Text(verbatim: String($0)).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 300)
+                .accessibilityIdentifier("lab.batch.size")
+                Text(String(format: text("lab.xor.rate"), number(rate))).monospacedDigit().frame(minWidth: 190, alignment: .leading)
+                Slider(value: Binding(get: { rate }, set: { rate = $0; restart() }), in: Model.rateRange)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityValue(Text(verbatim: number(rate)))
+                    .accessibilityIdentifier("lab.batch.rate")
+            }
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.batch.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.batch.step")
+                Button(text("lab.neurontrain.reset")) { restart() }
+                    .accessibilityIdentifier("lab.batch.reset")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                chart
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.batch.statReads"), value: String(model.reads), tint: .blue, identifier: "lab.batch.reads")
+                    LabStat(label: text("lab.batch.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.batch.loss")
+                    LabStat(label: text("lab.batch.statTarget"), value: number(Model.target, 3), tint: .green, identifier: "lab.batch.target")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.batch.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.batch.challenge"), solved: solvedReads != nil,
+                         solvedText: String(format: text("lab.batch.challengeSolved"), String(solvedReads ?? 0)), identifier: "lab.batch.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.batch.how1"), text("lab.batch.how2")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 90_000_000)
+                guard playing else { break }
+                advance()
+                if model.readsAtTarget != nil && model.reads > (model.readsAtTarget ?? 0) + 60 || model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func restart() {
+        playing = false
+        model = Model()
+    }
+
+    private func advance() {
+        model.step(batch: batch, rate: rate)
+        if model.solvesChallenge, solvedReads == nil { solvedReads = model.readsAtTarget }
+    }
+
+    // The error against the examples read: the price of training, not the number of steps.
+    // Ошибка против числа прочитанных примеров: цена обучения, а не число шагов.
+    private var chart: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.reads, 120)), y: 0...4)
+            plot.drawAxes(in: context, xLabel: text("lab.batch.axisReads"), yLabel: "L", yTicks: [0, 2, 4], format: { number($0, 0) })
+            var line = Path()
+            for (index, entry) in model.history.enumerated() {
+                let location = plot.point(Double(entry.reads), min(entry.loss, 4))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2)
+        }
+    }
+}
+
+private struct WaveFitLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = WaveFitModel()
+    @State private var decayPosition = 0.0
+    @State private var playing = false
+    @State private var solved = false
+
+    private typealias Model = WaveFitModel
+
+    /// The left end of the slider is exactly zero, and the rest runs from 0.001 to 1. / Левый край ровно ноль, остальное от 0,001 до 1.
+    private var decay: Double { decayPosition <= 0 ? 0 : pow(10, -3 + 3 * decayPosition) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if model.steps == 0 { return (.info, text("lab.waves.ready")) }
+        if !model.isFinished { return (.info, text("lab.waves.training")) }
+        return model.solvesChallenge ? (.good, String(format: text("lab.waves.good"), number(model.heldError))) : (.warning, String(format: text("lab.waves.finished"), number(model.heldError), number(model.bestHeld.error), String(model.bestHeld.step)))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.waves.title"), instruction: text("lab.waves.subtitle"))
+            HStack(alignment: .top, spacing: 12) {
+                fitChart
+                    .frame(height: 220)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(text("lab.waves.fitLabel"))
+                curvesChart
+                    .frame(height: 220)
+                    .frame(maxWidth: .infinity)
+                    .accessibilityLabel(text("lab.waves.curvesLabel"))
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.waves.decay"), number(decay))).monospacedDigit().frame(minWidth: 130, alignment: .leading)
+                Slider(value: Binding(get: { decayPosition }, set: { decayPosition = $0; restart() }), in: 0...1)
+                    .accessibilityLabel(text("lab.waves.decayLabel"))
+                    .accessibilityValue(Text(verbatim: number(decay)))
+                    .accessibilityIdentifier("lab.waves.decay")
+            }
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.waves.play")
+                Button(text("lab.neurontrain.reset")) { restart() }
+                    .accessibilityIdentifier("lab.waves.reset")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.waves.statTrain"), value: number(model.trainError), tint: .blue, identifier: "lab.waves.train")
+                LabStat(label: text("lab.waves.statHeld"), value: number(model.heldError), tint: .orange, identifier: "lab.waves.held")
+                LabStat(label: text("lab.waves.statBest"), value: number(model.bestHeld.error), tint: .green, identifier: "lab.waves.best")
+                LabStat(label: text("lab.waves.statSteps"), value: String(model.steps), identifier: "lab.waves.steps")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.waves.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.waves.challenge"), solved: solved,
+                         solvedText: text("lab.waves.challengeSolved"), identifier: "lab.waves.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.waves.how1"), text("lab.waves.how2")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 30_000_000)
+                guard playing else { break }
+                for _ in 0..<3 { model.step() }
+                if model.solvesChallenge { solved = true }
+                if model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func restart() {
+        playing = false
+        model = Model(decay: decay)
+    }
+
+    private var fitChart: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: -1.5...1.5, y: -2.4...2.4)
+            plot.drawAxes(in: context, xLabel: "x", yLabel: "y", yTicks: [-2, 0, 2], format: { number($0, 0) })
+            var line = Path()
+            for index in 0...150 {
+                let x = -1.5 + 3 * Double(index) / 150
+                let location = plot.point(x, max(-2.4, min(2.4, model.value(at: x))))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+            for point in Model.data.held {
+                let at = plot.point(point.x, max(-2.4, min(2.4, point.y)))
+                context.fill(Path(ellipseIn: CGRect(x: at.x - 2, y: at.y - 2, width: 4, height: 4)), with: .color(.secondary.opacity(0.55)))
+            }
+            for point in Model.data.train {
+                let at = plot.point(point.x, max(-2.4, min(2.4, point.y)))
+                context.fill(Path(ellipseIn: CGRect(x: at.x - 4, y: at.y - 4, width: 8, height: 8)), with: .color(.blue))
+            }
+        }
+    }
+
+    private var curvesChart: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...Double(Model.stepLimit), y: 0...1.2)
+            plot.drawAxes(in: context, xLabel: text("lab.landscape.axisSteps"), yLabel: "L", yTicks: [0, 0.5, 1], format: { number($0, $0 == 0 || $0 == 1 ? 0 : 1) })
+            for (values, color) in [(model.trainHistory, Color.blue), (model.heldHistory, Color.orange)] {
+                var line = Path()
+                for (index, value) in values.enumerated() {
+                    let location = plot.point(Double(index), min(value, 1.2))
+                    if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+                }
+                context.stroke(line, with: .color(color), lineWidth: 2.5)
+            }
+            let best = plot.point(Double(model.bestHeld.step), min(model.bestHeld.error, 1.2))
+            context.fill(Path(ellipseIn: CGRect(x: best.x - 5, y: best.y - 5, width: 10, height: 10)), with: .color(.green))
+        }
+    }
+}
+
+private struct BayesTownLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = BayesTownModel()
+    @State private var solved = false
+
+    private func number(_ value: Double, _ digits: Int = 0) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private func slider(_ key: String, value: WritableKeyPath<BayesTownModel, Double>, range: ClosedRange<Double>, digits: Int, identifier: String) -> some View {
+        HStack(spacing: 10) {
+            Text(String(format: text(key), number(model[keyPath: value] * 100, digits))).monospacedDigit().frame(minWidth: 230, alignment: .leading)
+            Slider(value: Binding(get: { model[keyPath: value] }, set: { model[keyPath: value] = $0; check() }), in: range)
+                .accessibilityLabel(String(format: text(key), number(model[keyPath: value] * 100, digits)))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+
+    private var status: (LabStatusKind, String) {
+        let chance = number(model.chance * 100, 1)
+        if model.chance < 0.5 { return (.warning, String(format: text("lab.town.low"), chance)) }
+        return (.good, String(format: text("lab.town.high"), chance))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.town.title"), instruction: text("lab.town.subtitle"))
+            BayesTownSceneView(model: model, language: store.language)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.town.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.town.sceneValue"), String(model.positiveSick), String(model.positiveHealthy), number(model.chance * 100, 1)))
+                .accessibilityIdentifier("lab.town.scene")
+            slider("lab.town.rate", value: \.diseaseRate, range: 0.001...0.3, digits: 1, identifier: "lab.town.rate")
+            slider("lab.town.hit", value: \.hitRate, range: 0.5...1, digits: 0, identifier: "lab.town.hit")
+            slider("lab.town.alarm", value: \.falseAlarmRate, range: 0.001...0.3, digits: 1, identifier: "lab.town.alarm")
+            Toggle(text("lab.town.second"), isOn: Binding(get: { model.secondTest }, set: { model.secondTest = $0; check() }))
+                .accessibilityIdentifier("lab.town.second")
+            LabStatGrid {
+                LabStat(label: text("lab.town.statSick"), value: String(model.positiveSick), tint: .red, identifier: "lab.town.upSick")
+                LabStat(label: text("lab.town.statHealthy"), value: String(model.positiveHealthy), tint: .blue, identifier: "lab.town.upHealthy")
+                LabStat(label: text("lab.town.statChance"), value: number(model.chance * 100, 1) + " %", tint: .orange, identifier: "lab.town.chance")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.town.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.town.challenge"), solved: solved,
+                         solvedText: text("lab.town.challengeSolved"), identifier: "lab.town.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.town.how1"), text("lab.town.how2")])
+        }
+    }
+
+    private func check() {
+        if model.solvesChallenge { solved = true }
+    }
+}
+
+private struct GaltonBoardLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = GaltonBoardModel()
+    @State private var lastPaths: [[Bool]] = []
+    @State private var dropCount = 0
+    @State private var solved = false
+
+    private typealias Model = GaltonBoardModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if model.balls == 0 { return (.info, text("lab.galton.ready")) }
+        if model.balls < 50 { return (.info, text("lab.galton.few")) }
+        return (.good, String(format: text("lab.galton.many"), number(model.sampleMean), number(model.theoryMean)))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.galton.title"), instruction: text("lab.galton.subtitle"))
+            GaltonBoardSceneView(model: model, lastPaths: lastPaths, dropCount: dropCount)
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.galton.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.galton.sceneValue"), String(model.balls), number(model.sampleMean), number(model.theoryMean)))
+                .accessibilityIdentifier("lab.galton.scene")
+            HStack(spacing: 14) {
+                Text(String(format: text("lab.galton.rows"), String(model.rows))).monospacedDigit().frame(minWidth: 90, alignment: .leading)
+                Slider(value: Binding(get: { Double(model.rows) }, set: { model.configure(rows: Int($0.rounded()), rightChance: model.rightChance) }),
+                       in: Double(Model.rowRange.lowerBound)...Double(Model.rowRange.upperBound), step: 1)
+                    .accessibilityLabel(text("lab.galton.rowsLabel"))
+                    .accessibilityValue(Text(verbatim: String(model.rows)))
+                    .accessibilityIdentifier("lab.galton.rows")
+                Text(String(format: text("lab.galton.chance"), number(model.rightChance))).monospacedDigit().frame(minWidth: 70, alignment: .leading)
+                Slider(value: Binding(get: { model.rightChance }, set: { model.configure(rows: model.rows, rightChance: ($0 * 20).rounded() / 20) }), in: 0.1...0.9)
+                    .accessibilityLabel(text("lab.galton.chanceLabel"))
+                    .accessibilityValue(Text(verbatim: number(model.rightChance)))
+                    .accessibilityIdentifier("lab.galton.chance")
+            }
+            HStack(spacing: 10) {
+                ForEach([1, 10, 100], id: \.self) { count in
+                    Button(String(format: text("lab.galton.drop"), String(count))) { drop(count) }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("lab.galton.drop\(count)")
+                }
+                Button(text("lab.neurontrain.reset")) { model.configure(rows: model.rows, rightChance: model.rightChance); lastPaths = [] }
+                    .accessibilityIdentifier("lab.galton.reset")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.galton.statBalls"), value: String(model.balls), tint: .blue, identifier: "lab.galton.balls")
+                LabStat(label: text("lab.galton.statMean"), value: number(model.sampleMean), tint: .orange, identifier: "lab.galton.mean")
+                LabStat(label: text("lab.galton.statTheoryMean"), value: number(model.theoryMean), tint: .green, identifier: "lab.galton.theoryMean")
+                LabStat(label: text("lab.galton.statVariance"), value: number(model.sampleVariance), tint: .orange, identifier: "lab.galton.variance")
+                LabStat(label: text("lab.galton.statTheoryVariance"), value: number(model.theoryVariance), tint: .green, identifier: "lab.galton.theoryVariance")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.galton.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.galton.challenge"), solved: solved,
+                         solvedText: text("lab.galton.challengeSolved"), identifier: "lab.galton.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.galton.how1"), text("lab.galton.how2")])
+        }
+    }
+
+    private func drop(_ count: Int) {
+        var paths: [[Bool]] = []
+        for _ in 0..<count { paths.append(model.drop()) }
+        lastPaths = paths
+        dropCount += 1
+        if model.solvesChallenge { solved = true }
+    }
+}
+
+private struct ConsciousnessIndicatorLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = ConsciousnessIndicatorModel()
+
+    private typealias Model = ConsciousnessIndicatorModel
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private let theories = ["rpt", "gwt", "hot", "ast", "pp", "ae"]
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.mind.title"), instruction: text("lab.mind.subtitle"))
+            ForEach(theories, id: \.self) { theory in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(text("lab.mind.theory\(theory.capitalized)")).font(.headline)
+                    ForEach(Model.indicators.filter { Model.theory(of: $0) == theory }, id: \.self) { indicator in
+                        row(indicator)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.mind.statAnswered"), value: "\(model.answeredCount) / \(Model.indicators.count)", tint: .blue, identifier: "lab.mind.answered")
+                LabStat(label: text("lab.mind.statMatching"), value: String(model.matching), tint: .green, identifier: "lab.mind.matching")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.mind.challenge"), solved: model.solvesChallenge,
+                         solvedText: text("lab.mind.challengeSolved"), identifier: "lab.mind.challenge")
+            Button(text("lab.neurontrain.reset")) { model.reset() }
+                .accessibilityIdentifier("lab.mind.reset")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.mind.how1"), text("lab.mind.how2")])
+        }
+    }
+
+    private func row(_ indicator: String) -> some View {
+        let answer = model.answers[indicator]
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(text("lab.mind.\(indicator)"))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(text("lab.mind.yes")) { model.answer(indicator, has: true) }
+                    .buttonStyle(.bordered)
+                    .tint(answer == true ? .accentColor : .secondary)
+                    .accessibilityIdentifier("lab.mind.\(indicator).yes")
+                Button(text("lab.mind.no")) { model.answer(indicator, has: false) }
+                    .buttonStyle(.bordered)
+                    .tint(answer == false ? .accentColor : .secondary)
+                    .accessibilityIdentifier("lab.mind.\(indicator).no")
+            }
+            if answer != nil {
+                Label(text("lab.mind.\(indicator)Why"), systemImage: Model.modelHasIt(indicator) == answer ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(Model.modelHasIt(indicator) == answer ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.mind.\(indicator).why")
+            }
+        }
+    }
+}
+
+private struct TinyModelLab: View {
+    private static let opening = "Нейронная сеть"
+
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = TinyLanguageModel.bundled
+    @State private var modelRevision = 0
+    @State private var text = TinyModelLab.opening
+    @State private var temperature = 0.8
+    @State private var block = 0
+    @State private var head = 0
+    @State private var writing = false
+    @State private var solved = false
+    @State private var importing = false
+    @State private var ownModel = false
+    @State private var loadFailed = false
+    @State private var scores: [Double] = []
+    @State private var attention: [[[[Double]]]] = []
+
+    private typealias Scene = TinyModelAttentionSceneView
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    /// Uses temperature 1 for the task, so that lowering the temperature alone cannot solve it.
+    /// Для задания температура 1: простое снижение температуры его не решает.
+    private var confidence: Double { TinyLanguageModel.softmax(scores, temperature: 1).max() ?? 0 }
+
+    private var candidates: [(letter: String, probability: Double)] {
+        guard let model, !scores.isEmpty else { return [] }
+        let probabilities = TinyLanguageModel.softmax(scores, temperature: temperature)
+        return probabilities.enumerated().sorted { $0.element > $1.element }.prefix(Scene.shownCandidates).map { (model.alphabet[$0.offset], $0.element) }
+    }
+
+    /// The last places read, as characters and as attention rows limited to those places.
+    private var shown: (characters: [String], rows: [[Double]]) {
+        guard let model, block < attention.count, head < attention[block].count else { return ([], []) }
+        let window = model.window(of: text)
+        let count = min(window.count, Scene.shownPlaces)
+        let start = window.count - count
+        let rows = attention[block][head]
+        guard rows.count == window.count else { return ([], []) }
+        return (window[start...].map { model.alphabet[$0] }, (start..<window.count).map { t in Array(rows[t][start...t]) })
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.tiny.title"), instruction: text("lab.tiny.subtitle"))
+            if model == nil {
+                LabStatusBadge(kind: .bad, text: text("lab.tiny.missing"), identifier: "lab.tiny.missing")
+            } else {
+                TinyModelAttentionSceneView(rows: shown.rows, characters: shown.characters, candidates: candidates)
+                    .frame(height: 440)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.tiny.sceneLabel"))
+                    .accessibilityValue(String(format: text("lab.tiny.sceneValue"), candidates.first.map { Scene.shown($0.letter) } ?? "", number((candidates.first?.probability ?? 0) * 100, 0)))
+                    .accessibilityIdentifier("lab.tiny.scene")
+                TextEditor(text: $text)
+                    .font(.body)
+                    .frame(height: 74)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.35)))
+                    .accessibilityLabel(text("lab.tiny.textLabel"))
+                    .accessibilityIdentifier("lab.tiny.text")
+                HStack(spacing: 12) {
+                    Text(String(format: text("lab.tiny.temperature"), number(temperature))).monospacedDigit().frame(minWidth: 130, alignment: .leading)
+                    Slider(value: $temperature, in: 0.1...1.8)
+                        .accessibilityLabel(text("lab.tiny.temperatureLabel"))
+                        .accessibilityValue(Text(verbatim: number(temperature)))
+                        .accessibilityIdentifier("lab.tiny.temperature")
+                    Picker(text("lab.tiny.block"), selection: $block) {
+                        ForEach(0..<(model?.blocks.count ?? 1), id: \.self) { Text(verbatim: String($0 + 1)).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 170)
+                    Picker(text("lab.tiny.head"), selection: $head) {
+                        ForEach(0..<(model?.heads ?? 1), id: \.self) { Text(verbatim: String($0 + 1)).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 170)
+                }
+                HStack(spacing: 10) {
+                    Button { writing.toggle() } label: { Label(text(writing ? "lab.tiny.stop" : "lab.tiny.write"), systemImage: writing ? "stop.fill" : "pencil") }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("lab.tiny.write")
+                    Button(text("lab.tiny.reset")) { writing = false; text = Self.opening }
+                        .accessibilityIdentifier("lab.tiny.reset")
+                    Spacer()
+                    Button(text("lab.tiny.open")) { importing = true }
+                        .accessibilityIdentifier("lab.tiny.open")
+                }
+                LabStatGrid {
+                    LabStat(label: text("lab.tiny.statTop"), value: number(confidence * 100, 0) + " %", tint: .orange, identifier: "lab.tiny.top")
+                    LabStat(label: text("lab.tiny.statLetters"), value: String(model?.alphabet.count ?? 0), identifier: "lab.tiny.letters")
+                    LabStat(label: text("lab.tiny.statSource"), value: text(ownModel ? "lab.tiny.sourceOwn" : "lab.tiny.sourceCourse"), tint: .blue, identifier: "lab.tiny.source")
+                }
+                if loadFailed {
+                    LabStatusBadge(kind: .bad, text: text("lab.tiny.loadFailed"), identifier: "lab.tiny.loadFailed")
+                }
+                LabChallenge(caption: text("lab.kit.task"), task: text("lab.tiny.challenge"), solved: solved,
+                             solvedText: text("lab.tiny.challengeSolved"), identifier: "lab.tiny.challenge")
+                LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.tiny.how1"), text("lab.tiny.how2"), text("lab.tiny.how3")])
+            }
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in load(result) }
+        .task(id: "\(text)#\(modelRevision)") {
+            guard let model else { return }
+            let current = text
+            let result = await Task.detached(priority: .userInitiated) { model.run(model.window(of: current)) }.value
+            guard !Task.isCancelled, current == text else { return }
+            scores = result.scores.last ?? []
+            attention = result.attention
+            if current != Self.opening, current.count >= 3, confidence >= 0.9, !writing { solved = true }
+        }
+        .task(id: writing) {
+            guard writing, let model else { return }
+            for _ in 0..<240 where writing && !Task.isCancelled {
+                let current = text
+                let chance = temperature
+                let letter: String? = await Task.detached(priority: .userInitiated) {
+                    guard let next = model.next(after: current, temperature: chance) else { return nil }
+                    return model.alphabet[TinyLanguageModel.draw(next.probabilities, uniform: Double.random(in: 0..<1))]
+                }.value
+                guard !Task.isCancelled, writing, let letter else { break }
+                text = current + letter
+            }
+            writing = false
+        }
+    }
+
+    private func load(_ result: Result<URL, Error>) {
+        loadFailed = false
+        guard case .success(let url) = result else { loadFailed = true; return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url), let loaded = try? TinyLanguageModel(data: data) else {
+            loadFailed = true
+            return
+        }
+        writing = false
+        model = loaded
+        block = 0
+        head = 0
+        ownModel = true
+        modelRevision += 1
     }
 }
 
@@ -14713,11 +17720,15 @@ private struct DataStructureChoiceLab: View {
 
 private struct LoopTraceLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var scenarioID: String
     @State private var question: LoopTraceQuestion
     @State private var prediction: InteractivePredictionAttempt
     @State private var selectedDisplayIndex = -1
     @State private var revealedStepCount = 0
+    @State private var playing = false
+
+    private static let codeLines = ["count = 0", "for number in numbers:", "    if number % 2 == 0:", "        count += 1", "return count"]
 
     init() {
         let initialScenario = LoopTracePractice.scenarios[0]
@@ -14727,125 +17738,163 @@ private struct LoopTraceLab: View {
         _prediction = State(initialValue: Self.makePrediction(for: initialQuestion))
     }
 
-    private var scenario: LoopTraceScenario {
-        LoopTracePractice.scenario(id: scenarioID) ?? LoopTracePractice.scenarios[0]
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var scenario: LoopTraceScenario { LoopTracePractice.scenario(id: scenarioID) ?? LoopTracePractice.scenarios[0] }
+    private var unlocked: Bool { prediction.hasAnswered && prediction.isCorrect }
+    private var finished: Bool { unlocked && revealedStepCount == scenario.steps.count }
+    private var currentStep: LoopTraceStep? { revealedStepCount > 0 ? scenario.steps[revealedStepCount - 1] : nil }
+    private var count: Int { currentStep?.countAfter ?? 0 }
+    /// The code line the trace is on: the loop body for the current number, then `return` at the end.
+    private var activeLine: Int {
+        guard unlocked else { return -1 }
+        if finished { return 4 }
+        guard let step = currentStep else { return 0 }
+        return step.isEven ? 3 : 2
     }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.LoopTraceLab", store.language), instruction: L10n.text("lab.loopTraceHint", store.language))
-
-            Text("count_even(\(scenario.displayedValues))")
-                .font(.system(.body, design: .monospaced).weight(.semibold))
-                .textSelection(.enabled)
-                .accessibilityLabel(Text(L10n.text("lab.loopTraceInput", store.language)))
-
-            Picker(
-                L10n.text("lab.loopTraceScenario", store.language),
-                selection: Binding(
-                    get: { scenarioID },
-                    set: selectScenario
-                )
-            ) {
+            LabHeader(title: text("labkit.title.LoopTraceLab"), instruction: text("lab.loopTraceSubtitle"))
+            Picker(text("lab.loopTraceScenario"), selection: Binding(get: { scenarioID }, set: selectScenario)) {
                 ForEach(LoopTracePractice.scenarios) { item in
-                    Text(L10n.text("lab.loopTraceScenario.\(item.id)", store.language)).tag(item.id)
+                    Text(text("lab.loopTraceScenario.\(item.id)")).tag(item.id)
                 }
             }
             .pickerStyle(.menu)
+            .frame(maxWidth: 360)
+            HStack(alignment: .top, spacing: 18) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("count_even(\(scenario.displayedValues))")
+                        .font(.system(.callout, design: .monospaced).weight(.semibold))
+                        .padding(.bottom, 6)
+                        .accessibilityLabel(Text(text("lab.loopTraceInput")))
+                    ForEach(Array(Self.codeLines.enumerated()), id: \.offset) { index, line in
+                        Text(verbatim: line)
+                            .font(.system(.callout, design: .monospaced))
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(index == activeLine ? Color.accentColor.opacity(0.22) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                    }
+                }
+                .padding(10)
+                .frame(maxWidth: 320)
+                .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(Text(text("lab.loopTraceCode")))
+                VStack(alignment: .leading, spacing: 12) {
+                    arrayCells
+                    HStack(spacing: 10) {
+                        memoryBox(name: "number", value: currentStep.map { String($0.value) } ?? "—", colour: .purple)
+                        memoryBox(name: "count", value: unlocked ? String(count) : "?", colour: .green)
+                    }
+                }
+            }
+            predictionPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.loopTraceChallenge"),
+                         solved: finished, solvedText: text("lab.loopTraceChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.loopTraceHint"), text("lab.loopTraceWrongHint")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && revealedStepCount < scenario.steps.count {
+                try? await Task.sleep(nanoseconds: 800_000_000)
+                guard playing else { return }
+                if reduceMotion { revealedStepCount += 1 } else { withAnimation(.easeInOut(duration: 0.25)) { revealedStepCount += 1 } }
+            }
+            playing = false
+        }
+    }
 
-            Text("""
-            count = 0
-            for number in numbers:
-                if number % 2 == 0:
-                    count += 1
-            return count
-            """)
-            .font(.system(.callout, design: .monospaced))
-            .textSelection(.enabled)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityLabel(Text(L10n.text("lab.loopTraceCode", store.language)))
+    // The list as boxes: the pointer marks `number`; counted (even) numbers turn green, skipped (odd) ones grey.
+    private var arrayCells: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(scenario.steps.enumerated()), id: \.offset) { index, step in
+                let done = unlocked && index < revealedStepCount
+                let current = unlocked && index == revealedStepCount - 1
+                VStack(spacing: 3) {
+                    Text(verbatim: "\(step.value)")
+                        .font(.system(.title3, design: .monospaced).weight(.bold))
+                        .frame(width: 44, height: 40)
+                        .background(done ? (step.isEven ? Color.green.opacity(0.35) : Color.secondary.opacity(0.18)) : Color.secondary.opacity(0.08),
+                                    in: RoundedRectangle(cornerRadius: 8))
+                        .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(current ? Color.purple : Color.secondary.opacity(0.3), lineWidth: current ? 2.5 : 1))
+                    Image(systemName: "arrowtriangle.up.fill")
+                        .font(.caption)
+                        .foregroundStyle(.purple)
+                        .opacity(current ? 1 : 0)
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(Text(text("lab.loopTraceInput")))
+        .accessibilityValue(Text(verbatim: scenario.displayedValues))
+    }
 
+    private func memoryBox(name: String, value: String, colour: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(verbatim: name).font(.system(.caption, design: .monospaced)).foregroundStyle(.secondary)
+            Text(verbatim: value)
+                .font(.system(.title2, design: .monospaced).weight(.bold))
+                .foregroundStyle(colour)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(colour.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+        .accessibilityElement(children: .combine)
+    }
+
+    private var predictionPanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Text(L10n.text("lab.loopTracePrediction", store.language))
+                Text(text("lab.loopTracePrediction")).font(.callout.weight(.medium))
                 Spacer()
-                Picker(L10n.text("lab.loopTracePrediction", store.language), selection: $selectedDisplayIndex) {
-                    Text(L10n.text("lab.loopTraceChoose", store.language)).tag(-1)
+                Picker(text("lab.loopTracePrediction"), selection: $selectedDisplayIndex) {
+                    Text(text("lab.loopTraceChoose")).tag(-1)
                     ForEach(Array(prediction.choiceOrder.displayedOriginalIndices.enumerated()), id: \.offset) { displayIndex, originalIndex in
                         Text(String(question.options[originalIndex])).tag(displayIndex)
                     }
                 }
                 .pickerStyle(.menu)
+                .labelsHidden()
+                .frame(maxWidth: 160)
                 .disabled(prediction.hasAnswered)
             }
-
-            if prediction.hasAnswered {
-                if prediction.isCorrect {
-                    Label(
-                        String(format: L10n.text("lab.loopTraceFeedback", store.language), scenario.expectedCount),
-                        systemImage: "checkmark.circle.fill"
-                    )
+            if unlocked {
+                Label(String(format: text("lab.loopTraceFeedback"), scenario.expectedCount), systemImage: "checkmark.circle.fill")
                     .foregroundStyle(.green)
                     .fixedSize(horizontal: false, vertical: true)
-
-                    ForEach(Array(scenario.steps.prefix(revealedStepCount))) { step in
-                        HStack(alignment: .top, spacing: 10) {
-                            Text("\(step.index + 1)")
-                                .font(.caption.monospacedDigit().weight(.semibold))
-                                .foregroundStyle(.secondary)
-                                .frame(width: 22, alignment: .leading)
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text(String(format: L10n.text("lab.loopTraceStep", store.language), step.value))
-                                    .font(.system(.callout, design: .monospaced).weight(.medium))
-                                Text(L10n.text(step.isEven ? "lab.loopTraceEven" : "lab.loopTraceOdd", store.language))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                            Spacer()
-                            Text(String(step.countAfter))
-                                .font(.system(.callout, design: .monospaced).weight(.semibold))
-                                .accessibilityLabel(Text(L10n.text("lab.loopTraceCount", store.language)))
-                        }
-                        .padding(10)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(.background, in: RoundedRectangle(cornerRadius: 10))
-                        .accessibilityElement(children: .combine)
-                    }
-
-                    if revealedStepCount == scenario.steps.count {
-                        Label(
-                            String(format: L10n.text("lab.loopTraceReturn", store.language), scenario.expectedCount),
-                            systemImage: "arrow.uturn.backward.circle"
-                        )
+                HStack(spacing: 10) {
+                    Button {
+                        revealedStepCount = min(revealedStepCount + 1, scenario.steps.count)
+                    } label: { Label(text("lab.loopTraceNextStep"), systemImage: "arrow.right") }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(finished || playing)
+                    Button {
+                        playing = true
+                    } label: { Label(text("lab.loopTracePlay"), systemImage: "play.fill") }
+                        .disabled(finished || playing)
+                }
+                if let step = currentStep, !finished {
+                    Text(String(format: text("lab.loopTraceStep"), step.value) + " — " + text(step.isEven ? "lab.loopTraceEven" : "lab.loopTraceOdd"))
+                        .font(.callout)
+                        .foregroundStyle(.secondary)
+                }
+                if finished {
+                    Label(String(format: text("lab.loopTraceReturn"), scenario.expectedCount), systemImage: "arrow.uturn.backward.circle")
                         .font(.callout.weight(.semibold))
                         .foregroundStyle(.tint)
-                    }
-                } else {
-                    Label(L10n.text("lab.loopTraceWrong", store.language), systemImage: "arrow.counterclockwise.circle")
-                        .foregroundStyle(.orange)
-                    Text(L10n.text("lab.loopTraceWrongHint", store.language))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .fixedSize(horizontal: false, vertical: true)
-                    Button(L10n.text("lab.loopTraceRetry", store.language)) {
-                        prediction.retry()
-                        selectedDisplayIndex = -1
-                        revealedStepCount = 0
-                    }
-                    .buttonStyle(.link)
                 }
-            }
-
-            if prediction.hasAnswered, prediction.isCorrect {
-                Button {
-                    revealedStepCount = min(revealedStepCount + 1, scenario.steps.count)
-                } label: {
-                    Label(L10n.text("lab.loopTraceNextStep", store.language), systemImage: "arrow.right")
+            } else if prediction.hasAnswered {
+                Label(text("lab.loopTraceWrong"), systemImage: "arrow.counterclockwise.circle")
+                    .foregroundStyle(.orange)
+                Button(text("lab.loopTraceRetry")) {
+                    prediction.retry()
+                    selectedDisplayIndex = -1
+                    revealedStepCount = 0
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(revealedStepCount >= scenario.steps.count)
-            } else if !prediction.hasAnswered {
+                .buttonStyle(.link)
+            } else {
                 Button {
                     prediction.select(displayedIndex: selectedDisplayIndex)
                     guard let evidence = prediction.currentAnswerEventEvidence() else { return }
@@ -14854,12 +17903,14 @@ private struct LoopTraceLab: View {
                         revealedStepCount = scenario.steps.isEmpty ? 0 : 1
                     }
                 } label: {
-                    Label(L10n.text("lab.loopTraceCheck", store.language), systemImage: "checkmark")
+                    Label(text("lab.loopTraceCheck"), systemImage: "checkmark")
                 }
                 .buttonStyle(.borderedProminent)
                 .disabled(selectedDisplayIndex < 0)
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
     }
 
     private static func makePrediction(for question: LoopTraceQuestion) -> InteractivePredictionAttempt {
@@ -14875,6 +17926,7 @@ private struct LoopTraceLab: View {
 
     private func selectScenario(_ id: String) {
         guard let nextScenario = LoopTracePractice.scenario(id: id) else { return }
+        playing = false
         scenarioID = nextScenario.id
         let nextQuestion = LoopTraceQuestion(scenario: nextScenario)
         question = nextQuestion
@@ -14886,210 +17938,257 @@ private struct LoopTraceLab: View {
 
 private struct CollectionsLoopsLab: View {
     @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var tasks = ["docs", "tests", "app"]
     @State private var nextTask = 0
     @State private var includesIndexes = true
+    @State private var printedCount = 3
+    @State private var playing = false
     @State private var whileInitialValue = 5
     @State private var whileDecrement = 2
     @State private var whileTrace = WhileLoopTrace(initialValue: 5, decrement: 2)
 
     private let additions = ["build", "review", "ship", "notes", "measure"]
 
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private var outputLines: [String] {
-        if includesIndexes {
-            return tasks.enumerated().map { "\($0.offset)  \($0.element)" }
-        }
-        return tasks.map { $0 }
+        includesIndexes ? tasks.enumerated().map { "\($0.offset) \($0.element)" } : tasks
     }
-
     private var loopCode: String {
         includesIndexes
             ? "for index, task in enumerate(tasks):\n    print(index, task)"
             : "for task in tasks:\n    print(task)"
     }
+    /// The element the loop variable holds while the run is animating.
+    private var pointer: Int? { playing && printedCount > 0 ? printedCount - 1 : nil }
+    /// Line of the while code the last check led to: the body when the condition held, the `while` line when it failed.
+    private var activeWhileLine: Int {
+        guard let last = whileTrace.steps.last else { return 0 }
+        return last.conditionTrue ? 3 : 1
+    }
 
     var body: some View {
         LabCard {
-            LabHeader(title: L10n.text("labkit.title.CollectionsLoopsLab", store.language), instruction: L10n.text("lab.collectionsHelp", store.language))
-
-            Text("tasks = [\(tasks.map { "\"\($0)\"" }.joined(separator: ", "))]")
-                .font(.system(.body, design: .monospaced).weight(.medium))
-                .textSelection(.enabled)
-                .accessibilityLabel(Text(L10n.text("lab.collectionsState", store.language)))
-
-            if tasks.isEmpty {
-                Label(L10n.text("lab.collectionsEmpty", store.language), systemImage: "list.bullet")
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            } else {
-                ScrollView(.horizontal) {
-                    HStack(spacing: 10) {
-                        ForEach(tasks.indices, id: \.self) { index in
-                            VStack(alignment: .leading, spacing: 7) {
-                                if includesIndexes {
-                                    Text("[\(index)]")
-                                        .font(.caption.monospacedDigit())
-                                        .foregroundStyle(.secondary)
-                                }
-                                Text(tasks[index])
-                                    .font(.system(.body, design: .monospaced).weight(.semibold))
-                                    .textSelection(.enabled)
-                            }
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 12)
-                            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-                        }
-                    }
-                    .padding(.vertical, 2)
-                }
-                .scrollIndicators(.hidden)
-                .accessibilityLabel(Text(L10n.text("lab.collectionsState", store.language)))
-            }
-
-            Picker(L10n.text("lab.collectionsLoop", store.language), selection: $includesIndexes) {
-                Text(L10n.text("lab.collectionsValuesOnly", store.language)).tag(false)
-                Text(L10n.text("lab.collectionsWithIndex", store.language)).tag(true)
-            }
-            .pickerStyle(.segmented)
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text(loopCode)
-                    .font(.system(.caption, design: .monospaced))
-                    .textSelection(.enabled)
-                Divider()
-                ForEach(outputLines.indices, id: \.self) { index in
-                    Text(outputLines[index])
-                        .font(.system(.callout, design: .monospaced))
-                        .foregroundStyle(.secondary)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
-            .accessibilityElement(children: .combine)
-
+            LabHeader(title: text("labkit.title.CollectionsLoopsLab"), instruction: text("lab.collectionsSubtitle"))
+            listCells
             HStack(spacing: 10) {
                 Button {
                     guard tasks.count < 8 else { return }
-                    tasks.append(additions[nextTask % additions.count])
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        tasks.append(additions[nextTask % additions.count])
+                    }
                     nextTask += 1
-                } label: {
-                    Label(L10n.text("lab.collectionsAdd", store.language), systemImage: "plus")
-                }
-                .buttonStyle(.borderedProminent)
-                .disabled(tasks.count >= 8)
-
+                    finishRun()
+                } label: { Label(text("lab.collectionsAdd"), systemImage: "plus") }
+                    .disabled(tasks.count >= 8)
                 Button {
                     guard !tasks.isEmpty else { return }
-                    tasks.removeLast()
-                } label: {
-                    Label(L10n.text("lab.collectionsRemove", store.language), systemImage: "minus")
-                }
-                .buttonStyle(.bordered)
-                .disabled(tasks.isEmpty)
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { _ = tasks.removeLast() }
+                    finishRun()
+                } label: { Label(text("lab.collectionsRemove"), systemImage: "minus") }
+                    .disabled(tasks.isEmpty)
+                Button {
+                    if reduceMotion {
+                        finishRun()
+                    } else {
+                        printedCount = 0
+                        playing = true
+                    }
+                } label: { Label(text("lab.collectionsRun"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(tasks.isEmpty || playing)
             }
-
-            Text(L10n.text("lab.collectionsCount", store.language) + ": \(tasks.count)")
-                .font(.caption.monospacedDigit())
-                .foregroundStyle(.secondary)
-
-            Divider()
-
-            VStack(alignment: .leading, spacing: 10) {
-                Text(L10n.text("lab.collectionsWhileTitle", store.language))
-                    .font(.headline)
-                Text(L10n.text("lab.collectionsWhileHint", store.language))
-                    .font(.callout)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text("remaining = \(whileTrace.initialValue)\nwhile remaining > 0:\n    print(remaining)\n    remaining -= \(whileTrace.decrement)")
+            Picker(text("lab.collectionsLoop"), selection: $includesIndexes) {
+                Text(text("lab.collectionsValuesOnly")).tag(false)
+                Text(text("lab.collectionsWithIndex")).tag(true)
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            HStack(alignment: .top, spacing: 12) {
+                Text(loopCode)
                     .font(.system(.callout, design: .monospaced))
                     .textSelection(.enabled)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(12)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
-
-                Stepper(value: $whileInitialValue, in: WhileLoopTrace.initialValueRange) {
-                    Text(String(format: L10n.text("lab.collectionsWhileInitial", store.language), whileInitialValue))
-                        .font(.callout.monospacedDigit())
+                    .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 12))
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(text("lab.collectionsOutputTitle")).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    ForEach(Array(outputLines.prefix(printedCount).enumerated()), id: \.offset) { _, line in
+                        Text(verbatim: line).font(.system(.callout, design: .monospaced))
+                    }
                 }
-                .onChange(of: whileInitialValue) { _ in resetWhileTrace() }
+                .frame(maxWidth: .infinity, minHeight: 70, alignment: .topLeading)
+                .padding(12)
+                .background(Color.black.opacity(0.18), in: RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .combine)
+            }
+            whilePanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.collectionsChallenge"),
+                         solved: whileTrace.isComplete && whileTrace.currentValue == 0 && whileTrace.initialValue > 0,
+                         solvedText: text("lab.collectionsChallengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.collectionsHelp"), text("lab.collectionsWhileHint"), text("lab.collectionsWhileLimit")])
+        }
+        .onChange(of: includesIndexes) { _ in finishRun() }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && printedCount < tasks.count {
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                guard playing else { return }
+                printedCount += 1
+            }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            playing = false
+        }
+    }
 
-                Stepper(value: $whileDecrement, in: WhileLoopTrace.decrementRange) {
-                    Text(String(format: L10n.text("lab.collectionsWhileDecrement", store.language), whileDecrement))
-                        .font(.callout.monospacedDigit())
-                }
-                .onChange(of: whileDecrement) { _ in resetWhileTrace() }
-
-                Label(
-                    String(format: L10n.text("lab.collectionsWhileCurrent", store.language), whileTrace.currentValue),
-                    systemImage: whileTrace.isComplete ? "checkmark.circle.fill" : "repeat"
-                )
-                .font(.callout.weight(.medium).monospacedDigit())
-                .foregroundStyle(whileTrace.isComplete ? Color.green : Color.primary)
-
-                Text(L10n.text("lab.collectionsWhileOutput", store.language) + ": [\(whileTrace.printedValues.map(String.init).joined(separator: ", "))]")
-                    .font(.callout.monospacedDigit())
-                    .foregroundStyle(.secondary)
-
-                ForEach(whileTrace.steps) { step in
-                    VStack(alignment: .leading, spacing: 4) {
-                        let feedbackKey = step.conditionTrue
-                            ? "lab.collectionsWhileConditionTrue"
-                            : "lab.collectionsWhileConditionFalse"
-                        Label(
-                            String(format: L10n.text(feedbackKey, store.language), step.checkNumber, step.valueBeforeCheck),
-                            systemImage: step.conditionTrue ? "checkmark.circle" : "stop.circle.fill"
-                        )
-                        .font(.caption.weight(.medium).monospacedDigit())
-                        .foregroundStyle(step.conditionTrue ? Color.secondary : Color.green)
-
-                        if let valueAfterBody = step.valueAfterBody {
-                            Text(String(format: L10n.text("lab.collectionsWhileBody", store.language), valueAfterBody))
+    // The list as boxes with indexes underneath; during a run the pointer marks the current element.
+    @ViewBuilder
+    private var listCells: some View {
+        if tasks.isEmpty {
+            Label(text("lab.collectionsEmpty"), systemImage: "list.bullet")
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, minHeight: 74)
+                .background(Color.secondary.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 6) {
+                    ForEach(tasks.indices, id: \.self) { index in
+                        VStack(spacing: 4) {
+                            Text(verbatim: tasks[index])
+                                .font(.system(.body, design: .monospaced).weight(.semibold))
+                                .padding(.horizontal, 12)
+                                .frame(minWidth: 66, minHeight: 42)
+                                .background(pointer == index ? Color.purple.opacity(0.28) : Color.teal.opacity(0.14), in: RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(pointer == index ? Color.purple : Color.teal.opacity(0.5),
+                                                                                        lineWidth: pointer == index ? 2.5 : 1))
+                            Text(verbatim: "[\(index)]")
                                 .font(.caption.monospacedDigit())
-                                .foregroundStyle(.secondary)
-                        } else {
-                            Text(L10n.text("lab.collectionsWhileExit", store.language))
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(includesIndexes ? Color.secondary : Color.secondary.opacity(0.35))
                         }
+                        .transition(.scale.combined(with: .opacity))
                     }
-                    .padding(10)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 10))
                 }
+                .padding(.vertical, 2)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(Text(text("lab.collectionsState")))
+            .accessibilityValue(Text(verbatim: tasks.joined(separator: ", ")))
+        }
+    }
 
-                HStack(spacing: 10) {
-                    Button {
-                        whileTrace.checkNextStep()
-                    } label: {
-                        Label(L10n.text("lab.collectionsWhileCheck", store.language), systemImage: "arrow.right.circle")
+    private var whilePanel: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(text("lab.collectionsWhileTitle")).font(.headline)
+            HStack(alignment: .top, spacing: 14) {
+                VStack(alignment: .leading, spacing: 2) {
+                    ForEach(Array(whileCodeLines.enumerated()), id: \.offset) { index, line in
+                        let failed = index == 1 && whileTrace.isComplete
+                        Text(verbatim: line)
+                            .font(.system(.callout, design: .monospaced))
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(index == activeWhileLine ? (failed ? Color.red : Color.accentColor).opacity(0.22) : Color.clear,
+                                        in: RoundedRectangle(cornerRadius: 5))
                     }
+                }
+                .padding(8)
+                .frame(maxWidth: 240)
+                .background(Color.secondary.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+                VStack(alignment: .leading, spacing: 4) {
+                    Stepper(value: $whileInitialValue, in: WhileLoopTrace.initialValueRange) {
+                        Text(String(format: text("lab.collectionsWhileInitial"), whileInitialValue))
+                            .font(.callout.monospacedDigit())
+                    }
+                    .onChange(of: whileInitialValue) { _ in resetWhileTrace() }
+                    Stepper(value: $whileDecrement, in: WhileLoopTrace.decrementRange) {
+                        Text(String(format: text("lab.collectionsWhileDecrement"), whileDecrement))
+                            .font(.callout.monospacedDigit())
+                    }
+                    .onChange(of: whileDecrement) { _ in resetWhileTrace() }
+                }
+            }
+            Canvas { context, size in drawNumberLine(context, size: size) }
+                .frame(height: 96)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.collectionsWhileLine"))
+                .accessibilityValue(Text(String(format: text("lab.collectionsWhileCurrent"), whileTrace.currentValue)))
+            HStack(spacing: 10) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.25)) { _ = whileTrace.checkNextStep() }
+                } label: { Label(text("lab.collectionsWhileCheck"), systemImage: "arrow.right.circle") }
                     .buttonStyle(.borderedProminent)
                     .disabled(whileTrace.isComplete)
-
-                    Button {
-                        resetWhileTrace()
-                    } label: {
-                        Label(L10n.text("lab.collectionsWhileRestart", store.language), systemImage: "arrow.counterclockwise")
+                Button(action: resetWhileTrace) { Label(text("lab.collectionsWhileRestart"), systemImage: "arrow.counterclockwise") }
+            }
+            if let step = whileTrace.steps.last {
+                VStack(alignment: .leading, spacing: 3) {
+                    Label(String(format: text(step.conditionTrue ? "lab.collectionsWhileConditionTrue" : "lab.collectionsWhileConditionFalse"),
+                                 step.checkNumber, step.valueBeforeCheck),
+                          systemImage: step.conditionTrue ? "checkmark.circle" : "stop.circle.fill")
+                        .font(.callout.weight(.medium).monospacedDigit())
+                        .foregroundStyle(step.conditionTrue ? Color.primary : Color.green)
+                    if let valueAfterBody = step.valueAfterBody {
+                        Text(String(format: text("lab.collectionsWhileBody"), valueAfterBody))
+                    } else {
+                        Text(text("lab.collectionsWhileExit"))
                     }
-                    .buttonStyle(.bordered)
                 }
-
-                Text(L10n.text("lab.collectionsWhileLimit", store.language))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .fixedSize(horizontal: false, vertical: true)
+                .font(.callout.monospacedDigit())
+                .foregroundStyle(.secondary)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.collectionsStatCurrent"), value: "\(whileTrace.currentValue)", tint: whileTrace.isComplete ? .green : .accentColor)
+                LabStat(label: text("lab.collectionsStatChecks"), value: "\(whileTrace.steps.count)", tint: .purple)
+                LabStat(label: text("lab.collectionsWhileOutput"), value: "[" + whileTrace.printedValues.map(String.init).joined(separator: ", ") + "]", tint: .teal)
             }
         }
+        .padding(12)
+        .background(Color.secondary.opacity(0.05), in: RoundedRectangle(cornerRadius: 12))
+    }
+
+    private var whileCodeLines: [String] {
+        ["remaining = \(whileTrace.initialValue)", "while remaining > 0:", "    print(remaining)", "    remaining -= \(whileTrace.decrement)"]
+    }
+
+    // remaining on a number line: green where the condition holds, red where it fails; each arc is one pass through the body.
+    private func drawNumberLine(_ context: GraphicsContext, size: CGSize) {
+        let left: CGFloat = 16
+        let unit = (size.width - 32) / 12
+        let baseline = size.height - 24
+        func x(_ value: Int) -> CGFloat { left + CGFloat(value + 3) * unit }
+        context.fill(Path(CGRect(x: x(-3), y: baseline - 3, width: x(0) - x(-3), height: 6)), with: .color(.red.opacity(0.45)))
+        context.fill(Path(CGRect(x: x(0), y: baseline - 3, width: x(9) - x(0), height: 6)), with: .color(.green.opacity(0.45)))
+        for value in -3...9 {
+            var tick = Path()
+            tick.move(to: CGPoint(x: x(value), y: baseline - 6))
+            tick.addLine(to: CGPoint(x: x(value), y: baseline + 6))
+            context.stroke(tick, with: .color(.secondary.opacity(value == 0 ? 1 : 0.5)), lineWidth: value == 0 ? 2 : 1)
+            context.draw(Text(verbatim: value < 0 ? "−\(-value)" : "\(value)").font(.caption2.monospacedDigit()).foregroundColor(.secondary),
+                         at: CGPoint(x: x(value), y: baseline + 15))
+        }
+        for step in whileTrace.steps {
+            guard let after = step.valueAfterBody else { continue }
+            let start = CGPoint(x: x(step.valueBeforeCheck), y: baseline - 8)
+            let end = CGPoint(x: x(after), y: baseline - 8)
+            var hop = Path()
+            hop.move(to: start)
+            hop.addQuadCurve(to: end, control: CGPoint(x: (start.x + end.x) / 2, y: baseline - 8 - abs(start.x - end.x) * 0.6))
+            context.stroke(hop, with: .color(.accentColor), lineWidth: 2)
+        }
+        let marker = CGPoint(x: x(whileTrace.currentValue), y: baseline)
+        context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(whileTrace.isComplete ? .green : .accentColor))
+    }
+
+    private func finishRun() {
+        playing = false
+        printedCount = tasks.count
     }
 
     private func resetWhileTrace() {
         whileTrace = WhileLoopTrace(initialValue: whileInitialValue, decrement: whileDecrement)
     }
 }
-
 
 private struct PendingCustomTopicOutlineReview: Identifiable {
     let messageID: UUID

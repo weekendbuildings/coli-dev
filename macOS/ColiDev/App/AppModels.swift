@@ -2756,6 +2756,7 @@ final class TutorChatModel: ObservableObject {
 
 enum AppSection: Hashable {
     case today
+    case aiPath
     case subjects
     case subject(Subject)
     case lesson(Subject)

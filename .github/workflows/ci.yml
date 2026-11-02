@@ -54,7 +54,7 @@ jobs:
             arch: arm64
             feed: appcast-arm64.xml
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 30
+    timeout-minutes: 60
     steps:
       - name: Check out repository
         uses: actions/checkout@v7
@@ -432,6 +432,72 @@ jobs:
           swiftc macOS/ColiDev/App/ChemistryLabs.swift macOS/ColiDev/scripts/verify_chemistry_labs.swift \
             -o "$RUNNER_TEMP/verify-chemistry-labs"
           "$RUNNER_TEMP/verify-chemistry-labs"
+
+      - name: Verify error landscape model / Проверка модели рельефа ошибки
+        run: |
+          swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/App/SurfacePlot3D.swift macOS/ColiDev/App/ErrorLandscape.swift macOS/ColiDev/scripts/verify_error_landscape.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-error-landscape"
+          "$RUNNER_TEMP/verify-error-landscape"
+
+      - name: Verify cross-entropy bowl model / Проверка модели чаши кросс-энтропии
+        run: |
+          swiftc macOS/ColiDev/App/CrossEntropyBowl.swift macOS/ColiDev/scripts/verify_cross_entropy_bowl.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-cross-entropy-bowl"
+          "$RUNNER_TEMP/verify-cross-entropy-bowl"
+
+      - name: Verify softmax classifier model / Проверка модели классификатора softmax
+        run: |
+          swiftc macOS/ColiDev/App/SoftmaxClassifier.swift macOS/ColiDev/scripts/verify_softmax_classifier.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-softmax-classifier"
+          "$RUNNER_TEMP/verify-softmax-classifier"
+
+      - name: Verify word embedding model / Проверка модели эмбеддингов слов
+        run: |
+          swiftc macOS/ColiDev/App/WordEmbedding.swift macOS/ColiDev/scripts/verify_word_embedding.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-word-embedding"
+          "$RUNNER_TEMP/verify-word-embedding"
+
+      - name: Verify pattern attention model / Проверка модели внимания на узорах
+        run: |
+          swiftc macOS/ColiDev/App/PatternAttention.swift macOS/ColiDev/scripts/verify_pattern_attention.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-pattern-attention"
+          "$RUNNER_TEMP/verify-pattern-attention"
+
+      - name: Verify gradient stack model / Проверка модели стопки слоёв
+        run: |
+          swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-gradient-stack"
+          "$RUNNER_TEMP/verify-gradient-stack"
+
+      - name: Verify training practice models / Проверка моделей практики обучения
+        run: |
+          swiftc macOS/ColiDev/App/TrainingPractice.swift macOS/ColiDev/scripts/verify_training_practice.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-training-practice"
+          "$RUNNER_TEMP/verify-training-practice"
+
+      - name: Verify Bayes town model / Проверка модели города Байеса
+        run: |
+          swiftc macOS/ColiDev/App/BayesTown.swift macOS/ColiDev/scripts/verify_bayes_town.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-bayes-town"
+          "$RUNNER_TEMP/verify-bayes-town"
+
+      - name: Verify Galton board model / Проверка модели доски Гальтона
+        run: |
+          swiftc macOS/ColiDev/App/GaltonBoard.swift macOS/ColiDev/scripts/verify_galton_board.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-galton-board"
+          "$RUNNER_TEMP/verify-galton-board"
+
+      - name: Verify consciousness indicators / Проверка индикаторов сознания
+        run: |
+          swiftc macOS/ColiDev/App/ConsciousnessIndicators.swift macOS/ColiDev/scripts/verify_consciousness_indicators.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-consciousness-indicators"
+          "$RUNNER_TEMP/verify-consciousness-indicators"
+
+      - name: Verify tiny language model / Проверка маленькой языковой модели
+        run: |
+          swiftc macOS/ColiDev/App/TinyLanguageModel.swift macOS/ColiDev/scripts/verify_tiny_language_model.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-tiny-language-model"
+          "$RUNNER_TEMP/verify-tiny-language-model"
 
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
