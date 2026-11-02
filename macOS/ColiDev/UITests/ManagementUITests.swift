@@ -708,6 +708,36 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testHiddenLayerLabLearnsXORAfterOneNeuronStalls() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/neural_network_hidden_layer_xor"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        let correct = app.staticTexts["lab.xor.correct"]
+        XCTAssertTrue(
+            correct.waitForExistence(timeout: 10),
+            "The hidden layer lesson must show the XOR lab. / В уроке о скрытом слое должен быть тренажёр XOR."
+        )
+        let advance = app.buttons["lab.xor.advance"]
+        XCTAssertTrue(advance.waitForExistence(timeout: 5))
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        for _ in 0..<5 { advance.click() }
+        XCTAssertTrue(shown(correct).contains("0 / 4"), "One neuron must answer 0.5 and get nothing right.\n\(shown(correct))")
+        XCTAssertTrue(shown(app.staticTexts["lab.xor.iterations"]).contains("500"))
+
+        app.descendants(matching: .any)["lab.xor.architecture"].radioButtons.element(boundBy: 1).click()
+        XCTAssertTrue(shown(app.staticTexts["lab.xor.iterations"]).contains("0"))
+        for _ in 0..<10 { advance.click() }
+        XCTAssertTrue(shown(correct).contains("4 / 4"), "Start 1 must learn XOR within 1000 iterations.\n\(shown(correct))")
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "hidden-layer-lab"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
     func testGradientDescent2DLabTakesTheQuizStep() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"
