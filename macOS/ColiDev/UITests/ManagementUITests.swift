@@ -1096,6 +1096,43 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testGaltonBoardDropsBallsAndTurns() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/random_variables_and_sampling"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.galton.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 20), "The lesson must show the board.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let balls = app.staticTexts["lab.galton.balls"]
+        XCTAssertTrue(shown(balls).hasPrefix("0"), shown(balls))
+        app.buttons["lab.galton.drop100"].click()
+        try await Task.sleep(nanoseconds: 600_000_000)
+        snapshot("landscape-galton-falling")
+        for _ in 0..<4 { app.buttons["lab.galton.drop100"].click() }
+        try await Task.sleep(nanoseconds: 1_500_000_000)
+        snapshot("landscape-galton-full")
+        XCTAssertTrue(shown(balls).hasPrefix("500"), shown(balls))
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.1, dy: 0.2)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.35, dy: 0.2)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the board.")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"

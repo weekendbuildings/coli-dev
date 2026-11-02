@@ -1894,6 +1894,8 @@ private struct PracticeLab: View {
             WaveFitLab()
         } else if subject == .mathematics, moduleResource == "probability_and_bayes" {
             BayesTownLab()
+        } else if subject == .mathematics, moduleResource == "random_variables_and_sampling" {
+            GaltonBoardLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -14362,6 +14364,80 @@ private struct BayesTownLab: View {
     }
 
     private func check() {
+        if model.solvesChallenge { solved = true }
+    }
+}
+
+private struct GaltonBoardLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = GaltonBoardModel()
+    @State private var lastPaths: [[Bool]] = []
+    @State private var dropCount = 0
+    @State private var solved = false
+
+    private typealias Model = GaltonBoardModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if model.balls == 0 { return (.info, text("lab.galton.ready")) }
+        if model.balls < 50 { return (.info, text("lab.galton.few")) }
+        return (.good, String(format: text("lab.galton.many"), number(model.sampleMean), number(model.theoryMean)))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.galton.title"), instruction: text("lab.galton.subtitle"))
+            GaltonBoardSceneView(model: model, lastPaths: lastPaths, dropCount: dropCount)
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.galton.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.galton.sceneValue"), String(model.balls), number(model.sampleMean), number(model.theoryMean)))
+                .accessibilityIdentifier("lab.galton.scene")
+            HStack(spacing: 14) {
+                Text(String(format: text("lab.galton.rows"), String(model.rows))).monospacedDigit().frame(minWidth: 90, alignment: .leading)
+                Slider(value: Binding(get: { Double(model.rows) }, set: { model.configure(rows: Int($0.rounded()), rightChance: model.rightChance) }),
+                       in: Double(Model.rowRange.lowerBound)...Double(Model.rowRange.upperBound), step: 1)
+                    .accessibilityLabel(text("lab.galton.rowsLabel"))
+                    .accessibilityValue(Text(verbatim: String(model.rows)))
+                    .accessibilityIdentifier("lab.galton.rows")
+                Text(String(format: text("lab.galton.chance"), number(model.rightChance))).monospacedDigit().frame(minWidth: 70, alignment: .leading)
+                Slider(value: Binding(get: { model.rightChance }, set: { model.configure(rows: model.rows, rightChance: ($0 * 20).rounded() / 20) }), in: 0.1...0.9)
+                    .accessibilityLabel(text("lab.galton.chanceLabel"))
+                    .accessibilityValue(Text(verbatim: number(model.rightChance)))
+                    .accessibilityIdentifier("lab.galton.chance")
+            }
+            HStack(spacing: 10) {
+                ForEach([1, 10, 100], id: \.self) { count in
+                    Button(String(format: text("lab.galton.drop"), String(count))) { drop(count) }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("lab.galton.drop\(count)")
+                }
+                Button(text("lab.neurontrain.reset")) { model.configure(rows: model.rows, rightChance: model.rightChance); lastPaths = [] }
+                    .accessibilityIdentifier("lab.galton.reset")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.galton.statBalls"), value: String(model.balls), tint: .blue, identifier: "lab.galton.balls")
+                LabStat(label: text("lab.galton.statMean"), value: number(model.sampleMean), tint: .orange, identifier: "lab.galton.mean")
+                LabStat(label: text("lab.galton.statTheoryMean"), value: number(model.theoryMean), tint: .green, identifier: "lab.galton.theoryMean")
+                LabStat(label: text("lab.galton.statVariance"), value: number(model.sampleVariance), tint: .orange, identifier: "lab.galton.variance")
+                LabStat(label: text("lab.galton.statTheoryVariance"), value: number(model.theoryVariance), tint: .green, identifier: "lab.galton.theoryVariance")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.galton.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.galton.challenge"), solved: solved,
+                         solvedText: text("lab.galton.challengeSolved"), identifier: "lab.galton.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.galton.how1"), text("lab.galton.how2")])
+        }
+    }
+
+    private func drop(_ count: Int) {
+        var paths: [[Bool]] = []
+        for _ in 0..<count { paths.append(model.drop()) }
+        lastPaths = paths
+        dropCount += 1
         if model.solvesChallenge { solved = true }
     }
 }

@@ -481,6 +481,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-bayes-town"
           "$RUNNER_TEMP/verify-bayes-town"
 
+      - name: Verify Galton board model / Проверка модели доски Гальтона
+        run: |
+          swiftc macOS/ColiDev/App/GaltonBoard.swift macOS/ColiDev/scripts/verify_galton_board.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-galton-board"
+          "$RUNNER_TEMP/verify-galton-board"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
