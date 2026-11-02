@@ -43,6 +43,7 @@ enum TrainingStage {
         geometry.firstMaterial = material(color, lit: false)
         let node = SCNNode(geometry: geometry)
         center(node)
+        node.castsShadow = false
         node.scale = SCNVector3(size, size, size)
         node.constraints = [SCNBillboardConstraint()]
         return node
