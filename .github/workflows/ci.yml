@@ -475,6 +475,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-chat-lab"
           "$RUNNER_TEMP/verify-chat-lab"
 
+      - name: Verify model scoreboard lab
+        run: |
+          swiftc macOS/ColiDev/App/ModelScoreboard.swift macOS/ColiDev/scripts/verify_model_scoreboard.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-model-scoreboard"
+          "$RUNNER_TEMP/verify-model-scoreboard"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \

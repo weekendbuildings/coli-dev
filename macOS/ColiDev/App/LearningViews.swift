@@ -1948,6 +1948,8 @@ private struct PracticeLab: View {
             LiveModelLab()
         } else if subject == .programming, moduleResource == "chat_roles_and_context" {
             ChatAnatomyLab()
+        } else if subject == .programming, moduleResource == "model_mistakes_and_checking" {
+            ModelScoreboardLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -19599,6 +19601,164 @@ private struct ChatAnatomyLab: View {
             .padding(12)
             .frame(maxWidth: .infinity, alignment: .leading)
             .background(Color.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
+}
+
+// MARK: - Catch the model lab / Тренажёр: поймай модель
+
+private struct ModelScoreboardLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var state = ModelScoreboardState()
+
+    private typealias Items = ModelScoreboardState
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.score.title"), instruction: text("lab.score.subtitle"))
+            LabStatusBadge(kind: .info, text: text("lab.score.recorded"), identifier: "lab.score.recorded")
+            tiles
+            detail
+            confidenceChart
+            LabStatGrid {
+                LabStat(label: text("lab.score.statYou"), value: "\(state.guessedRight) / \(state.bets.count)", tint: .green, identifier: "lab.score.you")
+                LabStat(label: text("lab.score.statTrustAll"), value: "\(Items.items.filter(\.right).count) / \(Items.items.count)", tint: .orange, identifier: "lab.score.trustAll")
+                LabStat(label: text("lab.score.statRule"), value: "\(state.currentRule.right) / \(state.currentRule.trusted)", tint: .accentColor, identifier: "lab.score.rule")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: String(format: text("lab.score.challenge"), String(Items.betsForTask)), solved: state.solved,
+                         solvedText: text("lab.score.challengeDone"), identifier: "lab.score.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.score.howConfidence"), text("lab.score.howTries")])
+        }
+    }
+
+    private func tileColor(_ index: Int) -> Color {
+        guard state.bets[index] != nil else { return Color.secondary.opacity(0.14) }
+        return Items.items[index].right ? Color.green.opacity(0.28) : Color.red.opacity(0.28)
+    }
+
+    private var tiles: some View {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 150), spacing: 6)], spacing: 6) {
+            ForEach(Items.items.indices, id: \.self) { index in
+                Button { state.selected = index } label: {
+                    HStack(alignment: .top, spacing: 4) {
+                        if state.bets[index] != nil {
+                            Image(systemName: Items.items[index].right ? "checkmark" : "xmark").font(.caption2.weight(.bold))
+                        }
+                        Text(verbatim: Items.items[index].question)
+                            .font(.caption)
+                            .lineLimit(2)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(7)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
+                    .background(tileColor(index), in: RoundedRectangle(cornerRadius: 7))
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selected ? Color.accentColor : Color.clear, lineWidth: 2))
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("lab.score.tile.\(index)")
+            }
+        }
+    }
+
+    private var detail: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text(verbatim: state.item.question).font(.callout.weight(.semibold))
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(verbatim: state.item.answer)
+                    .font(.title3.weight(.medium))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.score.answer")
+                Spacer()
+                Text(verbatim: String(format: text("lab.score.confidence"), number(state.item.confidence)))
+                    .font(.callout.weight(.semibold))
+                    .monospacedDigit()
+                    .foregroundStyle(.orange)
+                    .fixedSize()
+            }
+            if state.isRevealed {
+                LabStatusBadge(kind: state.item.right ? .good : .bad, text: text(state.item.right ? "lab.score.isRight" : "lab.score.isWrong"), identifier: "lab.score.truth")
+                Text(verbatim: "\(text("lab.score.biggerSaid")) \(state.item.bigger) \(state.item.biggerRight ? "✓" : "✗")")
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(verbatim: String(format: text("lab.score.triesLine"), String(state.item.triesRight)))
+                    .font(.callout.weight(.semibold))
+                ForEach(Array(state.item.tries.enumerated()), id: \.offset) { _, attempt in
+                    Text(verbatim: "· \(attempt)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                }
+            } else {
+                HStack(spacing: 10) {
+                    Button { state.bet(trust: true) } label: { Label(text("lab.score.trust"), systemImage: "hand.thumbsup") }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("lab.score.trust")
+                    Button { state.bet(trust: false) } label: { Label(text("lab.score.doubt"), systemImage: "hand.thumbsdown") }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("lab.score.doubt")
+                }
+            }
+        }
+        .padding(12)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+    }
+
+    /// Answers by confidence: right ones on top, wrong below; a dragged line is the trust threshold.
+    /// Ответы по уверенности: верные сверху, неверные снизу; перетаскиваемая линия это порог доверия.
+    private var confidenceChart: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text("lab.score.chartTitle")).font(.callout.weight(.semibold))
+            GeometryReader { proxy in
+                Canvas { context, size in
+                    let geometry = LabPlotGeometry(size: size, x: 0.3...1, y: 0...1, leading: 74)
+                    geometry.drawAxes(in: context, xLabel: text("lab.score.chartX"), yLabel: "",
+                                      xTicks: [0.3, 0.5, 0.7, 0.9, 1], yTicks: []) { number($0, 1) }
+                    let rows: [(Double, String, Color)] = [(0.75, text("lab.score.rowRight"), .green), (0.25, text("lab.score.rowWrong"), .red)]
+                    for row in rows {
+                        context.draw(Text(verbatim: row.1).font(.caption.weight(.semibold)).foregroundColor(row.2),
+                                     at: CGPoint(x: geometry.rect.minX - 8, y: geometry.point(0.3, row.0).y), anchor: .trailing)
+                    }
+                    var line = Path()
+                    line.move(to: geometry.point(state.threshold, 0))
+                    line.addLine(to: geometry.point(state.threshold, 1))
+                    context.stroke(line, with: .color(.orange), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+                    for (index, item) in Items.items.enumerated() {
+                        let lane: Double = (item.right ? 0.75 : 0.25) + Double(index % 5 - 2) * 0.05
+                        let point: CGPoint = geometry.point(item.confidence, lane)
+                        let dot = CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)
+                        let passes: Bool = item.confidence > state.threshold
+                        let base: Color = item.right ? .green : .red
+                        context.fill(Path(ellipseIn: dot), with: .color(base.opacity(passes ? 0.95 : 0.3)))
+                        if index == state.selected {
+                            context.stroke(Path(ellipseIn: dot.insetBy(dx: -2, dy: -2)), with: .color(.primary), lineWidth: 2)
+                        }
+                    }
+                }
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                    let geometry = LabPlotGeometry(size: proxy.size, x: 0.3...1, y: 0...1, leading: 74)
+                    let value: Double = geometry.value(at: drag.location).x
+                    state.threshold = min(max((value * 1000).rounded() / 1000, 0.3), 1)
+                })
+            }
+            .frame(height: 170)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.score.chartTitle"))
+            .accessibilityValue(number(state.threshold))
+            .accessibilityIdentifier("lab.score.chart")
+            .accessibilityAdjustableAction { direction in
+                state.threshold = min(max(state.threshold + (direction == .increment ? 0.01 : -0.01), 0.3), 1)
+            }
+            Text(verbatim: String(format: text("lab.score.ruleLine"), number(state.threshold, 3), String(state.currentRule.trusted), String(state.currentRule.right)))
+                .font(.callout)
+                .monospacedDigit()
+                .accessibilityIdentifier("lab.score.ruleLine")
         }
     }
 }
