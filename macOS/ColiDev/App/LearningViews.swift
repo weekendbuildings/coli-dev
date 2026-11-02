@@ -1885,6 +1885,8 @@ private struct PracticeLab: View {
             SoftmaxReliefLab()
         } else if subject == .programming, moduleResource == "embeddings_and_similarity" {
             EmbeddingSpaceLab()
+        } else if subject == .programming, moduleResource == "attention_mechanism" {
+            AttentionTowersLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -13901,6 +13903,119 @@ private struct EmbeddingSpaceLab: View {
                 }
             }
         }
+    }
+}
+
+private struct AttentionTowersLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = PatternAttentionModel()
+    @State private var exampleIndex = 0
+    @State private var selectedRow = 6
+    @State private var playing = false
+    @State private var solved = false
+
+    private typealias Model = PatternAttentionModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var example: [Int] { model.unseen[exampleIndex % model.unseen.count] }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text(model.usesPositions ? "lab.attention.readyPositions" : "lab.attention.ready"))
+        case .training: return (.info, text("lab.attention.training"))
+        case .learned: return (.good, text("lab.attention.learned"))
+        case .stuck: return (.warning, String(format: text("lab.attention.stuck"), number(model.accuracy * 100, 0)))
+        case .outOfSteps: return (.warning, text("lab.attention.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.attention.title"), instruction: text("lab.attention.subtitle"))
+            AttentionTowersSceneView(model: model, example: example, selectedRow: selectedRow, language: store.language, onSelectRow: { selectedRow = $0 })
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.attention.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.attention.sceneValue"), String(selectedRow), number(model.accuracy * 100, 0)))
+                .accessibilityIdentifier("lab.attention.scene")
+            sequence
+            HStack(spacing: 14) {
+                Picker(text("lab.attention.period"), selection: Binding(get: { model.period }, set: { rebuild(period: $0, positions: model.usesPositions) })) {
+                    ForEach(Array(Model.periods), id: \.self) { Text(verbatim: String($0)).tag($0) }
+                }
+                .pickerStyle(.segmented)
+                .frame(maxWidth: 260)
+                .accessibilityIdentifier("lab.attention.period")
+                Toggle(text("lab.attention.positions"), isOn: Binding(get: { model.usesPositions }, set: { rebuild(period: model.period, positions: $0) }))
+                    .accessibilityIdentifier("lab.attention.positions")
+                Spacer()
+            }
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.attention.play")
+                Button(text("lab.landscape.step")) { advance(by: 5) }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.attention.step")
+                Button(text("lab.neurontrain.reset")) { rebuild(period: model.period, positions: model.usesPositions) }
+                    .accessibilityIdentifier("lab.attention.reset")
+                Button(text("lab.attention.nextExample")) { exampleIndex += 1 }
+                    .accessibilityIdentifier("lab.attention.next")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.attention.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.attention.loss")
+                LabStat(label: text("lab.attention.statAccuracy"), value: number(model.accuracy * 100, 0) + " %", tint: .green, identifier: "lab.attention.accuracy")
+                LabStat(label: text("lab.attention.statSteps"), value: String(model.steps), identifier: "lab.attention.steps")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.attention.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.attention.challenge"), solved: solved,
+                         solvedText: text("lab.attention.challengeSolved"), identifier: "lab.attention.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.attention.how1"), text("lab.attention.how2"), text("lab.attention.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 80_000_000)
+                guard playing else { break }
+                advance(by: 2)
+                // Training goes on past the goal, so that the stripe grows tall. / Обучение идёт и после цели, чтобы полоса выросла.
+                if model.loss < 0.02 || model.phase == .stuck || model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func rebuild(period: Int, positions: Bool) {
+        playing = false
+        model = Model(period: period, usesPositions: positions)
+    }
+
+    private func advance(by count: Int) {
+        for _ in 0..<count { model.step() }
+        if model.solvesChallenge { solved = true }
+    }
+
+    // The example as letters, with the selected place, the right next letter and the model's answer.
+    private var sequence: some View {
+        let q = model.answer(example, at: selectedRow)
+        let top = q.indices.max { q[$0] < q[$1] } ?? 0
+        return HStack(spacing: 6) {
+            ForEach(0..<Model.length, id: \.self) { index in
+                Text(verbatim: Model.letters[example[index]])
+                    .font(.callout.monospaced().weight(index == selectedRow + 1 ? .bold : .regular))
+                    .frame(width: 26, height: 26)
+                    .background(index == selectedRow + 1 ? Color.green.opacity(0.3) : (index <= selectedRow ? Color.secondary.opacity(0.18) : Color.clear), in: RoundedRectangle(cornerRadius: 6))
+                    .opacity(index <= selectedRow + 1 ? 1 : 0.35)
+            }
+            Text(String(format: text("lab.attention.modelSays"), Model.letters[top], number(q[top])))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .padding(.leading, 8)
+        }
+        .accessibilityElement(children: .combine)
     }
 }
 

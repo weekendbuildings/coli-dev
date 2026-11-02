@@ -457,6 +457,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-word-embedding"
           "$RUNNER_TEMP/verify-word-embedding"
 
+      - name: Verify pattern attention model / Проверка модели внимания на узорах
+        run: |
+          swiftc macOS/ColiDev/App/PatternAttention.swift macOS/ColiDev/scripts/verify_pattern_attention.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-pattern-attention"
+          "$RUNNER_TEMP/verify-pattern-attention"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
