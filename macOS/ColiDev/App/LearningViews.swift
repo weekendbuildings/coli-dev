@@ -1887,6 +1887,8 @@ private struct PracticeLab: View {
             EmbeddingSpaceLab()
         } else if subject == .programming, moduleResource == "attention_mechanism" {
             AttentionTowersLab()
+        } else if subject == .programming, moduleResource == "transformer_block" {
+            GradientTowerLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -14016,6 +14018,65 @@ private struct AttentionTowersLab: View {
                 .padding(.leading, 8)
         }
         .accessibilityElement(children: .combine)
+    }
+}
+
+private struct GradientTowerLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var depth = 12
+    @State private var bypass = false
+    @State private var solved = false
+
+    private typealias Model = GradientStackModel
+
+    private var model: Model { Model(depth: depth, bypass: bypass) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private func shown(_ value: Double) -> String { GradientTowerSceneView.scientific(value, language: store.language) }
+
+    private var status: (LabStatusKind, String) {
+        let bottom = model.bottomSignal
+        if bottom < 1e-3 { return (.bad, String(format: text("lab.tower.faded"), shown(bottom))) }
+        if bottom < Model.keptSignal.lowerBound { return (.warning, String(format: text("lab.tower.weak"), shown(bottom))) }
+        return (.good, String(format: text("lab.tower.kept"), shown(bottom)))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.tower.title"), instruction: text("lab.tower.subtitle"))
+            GradientTowerSceneView(model: model, language: store.language)
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.tower.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.tower.sceneValue"), String(depth), shown(model.bottomSignal)))
+                .accessibilityIdentifier("lab.tower.scene")
+            HStack(spacing: 14) {
+                Text(String(format: text("lab.tower.depth"), String(depth))).monospacedDigit().frame(minWidth: 120, alignment: .leading)
+                Slider(value: Binding(get: { Double(depth) }, set: { change(depth: Int($0.rounded()), bypass: bypass) }),
+                       in: Double(Model.depths.lowerBound)...Double(Model.depths.upperBound), step: 1)
+                    .accessibilityLabel(text("lab.tower.depthLabel"))
+                    .accessibilityValue(Text(verbatim: String(depth)))
+                    .accessibilityIdentifier("lab.tower.depth")
+                Toggle(text("lab.tower.bypass"), isOn: Binding(get: { bypass }, set: { change(depth: depth, bypass: $0) }))
+                    .accessibilityIdentifier("lab.tower.bypass")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.tower.statBottom"), value: shown(model.bottomSignal), tint: .orange, identifier: "lab.tower.bottom")
+                LabStat(label: text("lab.tower.statDepth"), value: String(depth), identifier: "lab.tower.layers")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.tower.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.tower.challenge"), solved: solved,
+                         solvedText: text("lab.tower.challengeSolved"), identifier: "lab.tower.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.tower.how1"), text("lab.tower.how2"), text("lab.tower.how3")])
+        }
+    }
+
+    private func change(depth newDepth: Int, bypass newBypass: Bool) {
+        depth = newDepth
+        bypass = newBypass
+        if Model(depth: newDepth, bypass: newBypass).solvesChallenge { solved = true }
     }
 }
 

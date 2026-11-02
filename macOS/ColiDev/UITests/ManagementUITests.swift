@@ -983,6 +983,42 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testGradientTowerFadesAndTheBypassHoldsTheSignal() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/transformer_block"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.tower.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the tower.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let bottom = app.staticTexts["lab.tower.bottom"]
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        snapshot("landscape-tower-off")
+        XCTAssertTrue(shown(bottom).contains("10⁻⁶"), "Without a bypass the signal must fade.\n\(shown(bottom))")
+        app.checkBoxes["lab.tower.bypass"].click()
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        snapshot("landscape-tower-on")
+        XCTAssertTrue(shown(bottom).contains("1,28") || shown(bottom).contains("1.28"), "With a bypass the signal must hold.\n\(shown(bottom))")
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the tower.")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
