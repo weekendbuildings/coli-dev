@@ -21,7 +21,9 @@ struct BayesTownSceneView: NSViewRepresentable {
     private static func position(_ index: Int) -> SIMD3<Float> {
         let column = index % Model.columns
         let row = index / Model.columns
-        return SIMD3<Float>((Float(column) - Float(Model.columns - 1) / 2) * cell, 0.16, (Float(row) - Float(Model.rows - 1) / 2) * cell)
+        let x: Float = (Float(column) - Float(Model.columns - 1) / 2) * cell
+        let z: Float = (Float(row) - Float(Model.rows - 1) / 2) * cell
+        return SIMD3<Float>(x, 0.16, z)
     }
 
     final class Coordinator: NSObject {

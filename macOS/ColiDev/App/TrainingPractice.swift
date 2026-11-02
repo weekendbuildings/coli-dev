@@ -45,7 +45,7 @@ struct MinibatchLineModel: Equatable {
         var total = SIMD2<Double>(0, 0)
         for point in points {
             let miss = 2 * (point.x * w + b - point.y)
-            total += SIMD2(miss * point.x, miss)
+            total += SIMD2<Double>(miss * point.x, miss)
         }
         return total / Double(points.count)
     }
@@ -88,7 +88,7 @@ struct MinibatchLineModel: Equatable {
         for k in order[cursor..<(cursor + batch)] {
             let point = Self.points[k]
             let miss = 2 * (point.x * w + b - point.y)
-            total += SIMD2(miss * point.x, miss)
+            total += SIMD2<Double>(miss * point.x, miss)
         }
         cursor += batch
         let slope = total / Double(batch)

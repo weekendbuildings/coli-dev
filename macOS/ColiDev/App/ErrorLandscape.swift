@@ -158,11 +158,13 @@ enum NeuronRelief: Int, CaseIterable {
         switch self {
         case .x1: return SIMD2(1, 0)
         case .x2: return SIMD2(0, 1)
-        case .h1: return SIMD2(w[0], w[1]) * saturation(.h1)
-        case .h2: return SIMD2(w[3], w[4]) * saturation(.h2)
+        case .h1: return SIMD2<Double>(w[0], w[1]) * saturation(.h1)
+        case .h2: return SIMD2<Double>(w[3], w[4]) * saturation(.h2)
         case .y:
-            let first = SIMD2(w[0], w[1]) * (saturation(.h1) * w[6])
-            let second = SIMD2(w[3], w[4]) * (saturation(.h2) * w[7])
+            let firstScale: Double = saturation(.h1) * w[6]
+            let secondScale: Double = saturation(.h2) * w[7]
+            let first = SIMD2<Double>(w[0], w[1]) * firstScale
+            let second = SIMD2<Double>(w[3], w[4]) * secondScale
             return (first + second) * saturation(.y)
         }
     }

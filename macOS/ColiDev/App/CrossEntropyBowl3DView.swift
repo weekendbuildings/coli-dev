@@ -17,7 +17,10 @@ struct CrossEntropyBowlSceneView: NSViewRepresentable {
     private static let divisions = 72
 
     private static func plane(_ belief: [Double]) -> SIMD3<Float> {
-        corners[0] * Float(belief[0]) + corners[1] * Float(belief[1]) + corners[2] * Float(belief[2])
+        let first: SIMD3<Float> = corners[0] * Float(belief[0])
+        let second: SIMD3<Float> = corners[1] * Float(belief[1])
+        let third: SIMD3<Float> = corners[2] * Float(belief[2])
+        return first + second + third
     }
 
     private static func height(truth: [Double], belief: [Double]) -> Float {

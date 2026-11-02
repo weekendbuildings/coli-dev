@@ -91,8 +91,9 @@ struct SoftmaxClassifierModel: Equatable {
         let q = probabilities(x1: x1, x2: x2)
         let m = q.indices.max { q[$0] < q[$1] } ?? 0
         var mean = SIMD2<Double>(0, 0)
-        for k in q.indices { mean += SIMD2(weights[k][0], weights[k][1]) * q[k] }
-        return (SIMD2(weights[m][0], weights[m][1]) - mean) * q[m]
+        for k in q.indices { mean += SIMD2<Double>(weights[k][0], weights[k][1]) * q[k] }
+        let difference = SIMD2<Double>(weights[m][0], weights[m][1]) - mean
+        return difference * q[m]
     }
 
     func isCorrect(_ sample: Sample) -> Bool { prediction(x1: sample.x1, x2: sample.x2) == sample.label }

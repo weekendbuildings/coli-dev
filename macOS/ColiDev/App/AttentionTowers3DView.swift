@@ -24,12 +24,16 @@ struct AttentionTowersSceneView: NSViewRepresentable {
 
     /// Rows run from the back to the front, and columns from left to right. / Строки идут от дальнего края к ближнему, столбцы слева направо.
     private static func cellCenter(row: Int, column: Int) -> SIMD3<Float> {
-        SIMD3<Float>(cell * (Float(column) + 0.5) - boardHalf - 1.5, 0, cell * (Float(row) + 0.5) - boardHalf)
+        let x: Float = cell * (Float(column) + 0.5) - boardHalf - 1.5
+        let z: Float = cell * (Float(row) + 0.5) - boardHalf
+        return SIMD3<Float>(x, 0, z)
     }
 
     private static func answerCenter(row: Int, symbol: Int) -> SIMD3<Float> {
         let start = boardHalf - 1.5 + 0.9
-        return SIMD3<Float>(start + Float(symbol) * 0.72, 0, cell * (Float(row) + 0.5) - boardHalf)
+        let x: Float = start + Float(symbol) * 0.72
+        let z: Float = cell * (Float(row) + 0.5) - boardHalf
+        return SIMD3<Float>(x, 0, z)
     }
 
     final class Coordinator: NSObject {

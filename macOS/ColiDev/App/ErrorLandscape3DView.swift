@@ -31,7 +31,8 @@ final class LabSceneView: SCNView {
     private func applyOrbit() {
         guard let camera = pointOfView else { return }
         let height = sin(pitch)
-        let around = SIMD3<Float>(sin(yaw) * cos(pitch), height, cos(yaw) * cos(pitch))
+        let level: Float = cos(pitch)
+        let around = SIMD3<Float>(sin(yaw) * level, height, cos(yaw) * level)
         camera.simdPosition = target + around * distance
         camera.simdLook(at: target)
     }
@@ -380,7 +381,12 @@ struct ErrorLandscapeSceneView: NSViewRepresentable {
         let shelf = SIMD3<Float>(0.96, 0.72, 0.20)
         let plateau = SIMD3<Float>(0.82, 0.20, 0.32)
         let share = Float(max(0, min(1, error / 0.5)))
-        let rgb = share < 0.5 ? valley + (shelf - valley) * (share / 0.5) : shelf + (plateau - shelf) * ((share - 0.5) / 0.5)
+        let rgb: SIMD3<Float>
+        if share < 0.5 {
+            rgb = valley + (shelf - valley) * (share / 0.5)
+        } else {
+            rgb = shelf + (plateau - shelf) * ((share - 0.5) / 0.5)
+        }
         return SIMD4(rgb.x, rgb.y, rgb.z, 1)
     }
 

@@ -96,7 +96,9 @@ extension TrainingStage {
             let up = simd_cross(across, forward)
             for corner in 0..<sides {
                 let angle = Float(corner) / Float(sides) * 2 * Float.pi
-                let normal = across * cos(angle) + up * sin(angle)
+                let sideways: SIMD3<Float> = across * cos(angle)
+                let upward: SIMD3<Float> = up * sin(angle)
+                let normal: SIMD3<Float> = sideways + upward
                 normals.append(SCNVector3(normal))
                 positions.append(SCNVector3(center + normal * radius))
             }
@@ -124,7 +126,12 @@ extension TrainingStage {
         let middle = SIMD3<Float>(0.07, 0.56, 0.60)
         let high = SIMD3<Float>(0.99, 0.84, 0.25)
         let share = Float(max(0, min(1, answer)))
-        let rgb = share < 0.5 ? low + (middle - low) * (share / 0.5) : middle + (high - middle) * ((share - 0.5) / 0.5)
+        let rgb: SIMD3<Float>
+        if share < 0.5 {
+            rgb = low + (middle - low) * (share / 0.5)
+        } else {
+            rgb = middle + (high - middle) * ((share - 0.5) / 0.5)
+        }
         return SIMD4(rgb.x, rgb.y, rgb.z, 1)
     }
 
@@ -466,7 +473,10 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
     private static func topPoint(_ neuron: NeuronRelief, x1: Double, x2: Double, height: Double) -> SIMD3<Float> {
         let spot = center(neuron)
         let width = side(neuron)
-        return spot + SIMD3<Float>((Float(x1) - 0.5) * width, plinthHeight + Float(height) * reliefHeight, (0.5 - Float(x2)) * width)
+        let x: Float = (Float(x1) - 0.5) * width
+        let y: Float = plinthHeight + Float(height) * reliefHeight
+        let z: Float = (0.5 - Float(x2)) * width
+        return spot + SIMD3<Float>(x, y, z)
     }
 
     /// One hoop per example at the height of the right answer: the output is right where its corner reaches the hoop.

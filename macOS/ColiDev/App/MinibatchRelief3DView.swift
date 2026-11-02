@@ -28,7 +28,10 @@ struct MinibatchReliefSceneView: NSViewRepresentable {
     private static func scenePoint(w: Double, b: Double, lift: Float = 0) -> SIMD3<Float> {
         let u = (w - weightRange.lowerBound) / (weightRange.upperBound - weightRange.lowerBound)
         let v = (b - shiftRange.lowerBound) / (shiftRange.upperBound - shiftRange.lowerBound)
-        return SIMD3<Float>((Float(u) - 0.5) * side, plinthHeight + Float(height(w: w, b: b)) * reliefHeight + lift, (0.5 - Float(v)) * side)
+        let x: Float = (Float(u) - 0.5) * side
+        let y: Float = plinthHeight + Float(height(w: w, b: b)) * reliefHeight + lift
+        let z: Float = (0.5 - Float(v)) * side
+        return SIMD3<Float>(x, y, z)
     }
 
     final class Coordinator: NSObject {
@@ -151,9 +154,9 @@ struct MinibatchReliefSceneView: NSViewRepresentable {
                 answer: { height(w: w($0), b: b($1)) },
                 slope: {
                     let loss = Model.loss(w: w($0), b: b($1))
-                    guard loss < heightLimit else { return SIMD2(0, 0) }
+                    guard loss < heightLimit else { return SIMD2<Double>(0, 0) }
                     let slope = Model.slope(w: w($0), b: b($1))
-                    return SIMD2(slope.x * spanW, slope.y * spanB) / heightLimit
+                    return SIMD2<Double>(slope.x * spanW, slope.y * spanB) / heightLimit
                 },
                 color: {
                     let loss = Model.loss(w: w($0), b: b($1))

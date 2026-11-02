@@ -19,11 +19,14 @@ struct TinyModelAttentionSceneView: NSViewRepresentable {
     private static var boardHalf: Float { cell * Float(shownPlaces) / 2 }
 
     private static func cellCenter(row: Int, column: Int) -> SIMD3<Float> {
-        SIMD3<Float>(cell * (Float(column) + 0.5) - boardHalf - 1.8, 0, cell * (Float(row) + 0.5) - boardHalf)
+        let x: Float = cell * (Float(column) + 0.5) - boardHalf - 1.8
+        let z: Float = cell * (Float(row) + 0.5) - boardHalf
+        return SIMD3<Float>(x, 0, z)
     }
 
     private static func pillarCenter(_ index: Int) -> SIMD3<Float> {
-        SIMD3<Float>(boardHalf - 1.8 + 1.4 + Float(index) * 0.82, 0, boardHalf - 0.6)
+        let x: Float = boardHalf - 0.4 + Float(index) * 0.82
+        return SIMD3<Float>(x, 0, boardHalf - 0.6)
     }
 
     /// A readable mark for characters with no shape of their own. / Заметный знак для символов без своей формы.

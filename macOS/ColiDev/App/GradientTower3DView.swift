@@ -37,7 +37,11 @@ struct GradientTowerSceneView: NSViewRepresentable {
     private static func color(_ signal: Double) -> NSColor {
         // A faded signal is a cold dark plate, and a live one glows warm. / Угасший сигнал это холодная тёмная плита, живой светится тепло.
         let t = CGFloat(share(signal))
-        return NSColor(red: 0.13 + 0.87 * t * t, green: 0.16 + 0.5 * t * t, blue: 0.3 - 0.12 * t, alpha: 1)
+        let glow: CGFloat = t * t
+        let red: CGFloat = 0.13 + 0.87 * glow
+        let green: CGFloat = 0.16 + 0.5 * glow
+        let blue: CGFloat = 0.3 - 0.12 * t
+        return NSColor(red: red, green: green, blue: blue, alpha: 1)
     }
 
     final class Coordinator: NSObject {

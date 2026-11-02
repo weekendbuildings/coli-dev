@@ -33,7 +33,8 @@ struct SoftmaxReliefSceneView: NSViewRepresentable {
     private static func scenePoint(model: Model, x1: Double, x2: Double, lift: Float = 0) -> SIMD3<Float> {
         let u = Float((x1 - Model.domain.lowerBound) / span) - 0.5
         let v = Float((x2 - Model.domain.lowerBound) / span) - 0.5
-        return SIMD3<Float>(u * side, plinthHeight + Float(model.confidence(x1: x1, x2: x2)) * reliefHeight + lift, -v * side)
+        let height: Float = plinthHeight + Float(model.confidence(x1: x1, x2: x2)) * reliefHeight + lift
+        return SIMD3<Float>(u * side, height, -v * side)
     }
 
     /// Walks along the view ray until it drops below the true surface. / Идём вдоль луча, пока он не уйдёт под поверхность.
