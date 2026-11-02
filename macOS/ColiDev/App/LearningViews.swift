@@ -1896,6 +1896,8 @@ private struct PracticeLab: View {
             BayesTownLab()
         } else if subject == .mathematics, moduleResource == "random_variables_and_sampling" {
             GaltonBoardLab()
+        } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
+            ConsciousnessIndicatorLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -14439,6 +14441,68 @@ private struct GaltonBoardLab: View {
         lastPaths = paths
         dropCount += 1
         if model.solvesChallenge { solved = true }
+    }
+}
+
+private struct ConsciousnessIndicatorLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = ConsciousnessIndicatorModel()
+
+    private typealias Model = ConsciousnessIndicatorModel
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private let theories = ["rpt", "gwt", "hot", "ast", "pp", "ae"]
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.mind.title"), instruction: text("lab.mind.subtitle"))
+            ForEach(theories, id: \.self) { theory in
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(text("lab.mind.theory\(theory.capitalized)")).font(.headline)
+                    ForEach(Model.indicators.filter { Model.theory(of: $0) == theory }, id: \.self) { indicator in
+                        row(indicator)
+                    }
+                }
+                .padding(.vertical, 4)
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.mind.statAnswered"), value: "\(model.answeredCount) / \(Model.indicators.count)", tint: .blue, identifier: "lab.mind.answered")
+                LabStat(label: text("lab.mind.statMatching"), value: String(model.matching), tint: .green, identifier: "lab.mind.matching")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.mind.challenge"), solved: model.solvesChallenge,
+                         solvedText: text("lab.mind.challengeSolved"), identifier: "lab.mind.challenge")
+            Button(text("lab.neurontrain.reset")) { model.reset() }
+                .accessibilityIdentifier("lab.mind.reset")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.mind.how1"), text("lab.mind.how2")])
+        }
+    }
+
+    private func row(_ indicator: String) -> some View {
+        let answer = model.answers[indicator]
+        return VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(text("lab.mind.\(indicator)"))
+                    .font(.callout)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Button(text("lab.mind.yes")) { model.answer(indicator, has: true) }
+                    .buttonStyle(.bordered)
+                    .tint(answer == true ? .accentColor : .secondary)
+                    .accessibilityIdentifier("lab.mind.\(indicator).yes")
+                Button(text("lab.mind.no")) { model.answer(indicator, has: false) }
+                    .buttonStyle(.bordered)
+                    .tint(answer == false ? .accentColor : .secondary)
+                    .accessibilityIdentifier("lab.mind.\(indicator).no")
+            }
+            if answer != nil {
+                Label(text("lab.mind.\(indicator)Why"), systemImage: Model.modelHasIt(indicator) == answer ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+                    .font(.caption)
+                    .foregroundStyle(Model.modelHasIt(indicator) == answer ? Color.green : Color.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("lab.mind.\(indicator).why")
+            }
+        }
     }
 }
 

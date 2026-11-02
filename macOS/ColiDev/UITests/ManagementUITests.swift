@@ -1133,6 +1133,31 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testConsciousnessLabExplainsEachAnswer() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/consciousness_known_and_unknown"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        let yes = app.buttons["lab.mind.rpt1.yes"]
+        XCTAssertTrue(yes.waitForExistence(timeout: 10), "The lesson must show the indicators.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where !yes.isHittable {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(yes.isHittable)
+        yes.click()
+        let why = app.descendants(matching: .any)["lab.mind.rpt1.why"]
+        XCTAssertTrue(why.waitForExistence(timeout: 3), "An answer must open its explanation.")
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "landscape-mind"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"

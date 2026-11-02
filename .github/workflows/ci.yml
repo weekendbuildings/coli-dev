@@ -487,6 +487,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-galton-board"
           "$RUNNER_TEMP/verify-galton-board"
 
+      - name: Verify consciousness indicators / Проверка индикаторов сознания
+        run: |
+          swiftc macOS/ColiDev/App/ConsciousnessIndicators.swift macOS/ColiDev/scripts/verify_consciousness_indicators.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-consciousness-indicators"
+          "$RUNNER_TEMP/verify-consciousness-indicators"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
