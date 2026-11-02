@@ -19092,20 +19092,20 @@ private struct LiveModelLab: View {
                 }
             }
             textStrip
-            promptPicker
             candidateChart
             temperatureControls
             actions
             experimentChart
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.liveModel.challenge"),
+                         solved: state.experimentDone, solvedText: text("lab.liveModel.challengeDone"),
+                         identifier: "lab.liveModel.challenge")
+            promptPicker
             LabStatGrid {
                 LabStat(label: text("lab.liveModel.statPrompt"), value: String(state.promptTokens), tint: .accentColor, identifier: "lab.liveModel.promptTokens")
                 LabStat(label: text("lab.liveModel.statWritten"), value: String(state.written.count), tint: .green)
                 LabStat(label: text("lab.liveModel.statBest"), value: state.best.map { percent($0.probability) } ?? "—", tint: .orange, identifier: "lab.liveModel.bestShare")
                 LabStat(label: text("lab.liveModel.statSpeed"), value: state.milliseconds > 0 ? "\(number(state.milliseconds, 0)) \(text("lab.liveModel.ms"))" : "—", tint: .purple)
             }
-            LabChallenge(caption: text("lab.kit.task"), task: text("lab.liveModel.challenge"),
-                         solved: state.experimentDone, solvedText: text("lab.liveModel.challengeDone"),
-                         identifier: "lab.liveModel.challenge")
             LabExplainer(title: text("lab.kit.how"), paragraphs: [
                 text("lab.liveModel.howCandidates"), text("lab.liveModel.howFormula"), text("lab.liveModel.howTail")
             ])
@@ -19319,8 +19319,8 @@ private struct LiveModelLab: View {
             Text(verbatim: String(format: text("lab.liveModel.chartTitle"), state.best.map { LiveModelMath.visibleToken($0.token) } ?? "—"))
                 .font(.callout.weight(.semibold))
             Canvas { context, size in
-                let geometry = LabPlotGeometry(size: size, x: 0...2, y: 0...100)
-                geometry.drawAxes(in: context, xLabel: text("lab.liveModel.chartX"), yLabel: "%",
+                let geometry = LabPlotGeometry(size: size, x: 0...2, y: 0...100, top: LiveModelLab.chartTop)
+                geometry.drawAxes(in: context, xLabel: text("lab.liveModel.chartX"), yLabel: "",
                                   xTicks: [0, 0.5, 1, 1.5, 2], yTicks: [0, 25, 50, 75, 100]) { number($0, $0 == $0.rounded() ? 0 : 1) }
                 var marker = Path()
                 marker.move(to: geometry.point(temperature, 0))
@@ -19345,11 +19345,10 @@ private struct LiveModelLab: View {
                     context.draw(hint, at: CGPoint(x: geometry.rect.midX, y: geometry.rect.midY))
                 }
             }
-            .frame(height: 210)
+            .frame(height: 190)
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
-                // The same plot margins as LabPlotGeometry's defaults. / Те же поля, что по умолчанию в LabPlotGeometry.
-                let geometry = LabPlotGeometry(size: chartSize, x: 0...2, y: 0...100)
+                let geometry = LabPlotGeometry(size: chartSize, x: 0...2, y: 0...100, top: LiveModelLab.chartTop)
                 let value: Double = geometry.value(at: drag.location).x
                 temperature = min(max((value * 10).rounded() / 10, 0), 2)
             })
@@ -19363,5 +19362,8 @@ private struct LiveModelLab: View {
         }
     }
 
-    @State private var chartSize = CGSize(width: 600, height: 210)
+    @State private var chartSize = CGSize(width: 600, height: 190)
+
+    /// Room above the 100% line for the label of a point there. / Место над линией 100 % для подписи точки.
+    private static let chartTop: CGFloat = 24
 }

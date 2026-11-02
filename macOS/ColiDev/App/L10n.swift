@@ -48,7 +48,7 @@ enum L10n {
         "lab.liveModel.throw": ("Бросить 100 раз", "Throw 100 times"),
         "lab.liveModel.restart": ("Сначала", "Start over"),
         "lab.liveModel.thrown": ("Брошено %@ из %@", "Thrown %@ of %@"),
-        "lab.liveModel.chartTitle": ("Как часто выпадал %@ при разной температуре", "How often %@ fell at each temperature"),
+        "lab.liveModel.chartTitle": ("Как часто выпадал %@ при разной температуре, в процентах", "How often %@ fell at each temperature, in percent"),
         "lab.liveModel.chartTitleSpoken": ("Как часто выпадал лучший токен при разной температуре", "How often the best token fell at each temperature"),
         "lab.liveModel.chartX": ("температура T", "temperature T"),
         "lab.liveModel.chartEmpty": ("Брось 100 раз, и здесь появится первая настоящая точка", "Throw 100 times and the first real point appears here"),
