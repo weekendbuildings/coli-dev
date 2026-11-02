@@ -1158,6 +1158,46 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testTinyModelWritesAndShowsItsAttention() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/build_your_language_model"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.tiny.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 20), "The lesson must show the model.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<160 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        try await Task.sleep(nanoseconds: 2_000_000_000)
+        snapshot("landscape-tiny-opening")
+        let editor = app.textViews["lab.tiny.text"]
+        XCTAssertTrue(editor.exists, app.debugDescription)
+        let before = editor.value as? String ?? ""
+        app.buttons["lab.tiny.write"].click()
+        try await Task.sleep(nanoseconds: 12_000_000_000)
+        app.buttons["lab.tiny.write"].click()
+        try await Task.sleep(nanoseconds: 1_000_000_000)
+        snapshot("landscape-tiny-written")
+        let after = editor.value as? String ?? ""
+        XCTAssertGreaterThan(after.count, before.count + 5, "The model must write.\n\(after)")
+        XCTAssertTrue(after.hasPrefix(before), "The model must continue the text.\n\(after)")
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the scene.")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"

@@ -1898,6 +1898,8 @@ private struct PracticeLab: View {
             GaltonBoardLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
+        } else if subject == .programming, moduleResource == "build_your_language_model" {
+            TinyModelLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -14503,6 +14505,154 @@ private struct ConsciousnessIndicatorLab: View {
                     .accessibilityIdentifier("lab.mind.\(indicator).why")
             }
         }
+    }
+}
+
+private struct TinyModelLab: View {
+    private static let opening = "Нейронная сеть"
+
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = TinyLanguageModel.bundled
+    @State private var modelRevision = 0
+    @State private var text = TinyModelLab.opening
+    @State private var temperature = 0.8
+    @State private var block = 0
+    @State private var head = 0
+    @State private var writing = false
+    @State private var solved = false
+    @State private var importing = false
+    @State private var ownModel = false
+    @State private var loadFailed = false
+    @State private var scores: [Double] = []
+    @State private var attention: [[[[Double]]]] = []
+
+    private typealias Scene = TinyModelAttentionSceneView
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    /// Uses temperature 1 for the task, so that lowering the temperature alone cannot solve it.
+    /// Для задания температура 1: простое снижение температуры его не решает.
+    private var confidence: Double { TinyLanguageModel.softmax(scores, temperature: 1).max() ?? 0 }
+
+    private var candidates: [(letter: String, probability: Double)] {
+        guard let model, !scores.isEmpty else { return [] }
+        let probabilities = TinyLanguageModel.softmax(scores, temperature: temperature)
+        return probabilities.enumerated().sorted { $0.element > $1.element }.prefix(Scene.shownCandidates).map { (model.alphabet[$0.offset], $0.element) }
+    }
+
+    /// The last places read, as characters and as attention rows limited to those places.
+    private var shown: (characters: [String], rows: [[Double]]) {
+        guard let model, block < attention.count, head < attention[block].count else { return ([], []) }
+        let window = model.window(of: text)
+        let count = min(window.count, Scene.shownPlaces)
+        let start = window.count - count
+        let rows = attention[block][head]
+        guard rows.count == window.count else { return ([], []) }
+        return (window[start...].map { model.alphabet[$0] }, (start..<window.count).map { t in Array(rows[t][start...t]) })
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.tiny.title"), instruction: text("lab.tiny.subtitle"))
+            if model == nil {
+                LabStatusBadge(kind: .bad, text: text("lab.tiny.missing"), identifier: "lab.tiny.missing")
+            } else {
+                TinyModelAttentionSceneView(rows: shown.rows, characters: shown.characters, candidates: candidates)
+                    .frame(height: 440)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.tiny.sceneLabel"))
+                    .accessibilityValue(String(format: text("lab.tiny.sceneValue"), candidates.first.map { Scene.shown($0.letter) } ?? "", number((candidates.first?.probability ?? 0) * 100, 0)))
+                    .accessibilityIdentifier("lab.tiny.scene")
+                TextEditor(text: $text)
+                    .font(.body)
+                    .frame(height: 74)
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.35)))
+                    .accessibilityLabel(text("lab.tiny.textLabel"))
+                    .accessibilityIdentifier("lab.tiny.text")
+                HStack(spacing: 12) {
+                    Text(String(format: text("lab.tiny.temperature"), number(temperature))).monospacedDigit().frame(minWidth: 130, alignment: .leading)
+                    Slider(value: $temperature, in: 0.1...1.8)
+                        .accessibilityLabel(text("lab.tiny.temperatureLabel"))
+                        .accessibilityValue(Text(verbatim: number(temperature)))
+                        .accessibilityIdentifier("lab.tiny.temperature")
+                    Picker(text("lab.tiny.block"), selection: $block) {
+                        ForEach(0..<(model?.blocks.count ?? 1), id: \.self) { Text(verbatim: String($0 + 1)).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 170)
+                    Picker(text("lab.tiny.head"), selection: $head) {
+                        ForEach(0..<(model?.heads ?? 1), id: \.self) { Text(verbatim: String($0 + 1)).tag($0) }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(maxWidth: 170)
+                }
+                HStack(spacing: 10) {
+                    Button { writing.toggle() } label: { Label(text(writing ? "lab.tiny.stop" : "lab.tiny.write"), systemImage: writing ? "stop.fill" : "pencil") }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("lab.tiny.write")
+                    Button(text("lab.tiny.reset")) { writing = false; text = Self.opening }
+                        .accessibilityIdentifier("lab.tiny.reset")
+                    Spacer()
+                    Button(text("lab.tiny.open")) { importing = true }
+                        .accessibilityIdentifier("lab.tiny.open")
+                }
+                LabStatGrid {
+                    LabStat(label: text("lab.tiny.statTop"), value: number(confidence * 100, 0) + " %", tint: .orange, identifier: "lab.tiny.top")
+                    LabStat(label: text("lab.tiny.statLetters"), value: String(model?.alphabet.count ?? 0), identifier: "lab.tiny.letters")
+                    LabStat(label: text("lab.tiny.statSource"), value: text(ownModel ? "lab.tiny.sourceOwn" : "lab.tiny.sourceCourse"), tint: .blue, identifier: "lab.tiny.source")
+                }
+                if loadFailed {
+                    LabStatusBadge(kind: .bad, text: text("lab.tiny.loadFailed"), identifier: "lab.tiny.loadFailed")
+                }
+                LabChallenge(caption: text("lab.kit.task"), task: text("lab.tiny.challenge"), solved: solved,
+                             solvedText: text("lab.tiny.challengeSolved"), identifier: "lab.tiny.challenge")
+                LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.tiny.how1"), text("lab.tiny.how2"), text("lab.tiny.how3")])
+            }
+        }
+        .fileImporter(isPresented: $importing, allowedContentTypes: [.json]) { result in load(result) }
+        .task(id: "\(text)#\(modelRevision)") {
+            guard let model else { return }
+            let current = text
+            let result = await Task.detached(priority: .userInitiated) { model.run(model.window(of: current)) }.value
+            guard !Task.isCancelled, current == text else { return }
+            scores = result.scores.last ?? []
+            attention = result.attention
+            if current != Self.opening, current.count >= 3, confidence >= 0.9, !writing { solved = true }
+        }
+        .task(id: writing) {
+            guard writing, let model else { return }
+            for _ in 0..<240 where writing && !Task.isCancelled {
+                let current = text
+                let chance = temperature
+                let letter: String? = await Task.detached(priority: .userInitiated) {
+                    guard let next = model.next(after: current, temperature: chance) else { return nil }
+                    return model.alphabet[TinyLanguageModel.draw(next.probabilities, uniform: Double.random(in: 0..<1))]
+                }.value
+                guard !Task.isCancelled, writing, let letter else { break }
+                text = current + letter
+            }
+            writing = false
+        }
+    }
+
+    private func load(_ result: Result<URL, Error>) {
+        loadFailed = false
+        guard case .success(let url) = result else { loadFailed = true; return }
+        let scoped = url.startAccessingSecurityScopedResource()
+        defer { if scoped { url.stopAccessingSecurityScopedResource() } }
+        guard let data = try? Data(contentsOf: url), let loaded = try? TinyLanguageModel(data: data) else {
+            loadFailed = true
+            return
+        }
+        writing = false
+        model = loaded
+        block = 0
+        head = 0
+        ownModel = true
+        modelRevision += 1
     }
 }
 

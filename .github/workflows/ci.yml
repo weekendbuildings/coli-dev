@@ -493,6 +493,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-consciousness-indicators"
           "$RUNNER_TEMP/verify-consciousness-indicators"
 
+      - name: Verify tiny language model / Проверка маленькой языковой модели
+        run: |
+          swiftc macOS/ColiDev/App/TinyLanguageModel.swift macOS/ColiDev/scripts/verify_tiny_language_model.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-tiny-language-model"
+          "$RUNNER_TEMP/verify-tiny-language-model"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \

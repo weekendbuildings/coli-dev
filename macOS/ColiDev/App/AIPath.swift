@@ -98,11 +98,18 @@ struct AIPathView: View {
         .accessibilityIdentifier("path.screen")
     }
 
+    private var summaryLine: String {
+        let missing = AIPathCatalog.lessons.count - available.count
+        let total = String(AIPathCatalog.lessons.count)
+        if missing == 0 { return String(format: text("path.progressComplete"), String(finished), total) }
+        return String(format: text("path.progress"), String(finished), total, String(missing))
+    }
+
     private var summary: some View {
         VStack(alignment: .leading, spacing: 10) {
             ProgressView(value: Double(finished), total: Double(max(AIPathCatalog.lessons.count, 1)))
             HStack {
-                Text(String(format: text("path.progress"), String(finished), String(AIPathCatalog.lessons.count), String(AIPathCatalog.lessons.count - available.count)))
+                Text(summaryLine)
                     .font(.callout)
                     .foregroundStyle(.secondary)
                 Spacer()
