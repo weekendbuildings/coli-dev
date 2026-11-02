@@ -62,7 +62,7 @@ for step in range(3):
 
 ### Границы модели
 
-Один нейрон без нелинейности умеет только прямые зависимости; настоящие сети добавляют нелинейную функцию после каждого слоя, а градиент через все слои считает автоматическое дифференцирование. Обучение на одном примере — учебный случай: настоящие сети учатся на больших наборах данных и проверяются на отложенной выборке, как в уроке о базовой модели.
+Один нейрон без нелинейности умеет только прямые зависимости; настоящие сети добавляют нелинейную функцию после каждого слоя, а градиент через все слои считает автоматическое дифференцирование. Обратное распространение через настоящий скрытый слой разобрано в следующем уроке — «Скрытый слой: нейросеть учит XOR». Обучение на одном примере — учебный случай: настоящие сети учатся на больших наборах данных и проверяются на отложенной выборке, как в уроке о базовой модели.
 
 ## English
 
@@ -117,7 +117,7 @@ First the forward pass: y = 0.5 · 2 + 0 = 1, error (1 − 2)² = 1. By the chai
 
 ### Limits
 
-One neuron without a nonlinearity can capture only straight-line relationships; real networks add a nonlinear function after each layer, and automatic differentiation computes the gradient through all the layers. Training on one example is a teaching case: real networks learn from large datasets and are checked on a held-out set, as in the baseline model lesson.
+One neuron without a nonlinearity can capture only straight-line relationships; real networks add a nonlinear function after each layer, and automatic differentiation computes the gradient through all the layers. Backpropagation through a real hidden layer is worked out in the next lesson, "The Hidden Layer: A Network Learns XOR". Training on one example is a teaching case: real networks learn from large datasets and are checked on a held-out set, as in the baseline model lesson.
 
 ## Sources
 

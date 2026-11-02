@@ -1856,6 +1856,8 @@ private struct PracticeLab: View {
             GradientDescentLab()
         } else if subject == .programming, moduleResource == "neural_network_backpropagation" {
             NeuronTrainingLab()
+        } else if subject == .programming, moduleResource == "neural_network_hidden_layer_xor" {
+            XORNetworkLab()
         } else if subject == .biology, moduleResource == "synapses_and_signal_summation" {
             SynapticSummationLab()
         } else if subject == .biology, moduleResource == "what_is_life_and_its_origin" {
@@ -13106,6 +13108,236 @@ private struct NeuronTrainingLab: View {
                 clipped.fill(Path(ellipseIn: CGRect(x: location.x - 3, y: location.y - 3, width: 6, height: 6)), with: .color(.orange))
             }
             clipped.stroke(line, with: .color(.orange), lineWidth: 2)
+        }
+    }
+}
+
+private struct XORNetworkLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = XORNetworkModel(architecture: .singleNeuron)
+    @State private var learningRate = 1.0
+    @State private var playing = false
+    @State private var sawSingleNeuronStall = false
+
+    private typealias Model = XORNetworkModel
+
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .training: return (.info, text("lab.xor.training"))
+        case .singleNeuronLimit: return (.bad, text("lab.xor.singleStalled"))
+        case .learned: return (.good, text("lab.xor.solved"))
+        case .plateau: return (.warning, text(model.start == .identical ? "lab.xor.identicalStalled" : "lab.xor.plateau"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.xor.title"), instruction: text("lab.xor.subtitle"))
+            HStack(spacing: 16) {
+                Text(text("lab.xor.architecture")).fixedSize()
+                Picker(text("lab.xor.architecture"), selection: Binding(get: { model.architecture }, set: { restart(architecture: $0, start: model.start) })) {
+                    Text(text("lab.xor.single")).tag(Model.Architecture.singleNeuron)
+                    Text(text("lab.xor.hiddenLayer")).tag(Model.Architecture.hiddenLayer)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .accessibilityIdentifier("lab.xor.architecture")
+                Text(text("lab.xor.start")).fixedSize()
+                Picker(text("lab.xor.start"), selection: Binding(get: { model.start }, set: { restart(architecture: model.architecture, start: $0) })) {
+                    Text(text("lab.xor.start1")).tag(Model.Start.first)
+                    Text(text("lab.xor.start2")).tag(Model.Start.plateau)
+                    Text(text("lab.xor.identical")).tag(Model.Start.identical)
+                }
+                .pickerStyle(.segmented)
+                .labelsHidden()
+                .disabled(model.architecture == .singleNeuron)
+                .accessibilityIdentifier("lab.xor.start")
+            }
+            HStack(spacing: 16) {
+                network
+                outputMap
+                    .frame(width: 250)
+            }
+            .frame(height: 250)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.xor.chart"))
+            .accessibilityValue(Text(verbatim: number(model.loss, 4)))
+
+            lossChart
+                .frame(height: 120)
+
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.xor.rate"), number(learningRate, 1))).monospacedDigit().frame(minWidth: 220, alignment: .leading)
+                // Rounds to tenths without `step:`, which would draw a dense row of tick marks.
+                Slider(value: Binding(get: { learningRate }, set: { learningRate = ($0 * 10).rounded() / 10 }), in: Model.learningRateRange)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityIdentifier("lab.xor.rate")
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if model.iterations >= Model.iterationLimit { restart(architecture: model.architecture, start: model.start) }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .accessibilityIdentifier("lab.xor.play")
+                Button(text("lab.xor.advance")) { advance(by: 100) }
+                    .disabled(model.iterations >= Model.iterationLimit)
+                    .accessibilityIdentifier("lab.xor.advance")
+                Button(text("lab.neurontrain.reset")) { restart(architecture: model.architecture, start: model.start) }
+                    .accessibilityIdentifier("lab.xor.reset")
+            }
+            answers
+            LabStatGrid {
+                LabStat(label: text("lab.xor.statIterations"), value: String(model.iterations), identifier: "lab.xor.iterations")
+                LabStat(label: text("lab.xor.statLoss"), value: number(model.loss, 4), tint: .orange, identifier: "lab.xor.loss")
+                LabStat(label: text("lab.xor.statCorrect"), value: "\(model.correctAnswers) / \(Model.examples.count)", tint: .green, identifier: "lab.xor.correct")
+            }
+            LabStatusBadge(kind: status.0, text: status.1)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.xor.challenge"),
+                         solved: sawSingleNeuronStall && model.architecture == .hiddenLayer && model.correctAnswers == Model.examples.count,
+                         solvedText: text("lab.xor.challengeSolved"))
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.xor.hint"), text("lab.xor.maps"), text("lab.xor.limit")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                guard playing else { break }
+                advance(by: Model.iterationsPerFrame)
+                if model.iterations >= Model.iterationLimit { playing = false }
+            }
+        }
+    }
+
+    private func restart(architecture: Model.Architecture, start: Model.Start) {
+        playing = false
+        model = Model(architecture: architecture, start: start)
+    }
+
+    private func advance(by iterations: Int) {
+        for _ in 0..<iterations where model.iterations < Model.iterationLimit {
+            model.step(learningRate: learningRate)
+        }
+        if model.phase == .singleNeuronLimit { sawSingleNeuronStall = true }
+    }
+
+    // Teal for an answer near 0, a neutral band around 0.5, orange for an answer near 1.
+    private func mapColor(_ value: Double) -> Color {
+        let low = (0.05, 0.55, 0.60), middle = (0.88, 0.88, 0.86), high = (0.96, 0.52, 0.12)
+        let (from, to, share) = value < 0.5 ? (low, middle, value * 2) : (middle, high, (value - 0.5) * 2)
+        return Color(red: from.0 + (to.0 - from.0) * share, green: from.1 + (to.1 - from.1) * share, blue: from.2 + (to.2 - from.2) * share)
+    }
+
+    // Colours `rect` by a neuron's value over the input square, with (0, 0) at the bottom left.
+    private func drawMap(in context: GraphicsContext, rect: CGRect, cells: Int, value: (Double, Double) -> Double) {
+        let side = rect.width / CGFloat(cells)
+        for column in 0..<cells {
+            for row in 0..<cells {
+                let x1 = (Double(column) + 0.5) / Double(cells), x2 = (Double(row) + 0.5) / Double(cells)
+                let cell = CGRect(x: rect.minX + CGFloat(column) * side, y: rect.maxY - CGFloat(row + 1) * side, width: side + 0.5, height: side + 0.5)
+                context.fill(Path(cell), with: .color(mapColor(value(x1, x2))))
+            }
+        }
+    }
+
+    // Inputs on the left, each neuron as a small map of what it computes, and weights as blue or red lines.
+    private var network: some View {
+        Canvas { context, size in
+            let side: CGFloat = 62
+            let inputs = [CGPoint(x: 26, y: size.height * 0.28), CGPoint(x: 26, y: size.height * 0.72)]
+            let hidden = [CGPoint(x: size.width * 0.52, y: size.height * 0.24), CGPoint(x: size.width * 0.52, y: size.height * 0.72)]
+            let output = CGPoint(x: size.width - side / 2 - 4, y: size.height * 0.48)
+            func wire(_ start: CGPoint, _ end: CGPoint, _ weight: Double) {
+                var path = Path()
+                path.move(to: start)
+                path.addLine(to: end)
+                context.stroke(path, with: .color(weight >= 0 ? .blue.opacity(0.75) : .red.opacity(0.75)), lineWidth: min(0.8 + 0.7 * abs(weight), 7))
+            }
+            let w = model.weights
+            if model.architecture == .singleNeuron {
+                wire(inputs[0], output, w[0])
+                wire(inputs[1], output, w[1])
+            } else {
+                wire(inputs[0], hidden[0], w[0])
+                wire(inputs[1], hidden[0], w[1])
+                wire(inputs[0], hidden[1], w[3])
+                wire(inputs[1], hidden[1], w[4])
+                wire(hidden[0], output, w[6])
+                wire(hidden[1], output, w[7])
+            }
+            for (point, name) in zip(inputs, ["x₁", "x₂"]) {
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 20, y: point.y - 20, width: 40, height: 40)), with: .color(.teal))
+                context.draw(Text(verbatim: name).font(.callout.weight(.bold)).foregroundColor(.white), at: point)
+            }
+            func neuron(at center: CGPoint, name: String, value: @escaping (Double, Double) -> Double) {
+                let rect = CGRect(x: center.x - side / 2, y: center.y - side / 2, width: side, height: side)
+                drawMap(in: context, rect: rect, cells: 14, value: value)
+                context.stroke(Path(rect), with: .color(.secondary), lineWidth: 1)
+                context.draw(Text(verbatim: name).font(.caption.weight(.bold)), at: CGPoint(x: center.x, y: rect.minY - 10))
+            }
+            if model.architecture == .hiddenLayer {
+                neuron(at: hidden[0], name: "h₁") { model.forward($0, $1).firstHidden }
+                neuron(at: hidden[1], name: "h₂") { model.forward($0, $1).secondHidden }
+            }
+            neuron(at: output, name: "y") { model.forward($0, $1).answer }
+        }
+    }
+
+    // The network's answer over the whole input square, with the four XOR examples in their target colours.
+    private var outputMap: some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: -0.1...1.1, y: -0.1...1.1)
+            plot.drawAxes(in: context, xLabel: "x₁", yLabel: "x₂", xTicks: [0, 0.5, 1], yTicks: [0, 0.5, 1], format: { number($0, $0 == 0.5 ? 1 : 0) })
+            let square = CGRect(x: plot.point(0, 0).x, y: plot.point(0, 1).y, width: plot.point(1, 0).x - plot.point(0, 0).x, height: plot.point(0, 0).y - plot.point(0, 1).y)
+            drawMap(in: context, rect: square, cells: 40) { model.forward($0, $1).answer }
+            for example in Model.examples {
+                let center = plot.point(example.x1, example.x2)
+                let dot = CGRect(x: center.x - 9, y: center.y - 9, width: 18, height: 18)
+                context.fill(Path(ellipseIn: dot), with: .color(mapColor(example.target)))
+                context.stroke(Path(ellipseIn: dot), with: .color(.white), lineWidth: 2.5)
+            }
+        }
+    }
+
+    // The mean error per iteration, with the single-neuron limit of 0.25 dashed.
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = model.lossHistory + [model.loss]
+            let top = max(values.max() ?? 0.3, 0.3)
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.iterations, 500)), y: 0...top * 1.05)
+            plot.drawAxes(in: context, xLabel: text("lab.xor.axisIterations"), yLabel: "L", format: { number($0, $0 < 1 && $0 > 0 ? 2 : 0) })
+            var limit = Path()
+            limit.move(to: plot.point(plot.x.lowerBound, Model.singleNeuronLimit))
+            limit.addLine(to: plot.point(plot.x.upperBound, Model.singleNeuronLimit))
+            context.stroke(limit, with: .color(.secondary), style: StrokeStyle(lineWidth: 1.5, dash: [6, 4]))
+            var line = Path()
+            let stride = max(values.count / 400, 1)
+            for index in Swift.stride(from: 0, to: values.count, by: stride) {
+                let location = plot.point(Double(index), values[index])
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            line.addLine(to: plot.point(Double(values.count - 1), values[values.count - 1]))
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        }
+    }
+
+    // Each example's input, target and current answer, green once the answer counts as correct.
+    private var answers: some View {
+        HStack(spacing: 8) {
+            ForEach(Array(Model.examples.enumerated()), id: \.offset) { _, example in
+                let answer = model.forward(example.x1, example.x2).answer
+                let correct = Model.isCorrect(answer: answer, target: example.target)
+                VStack(spacing: 2) {
+                    Text(verbatim: "\(Int(example.x1)), \(Int(example.x2)) → \(Int(example.target))").font(.caption.weight(.semibold)).monospacedDigit()
+                    Text(verbatim: "y = " + number(answer, 2)).font(.callout.weight(.bold)).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+                .background((correct ? Color.green : Color.secondary).opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+            }
         }
     }
 }
