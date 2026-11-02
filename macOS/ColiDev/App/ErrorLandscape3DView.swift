@@ -2,10 +2,76 @@ import SceneKit
 import SwiftUI
 import simd
 
-/// Lets the page keep scrolling over a 3D scene: the wheel goes to the page, a drag turns the scene, a pinch zooms it.
-/// Колесо мыши листает страницу, перетаскивание крутит сцену, щипок приближает.
+/// A 3D scene inside a lesson page. A drag turns it around its centre, a pinch brings it closer, a click stays a click,
+/// and the wheel goes to the page, so the lesson keeps scrolling.
+/// 3D-сцена на странице урока. Перетаскивание крутит её вокруг центра, щипок приближает, щелчок остаётся щелчком,
+/// а колесо листает страницу.
 final class LabSceneView: SCNView {
+    var onClick: ((CGPoint) -> Void)?
+    private var target = SIMD3<Float>(repeating: 0)
+    private var yaw: Float = 0
+    private var pitch: Float = 0
+    private var distance: Float = 10
+    private var homeDistance: Float = 10
+    private var lastPoint: CGPoint?
+    private var pressPoint: CGPoint?
+    private var dragged = false
+
+    /// Starts turning around `target` from where the camera stands now. / Начинает вращение вокруг цели с текущего места камеры.
+    func orbit(around target: SIMD3<Float>) {
+        self.target = target
+        guard let camera = pointOfView else { return }
+        let offset = camera.simdPosition - target
+        distance = simd_length(offset)
+        homeDistance = distance
+        yaw = atan2(offset.x, offset.z)
+        pitch = asin(offset.y / distance)
+    }
+
+    private func applyOrbit() {
+        guard let camera = pointOfView else { return }
+        let height = sin(pitch)
+        let around = SIMD3<Float>(sin(yaw) * cos(pitch), height, cos(yaw) * cos(pitch))
+        camera.simdPosition = target + around * distance
+        camera.simdLook(at: target)
+    }
+
     override func scrollWheel(with event: NSEvent) { nextResponder?.scrollWheel(with: event) }
+
+    override func resetCursorRects() { addCursorRect(bounds, cursor: .openHand) }
+
+    override func mouseDown(with event: NSEvent) {
+        let point = convert(event.locationInWindow, from: nil)
+        pressPoint = point
+        lastPoint = point
+        dragged = false
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let pressPoint, let lastPoint else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        if !dragged {
+            // A small shake of the hand is still a click. / Лёгкое дрожание руки это ещё щелчок.
+            guard hypot(point.x - pressPoint.x, point.y - pressPoint.y) > 3 else { return }
+            dragged = true
+        }
+        // The view is not flipped: y grows upwards, so a drag down raises the camera.
+        yaw -= Float(point.x - lastPoint.x) * 0.005
+        pitch = min(1.45, max(0.08, pitch - Float(point.y - lastPoint.y) * 0.004))
+        self.lastPoint = point
+        applyOrbit()
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        if !dragged { onClick?(convert(event.locationInWindow, from: nil)) }
+        pressPoint = nil
+        lastPoint = nil
+    }
+
+    override func magnify(with event: NSEvent) {
+        distance = min(homeDistance * 1.5, max(homeDistance * 0.45, distance * (1 - Float(event.magnification))))
+        applyOrbit()
+    }
 }
 
 /// Dark stage shared by the training scenes, so the colours read the same in light and dark mode.
@@ -57,11 +123,11 @@ enum TrainingStage {
     }
 
     private static func center(_ node: SCNNode) {
-        let (minimum, maximum) = node.boundingBox
+        let (minimum, maximum) = node.geometry?.boundingBox ?? node.boundingBox
         node.pivot = SCNMatrix4MakeTranslation((minimum.x + maximum.x) / 2, (minimum.y + maximum.y) / 2, 0)
     }
 
-    static func addLights(to scene: SCNScene, shadows: Bool) {
+    static func addLights(to scene: SCNScene, shadows: Bool, shadowScale: CGFloat = 7, keyPosition: SCNVector3 = SCNVector3(4, 12, -8)) {
         let ambient = SCNNode()
         ambient.light = SCNLight()
         ambient.light?.type = .ambient
@@ -79,10 +145,10 @@ enum TrainingStage {
             key.light?.shadowSampleCount = 8
             key.light?.shadowRadius = 4
             key.light?.shadowColor = NSColor.black.withAlphaComponent(0.55)
-            key.light?.orthographicScale = 7
+            key.light?.orthographicScale = shadowScale
             key.light?.zNear = 1
             key.light?.zFar = 40
-            key.position = SCNVector3(4, 12, -8)
+            key.position = keyPosition
         }
         scene.rootNode.addChildNode(key)
     }
@@ -132,9 +198,7 @@ struct ErrorLandscapeSceneView: NSViewRepresentable {
         var drawnCount = 0
         var lastDrawn: ErrorLandscapeModel.Point?
 
-        @objc func handleClick(_ recognizer: NSClickGestureRecognizer) {
-            guard let view = recognizer.view as? SCNView else { return }
-            let location = recognizer.location(in: view)
+        func pick(at location: CGPoint, in view: SCNView) {
             let near = view.unprojectPoint(SCNVector3(location.x, location.y, 0))
             let far = view.unprojectPoint(SCNVector3(location.x, location.y, 1))
             if let point = ErrorLandscapeSceneView.terrainPoint(rayFrom: SIMD3(near), to: SIMD3(far)) { onPick?(point) }
@@ -148,14 +212,14 @@ struct ErrorLandscapeSceneView: NSViewRepresentable {
         view.scene = Self.makeScene(language: language)
         view.pointOfView = view.scene?.rootNode.childNode(withName: "camera", recursively: false)
         context.coordinator.language = language
-        view.allowsCameraControl = true
-        view.defaultCameraController.interactionMode = .orbitTurntable
-        view.defaultCameraController.target = SCNVector3(0, 1.1, 0)
-        view.defaultCameraController.inertiaEnabled = !reduceMotion
+        view.orbit(around: SIMD3(0, 1.1, 0))
         view.antialiasingMode = .multisampling4X
         view.backgroundColor = TrainingStage.background
-        let click = NSClickGestureRecognizer(target: context.coordinator, action: #selector(Coordinator.handleClick(_:)))
-        view.addGestureRecognizer(click)
+        let coordinator = context.coordinator
+        view.onClick = { [weak coordinator, weak view] location in
+            guard let coordinator, let view else { return }
+            coordinator.pick(at: location, in: view)
+        }
         return view
     }
 
@@ -264,13 +328,13 @@ struct ErrorLandscapeSceneView: NSViewRepresentable {
         // The width is what must fit, so the view angle is set horizontally. From this corner the plateau is on the
         // left, the valley on the right, and one shelf in front. / С этого угла плато слева, долина справа, полка впереди.
         camera.projectionDirection = .horizontal
-        camera.fieldOfView = 43
-        camera.zNear = 0.1
-        camera.zFar = 60
+        camera.fieldOfView = 30
+        camera.zNear = 1
+        camera.zFar = 70
         let cameraNode = SCNNode()
         cameraNode.name = "camera"
         cameraNode.camera = camera
-        cameraNode.position = SCNVector3(10.2, 9.2, 10.2)
+        cameraNode.position = SCNVector3(17, 14.6, 17)
         cameraNode.look(at: SCNVector3(0, 1.1, 0))
         scene.rootNode.addChildNode(cameraNode)
 
@@ -321,26 +385,13 @@ struct ErrorLandscapeSceneView: NSViewRepresentable {
     }
 
     private static func surfaceNode(_ mesh: SurfaceMesh) -> SCNNode {
-        var colorData = Data(capacity: mesh.positions.count * 16)
         let heightScale = verticalScale / horizontalScale
-        for position in mesh.positions {
-            var rgba = errorColor(position.z / heightScale)
-            withUnsafeBytes(of: &rgba) { colorData.append(contentsOf: $0) }
-        }
-        let colors = SCNGeometrySource(
-            data: colorData,
-            semantic: .color,
-            vectorCount: mesh.positions.count,
-            usesFloatComponents: true,
-            componentsPerVector: 4,
-            bytesPerComponent: MemoryLayout<Float>.size,
-            dataOffset: 0,
-            dataStride: MemoryLayout<SIMD4<Float>>.stride
-        )
-        let normals = mesh.normals.map { SCNVector3(Float($0.x), Float($0.z), Float(-$0.y)) }
-        let geometry = SCNGeometry(
-            sources: [SCNGeometrySource(vertices: mesh.positions.map(toScene)), SCNGeometrySource(normals: normals), colors],
-            elements: [SCNGeometryElement(indices: mesh.triangleIndices, primitiveType: .triangles)]
+        let geometry = TrainingStage.closedSurface(
+            top: mesh.positions.map { SIMD3<Float>(toScene($0)) },
+            normals: mesh.normals.map { SIMD3<Float>(Float($0.x), Float($0.z), Float(-$0.y)) },
+            colors: mesh.positions.map { errorColor($0.z / heightScale) },
+            triangles: mesh.triangleIndices,
+            resolution: mesh.resolution
         )
         let material = SCNMaterial()
         material.diffuse.contents = NSColor.white
@@ -422,272 +473,5 @@ struct ErrorLandscapeSceneView: NSViewRepresentable {
             node.addChildNode(label)
         }
         return node
-    }
-}
-
-/// The same network as a 3D graph: signals run forward through it, and while it trains the error runs back along the
-/// two trainable weights. Everything shown is computed from the current weights.
-/// Та же сеть в 3D: сигналы бегут вперёд, а при обучении ошибка бежит назад по двум обучаемым весам.
-struct TrainingNetworkSceneView: NSViewRepresentable {
-    let weights: [Double]
-    let training: Bool
-    let language: AppLanguage
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-
-    private static let inputs = [SIMD3<Float>(-3.1, 1.25, 0), SIMD3<Float>(-3.1, -1.25, 0)]
-    private static let hidden = [SIMD3<Float>(0, 1.7, 0.7), SIMD3<Float>(0, -1.7, -0.7)]
-    private static let output = SIMD3<Float>(3.1, 0, 0)
-    private static let forwardDuration: TimeInterval = 0.5
-    private static let backwardDuration: TimeInterval = 0.32
-    private static let cycle: TimeInterval = 1.9
-
-    final class Coordinator: NSObject {
-        var weights: [Double] = []
-        var training = false
-        var reduceMotion = false
-        var language: AppLanguage = .ru
-        var example = 0
-        var timer: Timer?
-        weak var scene: SCNScene?
-
-        deinit { timer?.invalidate() }
-    }
-
-    func makeCoordinator() -> Coordinator { Coordinator() }
-
-    func makeNSView(context: Context) -> SCNView {
-        let view = LabSceneView()
-        let scene = Self.makeScene()
-        view.scene = scene
-        view.pointOfView = scene.rootNode.childNode(withName: "camera", recursively: false)
-        view.allowsCameraControl = true
-        view.defaultCameraController.interactionMode = .orbitTurntable
-        view.defaultCameraController.target = SCNVector3(0, 0, 0)
-        view.antialiasingMode = .multisampling4X
-        view.backgroundColor = TrainingStage.background
-        view.rendersContinuously = true
-        view.isPlaying = true
-
-        let coordinator = context.coordinator
-        coordinator.scene = scene
-        coordinator.weights = weights
-        coordinator.training = training
-        coordinator.reduceMotion = reduceMotion
-        coordinator.language = language
-        Self.updateEdges(scene: scene, weights: weights, language: language)
-        Self.showExample(coordinator: coordinator)
-        let timer = Timer(timeInterval: Self.cycle, repeats: true) { [weak coordinator] _ in
-            guard let coordinator else { return }
-            coordinator.example = (coordinator.example + 1) % XORNetworkModel.examples.count
-            Self.showExample(coordinator: coordinator)
-        }
-        RunLoop.main.add(timer, forMode: .common)
-        coordinator.timer = timer
-        return view
-    }
-
-    func updateNSView(_ view: SCNView, context: Context) {
-        let coordinator = context.coordinator
-        coordinator.training = training
-        coordinator.reduceMotion = reduceMotion
-        guard let scene = view.scene else { return }
-        if coordinator.weights != weights || coordinator.language != language {
-            coordinator.weights = weights
-            coordinator.language = language
-            Self.updateEdges(scene: scene, weights: weights, language: language)
-            Self.updateActivations(coordinator: coordinator)
-        }
-    }
-
-    static func dismantleNSView(_ view: SCNView, coordinator: Coordinator) {
-        coordinator.timer?.invalidate()
-        coordinator.timer = nil
-        view.isPlaying = false
-    }
-
-    private static func network(_ weights: [Double]) -> XORNetworkModel {
-        var network = XORNetworkModel(architecture: .hiddenLayer, start: .first)
-        network.weights = weights
-        return network
-    }
-
-    // MARK: - Scene
-
-    private static func makeScene() -> SCNScene {
-        let scene = SCNScene()
-        scene.background.contents = TrainingStage.background
-        TrainingStage.addLights(to: scene, shadows: false)
-
-        let edges = SCNNode()
-        edges.name = "edges"
-        scene.rootNode.addChildNode(edges)
-
-        let names = ["x1", "x2", "h1", "h2", "y"]
-        for (name, position) in zip(names, inputs + hidden + [output]) {
-            let sphere = SCNSphere(radius: 0.46)
-            sphere.segmentCount = 32
-            sphere.materials = [TrainingStage.material(.darkGray)]
-            let node = SCNNode(geometry: sphere)
-            node.name = name
-            node.simdPosition = position
-            scene.rootNode.addChildNode(node)
-            let label = TrainingStage.label("", size: 0.36)
-            label.name = name + "-label"
-            // x₂ and h₂ are labelled below, so that the labels do not meet the upper edges. / Подписи снизу, чтобы не лечь на рёбра.
-            let below = name == "x2" || name == "h2"
-            label.simdPosition = position + SIMD3(name == "x1" ? -0.4 : 0, below ? -0.78 : 0.78, 0)
-            scene.rootNode.addChildNode(label)
-        }
-        for name in ["w11", "w12"] {
-            let label = TrainingStage.label("", size: 0.34, color: NSColor(red: 1, green: 0.95, blue: 0.4, alpha: 1))
-            label.name = name + "-label"
-            scene.rootNode.addChildNode(label)
-        }
-        let target = TrainingStage.label("", size: 0.32)
-        target.name = "target-label"
-        target.simdPosition = output + SIMD3(0, -0.78, 0)
-        scene.rootNode.addChildNode(target)
-
-        let pulses = SCNNode()
-        pulses.name = "pulses"
-        scene.rootNode.addChildNode(pulses)
-
-        let camera = SCNCamera()
-        camera.projectionDirection = .horizontal
-        camera.fieldOfView = 37
-        camera.zNear = 0.1
-        camera.zFar = 60
-        let cameraNode = SCNNode()
-        cameraNode.name = "camera"
-        cameraNode.camera = camera
-        cameraNode.position = SCNVector3(1.7, 1.2, 12.2)
-        cameraNode.look(at: SCNVector3(0, 0, 0))
-        scene.rootNode.addChildNode(cameraNode)
-        return scene
-    }
-
-    /// Thickness shows the size of a weight and colour its sign, as in the lab above: blue is positive, red negative.
-    private static func updateEdges(scene: SCNScene, weights w: [Double], language: AppLanguage) {
-        guard let edges = scene.rootNode.childNode(withName: "edges", recursively: false) else { return }
-        SCNTransaction.begin()
-        SCNTransaction.disableActions = true
-        edges.childNodes.forEach { $0.removeFromParentNode() }
-        let connections: [(SIMD3<Float>, SIMD3<Float>, Double, Bool)] = [
-            (inputs[0], hidden[0], w[0], true), (inputs[1], hidden[0], w[1], true),
-            (inputs[0], hidden[1], w[3], false), (inputs[1], hidden[1], w[4], false),
-            (hidden[0], output, w[6], false), (hidden[1], output, w[7], false)
-        ]
-        for (start, end, weight, trainable) in connections {
-            let alpha: CGFloat = trainable ? 1 : 0.42
-            let color = weight >= 0
-                ? NSColor(red: 0.3, green: 0.55, blue: 1, alpha: alpha)
-                : NSColor(red: 1, green: 0.32, blue: 0.32, alpha: alpha)
-            let radius = CGFloat(0.018 + 0.012 * min(abs(weight), 10))
-            edges.addChildNode(TrainingStage.cylinder(from: start, to: end, radius: radius, material: TrainingStage.material(color)))
-            if trainable {
-                // Bright rings mark the two weights that are being trained. / Яркие кольца выделяют два обучаемых веса.
-                let bright = NSColor(red: 1, green: 0.95, blue: 0.4, alpha: 1)
-                for share: Float in [0.3, 0.5, 0.7] {
-                    let ring = SCNTorus(ringRadius: radius + 0.05, pipeRadius: 0.026)
-                    ring.materials = [TrainingStage.material(bright, lit: false)]
-                    let node = SCNNode(geometry: ring)
-                    node.simdPosition = start + (end - start) * share
-                    node.simdOrientation = simd_quatf(from: SIMD3<Float>(0, 1, 0), to: simd_normalize(end - start))
-                    edges.addChildNode(node)
-                }
-            }
-        }
-        for (index, name) in ["w11", "w12"].enumerated() {
-            guard let label = scene.rootNode.childNode(withName: name + "-label", recursively: false) else { continue }
-            let title = index == 0 ? "w₁₁" : "w₁₂"
-            TrainingStage.setLabel(label, "\(title) = " + L10n.number(w[index], fractionDigits: 1, language))
-            label.simdPosition = index == 0 ? SIMD3(-1.85, 2.25, 0.5) : SIMD3(0.35, 0.55, 0.5)
-        }
-        SCNTransaction.commit()
-    }
-
-    /// Glow shows how strongly a neuron fires on the current example.
-    private static func setActivation(_ name: String, value: Double, scene: SCNScene) {
-        guard let material = scene.rootNode.childNode(withName: name, recursively: false)?.geometry?.firstMaterial else { return }
-        let share = CGFloat(max(0, min(1, value)))
-        material.diffuse.contents = NSColor(red: 0.16 + 0.8 * share, green: 0.2 + 0.68 * share, blue: 0.36 - 0.1 * share, alpha: 1)
-        material.emission.contents = NSColor(white: 0.38 * share, alpha: 1)
-    }
-
-    private static func updateActivations(coordinator: Coordinator) {
-        guard let scene = coordinator.scene else { return }
-        let example = XORNetworkModel.examples[coordinator.example]
-        let result = network(coordinator.weights).forward(example.x1, example.x2)
-        let language = coordinator.language
-        func number(_ value: Double) -> String { L10n.number(value, fractionDigits: 2, language) }
-        let values: [(String, String, Double)] = [
-            ("x1", "x₁ = \(Int(example.x1))", example.x1),
-            ("x2", "x₂ = \(Int(example.x2))", example.x2),
-            ("h1", "h₁ = " + number(result.firstHidden), result.firstHidden),
-            ("h2", "h₂ = " + number(result.secondHidden), result.secondHidden),
-            ("y", "y = " + number(result.answer), result.answer)
-        ]
-        SCNTransaction.begin()
-        SCNTransaction.disableActions = true
-        for (name, text, value) in values {
-            setActivation(name, value: value, scene: scene)
-            if let label = scene.rootNode.childNode(withName: name + "-label", recursively: false) { TrainingStage.setLabel(label, text) }
-        }
-        if let target = scene.rootNode.childNode(withName: "target-label", recursively: false) {
-            TrainingStage.setLabel(target, String(format: L10n.text("lab.landscape.target", language), String(Int(example.target))))
-        }
-        SCNTransaction.commit()
-    }
-
-    // MARK: - Signals
-
-    private static func showExample(coordinator: Coordinator) {
-        updateActivations(coordinator: coordinator)
-        guard !coordinator.reduceMotion, let scene = coordinator.scene,
-              let pulses = scene.rootNode.childNode(withName: "pulses", recursively: false) else { return }
-        let example = XORNetworkModel.examples[coordinator.example]
-        let w = coordinator.weights
-        let result = network(w).forward(example.x1, example.x2)
-        let x = [example.x1, example.x2]
-
-        // Forward: a signal is as strong as the neuron that sends it, so an input of 0 sends nothing.
-        for input in 0..<2 {
-            for target in 0..<2 {
-                pulse(in: pulses, from: inputs[input], to: hidden[target], color: TrainingStage.forwardSignal, strength: x[input], delay: 0, duration: forwardDuration)
-            }
-        }
-        pulse(in: pulses, from: hidden[0], to: output, color: TrainingStage.forwardSignal, strength: result.firstHidden, delay: forwardDuration, duration: forwardDuration)
-        pulse(in: pulses, from: hidden[1], to: output, color: TrainingStage.forwardSignal, strength: result.secondHidden, delay: forwardDuration, duration: forwardDuration)
-
-        guard coordinator.training else { return }
-        // Backward, by the chain rule: out = 2(y − t) · y(1 − y), then out · v₁ · h₁(1 − h₁) reaches the trainable weights.
-        // On a plateau these numbers are almost zero, so no pulse appears: the gradient has vanished.
-        let y = result.answer, h = result.firstHidden
-        let out = 2 * (y - example.target) * y * (1 - y)
-        let back = out * w[6] * h * (1 - h)
-        let backDelay = 2 * forwardDuration + 0.02
-        pulse(in: pulses, from: output, to: hidden[0], color: TrainingStage.errorSignal, strength: min(1, abs(back) * 12), delay: backDelay, duration: backwardDuration)
-        for input in 0..<2 {
-            pulse(in: pulses, from: hidden[0], to: inputs[input], color: TrainingStage.errorSignal, strength: min(1, abs(back * x[input]) * 12), delay: backDelay + backwardDuration, duration: backwardDuration)
-        }
-    }
-
-    private static func pulse(in parent: SCNNode, from start: SIMD3<Float>, to end: SIMD3<Float>, color: NSColor,
-                              strength: Double, delay: TimeInterval, duration: TimeInterval) {
-        guard strength > 0.04 else { return }
-        let sphere = SCNSphere(radius: CGFloat(0.07 + 0.1 * strength))
-        sphere.segmentCount = 16
-        let material = TrainingStage.material(color, lit: false)
-        sphere.materials = [material]
-        let node = SCNNode(geometry: sphere)
-        node.simdPosition = start
-        node.opacity = 0
-        node.runAction(.sequence([
-            .wait(duration: delay),
-            .fadeIn(duration: 0.03),
-            .move(to: SCNVector3(end), duration: duration),
-            .removeFromParentNode()
-        ]))
-        parent.addChildNode(node)
     }
 }

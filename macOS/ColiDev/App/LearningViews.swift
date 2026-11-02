@@ -13370,28 +13370,15 @@ private struct ErrorLandscapeLab: View {
     var body: some View {
         LabCard {
             LabHeader(title: text("lab.landscape.title"), instruction: text("lab.landscape.subtitle"))
-            HStack(alignment: .top, spacing: 10) {
-                ErrorLandscapeSceneView(model: model, learningRate: rate, language: store.language, onPick: pick)
-                    .frame(minHeight: 440)
-                    .frame(maxWidth: .infinity)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .accessibilityElement(children: .ignore)
-                    .accessibilityLabel(text("lab.landscape.terrainLabel"))
-                    .accessibilityValue(String(format: text("lab.landscape.terrainValue"), number(model.loss, 3), String(model.correctAnswers),
-                                               number(model.position.w11, 1), number(model.position.w12, 1)))
-                    .accessibilityIdentifier("lab.landscape.terrain")
-                VStack(spacing: 8) {
-                    TrainingNetworkSceneView(weights: model.network.weights, training: playing, language: store.language)
-                        .frame(minHeight: 300)
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                        .accessibilityElement(children: .ignore)
-                        .accessibilityLabel(text("lab.landscape.networkLabel"))
-                        .accessibilityIdentifier("lab.landscape.network")
-                    legend
-                    answers
-                }
-                .frame(width: 310)
-            }
+            ErrorLandscapeSceneView(model: model, learningRate: rate, language: store.language, onPick: pick)
+                .frame(height: 420)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.landscape.terrainLabel"))
+                .accessibilityValue(String(format: text("lab.landscape.terrainValue"), String(model.iterations), number(model.loss, 3), String(model.correctAnswers),
+                                           number(model.position.w11, 1), number(model.position.w12, 1)))
+                .accessibilityIdentifier("lab.landscape.terrain")
             HStack(spacing: 12) {
                 Text(String(format: text("lab.xor.rate"), number(rate, rate < 1 ? 2 : (rate < 10 ? 1 : 0)))).monospacedDigit().frame(minWidth: 210, alignment: .leading)
                 Slider(value: $rateExponent, in: Model.learningRateExponents)
@@ -13429,6 +13416,19 @@ private struct ErrorLandscapeLab: View {
                 .frame(maxWidth: .infinity)
             }
             LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.landscape.status")
+            TrainingNetworkSceneView(weights: model.network.weights, training: playing, language: store.language)
+                .frame(height: 390)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.landscape.networkLabel"))
+                .accessibilityIdentifier("lab.landscape.network")
+            Text(text("lab.landscape.networkCaption"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            legend
+            answers
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.landscape.challenge"), solved: solvedRun != nil,
                          solvedText: String(format: text("lab.landscape.challengeSolved"), number(solvedRun?.startLoss ?? 0, 2), String(solvedRun?.steps ?? 0)),
                          identifier: "lab.landscape.challenge")
@@ -13459,7 +13459,7 @@ private struct ErrorLandscapeLab: View {
         HStack(spacing: 12) {
             ForEach([(Color(nsColor: TrainingStage.forwardSignal), "lab.landscape.legendForward"),
                      (Color(nsColor: TrainingStage.errorSignal), "lab.landscape.legendBackward"),
-                     (Color(red: 1, green: 0.95, blue: 0.4), "lab.landscape.legendTrained")], id: \.1) { color, key in
+                     (Color(nsColor: TrainingStage.trainedWeight), "lab.landscape.legendTrained")], id: \.1) { color, key in
                 HStack(spacing: 4) {
                     Circle().fill(color).frame(width: 9, height: 9)
                     Text(text(key)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize()

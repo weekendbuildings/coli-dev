@@ -777,16 +777,38 @@ final class ManagementUITests: XCTestCase {
 
         // A click on the terrain moves the start and clears the run. / Щелчок по рельефу переносит старт и сбрасывает прогон.
         let lossBefore = shown(loss)
-        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62)).click()
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click()
         try await Task.sleep(nanoseconds: 600_000_000)
         XCTAssertTrue(shown(iterations).hasPrefix("0"), "A click must clear the run.\n\(shown(iterations))")
         XCTAssertNotEqual(shown(loss), lossBefore, "A click must move the ball to another height.")
         // Dragging turns the scene and does not move the start. / Перетаскивание крутит сцену и не двигает старт.
         let lossAfterClick = shown(loss)
-        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 0.1, thenDragTo: terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
         try await Task.sleep(nanoseconds: 400_000_000)
         XCTAssertEqual(shown(loss), lossAfterClick, "A drag must not move the start.")
         snapshot("landscape-clicked")
+        // The terrain is still when nothing moves, so a turned scene gives a different picture.
+        // Рельеф неподвижен, поэтому повёрнутая сцена даёт другую картинку.
+        let terrainBefore = terrain.screenshot().pngRepresentation
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.6, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        XCTAssertNotEqual(terrain.screenshot().pngRepresentation, terrainBefore, "A drag must turn the terrain.")
+        snapshot("landscape-terrain-turned")
+
+        // The solid model of the network, before and after a drag. / Объёмная модель сети до и после перетаскивания.
+        let network = app.descendants(matching: .any)["lab.landscape.network"]
+        for _ in 0..<60 where network.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(network.isHittable, "The network model must scroll into view.")
+        // Signals keep running, so two moments give different pictures. / Сигналы бегут, поэтому два момента дают разные картинки.
+        let networkBefore = network.screenshot().pngRepresentation
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertNotEqual(network.screenshot().pngRepresentation, networkBefore, "The signals must keep running.")
+        snapshot("landscape-network")
+        network.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: network.coordinate(withNormalizedOffset: CGVector(dx: 0.62, dy: 0.42)))
+        try await Task.sleep(nanoseconds: 1_200_000_000)
+        snapshot("landscape-network-turned")
     }
 
     @MainActor

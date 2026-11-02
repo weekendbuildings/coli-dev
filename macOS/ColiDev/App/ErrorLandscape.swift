@@ -129,3 +129,41 @@ struct ErrorLandscapeModel: Equatable {
 
     static func learningRate(exponent: Double) -> Double { pow(10, exponent) }
 }
+
+/// What each neuron of the network answers for any input (x₁, x₂). The 3D model draws these answers as reliefs, so the
+/// shape of a neuron is its true function at the current weights. Weights are in the order of `XORNetworkModel`.
+/// Что отвечает каждый нейрон сети при любых входах. Модель рисует эти ответы рельефами: форма нейрона и есть его настоящая функция.
+enum NeuronRelief: Int, CaseIterable {
+    case x1, x2, h1, h2, y
+
+    func answer(weights w: [Double], x1: Double, x2: Double) -> Double {
+        switch self {
+        case .x1: return x1
+        case .x2: return x2
+        case .h1: return XORNetworkModel.sigmoid(w[0] * x1 + w[1] * x2 + w[2])
+        case .h2: return XORNetworkModel.sigmoid(w[3] * x1 + w[4] * x2 + w[5])
+        case .y:
+            let first = Self.h1.answer(weights: w, x1: x1, x2: x2)
+            let second = Self.h2.answer(weights: w, x1: x1, x2: x2)
+            return XORNetworkModel.sigmoid(w[6] * first + w[7] * second + w[8])
+        }
+    }
+
+    /// The slope of the relief, by the chain rule, with σ′ = σ(1 − σ).
+    func slope(weights w: [Double], x1: Double, x2: Double) -> SIMD2<Double> {
+        func saturation(_ neuron: NeuronRelief) -> Double {
+            let value = neuron.answer(weights: w, x1: x1, x2: x2)
+            return value * (1 - value)
+        }
+        switch self {
+        case .x1: return SIMD2(1, 0)
+        case .x2: return SIMD2(0, 1)
+        case .h1: return SIMD2(w[0], w[1]) * saturation(.h1)
+        case .h2: return SIMD2(w[3], w[4]) * saturation(.h2)
+        case .y:
+            let first = SIMD2(w[0], w[1]) * (saturation(.h1) * w[6])
+            let second = SIMD2(w[3], w[4]) * (saturation(.h2) * w[7])
+            return (first + second) * saturation(.y)
+        }
+    }
+}

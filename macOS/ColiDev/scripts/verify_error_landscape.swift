@@ -85,6 +85,39 @@ enum ErrorLandscapeVerification {
         let corner = mesh.positions[0]
         precondition(abs(corner.z - 14 * Model.loss(at: .init(w11: corner.x, w12: corner.y))) < 1e-9, "mesh height")
 
+        // Each relief is the true answer of its neuron, and its slope is the true slope.
+        let solved = Model(start: .init(w11: 6.8, w12: 6.8)).network
+        for example in XORNetworkModel.examples {
+            let output = solved.forward(example.x1, example.x2)
+            precondition(NeuronRelief.x1.answer(weights: solved.weights, x1: example.x1, x2: example.x2) == example.x1)
+            precondition(NeuronRelief.x2.answer(weights: solved.weights, x1: example.x1, x2: example.x2) == example.x2)
+            precondition(NeuronRelief.h1.answer(weights: solved.weights, x1: example.x1, x2: example.x2) == output.firstHidden, "h1 relief")
+            precondition(NeuronRelief.h2.answer(weights: solved.weights, x1: example.x1, x2: example.x2) == output.secondHidden, "h2 relief")
+            precondition(NeuronRelief.y.answer(weights: solved.weights, x1: example.x1, x2: example.x2) == output.answer, "output relief")
+            // In the valley the output reaches every hoop. / В долине выход достаёт до каждого кольца.
+            precondition(XORNetworkModel.isCorrect(answer: output.answer, target: example.target), "output reaches the hoop")
+        }
+        for neuron in NeuronRelief.allCases {
+            for weights in [solved.weights, Model(start: Model.defaultStart).network.weights] {
+                let h = 1e-6
+                let slope = neuron.slope(weights: weights, x1: 0.37, x2: 0.61)
+                let dx = (neuron.answer(weights: weights, x1: 0.37 + h, x2: 0.61) - neuron.answer(weights: weights, x1: 0.37 - h, x2: 0.61)) / (2 * h)
+                let dy = (neuron.answer(weights: weights, x1: 0.37, x2: 0.61 + h) - neuron.answer(weights: weights, x1: 0.37, x2: 0.61 - h)) / (2 * h)
+                precondition(abs(dx - slope.x) < 1e-5 && abs(dy - slope.y) < 1e-5, "relief slope")
+            }
+        }
+
+        // The lab's claim: the cliff of h₁ rises along (w₁₁, w₁₂), and is steeper for a longer vector.
+        let turned = Model(start: .init(w11: 2, w12: -5)).network.weights
+        let cliff = NeuronRelief.h1.slope(weights: turned, x1: 0.5, x2: 0.5)
+        precondition(abs(cliff.x * -5 - cliff.y * 2) < 1e-12 && cliff.x > 0, "the cliff rises along the weights")
+        var longer = turned
+        longer[0] *= 2
+        longer[1] *= 2
+        longer[2] *= 2
+        let atEdge = (x1: 0.5, x2: -(turned[2] + turned[0] * 0.5) / turned[1])
+        precondition(abs(NeuronRelief.h1.slope(weights: longer, x1: atEdge.x1, x2: atEdge.x2).x) > abs(NeuronRelief.h1.slope(weights: turned, x1: atEdge.x1, x2: atEdge.x2).x), "longer weights, steeper cliff")
+
         print("Error landscape verification passed.")
     }
 }
