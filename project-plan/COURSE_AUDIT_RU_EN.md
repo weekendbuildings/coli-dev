@@ -86,7 +86,7 @@
 
 ## Пять следующих улучшений, по пользе
 
-1. **Сеть со скрытым слоем учит XOR:** урок и тренажёр. Настоящее обратное распространение через слои, это первая сеть, которую можно создать самому.
+1. **Сеть со скрытым слоем учит XOR:** урок и тренажёр. Настоящее обратное распространение через слои, это первая сеть, которую можно создать самому. Сделано: урок `neural_network_hidden_layer_xor` и тренажёр `XORNetworkLab`, ветка `feat/hidden-layer-xor`.
 2. **Вероятность, 3 урока:** условная вероятность и Байес; распределения, среднее и дисперсия; кросс-энтропия как мост к ML. Без этого ML дальше не идёт.
 3. **Вопросы на понимание и «зачем это дальше» во всём курсе:** убрать расчёт из вариантов, добавить вопросы вида «что будет, если заблокировать NMDA». Новых уроков не требует и улучшает каждый урок.
 4. **Современный ML, 3–4 урока:** логистическая регрессия, мини-батчи, эмбеддинги, внимание, с маленькой моделью своими руками.
@@ -110,6 +110,6 @@ The foundation is sound: arithmetic and code held up in all 20 lessons read in d
 
 The main weakness is what is missing: hidden layers, probability, brain measurement methods, and theories of consciousness. In addition, 32 of 93 quiz questions show the calculation inside the correct option.
 
-Next improvements by value: (1) a hidden-layer network learning XOR; (2) three probability lessons; (3) understanding-based questions and "why this matters next" across the course; (4) modern ML lessons; (5) brain measurement and consciousness lessons.
+Next improvements by value: (1) a hidden-layer network learning XOR (done on branch `feat/hidden-layer-xor`); (2) three probability lessons; (3) understanding-based questions and "why this matters next" across the course; (4) modern ML lessons; (5) brain measurement and consciousness lessons.
 
 Not verified: the Deep Learning book (unreadable automatically), NCBI Bookshelf (reCAPTCHA), full texts of cited papers (metadata or abstracts only), the SpudCell limits beyond the abstract (news articles, not peer reviewed), and the other 73 lessons beyond the scripted scan. Labs were read as code and not run in the app, and CI was not run on this branch.
