@@ -52,6 +52,36 @@ extension TrainingStage {
         )
     }
 
+    /// A label on a dark plate, readable over a bright relief and even behind a block.
+    /// Подпись на тёмной плашке: читается и на ярком рельефе, и за блоком.
+    static func platedLabel(size: Float, color: NSColor) -> SCNNode {
+        let label = TrainingStage.label("", size: size, color: color)
+        label.renderingOrder = 100
+        label.geometry?.firstMaterial?.readsFromDepthBuffer = false
+        let backing = TrainingStage.material(NSColor(red: 0.05, green: 0.06, blue: 0.1, alpha: 0.76), lit: false)
+        backing.readsFromDepthBuffer = false
+        backing.writesToDepthBuffer = false
+        let shape = SCNPlane(width: 1, height: 1)
+        shape.materials = [backing]
+        let plate = SCNNode(geometry: shape)
+        plate.name = "plate"
+        plate.renderingOrder = 99
+        plate.castsShadow = false
+        label.addChildNode(plate)
+        return label
+    }
+
+    static func setPlatedLabel(_ node: SCNNode, _ string: String) {
+        setLabel(node, string)
+        guard let text = node.geometry, let plate = node.childNode(withName: "plate", recursively: false),
+              let shape = plate.geometry as? SCNPlane else { return }
+        let (minimum, maximum) = text.boundingBox
+        shape.width = (maximum.x - minimum.x) + 0.55
+        shape.height = (maximum.y - minimum.y) + 0.22
+        shape.cornerRadius = 0.22
+        plate.position = SCNVector3((minimum.x + maximum.x) / 2, (minimum.y + maximum.y) / 2, -0.01)
+    }
+
     /// A round tube along a curve, with real normals, so a wire looks like a cable and not like a line.
     static func tube(along curve: SceneCurve, radius: Float, segments: Int = 28, sides: Int = 12) -> SCNGeometry {
         var positions: [SCNVector3] = []
@@ -365,7 +395,7 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
             scene.rootNode.addChildNode(label)
         }
         for name in ["w11", "w12"] {
-            let label = overlayLabel(size: 0.36, color: TrainingStage.trainedWeight)
+            let label = TrainingStage.platedLabel(size: 0.36, color: TrainingStage.trainedWeight)
             label.name = name + "-label"
             scene.rootNode.addChildNode(label)
         }
@@ -388,36 +418,6 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
         cameraNode.look(at: SCNVector3(0, 0.6, 0))
         scene.rootNode.addChildNode(cameraNode)
         return scene
-    }
-
-    /// A label on a dark plate, readable over a bright relief and even behind a block.
-    /// Подпись на тёмной плашке: читается и на ярком рельефе, и за блоком.
-    private static func overlayLabel(size: Float, color: NSColor) -> SCNNode {
-        let label = TrainingStage.label("", size: size, color: color)
-        label.renderingOrder = 100
-        label.geometry?.firstMaterial?.readsFromDepthBuffer = false
-        let backing = TrainingStage.material(NSColor(red: 0.05, green: 0.06, blue: 0.1, alpha: 0.76), lit: false)
-        backing.readsFromDepthBuffer = false
-        backing.writesToDepthBuffer = false
-        let shape = SCNPlane(width: 1, height: 1)
-        shape.materials = [backing]
-        let plate = SCNNode(geometry: shape)
-        plate.name = "plate"
-        plate.renderingOrder = 99
-        plate.castsShadow = false
-        label.addChildNode(plate)
-        return label
-    }
-
-    private static func setPlatedLabel(_ node: SCNNode, _ string: String) {
-        TrainingStage.setLabel(node, string)
-        guard let text = node.geometry, let plate = node.childNode(withName: "plate", recursively: false),
-              let shape = plate.geometry as? SCNPlane else { return }
-        let (minimum, maximum) = text.boundingBox
-        shape.width = (maximum.x - minimum.x) + 0.55
-        shape.height = (maximum.y - minimum.y) + 0.22
-        shape.cornerRadius = 0.22
-        plate.position = SCNVector3((minimum.x + maximum.x) / 2, (minimum.y + maximum.y) / 2, -0.01)
     }
 
     private static func addNeuron(_ neuron: NeuronRelief, to root: SCNNode) {
@@ -455,7 +455,7 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
         ball.name = "ball-\(neuron.rawValue)"
         root.addChildNode(ball)
 
-        let label = overlayLabel(size: neuron == .y ? 0.46 : 0.42, color: TrainingStage.text)
+        let label = TrainingStage.platedLabel(size: neuron == .y ? 0.46 : 0.42, color: TrainingStage.text)
         label.name = "label-\(neuron.rawValue)"
         label.simdPosition = spot + SIMD3<Float>(0, plinthHeight + reliefHeight + 0.62, 0)
         root.addChildNode(label)
@@ -527,7 +527,7 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
         for (index, name) in ["w11", "w12"].enumerated() {
             guard let label = root.childNode(withName: name + "-label", recursively: false) else { continue }
             let title = index == 0 ? "w₁₁" : "w₁₂"
-            setPlatedLabel(label, "\(title) = " + L10n.number(w[index], fractionDigits: 1, coordinator.language))
+            TrainingStage.setPlatedLabel(label, "\(title) = " + L10n.number(w[index], fractionDigits: 1, coordinator.language))
             // Beside the sleeve, so that gold does not cover gold. / Рядом с муфтой, чтобы золото не легло на золото.
             label.simdPosition = wires[index].curve.point(index == 0 ? 0.5 : 0.28) + SIMD3<Float>(0, 0.55, 0)
         }
@@ -600,7 +600,7 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
         if neuron == .y {
             text += " · " + String(format: L10n.text("lab.landscape.target", language), String(Int(example.target)))
         }
-        setPlatedLabel(label, text)
+        TrainingStage.setPlatedLabel(label, text)
     }
 
     // MARK: - Signals

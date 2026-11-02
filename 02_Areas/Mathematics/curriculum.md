@@ -33,6 +33,7 @@
 | Собственные значения, ортогональность и оптимизация / Eigenvalues, orthogonality, optimization | Понимать устойчивые направления преобразований и применять ограничения в задачах оптимизации. / Understand invariant directions and constrained optimization. | lesson:constrained_optimization_and_lagrange_multipliers |
 | Численные методы и вычислительное моделирование / Numerical methods and computational modeling | Оценивать погрешность приближений и проверять вычислительные модели на граничных случаях. / Track approximation error and validate computational models. | lesson:euler_method_numerical_modeling |
 | Специализации: теория чисел, комплексный анализ, топология / Specializations: number theory, complex analysis, topology | Выбирать отдельную математическую ветвь и доказывать результаты на её собственном языке. / Pursue a branch using its definitions and proof methods. | lesson:primes_gcd_and_clock_arithmetic |
+| Информация, энтропия и кросс-энтропия / Information, entropy, and cross-entropy | Считать удивление, энтропию и кросс-энтропию в битах, доказывать, что кросс-энтропия не ниже энтропии, и объяснять, почему её минимизируют при обучении. / Compute surprise, entropy, and cross-entropy in bits, prove that cross-entropy is never below entropy, and explain why it is minimized in training. | lesson:information_and_cross_entropy |
 
 ## Форматы практики / Practice formats
 

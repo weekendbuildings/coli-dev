@@ -439,6 +439,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-error-landscape"
           "$RUNNER_TEMP/verify-error-landscape"
 
+      - name: Verify cross-entropy bowl model / Проверка модели чаши кросс-энтропии
+        run: |
+          swiftc macOS/ColiDev/App/CrossEntropyBowl.swift macOS/ColiDev/scripts/verify_cross_entropy_bowl.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-cross-entropy-bowl"
+          "$RUNNER_TEMP/verify-cross-entropy-bowl"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \

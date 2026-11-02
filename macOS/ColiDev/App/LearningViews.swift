@@ -1879,6 +1879,8 @@ private struct PracticeLab: View {
             AutocatalysisLab()
         } else if subject == .mathematics, moduleResource == "vectors_and_matrices" {
             NeuralLayerLab()
+        } else if subject == .mathematics, moduleResource == "information_and_cross_entropy" {
+            CrossEntropyBowlLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -13502,6 +13504,122 @@ private struct ErrorLandscapeLab: View {
                 if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
             }
             context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct CrossEntropyBowlLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = CrossEntropyBowlModel()
+    @State private var truthIndex = 0
+    @State private var playing = false
+    @State private var solvedRun: (startGap: Double, steps: Int)?
+
+    private typealias Model = CrossEntropyBowlModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text("lab.bowl.ready"))
+        case .training: return (.info, text("lab.bowl.training"))
+        case .reachedBottom: return (.good, text("lab.bowl.reached"))
+        case .outOfSteps: return (.warning, text("lab.bowl.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.bowl.title"), instruction: text("lab.bowl.subtitle"))
+            CrossEntropyBowlSceneView(model: model, language: store.language, onPick: place)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.bowl.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.bowl.sceneValue"), number(model.error), number(model.bottom)))
+                .accessibilityIdentifier("lab.bowl.scene")
+            Picker(text("lab.bowl.truth"), selection: Binding(get: { truthIndex }, set: { change(truth: $0) })) {
+                ForEach(Array(Model.truths.enumerated()), id: \.offset) { index, truth in
+                    Text(verbatim: truth.map { number($0) }.joined(separator: " · ")).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.bowl.truth")
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.bowl.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.bowl.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; model.restart() }
+                    .accessibilityIdentifier("lab.bowl.reset")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                bars
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.bowl.statError"), value: number(model.error, 3), tint: .orange, identifier: "lab.bowl.error")
+                    LabStat(label: text("lab.bowl.statBottom"), value: number(model.bottom, 3), tint: .green, identifier: "lab.bowl.bottomValue")
+                    LabStat(label: text("lab.bowl.statGap"), value: number(max(model.gap, 0), 3), identifier: "lab.bowl.gap")
+                    LabStat(label: text("lab.bowl.statSteps"), value: String(model.steps), identifier: "lab.bowl.steps")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.bowl.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.bowl.challenge"), solved: solvedRun != nil,
+                         solvedText: String(format: text("lab.bowl.challengeSolved"), number(solvedRun?.startGap ?? 0), String(solvedRun?.steps ?? 0)),
+                         identifier: "lab.bowl.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.bowl.how1"), text("lab.bowl.how2"), text("lab.bowl.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                guard playing else { break }
+                advance()
+                if model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func place(_ belief: [Double]) {
+        playing = false
+        model = Model(truth: model.truth, belief: belief)
+    }
+
+    private func change(truth index: Int) {
+        playing = false
+        truthIndex = index
+        model = Model(truth: Model.truths[index], belief: model.start)
+    }
+
+    private func advance() {
+        model.step()
+        if model.solvesChallenge, solvedRun == nil { solvedRun = (model.startGap, model.steps) }
+    }
+
+    // What the model believes against the truth, and its surprise at each symbol.
+    private var bars: some View {
+        HStack(alignment: .bottom, spacing: 14) {
+            ForEach(0..<3, id: \.self) { index in
+                VStack(spacing: 4) {
+                    HStack(alignment: .bottom, spacing: 3) {
+                        RoundedRectangle(cornerRadius: 3).fill(Color.green.opacity(0.75)).frame(width: 18, height: max(2, 90 * model.truth[index]))
+                        RoundedRectangle(cornerRadius: 3).fill(Color.orange).frame(width: 18, height: max(2, 90 * model.belief[index]))
+                    }
+                    .frame(height: 92, alignment: .bottom)
+                    Text(verbatim: ["A", "B", "C"][index]).font(.callout.weight(.semibold))
+                    Text(String(format: text("lab.bowl.surprise"), number(-log2(model.belief[index]), 1))).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                }
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 4) { RoundedRectangle(cornerRadius: 2).fill(Color.green.opacity(0.75)).frame(width: 10, height: 10); Text(text("lab.bowl.legendTruth")).font(.caption2) }
+                HStack(spacing: 4) { RoundedRectangle(cornerRadius: 2).fill(Color.orange).frame(width: 10, height: 10); Text(text("lab.bowl.legendBelief")).font(.caption2) }
+            }
         }
     }
 }

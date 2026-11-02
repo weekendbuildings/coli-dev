@@ -812,6 +812,52 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testCrossEntropyBowlIsTrainedFromTheWallToTheBottom() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/information_and_cross_entropy"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.bowl.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the bowl.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<80 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        snapshot("landscape-bowl")
+        let steps = app.staticTexts["lab.bowl.steps"]
+        let error = app.staticTexts["lab.bowl.error"]
+        XCTAssertTrue(shown(steps).hasPrefix("0"), shown(steps))
+        // A click near corner C puts the ball high on the wall. / Щелчок у угла C ставит шарик высоко на стену.
+        let before = shown(error)
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.17)).click()
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(shown(error), before, "A click must move the ball.")
+        // A drag turns the bowl and does not move the ball. / Перетаскивание крутит чашу и не двигает шарик.
+        let placed = shown(error)
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the bowl.")
+        XCTAssertEqual(shown(error), placed, "A drag must not move the ball.")
+        app.buttons["lab.bowl.play"].click()
+        let status = app.descendants(matching: .any)["lab.bowl.challenge"]
+        try await Task.sleep(nanoseconds: 16_000_000_000)
+        snapshot("landscape-bowl-trained")
+        XCTAssertTrue(shown(status).contains("Получилось") || shown(status).contains("Done") || app.staticTexts["lab.bowl.steps"].exists, shown(status))
+        XCTAssertFalse(shown(steps).hasPrefix("0 "), shown(steps))
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
