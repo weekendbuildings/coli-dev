@@ -19338,7 +19338,10 @@ private struct LiveModelLab: View {
                     context.fill(Path(ellipseIn: dot), with: .color(.accentColor))
                     context.stroke(Path(ellipseIn: dot), with: .color(.white), lineWidth: 1.5)
                     let label = Text(verbatim: percent(item.bestShare)).font(.caption.weight(.semibold)).foregroundColor(.primary)
-                    context.draw(label, at: CGPoint(x: point.x + 9, y: point.y - 10), anchor: .leading)
+                    // A point at the right edge keeps its label inside the chart. / У точки на правом краю подпись остаётся внутри графика.
+                    let nearRight: Bool = point.x > geometry.rect.maxX - 50
+                    let labelX: CGFloat = nearRight ? point.x - 9 : point.x + 9
+                    context.draw(label, at: CGPoint(x: labelX, y: point.y - 12), anchor: nearRight ? .trailing : .leading)
                 }
                 if state.experiments.isEmpty {
                     let hint = Text(verbatim: text("lab.liveModel.chartEmpty")).font(.callout).foregroundColor(.secondary)

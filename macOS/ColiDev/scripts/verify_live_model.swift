@@ -42,7 +42,7 @@ enum LiveModelVerification {
 
     private static func checkParsing() throws {
         let answer = """
-        {"response":" Paris","prompt_eval_count":5,"eval_duration":80000000,
+        {"response":" Paris","prompt_eval_count":5,"eval_duration":2000,"total_duration":80000000,
          "logprobs":[{"token":" Paris","logprob":-0.4599,"top_logprobs":[
            {"token":" Paris","logprob":-0.4599},{"token":" __","logprob":-3.0503}]}]}
         """

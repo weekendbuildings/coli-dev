@@ -88,7 +88,9 @@ enum LiveModelAPI {
         }
         guard !candidates.isEmpty else { throw LiveModelError.badAnswer }
         let promptTokens = answer["prompt_eval_count"] as? Int ?? 0
-        let nanoseconds = (answer["eval_duration"] as? Double) ?? Double(answer["eval_duration"] as? Int ?? 0)
+        // For a single token `eval_duration` is about zero, so the whole answer time is the honest number.
+        // Для одного токена `eval_duration` почти равно нулю, поэтому честное число это время всего ответа.
+        let nanoseconds = (answer["total_duration"] as? Double) ?? Double(answer["total_duration"] as? Int ?? 0)
         return LiveModelStep(chosen: chosen, candidates: candidates, promptTokens: promptTokens, milliseconds: nanoseconds / 1_000_000)
     }
 }

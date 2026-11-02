@@ -24,7 +24,7 @@ enum L10n {
         "lab.liveModel.statPrompt": ("Токенов в запросе", "Tokens in the prompt"),
         "lab.liveModel.statWritten": ("Дописано токенов", "Tokens written"),
         "lab.liveModel.statBest": ("Лучший кандидат", "Best candidate"),
-        "lab.liveModel.statSpeed": ("Один токен за", "One token takes"),
+        "lab.liveModel.statSpeed": ("Один ответ за", "One answer takes"),
         "lab.liveModel.ms": ("мс", "ms"),
         "lab.liveModel.challenge": ("Повтори опыт из урока: брось 100 раз при T = 0, при T = 1 и при T = 2. Посмотри на график: как часто выпал лучший токен?", "Repeat the lesson's experiment: throw 100 times at T = 0, T = 1, and T = 2. Look at the chart: how often did the best token fall?"),
         "lab.liveModel.challengeDone": ("Есть! Чем горячее, тем реже выпадает лучший токен: при высокой температуре вероятность забирает толпа редких токенов.", "Done! The hotter it is, the less often the best token falls: at high temperature the crowd of rare tokens takes the probability."),
