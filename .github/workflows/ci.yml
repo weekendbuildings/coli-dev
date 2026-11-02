@@ -469,6 +469,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-live-model"
           "$RUNNER_TEMP/verify-live-model"
 
+      - name: Verify chat anatomy lab
+        run: |
+          swiftc macOS/ColiDev/App/ChatLabModel.swift macOS/ColiDev/scripts/verify_chat_lab.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-chat-lab"
+          "$RUNNER_TEMP/verify-chat-lab"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \

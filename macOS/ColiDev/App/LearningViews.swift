@@ -1946,6 +1946,8 @@ private struct PracticeLab: View {
             GaltonBoardLab()
         } else if subject == .programming, moduleResource == "live_model_tokens_temperature" {
             LiveModelLab()
+        } else if subject == .programming, moduleResource == "chat_roles_and_context" {
+            ChatAnatomyLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -19369,4 +19371,234 @@ private struct LiveModelLab: View {
 
     /// Room above the 100% line for the label of a point there. / Место над линией 100 % для подписи точки.
     private static let chartTop: CGFloat = 24
+}
+
+// MARK: - Chat anatomy lab / Тренажёр: из чего сделан чат
+
+private struct ChatAnatomyLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @StateObject private var controller = ChatLabController()
+
+    private typealias Scenario = ChatLabState.Scenario
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var state: ChatLabState { controller.state }
+
+    private var status: (LabStatusKind, String) {
+        switch controller.mode {
+        case .checking: return (.info, String(format: text("lab.chat.checking"), ChatLabAPI.model))
+        case .live: return (.good, String(format: text("lab.liveModel.live"), ChatLabAPI.model))
+        case .recording: return (.warning, text("lab.liveModel.recording"))
+        }
+    }
+
+    private var scenarioBinding: Binding<Scenario> {
+        Binding(get: { controller.state.scenario }, set: { value in
+            controller.changed()
+            controller.state.scenario = value
+        })
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.chat.title"), instruction: text("lab.chat.subtitle"))
+            HStack(spacing: 10) {
+                LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.chat.status")
+                if controller.mode == .recording {
+                    Button(text("lab.liveModel.checkAgain")) { controller.checkAgain() }
+                }
+            }
+            Picker(text("lab.chat.experiment"), selection: scenarioBinding) {
+                ForEach(Scenario.allCases) { scenario in
+                    Text(text("lab.chat.tab.\(scenario.rawValue)")).tag(scenario)
+                }
+            }
+            .pickerStyle(.segmented)
+            .labelsHidden()
+            .accessibilityIdentifier("lab.chat.scenario")
+            Text(text("lab.chat.hint.\(state.scenario.rawValue)"))
+                .font(.callout)
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            controls
+            if state.scenario == .window {
+                windowTape
+            } else {
+                modelText
+            }
+            Button { controller.ask() } label: {
+                Label(text("lab.chat.ask"), systemImage: "paperplane.fill")
+            }
+            .buttonStyle(.borderedProminent)
+            .disabled(controller.busy)
+            .accessibilityIdentifier("lab.chat.ask")
+            answerPanel
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.chat.challenge"), solved: state.solved,
+                         solvedText: text("lab.chat.challengeDone"), identifier: "lab.chat.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.chat.howText"), text("lab.chat.howWindow")])
+        }
+        .onDisappear { controller.stop() }
+    }
+
+    @ViewBuilder
+    private var controls: some View {
+        switch state.scenario {
+        case .memory:
+            Toggle(text("lab.chat.sendHistory"), isOn: Binding(get: { controller.state.sendHistory }, set: { value in
+                controller.changed()
+                controller.state.sendHistory = value
+            }))
+            .accessibilityIdentifier("lab.chat.sendHistory")
+        case .forged:
+            HStack(spacing: 8) {
+                Text(verbatim: "assistant").font(.system(.caption, design: .monospaced).weight(.semibold)).foregroundStyle(.orange)
+                TextField(text("lab.chat.forgedField"), text: Binding(get: { controller.state.forgedAnswer }, set: { value in
+                    controller.changed()
+                    controller.state.forgedAnswer = value
+                }))
+                .textFieldStyle(.roundedBorder)
+                .accessibilityIdentifier("lab.chat.forged")
+            }
+            Picker(text("lab.chat.followUp"), selection: Binding(get: { controller.state.followUp }, set: { value in
+                controller.changed()
+                controller.state.followUp = value
+            })) {
+                ForEach(ChatLabState.followUps.indices, id: \.self) { index in
+                    Text(verbatim: ChatLabState.followUps[index]).tag(index)
+                }
+            }
+            .accessibilityIdentifier("lab.chat.followUp")
+        case .wrapper:
+            Toggle(text("lab.chat.useRule"), isOn: Binding(get: { controller.state.useRule }, set: { value in
+                controller.changed()
+                controller.state.useRule = value
+            }))
+            .accessibilityIdentifier("lab.chat.useRule")
+        case .window:
+            Picker(text("lab.chat.window"), selection: Binding(get: { controller.state.window }, set: { value in
+                controller.changed()
+                controller.state.window = value
+            })) {
+                ForEach(ChatLabState.windows, id: \.self) { window in
+                    Text(verbatim: String(window)).tag(window)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.chat.window")
+        }
+    }
+
+    /// The very text the model reads, with the service marks in colour. / Тот самый текст, который читает модель; служебные метки цветные.
+    private var modelText: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text("lab.chat.modelReads")).font(.callout.weight(.semibold))
+            ScrollView {
+                VStack(alignment: .leading, spacing: 6) {
+                    ForEach(rendered, id: \.id) { part in
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(verbatim: "<|im_start|>\(part.role)").foregroundColor(.orange)
+                            Text(verbatim: part.body).foregroundColor(part.hidden ? .purple : .primary)
+                            if !part.open { Text(verbatim: "<|im_end|>").foregroundColor(.orange) }
+                        }
+                    }
+                }
+                .font(.system(.callout, design: .monospaced))
+                .textSelection(.enabled)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+            }
+            .frame(height: 210)
+            .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+            .accessibilityIdentifier("lab.chat.modelText")
+        }
+    }
+
+    private struct RenderedPart {
+        let id: Int
+        let role: String
+        let body: String
+        let hidden: Bool
+        let open: Bool
+    }
+
+    private var rendered: [RenderedPart] {
+        var parts: [RenderedPart] = []
+        let messages = state.messages
+        if messages.first?.role != .system {
+            parts.append(RenderedPart(id: -1, role: "system", body: ChatLabAPI.defaultSystem, hidden: true, open: false))
+        }
+        for message in messages {
+            parts.append(RenderedPart(id: message.id, role: message.role.rawValue, body: message.text, hidden: false, open: false))
+        }
+        parts.append(RenderedPart(id: 10_000, role: "assistant", body: "", hidden: false, open: true))
+        return parts
+    }
+
+    /// The long chat as a tape: what does not fit the window drops out on the left, with the secret first.
+    /// Длинный чат как лента: то, что не влезло в окно, выпадает слева, и первым выпадает секрет.
+    private var windowTape: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(verbatim: String(format: text("lab.chat.tapeTitle"), String(ChatLabState.longChat.count), String(ChatLabState.longChatTokens), String(state.window)))
+                .font(.callout.weight(.semibold))
+            Canvas { context, size in
+                let count = ChatLabState.longChat.count
+                let cell: CGFloat = size.width / CGFloat(count)
+                let dropped = state.droppedMessages
+                for index in 0..<count {
+                    let rect = CGRect(x: CGFloat(index) * cell + 0.5, y: 18, width: max(cell - 1, 1), height: size.height - 18)
+                    let isSecret = index == 0
+                    let inside = index >= dropped
+                    let color: Color = isSecret ? (inside ? .orange : .red.opacity(0.35)) : (inside ? .accentColor.opacity(index % 2 == 0 ? 0.85 : 0.5) : .secondary.opacity(0.18))
+                    context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(color))
+                }
+                let label = Text(verbatim: ChatLabState.secret).font(.caption.weight(.semibold)).foregroundColor(dropped > 0 ? .red : .orange)
+                context.draw(label, at: CGPoint(x: 0, y: 0), anchor: .topLeading)
+                let question = Text(verbatim: text("lab.chat.tapeQuestion")).font(.caption.weight(.semibold)).foregroundColor(.secondary)
+                context.draw(question, at: CGPoint(x: size.width, y: 0), anchor: .topTrailing)
+            }
+            .frame(height: 64)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.chat.tapeSpoken"))
+            .accessibilityValue(String(state.droppedMessages))
+            .accessibilityIdentifier("lab.chat.tape")
+        }
+    }
+
+    @ViewBuilder
+    private var answerPanel: some View {
+        if controller.busy {
+            ProgressView().controlSize(.small)
+        } else if controller.notRecorded {
+            LabStatusBadge(kind: .info, text: text("lab.chat.notRecorded"), identifier: "lab.chat.notRecorded")
+        } else if let answer = state.answer {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(alignment: .top, spacing: 8) {
+                    Image(systemName: "text.bubble.fill").foregroundStyle(.green)
+                    Text(verbatim: answer.text)
+                        .font(.body.weight(.medium))
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityIdentifier("lab.chat.answer")
+                }
+                LabStatGrid {
+                    LabStat(label: text("lab.liveModel.statPrompt"), value: String(answer.promptTokens), tint: .accentColor, identifier: "lab.chat.promptTokens")
+                    if let hand = state.handAnswer {
+                        LabStat(label: text("lab.chat.handTokens"), value: String(hand.promptTokens), tint: .purple)
+                    }
+                }
+                if let hand = state.handAnswer {
+                    Text(verbatim: "\(text("lab.chat.handAnswer")) \(hand.text)").font(.callout).foregroundStyle(.secondary)
+                }
+                if let match = state.answersMatch {
+                    LabStatusBadge(kind: match ? .good : .warning, text: text(match ? "lab.chat.same" : "lab.chat.differ"), identifier: "lab.chat.same")
+                }
+                if state.scenario == .window, let remembers = state.remembersSecret {
+                    LabStatusBadge(kind: remembers ? .good : .bad, text: String(format: text(remembers ? "lab.chat.remembers" : "lab.chat.forgets"), String(answer.promptTokens)), identifier: "lab.chat.windowResult")
+                }
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        }
+    }
 }

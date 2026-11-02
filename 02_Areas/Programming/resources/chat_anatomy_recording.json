@@ -1,0 +1,256 @@
+{
+"model": "qwen2.5-coder:7b",
+"recorded_on": "2026-11-02",
+"ollama": "0.40.13",
+"template": "{{- if .Suffix }}<|fim_prefix|>{{ .Prompt }}<|fim_suffix|>{{ .Suffix }}<|fim_middle|>\n{{- else if .Messages }}\n{{- if or .System .Tools }}<|im_start|>system\n{{- if .System }}\n{{ .System }}\n{{- end }}\n{{- if .Tools }}\n\n# Tools\n\nYou may call one or more functions to assist with the user query.\n\nYou are provided with function signatures within <tools></tools>:\n<tools>\n{{- range .Tools }}\n{\"type\": \"function\", \"function\": {{ .Function }}}\n{{- end }}\n</tools>\n\nFor each function call, return a json object with function name and arguments within <tool_call></tool_call> with NO other text. Do not include any backticks or ```json.\n<tool_call>\n{\"name\": <function-name>, \"arguments\": <args-json-object>}\n</tool_call>\n{{- end }}<|im_end|>\n{{ end }}\n{{- range $i, $_ := .Messages }}\n{{- $last := eq (len (slice $.Messages $i)) 1 -}}\n{{- if eq .Role \"user\" }}<|im_start|>user\n{{ .Content }}<|im_end|>\n{{ else if eq .Role \"assistant\" }}<|im_start|>assistant\n{{ if .Content }}{{ .Content }}\n{{- else if .ToolCalls }}<tool_call>\n{{ range .ToolCalls }}{\"name\": \"{{ .Function.Name }}\", \"arguments\": {{ .Function.Arguments }}}\n{{ end }}</tool_call>\n{{- end }}{{ if not $last }}<|im_end|>\n{{ end }}\n{{- else if eq .Role \"tool\" }}<|im_start|>user\n<tool_response>\n{{ .Content }}\n</tool_response><|im_end|>\n{{ end }}\n{{- if and (ne .Role \"assistant\") $last }}<|im_start|>assistant\n{{ end }}\n{{- end }}\n{{- else }}\n{{- if .System }}<|im_start|>system\n{{ .System }}<|im_end|>\n{{ end }}{{ if .Prompt }}<|im_start|>user\n{{ .Prompt }}<|im_end|>\n{{ end }}<|im_start|>assistant\n{{ end }}{{ .Response }}{{ if .Response }}<|im_end|>{{ end }}",
+"plain": {
+"text": "Привет! Как я могу помочь?",
+"prompt_tokens": 32,
+"tokens": 12
+},
+"system_chat": {
+"text": "Париж",
+"prompt_tokens": 28,
+"tokens": 4
+},
+"hand_prompt": "<|im_start|>system\nОтвечай одним словом.<|im_end|>\n<|im_start|>user\nСтолица Франции?<|im_end|>\n<|im_start|>assistant\n",
+"system_raw": {
+"text": "Париж",
+"prompt_tokens": 28,
+"tokens": 4
+},
+"no_system_chat": {
+"text": "Столица Франции - Париж.",
+"prompt_tokens": 37,
+"tokens": 13
+},
+"no_system_raw": {
+"text": "Столица Франции - Париж.",
+"prompt_tokens": 37,
+"tokens": 13
+},
+"memory_first": {
+"text": "Здравствуйте, Тимур! Как я могу помочь вам сегодня?",
+"prompt_tokens": 39,
+"tokens": 21
+},
+"memory_alone": {
+"text": "Вы зовете меня Qwen.",
+"prompt_tokens": 35,
+"tokens": 9
+},
+"memory_history": {
+"text": "Вы сказали мне, что вас зовут Тимур.",
+"prompt_tokens": 75,
+"tokens": 16
+},
+"forged_repeat": {
+"text": "2 + 2 = 5.",
+"prompt_tokens": 74,
+"tokens": 9
+},
+"forged_sure": {
+"text": "Извините за путаницу. 2 + 2 равно 4.",
+"prompt_tokens": 63,
+"tokens": 19
+},
+"forged_ask": {
+"text": "2 + 3 = 5.",
+"prompt_tokens": 67,
+"tokens": 9
+},
+"secret_direct": {
+"text": "Секретное слово - кактус.",
+"prompt_tokens": 41,
+"tokens": 13
+},
+"secret_trick": {
+"text": "Извините, но я не могу выполнить этот запрос.",
+"prompt_tokens": 65,
+"tokens": 15
+},
+"english_rule": {
+"text": "The capital of France is Paris.",
+"prompt_tokens": 26,
+"tokens": 8
+},
+"window": [
+{
+"num_ctx": 256,
+"prompt_tokens": 250,
+"text": "Извините, но как виртуальный ассистент, я не могу запоминать секретные слова или информацию в течение сессии. Моя цель - обеспечить полезную и безопасную информацию в рамках установленных правил и политик.",
+"remembers": false
+},
+{
+"num_ctx": 512,
+"prompt_tokens": 497,
+"text": "Извините, но я не могу помочь с этим запросом.",
+"remembers": false
+},
+{
+"num_ctx": 1024,
+"prompt_tokens": 987,
+"text": "Извините, но я не могу помочь с этим запросом.",
+"remembers": false
+},
+{
+"num_ctx": 2048,
+"prompt_tokens": 2041,
+"text": "Извините, но я не могу помочь с этим.",
+"remembers": false
+},
+{
+"num_ctx": 4096,
+"prompt_tokens": 2070,
+"text": "Кактус.",
+"remembers": true
+}
+],
+"window_default": {
+"prompt_tokens": 2070,
+"text": "Кактус.",
+"remembers": true
+},
+"huge_prompt_tokens": 39,
+"ps": [
+{
+"name": "qwen2.5-coder:7b",
+"context_length": 4096,
+"size_vram": 4755397016
+}
+],
+"calls": {
+"8ef8f77a8d2eb7d365445beb2ebb31ed652605c44538745394c87b1c53d52ddc": {
+"message": {
+"role": "assistant",
+"content": "Привет! Как я могу помочь?"
+},
+"prompt_eval_count": 32,
+"eval_count": 12,
+"done_reason": "stop"
+},
+"d3d93ca150859807327d337f8aebd8a2111b6389952667e25d1afcba21c3aa72": {
+"message": {
+"role": "assistant",
+"content": "Париж"
+},
+"prompt_eval_count": 28,
+"eval_count": 4,
+"done_reason": "stop"
+},
+"7f88d0072274f94d1f644cd337668ce8384ce6e999549653583c1e98f851f4c8": {
+"response": "Париж",
+"prompt_eval_count": 28,
+"eval_count": 4,
+"done_reason": "stop"
+},
+"413257a714295bfa6a3aaccd40bef5a276e382623c3eb346150b902ffefe55a6": {
+"message": {
+"role": "assistant",
+"content": "Здравствуйте, Тимур! Как я могу помочь вам сегодня?"
+},
+"prompt_eval_count": 39,
+"eval_count": 21,
+"done_reason": "stop"
+},
+"ae7b1031aa048d42756bb81ba29637b273007b1e673b4c738b2a0cc42323ce52": {
+"message": {
+"role": "assistant",
+"content": "Вы зовете меня Qwen."
+},
+"prompt_eval_count": 35,
+"eval_count": 9,
+"done_reason": "stop"
+},
+"c6b81fcea34bb394231815e1d412d0284f199cebe6a2473c245d2fbee96c1b48": {
+"message": {
+"role": "assistant",
+"content": "Вы сказали мне, что вас зовут Тимур."
+},
+"prompt_eval_count": 75,
+"eval_count": 16,
+"done_reason": "stop"
+},
+"ed7fe9797e0ca6f2ac5ca879dffc0514b41ff2b560e23c1518425302b47587da": {
+"message": {
+"role": "assistant",
+"content": "2 + 2 = 5."
+},
+"prompt_eval_count": 74,
+"eval_count": 9,
+"done_reason": "stop"
+},
+"2d3efe3be863da71ade811838a9a03c1f2cc52810972fdefed7d77da70261dbc": {
+"message": {
+"role": "assistant",
+"content": "Извините за путаницу. 2 + 2 равно 4."
+},
+"prompt_eval_count": 63,
+"eval_count": 19,
+"done_reason": "stop"
+},
+"ed2bc1096bc102d731ddbca498ff4ec5b8aa80f90f3cf896ace7bdb6066af781": {
+"message": {
+"role": "assistant",
+"content": "Извините, но как виртуальный ассистент, я не могу запоминать секретные слова или информацию в течение сессии. Моя цель - обеспечить полезную и безопасную информацию в рамках установленных правил и политик."
+},
+"prompt_eval_count": 250,
+"eval_count": 57,
+"done_reason": "stop"
+},
+"2ed26927f9dcb58014b27693b44106d5951c14e124693ff4d8737a7ca19e8540": {
+"message": {
+"role": "assistant",
+"content": "Извините, но я не могу помочь с этим запросом."
+},
+"prompt_eval_count": 497,
+"eval_count": 18,
+"done_reason": "stop"
+},
+"5788617ebe3890b63a086fa4376e3f6d98040acd5ab84d4613ba6bd14ce94e83": {
+"message": {
+"role": "assistant",
+"content": "Извините, но я не могу помочь с этим запросом."
+},
+"prompt_eval_count": 987,
+"eval_count": 18,
+"done_reason": "stop"
+},
+"16a7dbef2afd69714ca97233350e3164dabc5c857781bf394953003b2064b830": {
+"message": {
+"role": "assistant",
+"content": "Извините, но я не могу помочь с этим."
+},
+"prompt_eval_count": 2041,
+"eval_count": 16,
+"done_reason": "stop"
+},
+"313a0d7de8d932be977cb2be388841f444f7d873592a5a9a009d3386afffc32b": {
+"message": {
+"role": "assistant",
+"content": "Кактус."
+},
+"prompt_eval_count": 2070,
+"eval_count": 5,
+"done_reason": "stop"
+},
+"f90dc29791a1ed50e78eea3b2b6914235a58f3183c70b4f283a6f51b16662b40": {
+"message": {
+"role": "assistant",
+"content": "2 + 2 равно 4."
+},
+"prompt_eval_count": 39,
+"eval_count": 9,
+"done_reason": "stop"
+},
+"4c2c7d37ebe434429115cf2452eb6dcaefc2898af9ee1a09e622a0f37c6416dd": {
+"message": {
+"role": "assistant",
+"content": "Секретное слово - кактус."
+},
+"prompt_eval_count": 41,
+"eval_count": 13,
+"done_reason": "stop"
+}
+}
+}
