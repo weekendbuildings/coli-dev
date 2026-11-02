@@ -1060,6 +1060,42 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testBayesTownShowsTheTrueShareAmongTheRaised() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/probability_and_bayes"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.town.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 20), "The lesson must show the town.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<120 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let chance = app.staticTexts["lab.town.chance"]
+        XCTAssertTrue(shown(chance).contains("16,7") || shown(chance).contains("16.7"), "The opening must match the lesson.\n\(shown(chance))")
+        try await Task.sleep(nanoseconds: 800_000_000)
+        snapshot("landscape-town-opening")
+        let before = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 700_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, before, "A drag must turn the town.")
+        app.checkBoxes["lab.town.second"].click()
+        try await Task.sleep(nanoseconds: 800_000_000)
+        snapshot("landscape-town-second")
+        XCTAssertTrue(shown(chance).contains("79,8") || shown(chance).contains("79.8"), "A second test must match the lesson.\n\(shown(chance))")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"

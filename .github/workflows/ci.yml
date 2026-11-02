@@ -475,6 +475,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-training-practice"
           "$RUNNER_TEMP/verify-training-practice"
 
+      - name: Verify Bayes town model / Проверка модели города Байеса
+        run: |
+          swiftc macOS/ColiDev/App/BayesTown.swift macOS/ColiDev/scripts/verify_bayes_town.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-bayes-town"
+          "$RUNNER_TEMP/verify-bayes-town"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \

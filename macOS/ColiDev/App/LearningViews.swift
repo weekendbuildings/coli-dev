@@ -1892,6 +1892,8 @@ private struct PracticeLab: View {
         } else if subject == .programming, moduleResource == "minibatches_and_overfitting" {
             MinibatchReliefLab()
             WaveFitLab()
+        } else if subject == .mathematics, moduleResource == "probability_and_bayes" {
+            BayesTownLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -14305,6 +14307,62 @@ private struct WaveFitLab: View {
             let best = plot.point(Double(model.bestHeld.step), min(model.bestHeld.error, 1.2))
             context.fill(Path(ellipseIn: CGRect(x: best.x - 5, y: best.y - 5, width: 10, height: 10)), with: .color(.green))
         }
+    }
+}
+
+private struct BayesTownLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = BayesTownModel()
+    @State private var solved = false
+
+    private func number(_ value: Double, _ digits: Int = 0) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private func slider(_ key: String, value: WritableKeyPath<BayesTownModel, Double>, range: ClosedRange<Double>, digits: Int, identifier: String) -> some View {
+        HStack(spacing: 10) {
+            Text(String(format: text(key), number(model[keyPath: value] * 100, digits))).monospacedDigit().frame(minWidth: 230, alignment: .leading)
+            Slider(value: Binding(get: { model[keyPath: value] }, set: { model[keyPath: value] = $0; check() }), in: range)
+                .accessibilityLabel(String(format: text(key), number(model[keyPath: value] * 100, digits)))
+                .accessibilityIdentifier(identifier)
+        }
+    }
+
+    private var status: (LabStatusKind, String) {
+        let chance = number(model.chance * 100, 1)
+        if model.chance < 0.5 { return (.warning, String(format: text("lab.town.low"), chance)) }
+        return (.good, String(format: text("lab.town.high"), chance))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.town.title"), instruction: text("lab.town.subtitle"))
+            BayesTownSceneView(model: model, language: store.language)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.town.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.town.sceneValue"), String(model.positiveSick), String(model.positiveHealthy), number(model.chance * 100, 1)))
+                .accessibilityIdentifier("lab.town.scene")
+            slider("lab.town.rate", value: \.diseaseRate, range: 0.001...0.3, digits: 1, identifier: "lab.town.rate")
+            slider("lab.town.hit", value: \.hitRate, range: 0.5...1, digits: 0, identifier: "lab.town.hit")
+            slider("lab.town.alarm", value: \.falseAlarmRate, range: 0.001...0.3, digits: 1, identifier: "lab.town.alarm")
+            Toggle(text("lab.town.second"), isOn: Binding(get: { model.secondTest }, set: { model.secondTest = $0; check() }))
+                .accessibilityIdentifier("lab.town.second")
+            LabStatGrid {
+                LabStat(label: text("lab.town.statSick"), value: String(model.positiveSick), tint: .red, identifier: "lab.town.upSick")
+                LabStat(label: text("lab.town.statHealthy"), value: String(model.positiveHealthy), tint: .blue, identifier: "lab.town.upHealthy")
+                LabStat(label: text("lab.town.statChance"), value: number(model.chance * 100, 1) + " %", tint: .orange, identifier: "lab.town.chance")
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.town.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.town.challenge"), solved: solved,
+                         solvedText: text("lab.town.challengeSolved"), identifier: "lab.town.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.town.how1"), text("lab.town.how2")])
+        }
+    }
+
+    private func check() {
+        if model.solvesChallenge { solved = true }
     }
 }
 
