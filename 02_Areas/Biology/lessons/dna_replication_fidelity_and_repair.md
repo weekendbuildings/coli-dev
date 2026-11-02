@@ -3,7 +3,7 @@ subject: biology
 lesson_id: biology.dna_replication_fidelity_and_repair
 level: advanced
 languages: ru, en
-source_checked: 2026-10-27
+source_checked: 2026-11-01
 source_review_interval_days: 365
 ---
 
@@ -19,17 +19,17 @@ source_review_interval_days: 365
 
 В уроке «Что такое жизнь» был порог ошибок: если каждая буква копируется с ошибкой e, а правильная молекула размножается в σ раз быстрее испорченных, информация сохраняется, пока σ · (1 − e)ᴸ > 1. При ошибке 1 % и σ = 10 предел — всего 229 букв. Значит, чтобы хранить много генов, жизнь должна была научиться копировать намного точнее.
 
-Клетка делает это в несколько ступеней. Первая — корректура: ДНК-полимераза проверяет только что добавленное основание, прежде чем присоединить следующее, и если оно неверное, вырезает его и ставит правильное. Большинство ошибок исправляется прямо во время копирования. Вторая — исправление неспаренных оснований (mismatch repair) после копирования: особые ферменты находят неправильно спаренный нуклеотид, вырезают участок цепи с ним и достраивают его заново. В итоге ДНК-полимераза ошибается примерно в одном основании на миллиард скопированных.
+Клетка делает это в несколько ступеней. Первая — корректура: ДНК-полимераза проверяет только что добавленное основание, прежде чем присоединить следующее, и если оно неверное, вырезает его и ставит правильное. Большинство ошибок исправляется прямо во время копирования. Вторая — исправление неспаренных оснований (mismatch repair) после копирования: особые ферменты находят неправильно спаренный нуклеотид, вырезают участок цепи с ним и достраивают его заново. Полимераза без корректуры ошибается примерно раз на 10 тысяч оснований, с корректурой — примерно раз на миллион или чаще. В итоге вся система копирования вместе с починкой ошибается примерно в одном основании на миллиард скопированных.
 
 Подставим это в формулу Эйгена: при e = 10⁻⁹ и σ = 10 предельная длина L ≈ ln 10 / 10⁻⁹ ≈ 2,3 миллиарда букв. Точность копирования открыла дорогу большим геномам, а значит, и сложным организмам.
 
 ### Исследуй и потренируйся
 
-Посчитай предельную длину по формуле L ≈ ln σ / e при σ = 10 для ошибки 10⁻⁴ и 10⁻⁶. Во сколько раз растёт предел, когда ошибка уменьшается в 100 раз? Проверь первое значение в тренажёре порога ошибок из урока «Что такое жизнь».
+Посчитай предельную длину по формуле L ≈ ln σ / e при σ = 10 для ошибки 10⁻⁴ и 10⁻⁶. Во сколько раз растёт предел, когда ошибка уменьшается в 100 раз? Проверь оба значения в тренажёре этого урока.
 
 ### Вопрос
 
-ДНК-полимераза ошибается примерно в одном основании на миллиард (e = 10⁻⁹). Какую наибольшую длину генома допускает порог Эйгена при σ = 10?
+Копирование ДНК вместе с починкой ошибается примерно в одном основании на миллиард (e = 10⁻⁹). Какую наибольшую длину генома допускает порог Эйгена при σ = 10?
 
 ### Варианты
 
@@ -59,17 +59,17 @@ Explain how a cell copies DNA with almost no errors, through proofreading and mi
 
 The lesson "What life is" introduced the error threshold: if each letter is copied with error e and the correct molecule multiplies σ times faster than faulty ones, the information survives while σ · (1 − e)ᴸ > 1. With a 1% error and σ = 10 the limit is only 229 letters. So to store many genes, life had to learn to copy far more accurately.
 
-A cell does this in several stages. The first is proofreading: DNA polymerase checks the base it has just added before attaching the next one, and if it is wrong, it cuts it out and inserts the right one. Most errors are corrected during copying itself. The second is mismatch repair after copying: special enzymes find a mispaired nucleotide, cut out the stretch of strand containing it, and rebuild it. In the end DNA polymerase makes about one error per billion bases copied.
+A cell does this in several stages. The first is proofreading: DNA polymerase checks the base it has just added before attaching the next one, and if it is wrong, it cuts it out and inserts the right one. Most errors are corrected during copying itself. The second is mismatch repair after copying: special enzymes find a mispaired nucleotide, cut out the stretch of strand containing it, and rebuild it. A polymerase without proofreading makes about one error per 10,000 bases, and with proofreading about one per million or more. In the end the whole copying system, repair included, makes about one error per billion bases copied.
 
 Put this into Eigen's formula: with e = 10⁻⁹ and σ = 10, the length limit is L ≈ ln 10 / 10⁻⁹ ≈ 2.3 billion letters. Copying accuracy opened the way to large genomes, and so to complex organisms.
 
 ### Explore and practise
 
-Calculate the length limit with L ≈ ln σ / e at σ = 10 for errors of 10⁻⁴ and 10⁻⁶. By how much does the limit grow when the error falls 100-fold? Check the first value in the error threshold lab from the lesson "What life is".
+Calculate the length limit with L ≈ ln σ / e at σ = 10 for errors of 10⁻⁴ and 10⁻⁶. By how much does the limit grow when the error falls 100-fold? Check both values in this lesson's lab.
 
 ### Question
 
-DNA polymerase makes about one error per billion bases (e = 10⁻⁹). What is the largest genome length Eigen's threshold allows at σ = 10?
+DNA copying together with repair makes about one error per billion bases (e = 10⁻⁹). What is the largest genome length Eigen's threshold allows at σ = 10?
 
 ### Options
 
@@ -92,6 +92,7 @@ Eigen's threshold is a simplified model; real genomes have regions where errors 
 ## Sources
 
 - Mary Ann Clark, Matthew Douglas, Jung Choi, *Biology 2e*, OpenStax, 2018, section 14.6 “DNA Repair” (consulted 2026-10-27): proofreading by DNA polymerase, which reads the newly added base before adding the next one and corrects most replication errors, and mismatch repair after replication by enzymes that excise the strand containing the mispaired nucleotide: [OpenStax Biology 2e, 14.6](https://openstax.org/books/biology-2e/pages/14-6-dna-repair)
-- Nina Parker, Mark Schneegurt, Anh-Hue Thi Tu, Philip Lister, Brian M. Forster, *Microbiology*, OpenStax, 2016, section 11.5 “Mutations” (consulted 2026-10-27): the error rate of DNA polymerase as one incorrect base per billion base pairs replicated: [OpenStax Microbiology, 11.5](https://openstax.org/books/microbiology/pages/11-5-mutations)
+- Nina Parker, Mark Schneegurt, Anh-Hue Thi Tu, Philip Lister, Brian M. Forster, *Microbiology*, OpenStax, 2016, section 11.5 “Mutations” (consulted 2026-10-27): one incorrect base per billion base pairs replicated (the textbook attributes the figure to DNA polymerase; the lesson follows Kunkel and treats it as the result of the whole system): [OpenStax Microbiology, 11.5](https://openstax.org/books/microbiology/pages/11-5-mutations)
 - Manfred Eigen, “Selforganization of matter and the evolution of biological macromolecules”, *Die Naturwissenschaften* 58, 465–523 (1971), checked via Crossref 2026-10-26: the error threshold: [doi:10.1007/BF00623322](https://doi.org/10.1007/BF00623322)
+- Thomas A. Kunkel, “Evolving views of DNA replication (in)fidelity”, *Cold Spring Harbor Symposia on Quantitative Biology* 74, 91–101 (2009), read 2026-11-01: error rates of about 10⁻⁴ for a polymerase lacking proofreading and typically ≥ 10⁻⁶ for proofreading replicative polymerases: [PMC3628614](https://pmc.ncbi.nlm.nih.gov/articles/PMC3628614/)
 - The lesson paraphrases these sources and does not copy their text; the OpenStax pages state their own license terms: [OpenStax terms of use](https://openstax.org/terms-of-use)
