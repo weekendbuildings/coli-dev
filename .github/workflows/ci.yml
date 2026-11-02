@@ -463,6 +463,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-pattern-attention"
           "$RUNNER_TEMP/verify-pattern-attention"
 
+      - name: Verify live model lab
+        run: |
+          swiftc macOS/ColiDev/App/LiveModelLabModel.swift macOS/ColiDev/scripts/verify_live_model.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-live-model"
+          "$RUNNER_TEMP/verify-live-model"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \

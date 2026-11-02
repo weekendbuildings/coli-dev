@@ -1,46 +1,171 @@
-# Путь ИИ: от нуля до своей модели / The AI path: from zero to your own model
+# Путь ИИ: от первого запуска до вопроса о сознании / The AI path: from the first run to the question of consciousness
 
-Дата: 2026-11-01. База: `integration/beta12-all` (b621d6e). Ветка: `feat/ai-path`. Основа: `COURSE_AUDIT_RU_EN.md`, карты математики и программирования, `research/math-missing-topics-ml-route-2026-10-26.md`.
+Дата: 2026-11-02. База: `integration/beta12-all` (84f8ed2). Ветка: `feat/ai-path-deep`. Предыдущая версия карты (12 шагов, 23 урока) вошла сюда целиком: все её уроки остаются на своих местах.
 
-## Финишная черта / Finish line
+## Что было не так / What was wrong
 
-**Свой обученный языковой ИИ.** Ты сам пишешь маленький трансформер на чистом Python, с собственным вычислением градиентов и без готовых ИИ-библиотек и платных API, и сам обучаешь его на своём MacBook Air M1 на текстах курса. NumPy не нужен: он только ускорил бы те же вычисления. Черта пройдена, когда выполнено всё сразу:
+Проверено по карте и текстам всех 28 уроков программирования, математики и остальных курсов (`grep` по словам «подкрепление», `reinforcement`, `RLHF`, «дообучение», `interpretab`):
 
-1. ошибка на тексте, которого модель не видела, ниже, чем у случайного угадывания и у простого счётчика пар букв;
-2. модель пишет новый текст, который на глаз похож на обучающий;
-3. ты можешь объяснить каждую строку программы и то, чего эта модель не умеет.
+- нет ни одного урока об обучении с подкреплением, дообучении и интерпретируемости;
+- о сознании один урок, об AGI ни одного;
+- нет ни одного урока, где человек работает с настоящей большой моделью: финал пути это своя маленькая модель, а как ведёт себя настоящая, ученик не видел. Отсюда и фраза владельца: «может, не с AI там работал».
 
-Это не сознательный ИИ. Последний шаг пути честно отделяет то, что построено, от того, что наука о сознании пока не знает. Сознательный ИИ остаётся открытой исследовательской целью, а не пунктом этого курса.
+Поэтому новый путь начинается не с Python и формул, а с живой модели на его Mac, и уже потом идёт внутрь неё.
 
-*Finish line: a small transformer you write yourself in plain Python, with your own gradient code, no ready-made AI libraries or paid APIs, trained on your own MacBook Air M1 on the course texts. Done when its held-out error beats random guessing and a character-pair counter, it writes new text resembling its training data, and you can explain each line and what it cannot do. It is not a conscious AI, and the last step separates what was built from what the science of consciousness does not yet know.*
+## Как этому учат лучшие сейчас / How the best teach this now
+
+Карта построена по логике этих курсов. Текст уроков пишется своими словами, каждый урок даёт ссылки на настоящие лекции. Дата проверки всех строк, где не сказано иное: 2026-11-02.
+
+| Источник | Что сейчас внутри | Что взято в карту |
+|---|---|---|
+| [Karpathy, Zero to Hero](https://karpathy.ai/zero-to-hero.html) (курс продолжается) | micrograd → счётчик пар → MLP → активации и BatchNorm → backprop руками → WaveNet → GPT → токенизатор | Порядок этапа 2: сначала свой механизм градиентов, потом диагностика обучения, токенизатор отдельно |
+| Karpathy, [Deep Dive into LLMs](https://www.youtube.com/watch?v=7xTGNNLPyMI) и [How I use LLMs](https://www.youtube.com/watch?v=EWvNQjAaOHw) | Для широкой аудитории: как устроена и как работает большая модель | Этап 1: сначала руками и обзор, потом внутрь |
+| [Karpathy, microgpt](https://karpathy.github.io/2026/02/12/microgpt/) (февраль 2026) | GPT примерно на 200 строк чистого Python без зависимостей | Подтверждает наш выбор чистого Python: всё остальное только ускорение |
+| [Stanford CS336](https://cs336.stanford.edu/) (весна 2026, Hashimoto и Liang) | 19 лекций: токенизация, архитектуры, системы, законы масштабирования, вывод, оценка, данные, SFT/RLHF, RLVR. 5 заданий: основы, системы, масштабирование, данные, выравнивание и RL для рассуждений | Этапы 2 и 3: улучшение идёт после создания. Часть про GPU и параллелизм только в обзоре: Mac M1 и чистый Python |
+| [Stanford CS224N](https://web.stanford.edu/class/cs224n/) (зима 2026, Yang и Choi) | Новые лекции: агенты, инструменты и RAG, оценка, две лекции о рассуждениях, интерпретируемость, открытые вопросы | Этап 3 |
+| [MIT 6.S191](https://introtodeeplearning.com/) (2026) | Обзор глубокого обучения, RL, лабораторная по дообучению языковой модели | Формат дообучения в этапе 3 |
+| Sutton и Barto, *Reinforcement Learning: An Introduction*, 2-е издание ([сайт книги](http://incompleteideas.net/book/the-book-2nd.html), сертификат сайта не прошёл проверку, открыть перед уроком) | Бандиты → MDP → TD → приближения → градиент политики | Порядок блока RL в этапе 3 |
+| [Lambert, RLHF Book](https://rlhfbook.com/) (сайт собран 30 октября 2026, печатная книга вышла в июле 2026) | Инструкции, модели награды, градиенты политики, DPO, синтетические данные, оценка | Блок RLHF |
+| [Transformer Circuits](https://transformer-circuits.pub/) (Anthropic, записи до октября 2026) | Классика: математическая основа, индукционные головы, суперпозиция, моносемантичность, трассировка цепей. Новое: интроспекция (октябрь 2025), глобальное рабочее пространство в языковых моделях (июль 2026) | Блок интерпретируемости и связь с этапом 5 |
+| Prince, *Understanding Deep Learning* ([сайт](https://udlbook.github.io/udlbook/), страница не прочиталась автоматически, открыть перед уроком) | Учебник | Запасной учебник этапа 2 |
+| [Chollet 2019](https://arxiv.org/abs/1911.01547), [Legg и Hutter 2007](https://arxiv.org/abs/0712.3329), [Morris и др. 2023](https://arxiv.org/abs/2311.02462), [ARC-AGI-3](https://arcprize.org/arc-agi/3) | Определения интеллекта и уровни AGI; бенчмарк с интерактивными средами | Этап 4. На [странице ARC Prize](https://arcprize.org/results/anthropic-claude-opus-5) на 24 июля 2026 лучший подтверждённый результат ARC-AGI-3 30,2 %, а сообщения о более высоких числах я официально не подтвердил |
+| [Ha и Schmidhuber 2018](https://arxiv.org/abs/1803.10122), [MuZero](https://arxiv.org/abs/1911.08265), [DreamerV3](https://arxiv.org/abs/2301.04104), [V-JEPA 2](https://arxiv.org/abs/2506.09985), [Alberta Plan](https://arxiv.org/abs/2208.11173), [Kirkpatrick 2016](https://arxiv.org/abs/1612.00796) | Модели мира, планирование, непрерывное обучение | Этап 4 |
+| [Kaplan 2020](https://arxiv.org/abs/2001.08361), [Hoffmann 2022](https://arxiv.org/abs/2203.15556), [METR 2025](https://arxiv.org/abs/2503.14499), интервью Sutskever (ноябрь 2025; пока прочитаны только пересказы, перед уроком нужна сама [запись](https://www.dwarkesh.com/p/ilya-sutskever-2)) | Спор о масштабировании | Этап 4: законы измерены, выводы из них спорны |
+| [Butlin и др. 2023](https://arxiv.org/abs/2308.08708), [Chalmers 2023](https://arxiv.org/abs/2303.07103), [Long, Sebo и др. 2024](https://arxiv.org/abs/2411.00986), [Lindsey 2025](https://transformer-circuits.pub/2025/introspection/index.html), [Gurnee и др. 2026](https://transformer-circuits.pub/2026/workspace/index.html) | Индикаторы, языковые модели, моральный статус, функциональная интроспекция и рабочее пространство. Авторы последних двух работ прямо не утверждают наличия переживаний | Этап 5 |
+| Cogitate (Nature, 2025; прочитаны только пересказы и индекс, DOI 10.1038/s41586-025-08888-1), Seth (Behavioral and Brain Sciences, 2025; прочитана только аннотация) | Эксперимент, где две теории проверяли их же сторонники: ни одна не победила; биологический взгляд на сознание | Этап 5 |
+
+Что я не нашёл, хотя искал: общепризнанного курса «от ИИ к сознанию». Такого нет, и этапы 4 и 5 собраны мной из первоисточников.
+
+## Финиш / Finish line
+
+Путь разбит на три честно разных финиша:
+
+1. **Построено руками.** Свой обученный языковой ИИ (`build_your_language_model`): ошибка на незнакомом тексте ниже случайной и ниже счётчика пар, модель пишет похожий текст, ты объясняешь каждую строку и то, чего она не умеет.
+2. **Улучшено руками.** Своя модель дообучена по твоим предпочтениям, к локальной модели подключены поиск и инструменты, и всё это проверено своим набором тестов, а внутри маленькой модели ты сам нашёл, что делает хотя бы один признак.
+3. **Понято честно.** Ты можешь объяснить, что такое AGI в разных определениях и чем они спорят, какие части уже показаны экспериментально, а какие остаются мнением. О сознании можешь применить индикаторы к настоящей системе и сказать, почему результат не доказывает ни наличие, ни отсутствие переживаний.
+
+**Сознательный ИИ не пункт этого курса.** Общепризнанного пути к нему нет, как нет и общепризнанного теста. Этап 5 учит тому, что известно, что спорно и какие исследования реально можно делать.
 
 ## Карта / Map
 
-Статус: **есть** — можно идти как есть; **усилить** — урок есть, но в нём есть пробел; **создать** — урока нет. Важность: A — без этого нет финиша, B — нужно для понимания, C — дополняет.
+Важность: **A** без этого этап не работает, **B** нужно для понимания, **C** дополняет. Статус: **есть**, **образец** (написан, ждёт оценки владельца), **новый**. «Спор» значит, что в уроке мнения отделены от доказанного. В колонке «Руками» только то, что идёт на этом Mac без платных вызовов и новых установок. Рабочие локальные модели: `qwen2.5-coder:7b`, `qwen3.5`, `bge-m3`.
 
-| № | Шаг / Step | Статус / Status | Уроки / Lessons | Важность |
+### Этап 1. Старт руками / Stage 1. Hands on first
+
+| Урок | Что делаешь руками | Учиться у самих преподавателей | Важность | Статус |
 |---|---|---|---|---|
-| 1 | Python / Python | есть | `variables_and_types`, `conditions_loops_functions`, `collections_and_loops`, `strings_files_and_exceptions`, `python_classes_and_composition` | — |
-| 2 | Линейная алгебра / Linear algebra | есть | `vectors_and_matrices` | — |
-| 3 | Производные и оптимизация / Derivatives, optimization | есть: рельеф ошибки добавлен в шаг 7 | `rates_of_change_and_derivative`, `gradient_and_partial_derivatives`, `gradient_descent_and_learning_rate` | A |
-| 4 | Вероятность и статистика / Probability, statistics | есть | `descriptive_statistics_and_potential_outliers`, `probability_and_bayes`, `random_variables_and_sampling` | B |
-| 5 | Теория информации и кросс-энтропия / Information theory, cross-entropy | есть | `information_and_cross_entropy` | A |
-| 6 | Классификация / Classification | есть | `classification_and_softmax` | A |
-| 7 | Скрытые слои и обратное распространение / Hidden layers, backpropagation | есть, с объёмной моделью сети | `neural_network_backpropagation`, `neural_network_hidden_layer_xor` | A |
-| 8 | Практика обучения и переобучение / Training practice, overfitting | есть | `ml_baseline_and_holdout`, `minibatches_and_overfitting` | B |
-| 9 | Эмбеддинги / Embeddings | есть | `embeddings_and_similarity` | A |
-| 10 | Внимание и трансформер / Attention, transformer | есть | `attention_mechanism`, `transformer_block` | A |
-| 11 | Финальный проект / Final project | есть: своя модель, обученная и проверенная на этом Mac | `build_your_language_model` | A |
-| 12 | Что наука знает о сознании / What science knows about consciousness | есть | `consciousness_known_and_unknown` | B |
+| `live_model_tokens_temperature` | Запускаешь модель, вызываешь из Python, считаешь токены, проверяешь формулу температуры сотнями настоящих бросков | Karpathy, Deep Dive; CS336, лекция 1 | A | образец |
+| `chat_roles_and_context` | Смотришь настоящий шаблон чата, сам посылаешь историю, переполняешь окно контекста и видишь, как модель «забывает» | Karpathy, How I use LLMs | A | новый |
+| `model_mistakes_and_checking` | 20 вопросов с известными ответами, своя первая оценка двух моделей, уверенность против точности | CS224N, лекция об оценке | A | новый |
+| `asking_well_and_structured_output` | Инструкции, примеры, JSON на выходе, проверка ответа кодом | CS224N, лекция о промптах и PEFT | B | новый |
 
-Итого: 12 шагов и 23 урока, все написаны. Десять уроков создано в этой работе, ещё 13 уже были в курсе.
+### Этап 2. Создание / Stage 2. Building
+
+Уроки со статусом «есть» не меняются, новые встают между ними.
+
+| Урок | Что делаешь руками | Учиться у самих преподавателей | Важность | Статус |
+|---|---|---|---|---|
+| `variables_and_types`, `conditions_loops_functions`, `collections_and_loops`, `strings_files_and_exceptions`, `python_classes_and_composition` | Python | | A | есть |
+| `vectors_and_matrices` | Векторы и матрицы | 3Blue1Brown; Prince, приложение | A | есть |
+| `rates_of_change_and_derivative`, `gradient_and_partial_derivatives`, `gradient_descent_and_learning_rate` | Производные и спуск | | A | есть |
+| `descriptive_statistics_and_potential_outliers`, `probability_and_bayes`, `random_variables_and_sampling` | Вероятность | | B | есть |
+| `information_and_cross_entropy` | Кросс-энтропия | | A | есть |
+| `classification_and_softmax` | Классификация, softmax | | A | есть |
+| `neural_network_backpropagation`, `neural_network_hidden_layer_xor` | Обратное распространение, XOR, объёмная модель сети | Karpathy, micrograd | A | есть |
+| `autograd_engine` | Свой механизм градиентов на 100 строк, сверка с численной производной | Karpathy, micrograd | A | новый |
+| `ml_baseline_and_holdout`, `minibatches_and_overfitting` | Проверка и переобучение | | B | есть |
+| `training_recipe_and_diagnostics` | Переобучить один пакет, найти намеренно спрятанные ошибки по кривым | Karpathy, makemore 3 и «A Recipe for Training Neural Networks» | A | новый |
+| `optimizers_momentum_adam` | SGD, импульс, Adam катятся по объёмному рельефу ошибки (3D: высота это настоящая ошибка) | Prince, главы об оптимизации; CS336, лекция 3 | A | новый |
+| `initialization_and_normalization` | Плохая инициализация, гистограммы активаций и градиентов, нормализация | Karpathy, makemore 3 | A | новый |
+| `tokenizer_bpe` | Свой токенизатор BPE, сравнение со словарём настоящей модели | Karpathy, Let's build the GPT Tokenizer; CS336, задание 1 | A | новый |
+| `bigram_language_model` | Счётчик пар, выборка, температура на своей модели | Karpathy, makemore 1 | B | новый |
+| `embeddings_and_similarity` | Эмбеддинги | CS224N, лекция о векторах слов | A | есть |
+| `attention_mechanism`, `transformer_block` | Внимание и блок трансформера | Karpathy, Let's build GPT | A | есть |
+| `build_your_language_model` | Своя языковая модель на текстах курса | Karpathy, microgpt; CS336, задание 1 | A | есть |
+| `sampling_and_generation` | top-k, top-p, лучевой поиск на своей и настоящей модели | Holtzman и др. 2019 | B | новый |
+
+### Этап 3. Улучшение / Stage 3. Improving
+
+| Блок | Урок | Что делаешь руками | Учиться у самих преподавателей | Важность | Статус |
+|---|---|---|---|---|---|
+| RL | `rl_bandits` | Жадный выбор против исследования, кривые сожаления | Sutton и Barto, гл. 2 | A | новый |
+| RL | `rl_mdp_bellman` | Клетчатый мир, поверхность ценности в 3D (высота это настоящая ценность) | Sutton и Barto, гл. 3–4 | A | новый |
+| RL | `rl_q_learning` | Агент сам учится проходить лабиринт | Sutton и Barto, гл. 6 | A | новый |
+| RL | `rl_policy_gradient` | REINFORCE на чистом Python: без него нет RLHF | Sutton и Barto, гл. 13; Lambert, гл. о градиентах | A | новый |
+| Дообучение | `finetuning_and_lora` | Дообучаешь свою модель на новом стиле, сравниваешь с обучением с нуля | MIT 6.S191, лаборатория 3; Hu и др. 2021 | A | новый |
+| Дообучение | `rlhf_from_preferences` | Сам выбираешь лучшие ответы, учишь модель награды и сдвигаешь свою модель | Lambert; Ouyang и др. 2022; CS336, лекция 15 | A | новый |
+| Дообучение | `reasoning_and_rlvr` | Сравниваешь `qwen3.5` с рассуждением и без него на задачах с проверяемым ответом | CS224N, лекции о рассуждениях; CS336, лекция 16; DeepSeek-R1 | A | новый |
+| Дообучение | `constitutional_ai_and_dpo` | Правила вместо людей, прямая оптимизация предпочтений на маленьком примере | Bai и др. 2022; Rafailov и др. 2023 | B | новый |
+| Применение | `rag_from_scratch` | Куски текста, `bge-m3`, поиск, ответ, оценка качества поиска на уроках курса | CS224N, лекция об агентах и RAG; Lewis и др. 2020 | A | новый |
+| Применение | `agents_and_tools` | Цикл агента своими руками. Настоящая проблема этого Mac: `qwen2.5-coder:7b` пишет вызовы текстом, поэтому разбор пишем сами; `qwen3.5` медленная, это измеряем | CS224N; Yao и др. 2022 | A | новый |
+| Применение | `evaluation_that_means_something` | Свой набор проверок, закон Гудхарта, почему один бенчмарк врёт | CS224N и CS336, лекции об оценке | A | новый |
+| Масштаб | `scaling_laws_and_resources` | Подгонка степенного закона к обучению своей модели, расчёт цены большого обучения | CS336, лекции 2, 9, 11; Kaplan 2020; Hoffmann 2022 | B | новый |
+| Масштаб | `data_for_language_models` | Фильтры, дедупликация, смесь данных на текстах курса | CS336, лекции 13–14 | C | новый |
+| Внутри | `interp_probes` | Линейный зонд на активациях своей модели | CS224N, лекция Been Kim | A | новый |
+| Внутри | `interp_superposition` | Игрушечная модель: 5 признаков в 2 и 3 измерениях, объёмная фигура из векторов (3D: форма и есть результат) | Elhage и др. 2022 | A | новый |
+| Внутри | `interp_sparse_features` | Разреженный автокодировщик на своей маленькой модели | Towards Monosemanticity, Scaling Monosemanticity | B | новый |
+| Внутри | `interp_circuits` | Отключаешь части своей модели и ищешь цепь; чтение настоящих графов | Circuit Tracing; On the Biology of a Large Language Model | B | новый |
+| Безопасность | `safety_what_goes_wrong` | Обман награды в своём RL, поддакивание и подмена инструкций на локальной модели. Спор: что из этого опасно на практике | CS224N, лекция о рисках; Greenblatt и др. 2024 | A | новый |
+
+### Этап 4. Путь к AGI / Stage 4. The road to AGI
+
+Здесь много споров. В каждом уроке две явные части: что показано экспериментом и чьё это мнение.
+
+| Урок | Что делаешь руками | Учиться у самих преподавателей | Важность | Статус |
+|---|---|---|---|---|
+| `agi_what_is_intelligence` | Применяешь три определения к трём системам, включая свою модель и шахматную программу. Спор | Legg и Hutter 2007; Chollet 2019; Morris и др. 2023 | A | новый |
+| `agi_measuring_arc` | Сам решаешь задачи вроде ARC, затем даёшь их локальной модели и считаешь результат. Что значат и чего не значат числа | Chollet 2019; ARC Prize | A | новый |
+| `agi_world_models` | Агент учит модель клетчатого мира и планирует внутри неё. Обзор JEPA. Спор: LeCun против языковых моделей | Ha и Schmidhuber 2018; DreamerV3; LeCun 2022; V-JEPA 2 | A | новый |
+| `agi_planning_search` | Поиск по дереву на маленькой игре, идея MuZero | MuZero; Sutton и Barto, гл. 8 | B | новый |
+| `agi_continual_learning` | Своя сеть забывает первую задачу после второй, простое лечение и его цена | Kirkpatrick и др. 2016; Alberta Plan | A | новый |
+| `agi_scaling_debate` | Таблица: что измерено, что предсказано, кто спорит. Спор | Sutton, The Bitter Lesson; Kaplan 2020; Hoffmann 2022; Sutskever 2025; METR 2025 | A | новый |
+| `agi_open_problems` | Список открытых задач и один посильный опыт на своей модели | CS224N, лекция об открытых вопросах | B | новый |
+
+### Этап 5. Сознание / Stage 5. Consciousness
+
+Самый спорный этап. Ни один урок не утверждает, что какая-то система сознательна или что её сознание невозможно.
+
+| Урок | Что делаешь руками | Учиться у самих преподавателей | Важность | Статус |
+|---|---|---|---|---|
+| `consciousness_known_and_unknown` | Вход в этап: что известно и что нет. Нужно усилить связью с новыми уроками | Butlin и др. 2023 | A | есть |
+| `consciousness_hard_problem` | Разбираешь примеры: что объясняет поведение, а что нет. Доступ против переживания | Chalmers 1995; Block 1995; Nagel 1974; возражения Dennett | A | новый |
+| `consciousness_global_workspace` | Строишь на Python маленькое рабочее пространство: модули, рассылка, вспышка. Чего такая программа не доказывает | Baars; Dehaene; Gurnee и др. 2026 | A | новый |
+| `consciousness_integrated_information` | Считаешь упрощённую меру интеграции на сети из трёх узлов. Честно: это не полный Φ. Спор вокруг теории | Tononi; Albantakis и др. 2023 (IIT 4.0) | A | новый |
+| `consciousness_higher_order_and_prediction` | Метапознание на маленькой модели: может ли она оценить свою уверенность. Теории высшего порядка, предсказательная обработка | Rosenthal; Lau; Clark; Seth | A | новый |
+| `consciousness_experiments` | Опыт с маскировкой в тренажёре на себе, порог осознания, отчёт и его отсутствие, что показал Cogitate | Cogitate 2025; Dehaene | A | новый |
+| `consciousness_indicators_checklist` | Применяешь индикаторы к своей модели и к локальной большой, с обоснованием каждой строки | Butlin и др. 2023 и обновление 2025 | A | новый |
+| `consciousness_language_models` | Просишь локальную модель описать свой опыт и меняешь системную подсказку: её «самоотчёт» меняется. Что показывают работы об интроспекции | Chalmers 2023; Lindsey 2025; Gurnee и др. 2026 | A | новый |
+| `consciousness_biology_vs_function` | Два лагеря: функционализм и биологический взгляд. Твой аргумент и лучшее возражение | Seth 2025; Chalmers | B | новый |
+| `consciousness_moral_status` | Разбираешь цену двух ошибок: приписать лишнее и не заметить настоящее | Long, Sebo и др. 2024 | A | новый |
+| `consciousness_what_you_can_do` | Открытые вопросы, что посильно одному человеку, где идёт настоящая работа. Честно: путь не проложен | Butlin и др. | B | новый |
+
+## Итого и стоимость / Totals and cost
+
+Было 23 урока, новых 46: 34 важности A и 12 важности B и C. Всего 69.
+
+Оценка стоимости: **COST_PLACEHOLDER**
+
+## Порядок работ / Work order
+
+Сначала образец, и дальше ничего не пишется, пока владелец не скажет, что он ему понятен.
+
+1. Оставшиеся уроки этапа 1.
+2. Этап 2, важность A: пять уроков.
+3. Этап 3, важность A: RL, дообучение, RAG, агенты, оценка, интерпретируемость, безопасность.
+4. Этап 4, важность A.
+5. Этап 5, важность A.
+6. Важность B и C, по решению владельца. Экран пути при этом перестраивается на пять этапов.
+
+Этап 5 владелец считает самым важным. Я ставлю его последним не потому, что он менее важен: без этапов 1–4 его примеры не на чем проверить. Если он захочет начать с сознания раньше, уроки можно написать в другом порядке, но ссылки на RL и зонды придётся объяснять на месте.
 
 ## Как это устроено / How it is built
 
 Экран пути: `App/AIPath.swift`, пункт «Путь ИИ» в боковой панели. Готовые уроки открываются сразу, без ожидания предыдущих. Программа финального проекта лежит в `01_Projects/tiny_language_model.py`, её настоящие веса и журнал обучения в `02_Areas/Programming/resources`. Общие детали 3D-сцен: `App/ErrorLandscape3DView.swift` и `App/NeuronRelief3DView.swift`.
 
-Не входит в этот путь по решению владельца: биология, физика, химия, зоология, английский.
+Требования к новому уроку: простой русский, сначала конкретный пример, потом формула; настоящая работа руками с проверяемым результатом; важные утверждения сверены с первоисточником, спорное подано как спорное; ссылки на настоящие лекции; тренажёр на LabKit, 3D только где форма несёт смысл; тексты RU и EN; тест; запись в `curriculum.md`, в этой карте и на экране пути.
+
+Не входит в этот путь по решению владельца: биология, физика, химия, зоология, английский. Версия модели на NumPy тоже не входит, пока он не попросит.
 
 ## English summary
 
-Twelve steps from Python to a self-trained language model, then an honest lesson on consciousness. All 23 lessons are written, ten of them in this work: probability (two), information theory and cross-entropy, classification, mini-batches and overfitting, embeddings, attention, the transformer block, the final project, and consciousness. The path is one visible, open screen in the app.
+The path grows from 23 to 69 lessons in five stages: hands-on work with a real local model; building a small language model (the existing lessons plus an autograd engine, training diagnostics, optimizers, initialization and a BPE tokenizer); improving models (reinforcement learning, fine-tuning, RLHF, reasoning, RAG, agents, evaluation, interpretability, safety); the road to AGI (definitions, ARC, world models, continual learning, the scaling debate); and consciousness (the hard problem, the main theories, experiments, indicators, language models, moral status). Every controversial lesson separates what experiments show from what is opinion, and the course says plainly that no accepted path to conscious AI exists. One sample lesson is written first; no others are written until the owner confirms that level is clear to him.

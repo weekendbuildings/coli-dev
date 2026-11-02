@@ -1366,14 +1366,62 @@ private struct ModuleTextCard: View {
             Text(title)
                 .font(.title3.weight(.semibold))
                 .foregroundStyle(tint)
-            Text(LessonMarkdown.attributed(text))
-                .textSelection(.enabled)
-                .fixedSize(horizontal: false, vertical: true)
-                .lineSpacing(4)
+            ForEach(Array(LessonMarkdown.segments(text).enumerated()), id: \.offset) { _, segment in
+                switch segment {
+                case .prose(let prose):
+                    Text(LessonMarkdown.attributed(prose))
+                        .textSelection(.enabled)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .lineSpacing(4)
+                case .code(let code):
+                    LessonCodeBlock(code: code)
+                }
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+    }
+}
+
+/// A code block of a lesson that can be copied in one click, so a program goes to Terminal without typing errors.
+/// Блок кода в уроке: копируется одним нажатием, чтобы программа попала в Терминал без опечаток.
+private struct LessonCodeBlock: View {
+    @EnvironmentObject private var store: LearningStore
+    let code: String
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                Spacer()
+                Button {
+                    NSPasteboard.general.clearContents()
+                    NSPasteboard.general.setString(code, forType: .string)
+                    copied = true
+                } label: {
+                    Label(L10n.text(copied ? "lesson.codeCopied" : "lesson.copyCode", store.language),
+                          systemImage: copied ? "checkmark" : "doc.on.doc")
+                        .font(.caption)
+                }
+                .buttonStyle(.borderless)
+                .accessibilityIdentifier("lesson.copyCode")
+            }
+            .padding(.horizontal, 10)
+            .padding(.top, 6)
+            ScrollView(.horizontal, showsIndicators: true) {
+                Text(verbatim: code)
+                    .font(.system(.callout, design: .monospaced))
+                    .textSelection(.enabled)
+                    .fixedSize(horizontal: true, vertical: true)
+                    .padding(.horizontal, 12)
+                    .padding(.bottom, 10)
+                    .padding(.top, 2)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.primary.opacity(0.06), in: RoundedRectangle(cornerRadius: 10))
+        .onChange(of: code) { _ in copied = false }
     }
 }
 
@@ -1896,6 +1944,8 @@ private struct PracticeLab: View {
             BayesTownLab()
         } else if subject == .mathematics, moduleResource == "random_variables_and_sampling" {
             GaltonBoardLab()
+        } else if subject == .programming, moduleResource == "live_model_tokens_temperature" {
+            LiveModelLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -18863,4 +18913,455 @@ private struct GoogleSearchSuggestionsView: NSViewRepresentable {
             decisionHandler(.cancel)
         }
     }
+}
+
+// MARK: - Live local model lab / Тренажёр с живой локальной моделью
+
+/// Wraps token tiles to the next line like words in a text. / Переносит плитки токенов на новую строку, как слова в тексте.
+private struct LiveModelFlow: Layout {
+    var spacing: CGFloat = 4
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        arrange(subviews, width: proposal.width ?? 600).size
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        let points = arrange(subviews, width: bounds.width).points
+        for (index, point) in points.enumerated() {
+            subviews[index].place(at: CGPoint(x: bounds.minX + point.x, y: bounds.minY + point.y), proposal: .unspecified)
+        }
+    }
+
+    private func arrange(_ subviews: Subviews, width: CGFloat) -> (points: [CGPoint], size: CGSize) {
+        var points: [CGPoint] = []
+        var x: CGFloat = 0
+        var y: CGFloat = 0
+        var rowHeight: CGFloat = 0
+        var widest: CGFloat = 0
+        for subview in subviews {
+            let size = subview.sizeThatFits(.unspecified)
+            if x > 0, x + size.width > width {
+                x = 0
+                y += rowHeight + spacing
+                rowHeight = 0
+            }
+            points.append(CGPoint(x: x, y: y))
+            x += size.width + spacing
+            widest = max(widest, x - spacing)
+            rowHeight = max(rowHeight, size.height)
+        }
+        return (points, CGSize(width: widest, height: y + rowHeight))
+    }
+}
+
+/// Grey shows what the model computed, colour shows what really fell. / Серым показано, что посчитала модель, цветом — что выпало на самом деле.
+private struct LiveModelBar: View {
+    let computed: Double
+    let fallen: Double?
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { proxy in
+            let width: CGFloat = proxy.size.width
+            let computedWidth: CGFloat = width * CGFloat(min(max(computed, 0), 1))
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 5).fill(Color.primary.opacity(0.06))
+                RoundedRectangle(cornerRadius: 5)
+                    .fill(Color.secondary.opacity(0.35))
+                    .frame(width: max(computedWidth, 2))
+                if let fallen {
+                    let fallenWidth: CGFloat = width * CGFloat(min(max(fallen, 0), 1))
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(tint)
+                        .frame(width: max(fallenWidth, 2))
+                        .padding(.vertical, 5)
+                        .animation(.easeOut(duration: 0.12), value: fallen)
+                }
+            }
+        }
+    }
+}
+
+/// The temperature as a track you drag, from cold blue to hot red. / Температура как дорожка: от холодного синего к горячему красному.
+private struct LiveModelThermometer: View {
+    @Binding var value: Double
+    let label: String
+    let format: (Double) -> String
+
+    private static let knob: CGFloat = 26
+
+    private func set(_ raw: Double) {
+        value = min(max((raw * 10).rounded() / 10, 0), 2)
+    }
+
+    var body: some View {
+        VStack(spacing: 2) {
+            GeometryReader { proxy in
+                let width: CGFloat = proxy.size.width
+                let travel: CGFloat = max(width - Self.knob, 1)
+                let offset: CGFloat = CGFloat(value / 2) * travel
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(LinearGradient(colors: [.blue, .teal, .orange, .red], startPoint: .leading, endPoint: .trailing))
+                        .frame(height: 14)
+                    Circle()
+                        .fill(Color.white)
+                        .overlay(Circle().stroke(Color.black.opacity(0.3), lineWidth: 1))
+                        .shadow(radius: 2)
+                        .frame(width: Self.knob, height: Self.knob)
+                        .offset(x: offset)
+                }
+                .frame(width: width, height: 30)
+                .contentShape(Rectangle())
+                .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                    let share: Double = Double((drag.location.x - Self.knob / 2) / travel)
+                    set(share * 2)
+                })
+            }
+            .frame(height: 30)
+            HStack {
+                ForEach([0.0, 0.5, 1.0, 1.5, 2.0], id: \.self) { tick in
+                    Text(verbatim: format(tick)).font(.caption2).foregroundStyle(.secondary).monospacedDigit()
+                    if tick < 2 { Spacer() }
+                }
+            }
+        }
+        .accessibilityElement()
+        .accessibilityLabel(label)
+        .accessibilityValue(format(value))
+        .accessibilityIdentifier("lab.liveModel.thermometer")
+        .accessibilityAdjustableAction { direction in
+            switch direction {
+            case .increment: set(value + 0.1)
+            case .decrement: set(value - 0.1)
+            @unknown default: break
+            }
+        }
+    }
+}
+
+private struct LiveModelLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @StateObject private var controller = LiveModelLabController()
+    @State private var temperature = 1.0
+    @State private var draft = LiveModelRecording.prompt
+
+    private static let examples = [LiveModelRecording.prompt, "Столица Франции —", "Кошка сидела на", "def add(a, b):"]
+
+    private var state: LiveModelLabState { controller.state }
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 1) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private func percent(_ share: Double) -> String {
+        let digits = share < 0.1 ? 1 : 0
+        let value = number(share * 100, digits)
+        return store.language == .ru ? "\(value) %" : "\(value)%"
+    }
+
+    /// 152 058 in Russian, 152,058 in English. / Разряды по правилам языка.
+    private func grouped(_ value: Int) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = Locale(identifier: store.language == .ru ? "ru_RU" : "en_US")
+        return formatter.string(from: NSNumber(value: value)) ?? String(value)
+    }
+
+    private func tint(for probability: Double?) -> Color {
+        guard let probability else { return .red }
+        if probability >= 0.3 { return .green }
+        return probability >= 0.05 ? .blue : .orange
+    }
+
+    private var status: (LabStatusKind, String) {
+        switch controller.mode {
+        case .checking: return (.info, text("lab.liveModel.checking"))
+        case .live: return (.good, String(format: text("lab.liveModel.live"), LiveModelAPI.model))
+        case .recording: return (.warning, text("lab.liveModel.recording"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.liveModel.title"), instruction: text("lab.liveModel.subtitle"))
+            HStack(spacing: 10) {
+                LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.liveModel.status")
+                if controller.mode == .recording {
+                    Button(text("lab.liveModel.checkAgain")) { controller.checkAgain() }
+                        .accessibilityIdentifier("lab.liveModel.checkAgain")
+                }
+            }
+            textStrip
+            promptPicker
+            candidateChart
+            temperatureControls
+            actions
+            experimentChart
+            LabStatGrid {
+                LabStat(label: text("lab.liveModel.statPrompt"), value: String(state.promptTokens), tint: .accentColor, identifier: "lab.liveModel.promptTokens")
+                LabStat(label: text("lab.liveModel.statWritten"), value: String(state.written.count), tint: .green)
+                LabStat(label: text("lab.liveModel.statBest"), value: state.best.map { percent($0.probability) } ?? "—", tint: .orange, identifier: "lab.liveModel.bestShare")
+                LabStat(label: text("lab.liveModel.statSpeed"), value: state.milliseconds > 0 ? "\(number(state.milliseconds, 0)) \(text("lab.liveModel.ms"))" : "—", tint: .purple)
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.liveModel.challenge"),
+                         solved: state.experimentDone, solvedText: text("lab.liveModel.challengeDone"),
+                         identifier: "lab.liveModel.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [
+                text("lab.liveModel.howCandidates"), text("lab.liveModel.howFormula"), text("lab.liveModel.howTail")
+            ])
+        }
+        .onAppear { controller.start() }
+        .onDisappear { controller.stop() }
+        .onChange(of: controller.state.prompt) { draft = $0 }
+    }
+
+    /// The text so far: what you asked in grey and what the model wrote token by token. / Текст: серым запрос, цветными плитками дописанное.
+    private var textStrip: some View {
+        LiveModelFlow(spacing: 4) {
+            VStack(alignment: .leading, spacing: 1) {
+                Text(verbatim: state.prompt)
+                    .font(.system(.body, design: .monospaced))
+                    .lineLimit(3)
+                    .frame(maxWidth: 420, alignment: .leading)
+                Text(verbatim: String(format: text("lab.liveModel.promptTokensLine"), String(state.promptTokens)))
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(Color.secondary.opacity(0.15), in: RoundedRectangle(cornerRadius: 7))
+            ForEach(state.written) { item in
+                VStack(spacing: 1) {
+                    Text(verbatim: LiveModelMath.visibleToken(item.token))
+                        .font(.system(.body, design: .monospaced).weight(.semibold))
+                        .lineLimit(1)
+                    Text(verbatim: item.probability.map(percent) ?? text("lab.liveModel.rare"))
+                        .font(.caption2)
+                        .monospacedDigit()
+                        .foregroundStyle(.secondary)
+                }
+                .padding(.horizontal, 7)
+                .padding(.vertical, 5)
+                .background(tint(for: item.probability).opacity(0.2), in: RoundedRectangle(cornerRadius: 7))
+                .overlay(RoundedRectangle(cornerRadius: 7).stroke(tint(for: item.probability).opacity(0.6), lineWidth: 1))
+            }
+            Group {
+                if controller.busy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Text(verbatim: "?").font(.system(.body, design: .monospaced).weight(.bold)).foregroundStyle(.orange)
+                }
+            }
+            .frame(width: 30, height: 34)
+            .background(Color.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: 7))
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("lab.liveModel.text")
+    }
+
+    private var promptPicker: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(spacing: 8) {
+                TextField(text("lab.liveModel.promptField"), text: $draft)
+                    .textFieldStyle(.roundedBorder)
+                    .font(.system(.body, design: .monospaced))
+                    .onSubmit { controller.use(prompt: draft) }
+                    .accessibilityIdentifier("lab.liveModel.prompt")
+                Button(text("lab.liveModel.ask")) { controller.use(prompt: draft) }
+                    .disabled(draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                    .accessibilityIdentifier("lab.liveModel.ask")
+            }
+            HStack(spacing: 6) {
+                ForEach(Self.examples, id: \.self) { example in
+                    Button {
+                        draft = example
+                        controller.use(prompt: example)
+                    } label: {
+                        Text(verbatim: example).font(.system(.caption, design: .monospaced)).lineLimit(1)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            if controller.outOfRecording {
+                LabStatusBadge(kind: .info, text: text("lab.liveModel.outOfRecording"), identifier: "lab.liveModel.outOfRecording")
+            }
+        }
+    }
+
+    private var candidateChart: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 14) {
+                Text(text("lab.liveModel.candidates")).font(.callout.weight(.semibold))
+                Spacer()
+                legendDot(Color.secondary.opacity(0.45), text("lab.liveModel.legendComputed"))
+                legendDot(.accentColor, state.countedTemperature.map { String(format: text("lab.liveModel.legendFallen"), number($0)) } ?? text("lab.liveModel.legendNotYet"))
+            }
+            ForEach(Array(state.shown.enumerated()), id: \.element.id) { index, candidate in
+                Button { controller.pick(token: candidate.token) } label: {
+                    candidateRow(token: LiveModelMath.visibleToken(candidate.token), computed: candidate.probability,
+                                 fallen: state.share(of: candidate.token), tint: .accentColor)
+                }
+                .buttonStyle(.plain)
+                .disabled(controller.busy)
+                .help(text("lab.liveModel.pickHelp"))
+                .accessibilityIdentifier("lab.liveModel.candidate.\(index)")
+            }
+            if !state.shown.isEmpty {
+                candidateRow(token: String(format: text("lab.liveModel.others"), grouped(LiveModelRecording.vocabulary - state.shown.count)),
+                             computed: state.restProbability, fallen: state.otherShare, tint: .red)
+                    .accessibilityIdentifier("lab.liveModel.others")
+            }
+        }
+    }
+
+    private func legendDot(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 12, height: 8)
+            Text(verbatim: label).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private func candidateRow(token: String, computed: Double, fallen: Double?, tint: Color) -> some View {
+        HStack(spacing: 10) {
+            Text(verbatim: token)
+                .font(.system(.callout, design: .monospaced))
+                .lineLimit(1)
+                .frame(width: 130, alignment: .trailing)
+            LiveModelBar(computed: computed, fallen: fallen, tint: tint)
+                .frame(height: 20)
+            Group {
+                if let fallen {
+                    Text(verbatim: "\(percent(computed)) → \(percent(fallen))")
+                } else {
+                    Text(verbatim: percent(computed))
+                }
+            }
+            .font(.callout.weight(.medium))
+            .monospacedDigit()
+            .frame(width: 112, alignment: .trailing)
+        }
+        .contentShape(Rectangle())
+    }
+
+    private var temperatureControls: some View {
+        let shares: [Double] = LiveModelMath.reshape([0.6, 0.3, 0.1], temperature: temperature)
+        let colors: [Color] = [.green, .blue, .orange]
+        return VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                Text(text("lab.liveModel.temperature")).font(.callout.weight(.semibold))
+                Text(verbatim: "T = \(number(temperature))")
+                    .font(.system(.title3, design: .rounded).weight(.semibold))
+                    .monospacedDigit()
+                    .accessibilityIdentifier("lab.liveModel.temperatureValue")
+            }
+            LiveModelThermometer(value: $temperature, label: text("lab.liveModel.temperature")) { number($0) }
+            HStack(spacing: 8) {
+                Text(text("lab.liveModel.formulaExample")).font(.caption).foregroundStyle(.secondary).fixedSize()
+                GeometryReader { proxy in
+                    HStack(spacing: 1) {
+                        ForEach(0..<3, id: \.self) { index in
+                            let width: CGFloat = proxy.size.width * CGFloat(shares[index])
+                            ZStack {
+                                Rectangle().fill(colors[index].opacity(0.75))
+                                if width > 34 {
+                                    Text(verbatim: percent(shares[index])).font(.caption2.weight(.semibold)).foregroundColor(.white).monospacedDigit().lineLimit(1)
+                                }
+                            }
+                            .frame(width: width)
+                        }
+                    }
+                    .clipShape(RoundedRectangle(cornerRadius: 4))
+                    .animation(.easeOut(duration: 0.15), value: temperature)
+                }
+                .frame(height: 18)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.liveModel.formulaExample"))
+            .accessibilityValue(shares.map(percent).joined(separator: ", "))
+            .accessibilityIdentifier("lab.liveModel.formula")
+        }
+    }
+
+    private var actions: some View {
+        HStack(spacing: 10) {
+            Button { controller.nextToken(temperature: temperature) } label: {
+                Label(text("lab.liveModel.next"), systemImage: "text.append")
+            }
+            .buttonStyle(.borderedProminent)
+            .accessibilityIdentifier("lab.liveModel.next")
+            Button { controller.throwMany(temperature: temperature) } label: {
+                Label(text("lab.liveModel.throw"), systemImage: "dice")
+            }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("lab.liveModel.throw")
+            Button { controller.restart() } label: {
+                Label(text("lab.liveModel.restart"), systemImage: "arrow.counterclockwise")
+            }
+            .buttonStyle(.bordered)
+            .accessibilityIdentifier("lab.liveModel.restart")
+            Spacer()
+            if controller.busy, state.countedTemperature != nil, state.thrown < LiveModelLabState.throwsPerExperiment {
+                Text(verbatim: String(format: text("lab.liveModel.thrown"), String(state.thrown), String(LiveModelLabState.throwsPerExperiment)))
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .disabled(controller.busy || state.candidates.isEmpty)
+    }
+
+    /// Each point is a real experiment; dragging across the chart sets the next temperature.
+    /// Каждая точка это настоящий опыт; движением по графику задаётся следующая температура.
+    private var experimentChart: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: String(format: text("lab.liveModel.chartTitle"), state.best.map { LiveModelMath.visibleToken($0.token) } ?? "—"))
+                .font(.callout.weight(.semibold))
+            Canvas { context, size in
+                let geometry = LabPlotGeometry(size: size, x: 0...2, y: 0...100)
+                geometry.drawAxes(in: context, xLabel: text("lab.liveModel.chartX"), yLabel: "%",
+                                  xTicks: [0, 0.5, 1, 1.5, 2], yTicks: [0, 25, 50, 75, 100]) { number($0, $0 == $0.rounded() ? 0 : 1) }
+                var marker = Path()
+                marker.move(to: geometry.point(temperature, 0))
+                marker.addLine(to: geometry.point(temperature, 100))
+                context.stroke(marker, with: .color(.orange.opacity(0.7)), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                var line = Path()
+                for (index, item) in state.experiments.enumerated() {
+                    let point: CGPoint = geometry.point(item.temperature, item.bestShare * 100)
+                    if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+                }
+                context.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+                for item in state.experiments {
+                    let point: CGPoint = geometry.point(item.temperature, item.bestShare * 100)
+                    let dot = CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)
+                    context.fill(Path(ellipseIn: dot), with: .color(.accentColor))
+                    context.stroke(Path(ellipseIn: dot), with: .color(.white), lineWidth: 1.5)
+                    let label = Text(verbatim: percent(item.bestShare)).font(.caption.weight(.semibold)).foregroundColor(.primary)
+                    context.draw(label, at: CGPoint(x: point.x + 9, y: point.y - 10), anchor: .leading)
+                }
+                if state.experiments.isEmpty {
+                    let hint = Text(verbatim: text("lab.liveModel.chartEmpty")).font(.callout).foregroundColor(.secondary)
+                    context.draw(hint, at: CGPoint(x: geometry.rect.midX, y: geometry.rect.midY))
+                }
+            }
+            .frame(height: 210)
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { drag in
+                // The same plot margins as LabPlotGeometry's defaults. / Те же поля, что по умолчанию в LabPlotGeometry.
+                let geometry = LabPlotGeometry(size: chartSize, x: 0...2, y: 0...100)
+                let value: Double = geometry.value(at: drag.location).x
+                temperature = min(max((value * 10).rounded() / 10, 0), 2)
+            })
+            .background(GeometryReader { proxy in
+                Color.clear.onAppear { chartSize = proxy.size }.onChange(of: proxy.size) { chartSize = $0 }
+            })
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.liveModel.chartTitleSpoken"))
+            .accessibilityValue(state.experiments.map { "T \(number($0.temperature)): \(percent($0.bestShare))" }.joined(separator: ", "))
+            .accessibilityIdentifier("lab.liveModel.chart")
+        }
+    }
+
+    @State private var chartSize = CGSize(width: 600, height: 210)
 }

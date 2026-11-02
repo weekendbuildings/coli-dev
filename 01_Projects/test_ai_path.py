@@ -15,7 +15,7 @@ LESSONS = re.findall(r'\b(math|code)\("([a-z0-9_]+)"\)', PATH_SOURCE)
 
 
 def test_every_lesson_is_written_or_announced() -> None:
-    assert len(LESSONS) == 23 and len({name for _, name in LESSONS}) == 23
+    assert len(LESSONS) == 24 and len({name for _, name in LESSONS}) == 24
     for kind, name in LESSONS:
         folder = ROOT / "02_Areas" / FOLDERS[kind]
         written = f"lesson:{name}" in (folder / "curriculum.md").read_text(encoding="utf-8")
@@ -28,11 +28,11 @@ def test_every_lesson_is_written_or_announced() -> None:
 def test_path_screen_follows_the_plan() -> None:
     for _, name in LESSONS:
         assert f"`{name}`" in PLAN, name
-    for number in range(1, 13):
+    for number in range(1, 14):
         assert f"AIPathStep(number: {number}, lessons:" in PATH_SOURCE
         assert f'"path.step{number}.title": ("' in STRINGS
         assert f'"path.step{number}.why": ("' in STRINGS
-    assert "AIPathStep(number: 13" not in PATH_SOURCE
+    assert "AIPathStep(number: 14" not in PATH_SOURCE
 
 
 def test_path_opens_lessons_without_the_course_lock() -> None:

@@ -18,34 +18,35 @@ struct AIPathStep: Identifiable, Equatable {
     var whyKey: String { "path.step\(number).why" }
 }
 
-/// The one route from the first line of Python to a language model the learner trains themselves.
+/// The one route from the first run of a real model to a language model the learner trains themselves.
 /// See `project-plan/AI_PATH_RU_EN.md`. A lesson appears here before it is written and opens once it is in its curriculum.
-/// Единый маршрут от первой строки на Python до своей обученной языковой модели. Урок виден здесь заранее,
+/// Единый маршрут от первого запуска настоящей модели до своей обученной языковой модели. Урок виден здесь заранее,
 /// а открывается, когда появится в карте своего курса.
 enum AIPathCatalog {
     private static func math(_ resource: String) -> AIPathLesson { AIPathLesson(subject: .mathematics, resource: resource) }
     private static func code(_ resource: String) -> AIPathLesson { AIPathLesson(subject: .programming, resource: resource) }
 
     static let steps: [AIPathStep] = [
-        AIPathStep(number: 1, lessons: [
+        AIPathStep(number: 1, lessons: [code("live_model_tokens_temperature")]),
+        AIPathStep(number: 2, lessons: [
             code("variables_and_types"), code("conditions_loops_functions"), code("collections_and_loops"),
             code("strings_files_and_exceptions"), code("python_classes_and_composition")
         ]),
-        AIPathStep(number: 2, lessons: [math("vectors_and_matrices")]),
-        AIPathStep(number: 3, lessons: [
+        AIPathStep(number: 3, lessons: [math("vectors_and_matrices")]),
+        AIPathStep(number: 4, lessons: [
             math("rates_of_change_and_derivative"), math("gradient_and_partial_derivatives"), code("gradient_descent_and_learning_rate")
         ]),
-        AIPathStep(number: 4, lessons: [
+        AIPathStep(number: 5, lessons: [
             math("descriptive_statistics_and_potential_outliers"), math("probability_and_bayes"), math("random_variables_and_sampling")
         ]),
-        AIPathStep(number: 5, lessons: [math("information_and_cross_entropy")]),
-        AIPathStep(number: 6, lessons: [code("classification_and_softmax")]),
-        AIPathStep(number: 7, lessons: [code("neural_network_backpropagation"), code("neural_network_hidden_layer_xor")]),
-        AIPathStep(number: 8, lessons: [code("ml_baseline_and_holdout"), code("minibatches_and_overfitting")]),
-        AIPathStep(number: 9, lessons: [code("embeddings_and_similarity")]),
-        AIPathStep(number: 10, lessons: [code("attention_mechanism"), code("transformer_block")]),
-        AIPathStep(number: 11, lessons: [code("build_your_language_model")]),
-        AIPathStep(number: 12, lessons: [code("consciousness_known_and_unknown")])
+        AIPathStep(number: 6, lessons: [math("information_and_cross_entropy")]),
+        AIPathStep(number: 7, lessons: [code("classification_and_softmax")]),
+        AIPathStep(number: 8, lessons: [code("neural_network_backpropagation"), code("neural_network_hidden_layer_xor")]),
+        AIPathStep(number: 9, lessons: [code("ml_baseline_and_holdout"), code("minibatches_and_overfitting")]),
+        AIPathStep(number: 10, lessons: [code("embeddings_and_similarity")]),
+        AIPathStep(number: 11, lessons: [code("attention_mechanism"), code("transformer_block")]),
+        AIPathStep(number: 12, lessons: [code("build_your_language_model")]),
+        AIPathStep(number: 13, lessons: [code("consciousness_known_and_unknown")])
     ]
 
     static var lessons: [AIPathLesson] { steps.flatMap(\.lessons) }

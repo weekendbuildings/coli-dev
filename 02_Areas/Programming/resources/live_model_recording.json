@@ -1,0 +1,762 @@
+{
+ "model": "qwen2.5-coder:7b",
+ "ollama": "0.40.13",
+ "recorded_on": "2026-11-02",
+ "prompt": "The capital of France is",
+ "filters": {
+  "top_k": 0,
+  "top_p": 1,
+  "min_p": 0,
+  "repeat_penalty": 1
+ },
+ "prompt_tokens": 5,
+ "top20": [
+  {
+   "token": " Paris",
+   "logprob": -0.4599
+  },
+  {
+   "token": " __",
+   "logprob": -3.0503
+  },
+  {
+   "token": ":\n",
+   "logprob": -3.1145
+  },
+  {
+   "token": " ______",
+   "logprob": -3.1598
+  },
+  {
+   "token": " a",
+   "logprob": -3.5436
+  },
+  {
+   "token": ":\n\n",
+   "logprob": -3.5548
+  },
+  {
+   "token": " located",
+   "logprob": -3.5708
+  },
+  {
+   "token": " ____",
+   "logprob": -4.4905
+  },
+  {
+   "token": " the",
+   "logprob": -4.8847
+  },
+  {
+   "token": " not",
+   "logprob": -4.9136
+  },
+  {
+   "token": " ___",
+   "logprob": -5.0097
+  },
+  {
+   "token": "\n",
+   "logprob": -5.0983
+  },
+  {
+   "token": " in",
+   "logprob": -5.1732
+  },
+  {
+   "token": "____",
+   "logprob": -5.4525
+  },
+  {
+   "token": " an",
+   "logprob": -5.5102
+  },
+  {
+   "token": " known",
+   "logprob": -5.6419
+  },
+  {
+   "token": " also",
+   "logprob": -5.6668
+  },
+  {
+   "token": " situated",
+   "logprob": -5.6904
+  },
+  {
+   "token": " where",
+   "logprob": -5.7956
+  },
+  {
+   "token": " .\n",
+   "logprob": -5.8063
+  }
+ ],
+ "lesson_answer": {
+  "response": " Paris",
+  "prompt_eval_count": 5,
+  "eval_count": 1,
+  "logprobs": [
+   {
+    "token": " Paris",
+    "logprob": -0.4599308967590332,
+    "bytes": [
+     32,
+     80,
+     97,
+     114,
+     105,
+     115
+    ],
+    "top_logprobs": [
+     {
+      "token": " Paris",
+      "logprob": -0.4599308967590332,
+      "bytes": [
+       32,
+       80,
+       97,
+       114,
+       105,
+       115
+      ]
+     },
+     {
+      "token": " __",
+      "logprob": -3.050321102142334,
+      "bytes": [
+       32,
+       95,
+       95
+      ]
+     },
+     {
+      "token": ":\n",
+      "logprob": -3.1144871711730957,
+      "bytes": [
+       58,
+       10
+      ]
+     },
+     {
+      "token": " ______",
+      "logprob": -3.1597886085510254,
+      "bytes": [
+       32,
+       95,
+       95,
+       95,
+       95,
+       95,
+       95
+      ]
+     },
+     {
+      "token": " a",
+      "logprob": -3.5436224937438965,
+      "bytes": [
+       32,
+       97
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "token_counts": {
+  "Hello": 1,
+  "Привет": 3,
+  "hello world": 2,
+  "The capital of France is": 5,
+  "Столица Франции —": 8,
+  "антидепрессант": 7,
+  "1234567": 7,
+  "12345678": 8
+ },
+ "paris_tokens": [
+  " П",
+  "ари",
+  "ж"
+ ],
+ "russian_top": [
+  {
+   "token": " П",
+   "logprob": -0.0369
+  },
+  {
+   "token": " это",
+   "logprob": -4.168
+  },
+  {
+   "token": " Paris",
+   "logprob": -6.3428
+  },
+  {
+   "token": " Б",
+   "logprob": -6.6041
+  },
+  {
+   "token": " пар",
+   "logprob": -6.9778
+  },
+  {
+   "token": " __",
+   "logprob": -7.2412
+  }
+ ],
+ "cat_top": [
+  {
+   "token": " л",
+   "logprob": -1.1668
+  },
+  {
+   "token": " ст",
+   "logprob": -2.2933
+  },
+  {
+   "token": " к",
+   "logprob": -2.975
+  },
+  {
+   "token": " кры",
+   "logprob": -3.0515
+  },
+  {
+   "token": " стол",
+   "logprob": -3.1734
+  },
+  {
+   "token": " д",
+   "logprob": -3.4921
+  }
+ ],
+ "raw_vs_chat": {
+  "raw": " Париж. Париж является крупнейшим город",
+  "chat": "Столица Франции — Париж."
+ },
+ "greedy_path": [
+  {
+   "prefix": "The capital of France is",
+   "prompt_tokens": 5,
+   "candidates": [
+    {
+     "token": " Paris",
+     "logprob": -0.4599
+    },
+    {
+     "token": " __",
+     "logprob": -3.0503
+    },
+    {
+     "token": ":\n",
+     "logprob": -3.1145
+    },
+    {
+     "token": " ______",
+     "logprob": -3.1598
+    },
+    {
+     "token": " a",
+     "logprob": -3.5436
+    },
+    {
+     "token": ":\n\n",
+     "logprob": -3.5548
+    },
+    {
+     "token": " located",
+     "logprob": -3.5708
+    },
+    {
+     "token": " ____",
+     "logprob": -4.4905
+    }
+   ]
+  },
+  {
+   "prefix": "The capital of France is Paris",
+   "prompt_tokens": 6,
+   "candidates": [
+    {
+     "token": ".",
+     "logprob": -0.685
+    },
+    {
+     "token": ",",
+     "logprob": -1.6899
+    },
+    {
+     "token": ".\n",
+     "logprob": -1.7109
+    },
+    {
+     "token": ".\n\n",
+     "logprob": -2.449
+    },
+    {
+     "token": " and",
+     "logprob": -3.7064
+    },
+    {
+     "token": " (",
+     "logprob": -5.0704
+    },
+    {
+     "token": "\n",
+     "logprob": -6.0919
+    },
+    {
+     "token": " which",
+     "logprob": -6.2716
+    }
+   ]
+  },
+  {
+   "prefix": "The capital of France is Paris.",
+   "prompt_tokens": 7,
+   "candidates": [
+    {
+     "token": " Paris",
+     "logprob": -1.3449
+    },
+    {
+     "token": " The",
+     "logprob": -1.8266
+    },
+    {
+     "token": " If",
+     "logprob": -2.8285
+    },
+    {
+     "token": " It",
+     "logprob": -2.9647
+    },
+    {
+     "token": " True",
+     "logprob": -3.4469
+    },
+    {
+     "token": " What",
+     "logprob": -3.5993
+    },
+    {
+     "token": " \n\n",
+     "logprob": -3.7143
+    },
+    {
+     "token": " Therefore",
+     "logprob": -3.8099
+    }
+   ]
+  },
+  {
+   "prefix": "The capital of France is Paris. Paris",
+   "prompt_tokens": 8,
+   "candidates": [
+    {
+     "token": " is",
+     "logprob": -0.1416
+    },
+    {
+     "token": " has",
+     "logprob": -2.5607
+    },
+    {
+     "token": " was",
+     "logprob": -4.8708
+    },
+    {
+     "token": ",",
+     "logprob": -5.0601
+    },
+    {
+     "token": " means",
+     "logprob": -5.3387
+    },
+    {
+     "token": " lies",
+     "logprob": -5.6354
+    },
+    {
+     "token": "ian",
+     "logprob": -6.0103
+    },
+    {
+     "token": " (",
+     "logprob": -6.13
+    }
+   ]
+  },
+  {
+   "prefix": "The capital of France is Paris. Paris is",
+   "prompt_tokens": 9,
+   "candidates": [
+    {
+     "token": " located",
+     "logprob": -1.219
+    },
+    {
+     "token": " a",
+     "logprob": -1.8927
+    },
+    {
+     "token": " the",
+     "logprob": -2.0604
+    },
+    {
+     "token": " known",
+     "logprob": -2.1138
+    },
+    {
+     "token": " not",
+     "logprob": -2.604
+    },
+    {
+     "token": " also",
+     "logprob": -3.0093
+    },
+    {
+     "token": " situated",
+     "logprob": -3.3742
+    },
+    {
+     "token": " one",
+     "logprob": -3.5172
+    }
+   ]
+  },
+  {
+   "prefix": "The capital of France is Paris. Paris is located",
+   "prompt_tokens": 10,
+   "candidates": [
+    {
+     "token": " in",
+     "logprob": -0.1517
+    },
+    {
+     "token": " on",
+     "logprob": -2.2053
+    },
+    {
+     "token": " at",
+     "logprob": -4.1816
+    },
+    {
+     "token": " along",
+     "logprob": -5.3443
+    },
+    {
+     "token": " near",
+     "logprob": -5.4882
+    },
+    {
+     "token": " between",
+     "logprob": -6.6629
+    },
+    {
+     "token": " approximately",
+     "logprob": -7.0419
+    },
+    {
+     "token": " ",
+     "logprob": -7.467
+    }
+   ]
+  },
+  {
+   "prefix": "The capital of France is Paris. Paris is located in",
+   "prompt_tokens": 11,
+   "candidates": [
+    {
+     "token": " the",
+     "logprob": -0.1141
+    },
+    {
+     "token": " France",
+     "logprob": -3.3349
+    },
+    {
+     "token": " central",
+     "logprob": -3.7335
+    },
+    {
+     "token": " northern",
+     "logprob": -3.8621
+    },
+    {
+     "token": " northeastern",
+     "logprob": -4.8851
+    },
+    {
+     "token": " a",
+     "logprob": -5.6086
+    },
+    {
+     "token": " which",
+     "logprob": -5.9676
+    },
+    {
+     "token": " north",
+     "logprob": -6.0834
+    }
+   ]
+  }
+ ],
+ "draws": [
+  {
+   "temperature": 0,
+   "n": 200,
+   "hits": 200,
+   "top": [
+    [
+     " Paris",
+     200
+    ],
+    [
+     " __",
+     0
+    ],
+    [
+     ":\n",
+     0
+    ],
+    [
+     " ______",
+     0
+    ],
+    [
+     " a",
+     0
+    ],
+    [
+     ":\n\n",
+     0
+    ]
+   ],
+   "other": 0,
+   "distinct": 1,
+   "outside_top20": 0
+  },
+  {
+   "temperature": 0.5,
+   "n": 200,
+   "hits": 198,
+   "top": [
+    [
+     " Paris",
+     198
+    ],
+    [
+     " __",
+     0
+    ],
+    [
+     ":\n",
+     0
+    ],
+    [
+     " ______",
+     0
+    ],
+    [
+     " a",
+     1
+    ],
+    [
+     ":\n\n",
+     0
+    ]
+   ],
+   "other": 1,
+   "distinct": 3,
+   "outside_top20": 0
+  },
+  {
+   "temperature": 1,
+   "n": 200,
+   "hits": 122,
+   "top": [
+    [
+     " Paris",
+     122
+    ],
+    [
+     " __",
+     11
+    ],
+    [
+     ":\n",
+     8
+    ],
+    [
+     " ______",
+     11
+    ],
+    [
+     " a",
+     6
+    ],
+    [
+     ":\n\n",
+     6
+    ]
+   ],
+   "other": 36,
+   "distinct": 28,
+   "outside_top20": 14
+  },
+  {
+   "temperature": 1.5,
+   "n": 200,
+   "hits": 29,
+   "top": [
+    [
+     " Paris",
+     29
+    ],
+    [
+     " __",
+     5
+    ],
+    [
+     ":\n",
+     1
+    ],
+    [
+     " ______",
+     7
+    ],
+    [
+     " a",
+     8
+    ],
+    [
+     ":\n\n",
+     4
+    ]
+   ],
+   "other": 146,
+   "distinct": 133,
+   "outside_top20": 124
+  },
+  {
+   "temperature": 2,
+   "n": 200,
+   "hits": 3,
+   "top": [
+    [
+     " Paris",
+     3
+    ],
+    [
+     " __",
+     0
+    ],
+    [
+     ":\n",
+     2
+    ],
+    [
+     " ______",
+     0
+    ],
+    [
+     " a",
+     1
+    ],
+    [
+     ":\n\n",
+     1
+    ]
+   ],
+   "other": 193,
+   "distinct": 191,
+   "outside_top20": 185
+  }
+ ],
+ "large": [
+  {
+   "temperature": 1,
+   "n": 1000,
+   "hits": 636,
+   "distinct": 88,
+   "outside_top20": 96,
+   "most_common": [
+    [
+     " Paris",
+     636
+    ],
+    [
+     ":\n",
+     48
+    ],
+    [
+     " ______",
+     42
+    ],
+    [
+     " __",
+     36
+    ],
+    [
+     " located",
+     27
+    ],
+    [
+     " a",
+     27
+    ]
+   ]
+  },
+  {
+   "temperature": 2,
+   "n": 1000,
+   "hits": 32,
+   "distinct": 871,
+   "outside_top20": 887,
+   "most_common": [
+    [
+     " Paris",
+     32
+    ],
+    [
+     ":\n",
+     11
+    ],
+    [
+     " __",
+     10
+    ],
+    [
+     " a",
+     9
+    ],
+    [
+     " ______",
+     9
+    ],
+    [
+     ":\n\n",
+     6
+    ]
+   ]
+  }
+ ],
+ "samples": {
+  "0": " Paris. Paris is located in the northern part of France, on the",
+  "0.7": ":\n\nA. Berlin\nB. Madrid\nC. Paris\nD",
+  "1": " [city name].\n\n**Created Answer**:\nThe capital of France is",
+  "2": " so boo-tناemic-and的最后一剩下_from发音中的异常演讲 Pai"
+ },
+ "parameters": 7615616512,
+ "vocabulary": 152064,
+ "context_length": 32768,
+ "ratio_check": {
+  "temperature": 1.5,
+  "n": 1500,
+  "paris": 241,
+  "blank": 38,
+  "note": "Random throw numbers, measured the same day. / Случайные номера бросков, измерено в тот же день."
+ },
+ "sequential_seeds_note": "With throw numbers 0..499 at T = 1.5: Paris 76, __ 21 (ratio 3.6 against 5.6 by the formula). / С номерами 0..499 при T = 1,5: Paris 76, __ 21."
+}
