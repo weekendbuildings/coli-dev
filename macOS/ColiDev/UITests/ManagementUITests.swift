@@ -738,6 +738,58 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testErrorLandscapeLabPlacesTheBallByClickAndTrains() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/neural_network_hidden_layer_xor"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let terrain = app.descendants(matching: .any)["lab.landscape.terrain"]
+        XCTAssertTrue(terrain.waitForExistence(timeout: 10), "The hidden layer lesson must show the error terrain.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<60 where terrain.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(terrain.isHittable, "The terrain must scroll into view.")
+        let iterations = app.staticTexts["lab.landscape.iterations"]
+        let loss = app.staticTexts["lab.landscape.loss"]
+        let correct = app.staticTexts["lab.landscape.correct"]
+        let play = app.buttons["lab.landscape.play"]
+        XCTAssertTrue(shown(iterations).contains("0"))
+        XCTAssertTrue(shown(correct).contains("2 / 4"), "The lab must not open solved.\n\(shown(correct))")
+        snapshot("landscape-opening")
+
+        // The default start ends on the shelf with one wrong answer. / Стартовая точка приводит на полку с одной ошибкой.
+        play.click()
+        try await Task.sleep(nanoseconds: 250_000_000)
+        snapshot("landscape-running")
+        try await Task.sleep(nanoseconds: 9_000_000_000)
+        XCTAssertTrue(shown(correct).contains("3 / 4"), "The default run must stall on the shelf.\n\(shown(correct)) \(shown(loss))")
+        snapshot("landscape-shelf")
+
+        // A click on the terrain moves the start and clears the run. / Щелчок по рельефу переносит старт и сбрасывает прогон.
+        let lossBefore = shown(loss)
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.62)).click()
+        try await Task.sleep(nanoseconds: 600_000_000)
+        XCTAssertTrue(shown(iterations).hasPrefix("0"), "A click must clear the run.\n\(shown(iterations))")
+        XCTAssertNotEqual(shown(loss), lossBefore, "A click must move the ball to another height.")
+        // Dragging turns the scene and does not move the start. / Перетаскивание крутит сцену и не двигает старт.
+        let lossAfterClick = shown(loss)
+        terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).press(forDuration: 0.1, thenDragTo: terrain.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 400_000_000)
+        XCTAssertEqual(shown(loss), lossAfterClick, "A drag must not move the start.")
+        snapshot("landscape-clicked")
+    }
+
+    @MainActor
     func testGradientDescent2DLabTakesTheQuizStep() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"

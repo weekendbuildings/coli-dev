@@ -1858,6 +1858,7 @@ private struct PracticeLab: View {
             NeuronTrainingLab()
         } else if subject == .programming, moduleResource == "neural_network_hidden_layer_xor" {
             XORNetworkLab()
+            ErrorLandscapeLab()
         } else if subject == .biology, moduleResource == "synapses_and_signal_summation" {
             SynapticSummationLab()
         } else if subject == .biology, moduleResource == "what_is_life_and_its_origin" {
@@ -13338,6 +13339,169 @@ private struct XORNetworkLab: View {
                 .padding(.vertical, 6)
                 .background((correct ? Color.green : Color.secondary).opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
             }
+        }
+    }
+}
+
+private struct ErrorLandscapeLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = ErrorLandscapeModel()
+    @State private var rateExponent = 0.0
+    @State private var playing = false
+    @State private var solvedRun: (startLoss: Double, steps: Int)?
+
+    private typealias Model = ErrorLandscapeModel
+
+    private var rate: Double { Model.learningRate(exponent: rateExponent) }
+    private func number(_ value: Double, _ digits: Int) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text("lab.landscape.ready"))
+        case .training: return (.info, text("lab.landscape.training"))
+        case .learned: return (.good, text("lab.landscape.learned"))
+        case .stalled: return (.warning, String(format: text("lab.landscape.stalled"), String(XORNetworkModel.examples.count - model.correctAnswers)))
+        case .leftTerrain: return (.bad, text("lab.landscape.left"))
+        case .outOfSteps: return (.warning, text("lab.landscape.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.landscape.title"), instruction: text("lab.landscape.subtitle"))
+            HStack(alignment: .top, spacing: 10) {
+                ErrorLandscapeSceneView(model: model, learningRate: rate, language: store.language, onPick: pick)
+                    .frame(minHeight: 440)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.landscape.terrainLabel"))
+                    .accessibilityValue(String(format: text("lab.landscape.terrainValue"), number(model.loss, 3), String(model.correctAnswers),
+                                               number(model.position.w11, 1), number(model.position.w12, 1)))
+                    .accessibilityIdentifier("lab.landscape.terrain")
+                VStack(spacing: 8) {
+                    TrainingNetworkSceneView(weights: model.network.weights, training: playing, language: store.language)
+                        .frame(minHeight: 300)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .accessibilityElement(children: .ignore)
+                        .accessibilityLabel(text("lab.landscape.networkLabel"))
+                        .accessibilityIdentifier("lab.landscape.network")
+                    legend
+                    answers
+                }
+                .frame(width: 310)
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.xor.rate"), number(rate, rate < 1 ? 2 : (rate < 10 ? 1 : 0)))).monospacedDigit().frame(minWidth: 210, alignment: .leading)
+                Slider(value: $rateExponent, in: Model.learningRateExponents)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityValue(Text(verbatim: number(rate, 2)))
+                    .accessibilityIdentifier("lab.landscape.rate")
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if !playing { model.resume() }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.landscape.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.landscape.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; model.restart() }
+                    .accessibilityIdentifier("lab.landscape.reset")
+                Button(text("lab.landscape.random")) {
+                    pick(.init(w11: Double.random(in: Model.domain), w12: Double.random(in: Model.domain)))
+                }
+                .accessibilityIdentifier("lab.landscape.random")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                lossChart
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.landscape.statStep"), value: String(model.iterations), identifier: "lab.landscape.iterations")
+                    LabStat(label: text("lab.landscape.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.landscape.loss")
+                    LabStat(label: text("lab.landscape.statCorrect"), value: "\(model.correctAnswers) / \(XORNetworkModel.examples.count)", tint: .green, identifier: "lab.landscape.correct")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.landscape.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.landscape.challenge"), solved: solvedRun != nil,
+                         solvedText: String(format: text("lab.landscape.challengeSolved"), number(solvedRun?.startLoss ?? 0, 2), String(solvedRun?.steps ?? 0)),
+                         identifier: "lab.landscape.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.landscape.how1"), text("lab.landscape.how2"), text("lab.landscape.how3"), text("lab.landscape.how4")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 50_000_000)
+                guard playing else { break }
+                advance()
+                if model.isFinished || model.phase == .stalled { playing = false }
+            }
+        }
+    }
+
+    private func pick(_ point: Model.Point) {
+        playing = false
+        model = Model(start: point)
+    }
+
+    private func advance() {
+        model.step(learningRate: rate)
+        if model.solvesChallenge, solvedRun == nil { solvedRun = (model.startLoss, model.iterations) }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 12) {
+            ForEach([(Color(nsColor: TrainingStage.forwardSignal), "lab.landscape.legendForward"),
+                     (Color(nsColor: TrainingStage.errorSignal), "lab.landscape.legendBackward"),
+                     (Color(red: 1, green: 0.95, blue: 0.4), "lab.landscape.legendTrained")], id: \.1) { color, key in
+                HStack(spacing: 4) {
+                    Circle().fill(color).frame(width: 9, height: 9)
+                    Text(text(key)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
+            }
+        }
+    }
+
+    private var answers: some View {
+        HStack(spacing: 6) {
+            ForEach(Array(XORNetworkModel.examples.enumerated()), id: \.offset) { _, example in
+                let answer = model.network.forward(example.x1, example.x2).answer
+                let correct = XORNetworkModel.isCorrect(answer: answer, target: example.target)
+                VStack(spacing: 2) {
+                    Text(verbatim: "\(Int(example.x1)),\(Int(example.x2))→\(Int(example.target))").font(.caption2.weight(.semibold)).monospacedDigit()
+                    Text(verbatim: number(answer, 2)).font(.callout.weight(.bold)).monospacedDigit()
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 5)
+                .background((correct ? Color.green : Color.secondary).opacity(0.18), in: RoundedRectangle(cornerRadius: 8))
+            }
+        }
+    }
+
+    // The error per step, with the heights of the shelf and the plateau dashed.
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = model.lossHistory + [model.loss]
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.iterations, 60)), y: 0...0.55)
+            plot.drawAxes(in: context, xLabel: text("lab.landscape.axisSteps"), yLabel: "L", yTicks: [0, 0.25, 0.5], format: { number($0, $0 > 0 && $0 < 1 ? 2 : 0) })
+            for level in [0.25, 0.5] {
+                var dash = Path()
+                dash.move(to: plot.point(plot.x.lowerBound, level))
+                dash.addLine(to: plot.point(plot.x.upperBound, level))
+                context.stroke(dash, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            }
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index), min(value, 0.55))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
         }
     }
 }

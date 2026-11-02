@@ -433,6 +433,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-chemistry-labs"
           "$RUNNER_TEMP/verify-chemistry-labs"
 
+      - name: Verify error landscape model / Проверка модели рельефа ошибки
+        run: |
+          swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/App/SurfacePlot3D.swift macOS/ColiDev/App/ErrorLandscape.swift macOS/ColiDev/scripts/verify_error_landscape.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-error-landscape"
+          "$RUNNER_TEMP/verify-error-landscape"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
