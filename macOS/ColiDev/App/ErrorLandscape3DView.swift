@@ -63,7 +63,7 @@ final class LabSceneView: SCNView {
     }
 
     override func mouseUp(with event: NSEvent) {
-        if !dragged { onClick?(convert(event.locationInWindow, from: nil)) }
+        if pressPoint != nil, !dragged { onClick?(convert(event.locationInWindow, from: nil)) }
         pressPoint = nil
         lastPoint = nil
     }

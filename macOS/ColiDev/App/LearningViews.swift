@@ -1883,6 +1883,8 @@ private struct PracticeLab: View {
             CrossEntropyBowlLab()
         } else if subject == .programming, moduleResource == "classification_and_softmax" {
             SoftmaxReliefLab()
+        } else if subject == .programming, moduleResource == "embeddings_and_similarity" {
+            EmbeddingSpaceLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -13786,6 +13788,118 @@ private struct SoftmaxReliefLab: View {
                 if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
             }
             context.stroke(line, with: .color(.orange), lineWidth: 2.5)
+        }
+    }
+}
+
+private struct EmbeddingSpaceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = WordEmbeddingModel()
+    @State private var selected = WordEmbeddingModel.cat
+    @State private var playing = false
+    @State private var solved = false
+
+    private typealias Model = WordEmbeddingModel
+
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func word(_ index: Int) -> String { Model.word(index, language: store.language) }
+
+    private var status: (LabStatusKind, String) {
+        if model.horseChangedPlace { return (.good, text("lab.embed.moved")) }
+        if model.extraSentences { return (.info, text("lab.embed.extraOn")) }
+        if model.isTrained { return (.good, text("lab.embed.trained")) }
+        return model.steps == 0 ? (.info, text("lab.embed.ready")) : (.info, text("lab.embed.training"))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.embed.title"), instruction: text("lab.embed.subtitle"))
+            EmbeddingSpaceSceneView(model: model, selected: selected, language: store.language, onSelect: { selected = $0 })
+                .frame(height: 450)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.embed.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.embed.sceneValue"), word(selected), word(model.neighbours(of: selected)[0]), number(model.cosine(selected, model.neighbours(of: selected)[0]))))
+                .accessibilityIdentifier("lab.embed.scene")
+            legend
+            HStack(spacing: 10) {
+                Button { playing.toggle() } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.embed.play")
+                Button(text("lab.landscape.step")) { advance(by: 10) }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.embed.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; model = Model() }
+                    .accessibilityIdentifier("lab.embed.reset")
+                Spacer()
+                Toggle(text("lab.embed.extra"), isOn: Binding(get: { model.extraSentences }, set: { model.setExtraSentences($0) }))
+                    .accessibilityIdentifier("lab.embed.extra")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                neighbours
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.embed.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.embed.loss")
+                    LabStat(label: text("lab.embed.statSteps"), value: String(model.steps), identifier: "lab.embed.steps")
+                    LabStat(label: String(format: text("lab.embed.statPair"), word(Model.horse), word(Model.cat)), value: number(model.cosine(Model.horse, Model.cat)), tint: .blue, identifier: "lab.embed.horseCat")
+                    LabStat(label: String(format: text("lab.embed.statPair"), word(Model.horse), word(Model.car)), value: number(model.cosine(Model.horse, Model.car)), tint: .orange, identifier: "lab.embed.horseCar")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.embed.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.embed.challenge"), solved: solved,
+                         solvedText: text("lab.embed.challengeSolved"), identifier: "lab.embed.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.embed.how1"), text("lab.embed.how2"), text("lab.embed.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 60_000_000)
+                guard playing else { break }
+                advance(by: 2)
+                if model.isFinished { playing = false }
+            }
+        }
+    }
+
+    private func advance(by count: Int) {
+        for _ in 0..<count { model.step() }
+        if model.horseChangedPlace { solved = true }
+    }
+
+    private var legend: some View {
+        HStack(spacing: 12) {
+            ForEach([(Model.Group.animal, "lab.embed.groupAnimal"), (.food, "lab.embed.groupFood"), (.vehicle, "lab.embed.groupVehicle"), (.verb, "lab.embed.groupVerb"), (.other, "lab.embed.groupOther")], id: \.1) { group, key in
+                HStack(spacing: 4) {
+                    Circle().fill(Color(nsColor: EmbeddingSpaceSceneView.color(group))).frame(width: 9, height: 9)
+                    Text(text(key)).font(.caption2).foregroundStyle(.secondary).lineLimit(1).fixedSize()
+                }
+            }
+        }
+    }
+
+    // The nearest words to the selected one, with their true similarity. / Ближайшие к выбранному слова и их настоящее сходство.
+    private var neighbours: some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(String(format: text("lab.embed.nearestTitle"), word(selected))).font(.caption.weight(.semibold))
+            ForEach(Array(model.neighbours(of: selected).prefix(4)), id: \.self) { index in
+                let similarity = model.cosine(selected, index)
+                HStack(spacing: 6) {
+                    Text(verbatim: word(index)).font(.caption).frame(width: 66, alignment: .leading)
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3).fill(Color.secondary.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 3).fill(Color(nsColor: EmbeddingSpaceSceneView.color(Model.group(index))))
+                                .frame(width: geometry.size.width * max(0, similarity))
+                        }
+                    }
+                    .frame(height: 10)
+                    Text(verbatim: number(similarity)).font(.caption).monospacedDigit().frame(width: 40, alignment: .trailing)
+                }
+            }
         }
     }
 }

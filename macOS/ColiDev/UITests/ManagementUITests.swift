@@ -900,6 +900,43 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testEmbeddingSpaceGathersWordsAndMovesTheHorse() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/embeddings_and_similarity"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.embed.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the space.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<100 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let steps = app.staticTexts["lab.embed.steps"]
+        XCTAssertTrue(shown(steps).hasPrefix("0"), shown(steps))
+        snapshot("landscape-embed-opening")
+        let play = app.buttons["lab.embed.play"]
+        play.click()
+        try await Task.sleep(nanoseconds: 14_000_000_000)
+        play.click()
+        snapshot("landscape-embed-trained")
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.2, dy: 0.1)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.45, dy: 0.15)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the space.")
+        snapshot("landscape-embed-turned")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"

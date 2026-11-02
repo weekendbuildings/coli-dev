@@ -451,6 +451,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-softmax-classifier"
           "$RUNNER_TEMP/verify-softmax-classifier"
 
+      - name: Verify word embedding model / Проверка модели эмбеддингов слов
+        run: |
+          swiftc macOS/ColiDev/App/WordEmbedding.swift macOS/ColiDev/scripts/verify_word_embedding.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-word-embedding"
+          "$RUNNER_TEMP/verify-word-embedding"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \
