@@ -801,9 +801,10 @@ final class ManagementUITests: XCTestCase {
             page.scroll(byDeltaX: 0, deltaY: -40)
         }
         XCTAssertTrue(network.isHittable, "The network model must scroll into view.")
-        // Signals keep running, so two moments give different pictures. / Сигналы бегут, поэтому два момента дают разные картинки.
+        // The examples change every 1.9 s, with a quiet moment inside each cycle, so the two pictures are taken more than a
+        // full cycle apart. / Примеры меняются каждые 1,9 с, внутри цикла есть пауза, поэтому кадры разделены больше чем циклом.
         let networkBefore = network.screenshot().pngRepresentation
-        try await Task.sleep(nanoseconds: 700_000_000)
+        try await Task.sleep(nanoseconds: 2_400_000_000)
         XCTAssertNotEqual(network.screenshot().pngRepresentation, networkBefore, "The signals must keep running.")
         snapshot("landscape-network")
         network.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: network.coordinate(withNormalizedOffset: CGVector(dx: 0.62, dy: 0.42)))
