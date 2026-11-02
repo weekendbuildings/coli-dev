@@ -445,6 +445,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-cross-entropy-bowl"
           "$RUNNER_TEMP/verify-cross-entropy-bowl"
 
+      - name: Verify softmax classifier model / Проверка модели классификатора softmax
+        run: |
+          swiftc macOS/ColiDev/App/SoftmaxClassifier.swift macOS/ColiDev/scripts/verify_softmax_classifier.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-softmax-classifier"
+          "$RUNNER_TEMP/verify-softmax-classifier"
+
       - name: Verify neuron training model / Проверка модели обучения нейрона
         run: |
           swiftc macOS/ColiDev/App/NeuronTraining.swift macOS/ColiDev/scripts/verify_neuron_training.swift \

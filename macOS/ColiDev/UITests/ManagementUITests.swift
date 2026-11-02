@@ -858,6 +858,48 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testSoftmaxReliefGrowsAndAcceptsANewPoint() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/classification_and_softmax"
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        func shown(_ element: XCUIElement) -> String { (element.value as? String ?? "") + " " + element.label }
+        func snapshot(_ name: String) {
+            let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+            attachment.name = name
+            attachment.lifetime = .keepAlways
+            add(attachment)
+        }
+        let scene = app.descendants(matching: .any)["lab.softmax.scene"]
+        XCTAssertTrue(scene.waitForExistence(timeout: 10), "The lesson must show the relief.\n\(app.debugDescription)")
+        let page = app.scrollViews["lesson.scrollView"]
+        for _ in 0..<100 where scene.frame.minY > app.windows.firstMatch.frame.minY + 110 {
+            page.scroll(byDeltaX: 0, deltaY: -40)
+        }
+        XCTAssertTrue(scene.isHittable)
+        let loss = app.staticTexts["lab.softmax.loss"]
+        let correct = app.staticTexts["lab.softmax.correct"]
+        XCTAssertTrue(shown(loss).contains("1,099") || shown(loss).contains("1.099"), "The start must be ln 3.\n\(shown(loss))")
+        snapshot("landscape-softmax-opening")
+        app.buttons["lab.softmax.play"].click()
+        try await Task.sleep(nanoseconds: 9_000_000_000)
+        app.buttons["lab.softmax.play"].click()
+        snapshot("landscape-softmax-trained")
+        XCTAssertTrue(shown(correct).contains("12 / 12"), shown(correct))
+        // A click adds a point, and the count grows. / Щелчок добавляет точку, и счёт растёт.
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.45)).click()
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertTrue(shown(correct).contains("/ 13"), shown(correct))
+        let still = scene.screenshot().pngRepresentation
+        scene.coordinate(withNormalizedOffset: CGVector(dx: 0.3, dy: 0.5)).click(forDuration: 0.1, thenDragTo: scene.coordinate(withNormalizedOffset: CGVector(dx: 0.55, dy: 0.5)))
+        try await Task.sleep(nanoseconds: 500_000_000)
+        XCTAssertNotEqual(scene.screenshot().pngRepresentation, still, "A drag must turn the relief.")
+        XCTAssertTrue(shown(correct).contains("/ 13"), "A drag must not add a point.\n\(shown(correct))")
+    }
+
+    @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"

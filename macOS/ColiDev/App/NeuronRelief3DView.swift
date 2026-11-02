@@ -175,7 +175,8 @@ extension TrainingStage {
     /// Ответ нейрона как цельный блок: верх это настоящий ответ над единичным квадратом, стенки закрывают его до нуля.
     static func reliefBlock(side: Float, height: Float, resolution: Int,
                             answer: (Double, Double) -> Double,
-                            slope: (Double, Double) -> SIMD2<Double>) -> (solid: SCNGeometry, grid: SCNGeometry)? {
+                            slope: (Double, Double) -> SIMD2<Double>,
+                            color: ((Double, Double) -> SIMD4<Float>)? = nil) -> (solid: SCNGeometry, grid: SCNGeometry)? {
         let width = Double(side), tall = Double(height)
         guard let mesh = SurfacePlot3D.mesh(
             domain: 0...1,
@@ -189,7 +190,7 @@ extension TrainingStage {
         let solid = closedSurface(
             top: top,
             normals: topNormals,
-            colors: mesh.positions.map { answerColor($0.z / tall) },
+            colors: mesh.positions.map { color?($0.x, $0.y) ?? answerColor($0.z / tall) },
             triangles: mesh.triangleIndices,
             resolution: resolution
         )

@@ -1881,6 +1881,8 @@ private struct PracticeLab: View {
             NeuralLayerLab()
         } else if subject == .mathematics, moduleResource == "information_and_cross_entropy" {
             CrossEntropyBowlLab()
+        } else if subject == .programming, moduleResource == "classification_and_softmax" {
+            SoftmaxReliefLab()
         } else if subject == .mathematics, moduleResource == "gradient_and_partial_derivatives" {
             GradientDescent2DLab()
         } else if subject == .biology, moduleResource == "dna_replication_fidelity_and_repair" {
@@ -13620,6 +13622,170 @@ private struct CrossEntropyBowlLab: View {
                 HStack(spacing: 4) { RoundedRectangle(cornerRadius: 2).fill(Color.green.opacity(0.75)).frame(width: 10, height: 10); Text(text("lab.bowl.legendTruth")).font(.caption2) }
                 HStack(spacing: 4) { RoundedRectangle(cornerRadius: 2).fill(Color.orange).frame(width: 10, height: 10); Text(text("lab.bowl.legendBelief")).font(.caption2) }
             }
+        }
+    }
+}
+
+private struct SoftmaxReliefLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = SoftmaxClassifierModel()
+    @State private var rateExponent = -1.0
+    @State private var chosenClass = 0
+    @State private var playing = false
+    @State private var lastPoint: (x1: Double, x2: Double)?
+    @State private var solvedSteps: Int?
+
+    private typealias Model = SoftmaxClassifierModel
+
+    private var rate: Double { Model.rate(exponent: rateExponent) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func classColor(_ index: Int) -> Color { Color(nsColor: SoftmaxReliefSceneView.classColor(index)) }
+
+    private var status: (LabStatusKind, String) {
+        switch model.phase {
+        case .ready: return (.info, text("lab.softmax.ready"))
+        case .training: return (.info, text("lab.softmax.training"))
+        case .stalled: return (.warning, String(format: text("lab.softmax.stalled"), number(model.loss)))
+        case .flewOff: return (.bad, text("lab.softmax.flewOff"))
+        case .outOfSteps: return (.warning, text("lab.softmax.outOfSteps"))
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.softmax.title"), instruction: text("lab.softmax.subtitle"))
+            SoftmaxReliefSceneView(model: model, language: store.language, onPick: addPoint)
+                .frame(height: 430)
+                .frame(maxWidth: .infinity)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel(text("lab.softmax.sceneLabel"))
+                .accessibilityValue(String(format: text("lab.softmax.sceneValue"), number(model.loss), String(model.correctCount), String(model.samples.count)))
+                .accessibilityIdentifier("lab.softmax.scene")
+            HStack(spacing: 14) {
+                Picker(text("lab.softmax.data"), selection: Binding(get: { model.dataSet }, set: { change(to: $0) })) {
+                    Text(text("lab.softmax.dataClouds")).tag(Model.DataSet.clouds)
+                    Text(text("lab.softmax.dataXor")).tag(Model.DataSet.xor)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("lab.softmax.data")
+                Picker(text("lab.softmax.newPoint"), selection: $chosenClass) {
+                    ForEach(0..<Model.classCount, id: \.self) { index in
+                        Text(verbatim: String(index + 1)).tag(index)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("lab.softmax.class")
+                Circle().fill(classColor(chosenClass)).frame(width: 14, height: 14)
+            }
+            HStack(spacing: 12) {
+                Text(String(format: text("lab.xor.rate"), number(rate, rate < 1 ? 2 : (rate < 10 ? 1 : 0)))).monospacedDigit().frame(minWidth: 210, alignment: .leading)
+                Slider(value: $rateExponent, in: Model.rateExponents)
+                    .accessibilityLabel(text("lab.xor.rateLabel"))
+                    .accessibilityValue(Text(verbatim: number(rate)))
+                    .accessibilityIdentifier("lab.softmax.rate")
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if !playing { model.resume() }
+                    playing.toggle()
+                } label: { Label(text(playing ? "lab.descent2d.pause" : "lab.descent2d.play"), systemImage: playing ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(model.isFinished)
+                    .accessibilityIdentifier("lab.softmax.play")
+                Button(text("lab.landscape.step")) { advance() }
+                    .disabled(model.isFinished || playing)
+                    .accessibilityIdentifier("lab.softmax.step")
+                Button(text("lab.neurontrain.reset")) { playing = false; lastPoint = nil; model.restart() }
+                    .accessibilityIdentifier("lab.softmax.reset")
+            }
+            HStack(alignment: .top, spacing: 12) {
+                lossChart
+                    .frame(height: 120)
+                    .frame(maxWidth: .infinity)
+                LabStatGrid {
+                    LabStat(label: text("lab.softmax.statLoss"), value: number(model.loss, 3), tint: .orange, identifier: "lab.softmax.loss")
+                    LabStat(label: text("lab.softmax.statCorrect"), value: "\(model.correctCount) / \(model.samples.count)", tint: .green, identifier: "lab.softmax.correct")
+                    LabStat(label: text("lab.softmax.statSteps"), value: String(model.steps), identifier: "lab.softmax.steps")
+                }
+                .frame(maxWidth: .infinity)
+            }
+            if let point = lastPoint {
+                probabilities(at: point)
+            }
+            LabStatusBadge(kind: status.0, text: status.1, identifier: "lab.softmax.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.softmax.challenge"), solved: solvedSteps != nil,
+                         solvedText: String(format: text("lab.softmax.challengeSolved"), String(solvedSteps ?? 0)),
+                         identifier: "lab.softmax.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.softmax.how1"), text("lab.softmax.how2"), text("lab.softmax.how3")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing && !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 70_000_000)
+                guard playing else { break }
+                advance()
+                if model.isFinished || model.phase == .stalled { playing = false }
+            }
+        }
+    }
+
+    private func change(to dataSet: Model.DataSet) {
+        playing = false
+        lastPoint = nil
+        model = Model(dataSet: dataSet)
+    }
+
+    private func addPoint(_ x1: Double, _ x2: Double) {
+        playing = false
+        model.add(.init(x1: x1, x2: x2, label: chosenClass))
+        lastPoint = (x1, x2)
+    }
+
+    private func advance() {
+        model.step(rate: rate)
+        if model.solvesChallenge, solvedSteps == nil { solvedSteps = model.steps }
+    }
+
+    // What the model says about the last added point, as bars. / Что модель говорит о последней точке.
+    private func probabilities(at point: (x1: Double, x2: Double)) -> some View {
+        let q = model.probabilities(x1: point.x1, x2: point.x2)
+        return HStack(spacing: 12) {
+            Text(text("lab.softmax.pointAnswer")).font(.caption).foregroundStyle(.secondary)
+            ForEach(0..<Model.classCount, id: \.self) { index in
+                HStack(spacing: 6) {
+                    Circle().fill(classColor(index)).frame(width: 9, height: 9)
+                    GeometryReader { geometry in
+                        ZStack(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 3).fill(Color.secondary.opacity(0.2))
+                            RoundedRectangle(cornerRadius: 3).fill(classColor(index)).frame(width: geometry.size.width * q[index])
+                        }
+                    }
+                    .frame(height: 10)
+                    Text(verbatim: number(q[index])).font(.caption).monospacedDigit()
+                }
+            }
+        }
+    }
+
+    private var lossChart: some View {
+        Canvas { context, size in
+            let values = model.history + [model.loss]
+            let plot = LabPlotGeometry(size: size, x: 0...Double(max(model.steps, 60)), y: 0...1.2)
+            plot.drawAxes(in: context, xLabel: text("lab.landscape.axisSteps"), yLabel: "L", yTicks: [0, log(2.0), log(3.0)], format: { number($0) })
+            for level in [log(2.0), log(3.0)] {
+                var dash = Path()
+                dash.move(to: plot.point(plot.x.lowerBound, level))
+                dash.addLine(to: plot.point(plot.x.upperBound, level))
+                context.stroke(dash, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [5, 4]))
+            }
+            var line = Path()
+            for (index, value) in values.enumerated() {
+                let location = plot.point(Double(index), min(value, 1.2))
+                if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
+            }
+            context.stroke(line, with: .color(.orange), lineWidth: 2.5)
         }
     }
 }
