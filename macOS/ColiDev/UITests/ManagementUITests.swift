@@ -812,6 +812,33 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testAIPathOpensALateLessonForANewLearner() async throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        app.activate()
+        let item = app.descendants(matching: .any)["sidebar.ai-path"]
+        XCTAssertTrue(item.waitForExistence(timeout: 10), "The sidebar must offer the AI path.\n\(app.debugDescription)")
+        item.click()
+        let lesson = app.buttons["path.lesson.neural_network_hidden_layer_xor"]
+        XCTAssertTrue(lesson.waitForExistence(timeout: 5), "The path must list the hidden layer lesson.\n\(app.debugDescription)")
+        let attachment = XCTAttachment(screenshot: app.windows.firstMatch.screenshot())
+        attachment.name = "landscape-path"
+        attachment.lifetime = .keepAlways
+        add(attachment)
+        let screen = app.scrollViews["path.screen"]
+        if !lesson.isHittable, screen.exists {
+            for _ in 0..<60 where !lesson.isHittable { screen.scroll(byDeltaX: 0, deltaY: -40) }
+        }
+        lesson.click()
+        // A new learner gets the late lesson at once, with no waiting for earlier ones.
+        // Новичок сразу попадает в поздний урок, без ожидания предыдущих.
+        XCTAssertTrue(app.scrollViews["lesson.scrollView"].waitForExistence(timeout: 10), "The path must open the lesson itself.")
+        XCTAssertTrue(app.descendants(matching: .any)["lab.landscape.terrain"].waitForExistence(timeout: 10), "The lesson must be the hidden layer one.")
+    }
+
+    @MainActor
     func testGradientDescent2DLabTakesTheQuizStep() async throws {
         let app = XCUIApplication()
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"

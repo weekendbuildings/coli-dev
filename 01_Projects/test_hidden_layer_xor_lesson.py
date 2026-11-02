@@ -114,6 +114,39 @@ def test_single_neuron_reaches_one_half_for_every_input() -> None:
     assert all(abs(answer - 0.5) < 0.01 for answer in answers)
 
 
+def test_error_landscape_numbers_match_the_lesson_and_the_lab() -> None:
+    # Рельеф: заморожены семь настоящих весов, обучаются w₁₁ и w₁₂. / The terrain: seven true weights frozen, w₁₁ and w₁₂ trained.
+    _, program = _run_program(ENGLISH)
+    trained = _train([0.7, 0.7, 0.6, 0.1, -0.9, 0.5, 0.7, 0.7, -0.9], program["gradient"], 6000)
+    frozen = [round(value, 1) for value in trained]
+    model = (APP / "ErrorLandscape.swift").read_text(encoding="utf-8")
+    assert "static let frozenWeights = " + str(frozen) in model
+    assert "defaultStart = Point(w11: 2, w12: -5)" in model
+    assert "stepLimit = 300" in model
+
+    def descend(w11: float, w12: float, rate: float = 1.0, steps: int = 300) -> tuple[list[float], int]:
+        weights = [w11, w12] + frozen[2:]
+        for step in range(steps):
+            if program["loss"](weights) < 0.01:
+                return weights, step
+            gradient = program["gradient"](weights)
+            weights[0] -= rate * gradient[0]
+            weights[1] -= rate * gradient[1]
+        return weights, steps
+
+    def wrong_answers(weights: list[float]) -> int:
+        return sum(abs(program["forward"](weights, x)[2] - t) >= 0.3 for x, t in program["data"])
+
+    shelf, steps = descend(2, -5)
+    assert steps == 300 and abs(program["loss"](shelf) - 0.245) < 0.002 and wrong_answers(shelf) == 1
+    valley, steps = descend(0, 5)
+    assert steps < 300 and program["loss"](valley) < 0.01 and wrong_answers(valley) == 0
+    assert wrong_answers([-3, -3] + frozen[2:]) == 2 and abs(program["loss"]([-3, -3] + frozen[2:]) - 0.5) < 0.02
+    assert "0,245" in RUSSIAN and "(2; −5)" in RUSSIAN and "(0; 5)" in RUSSIAN
+    assert "0.245" in ENGLISH and "(2, −5)" in ENGLISH and "(0, 5)" in ENGLISH
+    assert "arxiv.org/abs/1712.09913" in SOURCES
+
+
 def test_quiz_checks_understanding_without_showing_the_calculation() -> None:
     for section, heading, answer_heading in ((RUSSIAN, "### Варианты", "### Ответ"), (ENGLISH, "### Options", "### Answer")):
         block = section.split(heading, 1)[1].split("###", 1)[0]

@@ -107,11 +107,15 @@ for x, t in data:
 
 **Начальные веса важны.** Если у двух скрытых нейронов одинаковые веса, то у них одинаковые градиенты, и они навсегда останутся копиями: сеть ведёт себя так, будто скрытый нейрон один. Поэтому веса сначала задают случайно и разными. Но и при разных весах обучение может застыть на плато: при старте `w = [0,2; −0,7; −0,5; 0,8; 0,9; −0,9; −0,6; −0,1; −0,5]` и той же скорости ошибка за 50 000 итераций остаётся около 0,167. В такой маленькой сети помогает запуск с других начальных весов.
 
+**Рельеф ошибки.** У нашей сети девять весов, и нарисовать ошибку над девятью осями нельзя. Но можно заморозить семь весов на значениях из настоящего обучения и оставить два: `w₁₁` и `w₁₂`. Тогда ошибка зависит от двух чисел, и её можно построить как настоящий рельеф. Он ступенчатый: один неверный ответ добавляет к средней ошибке около 1/4, поэтому плато с `L ≈ 0,5` значит два неверных ответа, полка с `L ≈ 0,25` один, а в долине с `L ≈ 0` XOR решён. На ступенях нейроны насыщены, `σ′` почти равна нулю, и шаг почти не двигает веса. Поэтому начало решает многое: при `η = 1` спуск из точки `(w₁₁, w₁₂) = (2; −5)` останавливается на полке с ошибкой около 0,245, а из `(0; 5)` доходит до долины меньше чем за 300 шагов. У настоящих сетей с миллионами весов такой картинки нет: исследователи смотрят лишь на срезы рельефа вдоль выбранных направлений.
+
 **Зачем это дальше.** Большие сети учатся по той же схеме: прямой проход, обратный проход по правилу цепочки, шаг против градиента. Различаются число слоёв и весов, функция ошибки и данные.
 
 ### Исследуй и потренируйся
 
 В тренажёре сначала выбери «Один нейрон», предскажи, до какой ошибки он дойдёт, и запусти обучение. Затем выбери скрытый слой и старт 1: посмотри на маленькие карты `h₁` и `h₂` и назови, на какие логические операции они стали похожи. Поставь старт 2 и объясни, чем его плато отличается от предела одного нейрона. Поставь «Одинаковые» и сравни карты `h₁` и `h₂`.
+
+Потом перейди к объёмной модели ниже. Нажми «Пуск» и посмотри, как шарик останавливается на полке. Покрути обе сцены мышью. На нижней сцене следи за обрывом `h₁`: он поворачивается вслед за весами, а за ним меняется форма выхода. Затем поставь шарик так, чтобы выход дотянулся до всех четырёх колец.
 
 Затем проверь обратное распространение численно. Прибавь к `w[0]` число `0.000001`, посчитай `(loss(новые веса) − loss(w)) / 0.000001` и сравни с `gradient(w)[0]`. Числа должны почти совпасть: так ищут ошибки в вычислении градиента.
 
@@ -235,11 +239,15 @@ Look at `h₁` and `h₂`. The first hidden neuron came to resemble OR: it is ne
 
 **Starting weights matter.** If two hidden neurons have identical weights, they have identical gradients and stay copies forever, so the network behaves as if it had one hidden neuron. That is why weights start out random and different. Even with different weights, training can stall on a plateau: starting from `w = [0.2, −0.7, −0.5, 0.8, 0.9, −0.9, −0.6, −0.1, −0.5]` at the same rate, the error stays near 0.167 for 50,000 iterations. In a network this small, starting again from other weights helps.
 
+**The error landscape.** Our network has nine weights, and the error cannot be drawn over nine axes. But we can freeze seven weights at values from a real training run and keep two: `w₁₁` and `w₁₂`. The error then depends on two numbers, and it can be built as a true terrain. It comes in steps: one wrong answer adds about 1/4 to the mean error, so a plateau at `L ≈ 0.5` means two wrong answers, a shelf at `L ≈ 0.25` means one, and in the valley at `L ≈ 0` XOR is solved. On the steps the neurons are saturated, `σ′` is almost zero, and a step barely moves the weights. So the start matters a great deal: at `η = 1`, descent from `(w₁₁, w₁₂) = (2, −5)` stops on the shelf with an error of about 0.245, while from `(0, 5)` it reaches the valley in fewer than 300 steps. Real networks with millions of weights have no such picture: researchers can only look at slices of the terrain along chosen directions.
+
 **Why this matters next.** Large networks learn by the same scheme: forward pass, backward pass by the chain rule, step against the gradient. What differs is the number of layers and weights, the error function, and the data.
 
 ### Explore and practise
 
 In the lab, first choose "One neuron", predict what error it will reach, and start training. Then choose the hidden layer and start 1: look at the small maps of `h₁` and `h₂` and name the logic operations they came to resemble. Set start 2 and explain how its plateau differs from the limit of one neuron. Set "Identical" and compare the maps of `h₁` and `h₂`.
+
+Then go to the solid model below. Press Play and watch the ball stop on the shelf. Turn both scenes with the mouse. On the lower scene, follow the cliff of `h₁`: it turns with the weights, and the shape of the output follows. Then place the ball so that the output reaches all four hoops.
 
 Then check backpropagation numerically. Add `0.000001` to `w[0]`, compute `(loss(new weights) − loss(w)) / 0.000001`, and compare it with `gradient(w)[0]`. The numbers should nearly match: this is how errors in gradient code are found.
 
@@ -273,4 +281,5 @@ Four examples without noise are a teaching task: it tests whether the network ca
 - Google for Developers, *Machine Learning Crash Course*, “Neural networks: Training using backpropagation” (consulted 2026-11-01; page updated 2025-12-15): backpropagation makes gradient descent feasible for multi-layer networks; vanishing and exploding gradients. Text under CC BY 4.0: [MLCC, backpropagation](https://developers.google.com/machine-learning/crash-course/neural-networks/backpropagation)
 - David E. Rumelhart, Geoffrey E. Hinton, Ronald J. Williams, “Learning representations by back-propagating errors”, *Nature* 323, 533–536 (1986), first page read 2026-11-01: the procedure repeatedly adjusts the weights to reduce the difference between the actual and desired output, and hidden units come to represent important features of the task: [doi:10.1038/323533a0](https://doi.org/10.1038/323533a0)
 - Wikipedia, “Perceptrons (book)” (consulted 2026-11-01): Minsky and Papert's 1969 results on restricted perceptrons, and XOR as a hard predicate for a single neuron: [Perceptrons (book)](https://en.wikipedia.org/wiki/Perceptrons_(book))
-- The XOR proof, the program, and all its numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.
+- Hao Li, Zheng Xu, Gavin Taylor, Christoph Studer, Tom Goldstein, “Visualizing the Loss Landscape of Neural Nets”, NeurIPS 2018, arXiv:1712.09913 (read 2026-11-01): the loss of a real network lives in a very high-dimensional parameter space, and only low-dimensional plots along chosen directions can be drawn: [arXiv:1712.09913](https://arxiv.org/abs/1712.09913)
+- The XOR proof, the program, the two-weight slice, and all their numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.
