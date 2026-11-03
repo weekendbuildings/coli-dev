@@ -37,7 +37,7 @@ async def main():
 asyncio.run(main())
 ```
 
-Программа печатает ['lesson', 'progress', 'sources'] 0.2: три ожидания по 0,2 с прошли вместе за 0,2 с, а не за 0,6. Так устроен и backend ColiDev: его функции объявлены как async def, чтобы, пока один запрос ждёт модель ИИ, сервер мог отвечать на другие.
+Программа печатает ['lesson', 'progress', 'sources'] 0.2: три ожидания по 0,2 с прошли вместе за 0,2 с, а не за 0,6. Так устроен и backend Cause & Course: его функции объявлены как async def, чтобы, пока один запрос ждёт модель ИИ, сервер мог отвечать на другие.
 
 ### Исследуй и потренируйся
 
@@ -93,7 +93,7 @@ async def main():
 asyncio.run(main())
 ```
 
-The program prints ['lesson', 'progress', 'sources'] 0.2: three waits of 0.2 s together took 0.2 s, not 0.6. The ColiDev backend works this way too: its functions are declared async def so that while one request waits for an AI model, the server can answer others.
+The program prints ['lesson', 'progress', 'sources'] 0.2: three waits of 0.2 s together took 0.2 s, not 0.6. The Cause & Course backend works this way too: its functions are declared async def so that while one request waits for an AI model, the server can answer others.
 
 ### Explore and practise
 

@@ -597,7 +597,7 @@ private struct CauseAndCorseJourneyCard: View {
                     text: journeyProjectBinding(for: step),
                     axis: .vertical
                 )
-                .textFieldStyle(.roundedBorder)
+                .coliTextField()
                 .lineLimit(1...3)
                 .accessibilityIdentifier("journey.step.\(step.id).project-result")
 
@@ -2120,7 +2120,7 @@ private struct ProviderKeyEntryView: View {
             Text(title).font(.headline)
             HStack(spacing: 8) {
                 SecureField(L10n.text("settings.keyPlaceholder", store.language), text: $apiKey)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .disabled(isSaving || !backendSupervisor.isReady)
                 Button {
                     Task { await saveKey() }
@@ -3019,7 +3019,7 @@ private struct ManagementView: View {
 
             HStack(spacing: 10) {
                 TextField(L10n.text("management.ragQuery", store.language), text: $ragQuery)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .onSubmit { Task { await searchRAG() } }
 
                 Button {
@@ -3210,7 +3210,7 @@ private struct ManagementView: View {
 
             HStack(spacing: 10) {
                 TextField(L10n.text("management.sourceSearch", store.language), text: $sourceSearchText)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .frame(maxWidth: 320)
 
                 Picker(selection: $sourceFilter) {
@@ -3419,7 +3419,7 @@ private struct ManagementView: View {
                     L10n.text("management.ragEmbeddingModelPlaceholder", store.language),
                     text: $ollamaEmbeddingModelDraft
                 )
-                .textFieldStyle(.roundedBorder)
+                .coliTextField()
                 .disabled(isSavingOllamaEmbeddingSettings)
                 .accessibilityIdentifier("control-center.rag.embedding-model")
 
@@ -3681,12 +3681,12 @@ private struct ManagementView: View {
                                 L10n.text("management.compatibleBaseURL", store.language),
                                 text: $compatibleBaseURL
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .coliTextField()
                             TextField(
                                 L10n.text("management.compatibleModel", store.language),
                                 text: $compatibleModel
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .coliTextField()
                             HStack {
                                 Button {
                                     Task { await saveCompatibleSettings() }
@@ -3828,7 +3828,7 @@ private struct ManagementView: View {
 
                         if finalSynthesisProvider != "auto" {
                             TextField(L10n.text("management.routeModel", store.language), text: $finalSynthesisModel)
-                                .textFieldStyle(.roundedBorder)
+                                .coliTextField()
                                 .frame(maxWidth: 520)
                         }
                         if routeMaySendContextToCloud(
@@ -3909,7 +3909,7 @@ private struct ManagementView: View {
 
                         if routeProvider != "auto" {
                             TextField(L10n.text("management.routeModel", store.language), text: $routeModel)
-                                .textFieldStyle(.roundedBorder)
+                                .coliTextField()
                                 .frame(maxWidth: 520)
                             Text(L10n.text("management.routeModelHelp", store.language))
                                 .font(.caption)
@@ -3997,7 +3997,7 @@ private struct ManagementView: View {
 
                         if autoAgentProvider != "auto" {
                             TextField(L10n.text("management.routeModel", store.language), text: $autoAgentModel)
-                                .textFieldStyle(.roundedBorder)
+                                .coliTextField()
                                 .frame(maxWidth: 520)
                         }
                         if autoAgentProvider == "ollama" {

@@ -39,7 +39,7 @@ print(len(token))
 
 Программа печатает 2 и 0, а затем 32. В первом запросе ввод склеен со строкой, кавычка из ввода закрыла строку SQL, и условие OR '1'='1' стало истинным для всех: запрос вернул всех пользователей, включая admin. Во втором запросе значение передано через плейсхолдер ?: база считает его просто текстом, и такого имени нет. Документация Python прямо советует всегда использовать плейсхолдеры вместо форматирования строк.
 
-Секреты — отдельная тема. Токены и пароли создают модулем secrets, а не random: random предназначен для моделирования, а не для защиты. Ключи нельзя писать в код и коммитить в git. ColiDev так и устроен: ключи ИИ-сервисов он берёт из Связки ключей macOS, а запасной файл .env исключён из git через .gitignore.
+Секреты — отдельная тема. Токены и пароли создают модулем secrets, а не random: random предназначен для моделирования, а не для защиты. Ключи нельзя писать в код и коммитить в git. Cause & Course так и устроен: ключи ИИ-сервисов он берёт из Связки ключей macOS, а запасной файл .env исключён из git через .gitignore.
 
 ### Исследуй и потренируйся
 
@@ -97,7 +97,7 @@ print(len(token))
 
 The program prints 2 and 0, then 32. In the first query the input is glued into the string, the quote from the input closed the SQL string, and the condition OR '1'='1' became true for everyone: the query returned all users, including admin. In the second query the value is passed through the ? placeholder: the database treats it as plain text, and no such name exists. The Python documentation explicitly advises always using placeholders instead of string formatting.
 
-Secrets are a separate matter. Tokens and passwords are generated with the secrets module, not random: random is designed for modelling, not for security. Keys must not be written into code or committed to git. ColiDev works this way: it takes AI service keys from the macOS Keychain, and the fallback .env file is excluded from git by .gitignore.
+Secrets are a separate matter. Tokens and passwords are generated with the secrets module, not random: random is designed for modelling, not for security. Keys must not be written into code or committed to git. Cause & Course works this way: it takes AI service keys from the macOS Keychain, and the fallback .env file is excluded from git by .gitignore.
 
 ### Explore and practise
 

@@ -13,7 +13,7 @@ source_review_interval_days: 365
 
 ### Цель
 
-Описывать обмен по HTTP как запрос клиента и ответ сервера, различать методы и пять классов кодов состояния и понимать, как приложение ColiDev говорит со своим backend.
+Описывать обмен по HTTP как запрос клиента и ответ сервера, различать методы и пять классов кодов состояния и понимать, как приложение Cause & Course говорит со своим backend.
 
 ### Идея и механизм
 
@@ -23,7 +23,7 @@ HTTP не хранит состояние: между двумя запроса�
 
 Код состояния — трёхзначное число, и первая цифра задаёт класс ответа: 1xx — информационные, 2xx — успешные (`200 OK`), 3xx — перенаправления, 4xx — ошибки клиента (`404 Not Found`: сервер не нашёл ресурс), 5xx — ошибки сервера (`500 Internal Server Error`: сервер столкнулся с ситуацией, которую не умеет обработать). По первой цифре сразу видно, чья ошибка: 4xx — исправлять запрос, 5xx — исправлять сервер.
 
-API — это набор адресов и правил, по которым одна программа обращается к другой. Приложение ColiDev так и работает: интерфейс на Swift отправляет HTTP-запросы локальному backend на Python, например `GET /api/status`, чтобы проверить, что backend запущен и совместим, и получает ответ в JSON.
+API — это набор адресов и правил, по которым одна программа обращается к другой. Приложение Cause & Course так и работает: интерфейс на Swift отправляет HTTP-запросы локальному backend на Python, например `GET /api/status`, чтобы проверить, что backend запущен и совместим, и получает ответ в JSON.
 
 ### Исследуй и потренируйся
 
@@ -55,7 +55,7 @@ API — это набор адресов и правил, по которым о
 
 ### Goal
 
-Describe an HTTP exchange as a client request and a server response, distinguish methods and the five classes of status codes, and understand how the ColiDev app talks to its backend.
+Describe an HTTP exchange as a client request and a server response, distinguish methods and the five classes of status codes, and understand how the Cause & Course app talks to its backend.
 
 ### Idea and mechanism
 
@@ -65,7 +65,7 @@ HTTP is stateless: there is no link between two requests on the same connection,
 
 A status code is a three-digit number, and its first digit sets the class of response: 1xx informational, 2xx successful (`200 OK`), 3xx redirection, 4xx client errors (`404 Not Found`: the server cannot find the resource), and 5xx server errors (`500 Internal Server Error`: the server has hit a situation it does not know how to handle). The first digit shows at once whose fault it is: fix the request for 4xx, fix the server for 5xx.
 
-An API is a set of addresses and rules by which one program calls another. The ColiDev app works this way: the Swift interface sends HTTP requests to the local Python backend, for example `GET /api/status` to check that the backend is running and compatible, and receives a JSON response.
+An API is a set of addresses and rules by which one program calls another. The Cause & Course app works this way: the Swift interface sends HTTP requests to the local Python backend, for example `GET /api/status` to check that the backend is running and compatible, and receives a JSON response.
 
 ### Explore and practise
 

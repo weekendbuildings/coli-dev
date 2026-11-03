@@ -679,7 +679,7 @@ struct CurriculumModuleView: View {
                     .accessibilityIdentifier("lesson.video.after")
 
                 TextField(L10n.text("lesson.video.responsePlaceholder", store.language), text: $reflection, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .lineLimit(2...4)
                     .accessibilityIdentifier("lesson.video.response")
                     .onChange(of: reflection) { value in
@@ -1736,7 +1736,7 @@ private struct StudyReflectionFields: View {
                 .font(.headline)
             if showsReflectionInput {
                 TextField(L10n.text("session.reflectionPlaceholder", language), text: $reflection, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .lineLimit(2...4)
                     .onChange(of: reflection) { value in
                         if value.unicodeScalars.count > 500 {
@@ -5285,7 +5285,7 @@ private struct LinearFunctionLab: View {
                 .font(.callout.weight(.medium).monospacedDigit())
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 TextField(text("lab.linear.placeholder"), text: $predictionText)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .frame(maxWidth: 240)
                     .accessibilityLabel(Text(text("lab.linear.prediction")))
                     .onSubmit { checkPrediction() }
@@ -9764,7 +9764,7 @@ private struct VariablesTypesLab: View {
                 .font(.system(.body, design: .monospaced).weight(.medium))
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     TextField(text("lab.input.placeholder"), text: $inputText)
-                        .textFieldStyle(.roundedBorder)
+                        .coliTextField()
                         .frame(maxWidth: 260)
                         .accessibilityLabel(Text(text("lab.input.accessibility")))
                         .onSubmit(convertInput)
@@ -9926,12 +9926,12 @@ private struct PracticeMinutesRunner: View {
 
             HStack(spacing: 12) {
                 TextField(L10n.text("lab.practiceMinutes.earlier", store.language), text: $earlierMinutes)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .accessibilityLabel(Text(L10n.text("lab.practiceMinutes.earlier", store.language)))
                     .accessibilityIdentifier("python.minutes.earlier")
                     .disabled(isRunning)
                 TextField(L10n.text("lab.practiceMinutes.today", store.language), text: $todayMinutes)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .accessibilityLabel(Text(L10n.text("lab.practiceMinutes.today", store.language)))
                     .accessibilityIdentifier("python.minutes.today")
                     .disabled(isRunning)
@@ -14751,8 +14751,11 @@ private struct TinyModelLab: View {
                     .accessibilityIdentifier("lab.tiny.scene")
                 TextEditor(text: $text)
                     .font(.body)
+                    .scrollContentBackground(.hidden)
+                    .padding(6)
                     .frame(height: 74)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.35)))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppPalette.stroke.color))
                     .accessibilityLabel(text("lab.tiny.textLabel"))
                     .accessibilityIdentifier("lab.tiny.text")
                 HStack(spacing: 12) {
@@ -15998,11 +16001,11 @@ private struct HammingDistanceLab: View {
             }
             HStack(spacing: 10) {
                 TextField(text("lab.hamming.first"), text: $first)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .font(.body.monospaced())
                     .accessibilityIdentifier("lab.hamming.first")
                 TextField(text("lab.hamming.second"), text: $second)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .font(.body.monospaced())
                     .accessibilityIdentifier("lab.hamming.second")
                 Button(text("lab.hamming.reset")) { withAnimation { first = "ATGCCGTA"; second = "ATGACGTT" } }
@@ -18641,7 +18644,7 @@ struct TutorChatView: View {
                 }
                 HStack(alignment: .bottom, spacing: 10) {
                     TextField(L10n.text("tutor.placeholder", language), text: $draft, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
+                        .coliTextField()
                         .lineLimit(1...4)
                         .onSubmit(send)
                         .disabled(chat.isSending || !canSend)
@@ -19297,7 +19300,7 @@ private struct LiveModelLab: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 TextField(text("lab.liveModel.promptField"), text: $draft)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .font(.system(.body, design: .monospaced))
                     .onSubmit { controller.use(prompt: draft) }
                     .accessibilityIdentifier("lab.liveModel.prompt")
@@ -19587,7 +19590,7 @@ private struct ChatAnatomyLab: View {
                     controller.changed()
                     controller.state.forgedAnswer = value
                 }))
-                .textFieldStyle(.roundedBorder)
+                .coliTextField()
                 .accessibilityIdentifier("lab.chat.forged")
             }
             Picker(text("lab.chat.followUp"), selection: Binding(get: { controller.state.followUp }, set: { value in
@@ -20205,7 +20208,7 @@ private struct BPEMergeLab: View {
             historyChart
             HStack(spacing: 8) {
                 TextField(text("lab.bpe.field"), text: $draft)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .onSubmit { state.restart(text: draft) }
                     .accessibilityIdentifier("lab.bpe.field")
                 Button(text("lab.bpe.use")) { state.restart(text: draft) }

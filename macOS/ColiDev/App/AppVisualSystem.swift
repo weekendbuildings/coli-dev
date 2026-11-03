@@ -171,7 +171,25 @@ struct ColiDevSurfaceModifier: ViewModifier {
     }
 }
 
+/// A text field on the palette: the system rounded border is a black box on a dark card.
+/// Поле ввода на цветах палитры: системная рамка на тёмной карточке выглядит чёрным прямоугольником.
+struct ColiDevTextFieldModifier: ViewModifier {
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: 7)
+        content
+            .textFieldStyle(.plain)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 5)
+            .background(AppPalette.inset.color, in: shape)
+            .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+    }
+}
+
 extension View {
+    func coliTextField() -> some View {
+        modifier(ColiDevTextFieldModifier())
+    }
+
     func coliGlassControl(cornerRadius: CGFloat = 16) -> some View {
         modifier(ColiDevGlassControlModifier(cornerRadius: cornerRadius))
     }
