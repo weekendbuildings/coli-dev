@@ -125,3 +125,32 @@ def test_completion_sound_is_opt_in_and_exposed_in_both_languages():
     assert 'L10n.text("settings.soundEffects", store.language)' in settings
     assert '"settings.soundEffects":' in localization
     assert "AppSoundFeedback.playCompletion()" in models
+
+
+def test_arc_painter_can_paint_every_answer_color():
+    views = (APP / "LearningViews.swift").read_text(encoding="utf-8")
+    painter = views.split("private struct ArcPainterLab:", 1)[1].split("private func color(", 1)[0]
+
+    assert "set.formUnion(task.testOut.filter" in painter
+
+
+def test_obsidian_save_remembers_the_copy_instead_of_adding_silently():
+    views = (APP / "LearningViews.swift").read_text(encoding="utf-8")
+
+    assert "ObsidianLessonCopyMemory.remember(path: path" in views
+    assert '"module.obsidianAlreadySaved"' in views
+    assert "notebook.google.com" in views
+    assert "notebooklm.google.com" not in views
+
+
+def test_app_shows_the_new_name_but_keeps_the_identifiers_that_hold_user_data():
+    plist = (APP / "Info.plist").read_text(encoding="utf-8")
+    project = (ROOT / "macOS" / "ColiDev" / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    orchestrator = (ROOT / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+
+    assert "Cause &amp; Course" in plist
+    assert "PRODUCT_BUNDLE_IDENTIFIER = com.colidev.learningstudio;" in project
+    assert '_KEYCHAIN_SERVICE = "ColiDev"' in orchestrator
+    for language in ("en", "ru"):
+        strings = (APP / f"{language}.lproj" / "InfoPlist.strings").read_text(encoding="utf-8")
+        assert '"CFBundleDisplayName" = "Cause & Course";' in strings

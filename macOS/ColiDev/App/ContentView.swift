@@ -2873,7 +2873,7 @@ private struct ManagementView: View {
                             title: L10n.text("management.courseFiles", store.language),
                             value: String(totalLessons),
                             symbol: "books.vertical",
-                            tint: .accentColor
+                            tint: AppPalette.accent.color
                         )
                         metric(
                             title: L10n.text("management.courseBilingual", store.language),

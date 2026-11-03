@@ -100,7 +100,7 @@ struct LabHeader: View {
 struct LabStat: View {
     let label: String
     let value: String
-    var tint: Color = .accentColor
+    var tint: Color = AppPalette.accent.color
     var identifier: String?
 
     var body: some View {
@@ -144,7 +144,7 @@ enum LabStatusKind {
         case .good: return .green
         case .warning: return .orange
         case .bad: return .red
-        case .info: return .accentColor
+        case .info: return AppPalette.accent.color
         }
     }
 

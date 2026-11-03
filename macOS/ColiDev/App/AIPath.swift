@@ -169,7 +169,7 @@ struct AIPathView: View {
             }
         }
         .padding(14)
-        .coliContentCard(tint: .accentColor)
+        .coliContentCard(tint: AppPalette.accent.color)
     }
 
     private func stageHeader(_ stage: AIPathStage) -> some View {
@@ -207,7 +207,7 @@ struct AIPathView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
-        .coliContentCard(tint: done ? .green : .accentColor)
+        .coliContentCard(tint: done ? .green : AppPalette.accent.color)
     }
 
     @ViewBuilder
