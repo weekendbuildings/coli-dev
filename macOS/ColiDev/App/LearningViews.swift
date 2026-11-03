@@ -1970,6 +1970,16 @@ private struct PracticeLab: View {
             QMazeLab()
         } else if subject == .programming, moduleResource == "rl_policy_gradient" {
             CorridorLab()
+        } else if subject == .programming, moduleResource == "finetuning_and_lora" {
+            FineTuneLab()
+        } else if subject == .programming, moduleResource == "rlhf_from_preferences" {
+            PreferenceLab()
+        } else if subject == .programming, moduleResource == "evaluation_that_means_something" {
+            WinnerCurseLab()
+        } else if subject == .programming, moduleResource == "interp_probes" {
+            ProbeLab()
+        } else if subject == .programming, moduleResource == "interp_superposition" {
+            SuperpositionLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -21104,5 +21114,611 @@ private struct CorridorLab: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text("lab.corridor.returnSpoken"))
         .accessibilityIdentifier("lab.corridor.returnChart")
+    }
+}
+
+// MARK: - Fine-tuning lab / Тренажёр с дообучением
+
+private struct FineTuneLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var sentences = 80
+    @State private var budget = 1355.0
+    @State private var chosen = "LoRA 2"
+    @State private var adapterOff = false
+    @State private var switchedOff = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private func color(_ method: String) -> Color {
+        switch method {
+        case "from scratch": return .red
+        case "all weights": return .green
+        case "last layer": return .orange
+        case "LoRA 1": return .teal
+        case "LoRA 2": return .accentColor
+        default: return .purple
+        }
+    }
+
+    private func label(_ method: String) -> String {
+        switch method {
+        case "from scratch": return text("lab.fine.scratch")
+        case "all weights": return text("lab.fine.all")
+        case "last layer": return text("lab.fine.last")
+        default: return method
+        }
+    }
+
+    private func fits(_ method: FineTuneRecording.Method) -> Bool { Double(method.weights) <= budget }
+
+    private var isLoRA: Bool { chosen.hasPrefix("LoRA") }
+
+    private var bestInBudget: String? {
+        FineTuneRecording.methods.filter { fits($0) && $0.name != "from scratch" }
+            .min { ($0.curve(sentences).last ?? 9) < ($1.curve(sentences).last ?? 9) }?.name
+    }
+
+    private var solved: Bool {
+        budget <= 250 && chosen == "LoRA 4" && switchedOff
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.fine.title"), instruction: text("lab.fine.subtitle"))
+            HStack {
+                Picker(text("lab.fine.data"), selection: $sentences) {
+                    Text(verbatim: "5").tag(5)
+                    Text(verbatim: "80").tag(80)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 280)
+                .accessibilityIdentifier("lab.fine.data")
+                Spacer()
+                Text(verbatim: String(format: text("lab.fine.budget"), String(Int(budget))))
+                    .font(.callout.monospacedDigit())
+                Slider(value: $budget, in: 50...1355).frame(width: 200).accessibilityIdentifier("lab.fine.budgetSlider")
+            }
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 8)], spacing: 8) {
+                ForEach(FineTuneRecording.methods, id: \.name) { method in
+                    Button {
+                        chosen = method.name
+                        adapterOff = false
+                    } label: {
+                        HStack {
+                            RoundedRectangle(cornerRadius: 2).fill(color(method.name)).frame(width: 12, height: 12)
+                            Text(verbatim: label(method.name))
+                            Spacer()
+                            Text(verbatim: String(method.weights)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 3)
+                        .opacity(fits(method) ? 1 : 0.4)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(chosen == method.name ? color(method.name) : nil)
+                    .accessibilityIdentifier("lab.fine.method.\(method.name)")
+                }
+            }
+            chart
+            if isLoRA {
+                Toggle(text("lab.fine.adapterOff"), isOn: Binding(get: { adapterOff }, set: { value in
+                    adapterOff = value
+                    if value { switchedOff = true }
+                }))
+                .accessibilityIdentifier("lab.fine.adapterOff")
+            }
+            if let method = FineTuneRecording.methods.first(where: { $0.name == chosen }) {
+                LabStatGrid {
+                    LabStat(label: text("lab.fine.statLoss"), value: number(adapterOff && isLoRA ? FineTuneRecording.startLoss : method.curve(sentences).last ?? 0), tint: color(chosen), identifier: "lab.fine.loss")
+                    LabStat(label: text("lab.fine.statWeights"), value: String(method.weights), tint: .secondary, identifier: "lab.fine.weights")
+                    LabStat(label: text("lab.fine.statBest"), value: bestInBudget.map(label) ?? "–", tint: .green, identifier: "lab.fine.best")
+                }
+                if sentences == 80, let sample = FineTuneRecording.samples[chosen] {
+                    Text(verbatim: sample).font(.callout.monospaced()).padding(8)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.1)))
+                        .accessibilityIdentifier("lab.fine.sample")
+                }
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.fine.challenge"), solved: solved,
+                         solvedText: text("lab.fine.challengeDone"), identifier: "lab.fine.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.fine.howCurves"), text("lab.fine.howLora")])
+        }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0...900, y: 0...3.6)
+            geometry.drawAxes(in: context, xLabel: text("lab.fine.steps"), yLabel: text("lab.fine.lossAxis")) { value in
+                value >= 100 ? String(Int(value)) : L10n.number(value, fractionDigits: 0, store.language)
+            }
+            var guess = Path()
+            guess.move(to: geometry.point(0, log(29.0)))
+            guess.addLine(to: geometry.point(900, log(29.0)))
+            context.stroke(guess, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            for method in FineTuneRecording.methods where fits(method) {
+                let begin: Double = method.name == "from scratch" ? log(29.0) : FineTuneRecording.startLoss
+                var path = Path()
+                path.move(to: geometry.point(0, begin))
+                for (index, value) in method.curve(sentences).enumerated() {
+                    path.addLine(to: geometry.point(Double(index + 1) * 300, value))
+                }
+                let selected = method.name == chosen
+                context.stroke(path, with: .color(color(method.name).opacity(selected ? 1 : 0.5)), lineWidth: selected ? 3 : 1.5)
+            }
+        }
+        .frame(height: 220)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.fine.chartSpoken"))
+        .accessibilityIdentifier("lab.fine.chart")
+    }
+}
+
+// MARK: - RLHF lab / Тренажёр RLHF
+
+private struct PreferenceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var rand = RLRand(5)
+    @State private var pair: (first: [String], second: [String])?
+    @State private var pairs: [(better: [String], worse: [String])] = []
+    @State private var weight: [String: Double] = [:]
+    @State private var penalty = false
+    @State private var position = 0.0
+    @State private var log: [PreferenceModel.Point] = []
+    @State private var tables: [PreferenceModel.Table] = []
+    @State private var sawBreak = false
+    @State private var sawHold = false
+
+    private static let needed = 12
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var ready: Bool { pairs.count >= Self.needed }
+
+    private func nextPair() {
+        pair = (PreferenceModel.sample(PreferenceModel.startTable, &rand), PreferenceModel.sample(PreferenceModel.startTable, &rand))
+    }
+
+    private func choose(_ firstWins: Bool) {
+        guard let current = pair else { return }
+        pairs.append(firstWins ? (current.first, current.second) : (current.second, current.first))
+        nextPair()
+        if ready {
+            weight = PreferenceModel.fitReward(pairs)
+            runShift()
+        }
+    }
+
+    private func autoFill() {
+        while pairs.count < Self.needed {
+            guard let current = pair else { return }
+            let a = PreferenceModel.person(current.first)
+            let b = PreferenceModel.person(current.second)
+            if a != b { pairs.append(a > b ? (current.first, current.second) : (current.second, current.first)) }
+            nextPair()
+        }
+        weight = PreferenceModel.fitReward(pairs)
+        runShift()
+    }
+
+    private func runShift() {
+        let result = PreferenceModel.shift(weight, klWeight: penalty ? 1 : 0)
+        log = result.log
+        tables = result.tables
+        position = 0
+    }
+
+    private var current: PreferenceModel.Point? {
+        log.isEmpty ? nil : log[min(Int(position / 200), log.count - 1)]
+    }
+
+    private var samples: [String] {
+        guard !tables.isEmpty else { return [] }
+        var check = RLRand(3)
+        let table = tables[min(Int(position / 200), tables.count - 1)]
+        return (0..<4).map { _ in PreferenceModel.sample(table, &check).joined(separator: " ") }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.rlhf.title"), instruction: text("lab.rlhf.subtitle"))
+            if !ready {
+                Text(verbatim: String(format: text("lab.rlhf.progress"), String(pairs.count), String(Self.needed)))
+                    .font(.title3.weight(.semibold))
+                    .accessibilityIdentifier("lab.rlhf.progress")
+                HStack(spacing: 10) {
+                    choice(pair?.first ?? [], identifier: "lab.rlhf.first") { choose(true) }
+                    choice(pair?.second ?? [], identifier: "lab.rlhf.second") { choose(false) }
+                }
+                Button(text("lab.rlhf.auto")) { autoFill() }.accessibilityIdentifier("lab.rlhf.auto")
+            } else {
+                weights
+                HStack(spacing: 14) {
+                    Toggle(text("lab.rlhf.penalty"), isOn: $penalty).accessibilityIdentifier("lab.rlhf.penalty")
+                    Text(verbatim: String(format: text("lab.rlhf.step"), String(Int(position))))
+                        .font(.callout.monospacedDigit())
+                    Slider(value: $position, in: 0...2000, step: 200).accessibilityIdentifier("lab.rlhf.position")
+                }
+                chart
+                if let point = current {
+                    LabStatGrid {
+                        LabStat(label: text("lab.rlhf.statReward"), value: number(point.reward), tint: .accentColor, identifier: "lab.rlhf.reward")
+                        LabStat(label: text("lab.rlhf.statDifferent"), value: "\(point.different) / 300", tint: .orange, identifier: "lab.rlhf.different")
+                        LabStat(label: text("lab.rlhf.statLength"), value: number(point.length, 1), tint: .secondary, identifier: "lab.rlhf.length")
+                    }
+                }
+                VStack(alignment: .leading, spacing: 3) {
+                    ForEach(Array(samples.enumerated()), id: \.offset) { _, sentence in
+                        Text(verbatim: "• " + (sentence.isEmpty ? "…" : sentence)).font(.callout)
+                    }
+                }
+                .accessibilityIdentifier("lab.rlhf.samples")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.rlhf.challenge"), solved: sawBreak && sawHold,
+                         solvedText: text("lab.rlhf.challengeDone"), identifier: "lab.rlhf.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.rlhf.howReward"), text("lab.rlhf.howShift")])
+        }
+        .onAppear { if pair == nil { nextPair() } }
+        .onChange(of: penalty) { _ in runShift() }
+        .onChange(of: position) { value in
+            guard value >= 2000, let last = log.last else { return }
+            if !penalty, last.different < 100 { sawBreak = true }
+            if penalty, last.different > 150 { sawHold = true }
+        }
+    }
+
+    private func choice(_ words: [String], identifier: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Text(verbatim: words.isEmpty ? "…" : words.joined(separator: " "))
+                .frame(maxWidth: .infinity, minHeight: 56)
+                .multilineTextAlignment(.center)
+        }
+        .buttonStyle(.bordered)
+        .accessibilityIdentifier(identifier)
+    }
+
+    private var weights: some View {
+        let sorted = weight.filter { $0.key != "." }.sorted { $0.value > $1.value }
+        let shown = Array(sorted.prefix(4)) + Array(sorted.suffix(3))
+        return VStack(alignment: .leading, spacing: 3) {
+            Text(verbatim: text("lab.rlhf.learned")).font(.callout.weight(.semibold))
+            ForEach(shown, id: \.key) { item in
+                HStack {
+                    Text(verbatim: item.key).frame(width: 96, alignment: .trailing).font(.callout)
+                    GeometryReader { proxy in
+                        let share: CGFloat = CGFloat(min(abs(item.value) / max(abs(sorted.first?.value ?? 1), 0.01), 1))
+                        RoundedRectangle(cornerRadius: 2).fill(item.value >= 0 ? Color.green : Color.red).frame(width: proxy.size.width * share)
+                    }
+                    .frame(height: 10)
+                    Text(verbatim: number(item.value)).font(.caption.monospacedDigit()).frame(width: 44)
+                }
+            }
+        }
+        .accessibilityIdentifier("lab.rlhf.weights")
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            guard let top = log.map(\.reward).max(), let bottom = log.map(\.reward).min() else { return }
+            let range = max(top - bottom, 1)
+            let geometry = LabPlotGeometry(size: size, x: 0...2000, y: 0...1)
+            geometry.drawAxes(in: context, xLabel: text("lab.rlhf.stepsAxis"), yLabel: text("lab.rlhf.axis"), yTicks: []) { String(Int($0)) }
+            var reward = Path()
+            var different = Path()
+            for (index, point) in log.enumerated() {
+                let a = geometry.point(Double(point.update), (point.reward - bottom) / range)
+                let b = geometry.point(Double(point.update), Double(point.different) / 300)
+                if index == 0 {
+                    reward.move(to: a)
+                    different.move(to: b)
+                } else {
+                    reward.addLine(to: a)
+                    different.addLine(to: b)
+                }
+            }
+            context.stroke(reward, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(different, with: .color(.orange), lineWidth: 2.5)
+            var cursor = Path()
+            cursor.move(to: geometry.point(position, 0))
+            cursor.addLine(to: geometry.point(position, 1))
+            context.stroke(cursor, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+        }
+        .frame(height: 170)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.rlhf.chartSpoken"))
+        .accessibilityIdentifier("lab.rlhf.chart")
+    }
+}
+
+// MARK: - Winner's curse lab / Тренажёр с проклятием победителя
+
+private struct WinnerCurseLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var modelsLog = 2.0
+    @State private var testSize = 20.0
+    @State private var seed: UInt64 = 1
+    @State private var scores: [Double] = []
+    @State private var fresh = 0.0
+    @State private var mean = 0.7
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func percent(_ value: Double) -> String { L10n.number(value * 100, fractionDigits: 1, store.language) + " %" }
+
+    private var models: Int { Int(pow(10, modelsLog).rounded()) }
+    private var size: Int { Int(testSize) }
+    private var inflation: Double { mean - WinnerCurse.truth }
+    private var solved: Bool { models >= 100 && inflation < 0.04 && !scores.isEmpty }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.winner.title"), instruction: text("lab.winner.subtitle"))
+            chart
+            HStack {
+                Text(verbatim: String(format: text("lab.winner.models"), String(models))).font(.callout.monospacedDigit()).frame(width: 140, alignment: .leading)
+                Slider(value: $modelsLog, in: 0...2.3).accessibilityIdentifier("lab.winner.modelsSlider")
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.winner.size"), String(size))).font(.callout.monospacedDigit()).frame(width: 140, alignment: .leading)
+                Slider(value: $testSize, in: 20...1500, step: 10).accessibilityIdentifier("lab.winner.sizeSlider")
+                Button {
+                    seed += 1
+                } label: {
+                    Label(text("lab.winner.again"), systemImage: "arrow.clockwise")
+                }
+                .accessibilityIdentifier("lab.winner.again")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.winner.statWinner"), value: percent(scores.max() ?? 0), tint: .orange, identifier: "lab.winner.winner")
+                LabStat(label: text("lab.winner.statFresh"), value: percent(fresh), tint: .green, identifier: "lab.winner.fresh")
+                LabStat(label: text("lab.winner.statInflation"), value: "+" + percent(inflation), tint: .red, identifier: "lab.winner.inflation")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.winner.challenge"), solved: solved,
+                         solvedText: text("lab.winner.challengeDone"), identifier: "lab.winner.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.winner.howDots"), text("lab.winner.howMean")])
+        }
+        .task(id: "\(models)-\(size)-\(seed)") {
+            let count = models
+            let test = size
+            let value = seed
+            let result = await Task.detached(priority: .userInitiated) { () -> ([Double], Double, Double) in
+                var rand = RLRand(value)
+                let all = (0..<count).map { _ in WinnerCurse.score(testSize: test, rand: &rand) }
+                let second = WinnerCurse.score(testSize: test, rand: &rand)
+                return (all, second, WinnerCurse.meanWinner(models: count, testSize: test, repeats: 40, seed: value))
+            }.value
+            guard !Task.isCancelled else { return }
+            scores = result.0
+            fresh = result.1
+            mean = result.2
+        }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0.4...1, y: 0...1)
+            geometry.drawAxes(in: context, xLabel: text("lab.winner.axis"), yLabel: "", yTicks: []) { value in
+                String(Int((value * 100).rounded())) + " %"
+            }
+            var truth = Path()
+            truth.move(to: geometry.point(0.7, 0))
+            truth.addLine(to: geometry.point(0.7, 1))
+            context.stroke(truth, with: .color(.green), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+            let best = scores.max() ?? 0
+            for (index, score) in scores.enumerated() {
+                let height: Double = 0.08 + 0.84 * Double((index * 37) % 97) / 97
+                let point = geometry.point(min(max(score, 0.4), 1), height)
+                let isBest = score == best
+                let radius: CGFloat = isBest ? 7 : 3.5
+                context.fill(Path(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)),
+                             with: .color(isBest ? .orange : .accentColor.opacity(0.65)))
+            }
+            let mark = geometry.point(min(max(fresh, 0.4), 1), 0.04)
+            context.fill(Path(ellipseIn: CGRect(x: mark.x - 6, y: mark.y - 6, width: 12, height: 12)), with: .color(.green))
+        }
+        .frame(height: 210)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.winner.chartSpoken"))
+        .accessibilityValue(percent(scores.max() ?? 0))
+        .accessibilityIdentifier("lab.winner.chart")
+    }
+}
+
+// MARK: - Probe lab / Тренажёр с зондом
+
+private struct ProbeLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var question = "next_space"
+    @State private var untrained = false
+    @State private var a = (x: -4.0, y: 3.5)
+    @State private var b = (x: 3.0, y: -3.5)
+    @State private var bestTrained = 0.0
+    @State private var sawUntrained = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var points: [(x: Double, y: Double, label: Bool)] {
+        ProbeRecording.points(untrained: untrained, question: question)
+    }
+
+    private var accuracy: Double { ProbeGeometry.accuracy(points: points, from: a, to: b) }
+
+    private var fullAccuracy: Double { ProbeRecording.full["\(question)-\(untrained ? "blank" : "own")"] ?? 0 }
+
+    private var solved: Bool { bestTrained >= 0.97 && sawUntrained }
+
+    private func note() {
+        if !untrained, question == "next_space" { bestTrained = max(bestTrained, accuracy) }
+        if untrained { sawUntrained = true }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.probe.title"), instruction: text("lab.probe.subtitle"))
+            HStack {
+                Picker(text("lab.probe.question"), selection: $question) {
+                    Text(verbatim: text("lab.probe.q.next_space")).tag("next_space")
+                    Text(verbatim: text("lab.probe.q.last_vowel")).tag("last_vowel")
+                    Text(verbatim: text("lab.probe.q.third_word")).tag("third_word")
+                }
+                .accessibilityIdentifier("lab.probe.question")
+                Toggle(text("lab.probe.untrained"), isOn: $untrained).accessibilityIdentifier("lab.probe.untrained")
+            }
+            plot
+            LabStatGrid {
+                LabStat(label: text("lab.probe.statLine"), value: number(accuracy), tint: .accentColor, identifier: "lab.probe.line")
+                LabStat(label: text("lab.probe.statFull"), value: number(fullAccuracy), tint: .green, identifier: "lab.probe.full")
+                LabStat(label: text("lab.probe.statAlways"), value: number(ProbeRecording.always[question] ?? 0), tint: .secondary, identifier: "lab.probe.always")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.probe.challenge"), solved: solved,
+                         solvedText: text("lab.probe.challengeDone"), identifier: "lab.probe.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.probe.howPoints"), text("lab.probe.howFull")])
+        }
+        .onChange(of: untrained) { _ in note() }
+    }
+
+    private var plot: some View {
+        GeometryReader { proxy in
+            let geometry = LabPlotGeometry(size: proxy.size, x: -6...6, y: -6...6, leading: 12, bottom: 12)
+            Canvas { context, _ in
+                for point in points {
+                    let place = geometry.point(point.x, point.y)
+                    context.fill(Path(ellipseIn: CGRect(x: place.x - 3.5, y: place.y - 3.5, width: 7, height: 7)),
+                                 with: .color(point.label ? .orange : .accentColor.opacity(0.7)))
+                }
+                let from = geometry.point(a.x, a.y)
+                let to = geometry.point(b.x, b.y)
+                var line = Path()
+                line.move(to: from)
+                line.addLine(to: to)
+                context.stroke(line, with: .color(.primary), lineWidth: 2)
+                for end in [from, to] {
+                    context.fill(Path(ellipseIn: CGRect(x: end.x - 7, y: end.y - 7, width: 14, height: 14)), with: .color(.white))
+                    context.stroke(Path(ellipseIn: CGRect(x: end.x - 7, y: end.y - 7, width: 14, height: 14)), with: .color(.primary), lineWidth: 2)
+                }
+            }
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                let spot = geometry.value(at: value.location)
+                let toA = hypot(spot.x - a.x, spot.y - a.y)
+                let toB = hypot(spot.x - b.x, spot.y - b.y)
+                let place = (x: min(max(spot.x, -6), 6), y: min(max(spot.y, -6), 6))
+                if toA < toB { a = place } else { b = place }
+                note()
+            })
+        }
+        .frame(height: 300)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.probe.plotSpoken"))
+        .accessibilityValue(number(accuracy))
+        .accessibilityIdentifier("lab.probe.plot")
+    }
+}
+
+// MARK: - Superposition lab / Тренажёр с суперпозицией
+
+private struct SuperpositionLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var solid = false
+    @State private var sparsity = 0.0
+    @State private var seed: UInt64 = 31
+    @State private var vectors: [[Double]] = []
+    @State private var step = 0
+    @State private var alive = 0
+    @State private var flatDone = false
+    @State private var solidDone = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private static let colors: [Color] = [.orange, .teal, .pink, .green, .yellow, .purple]
+    private var features: Int { solid ? 6 : 5 }
+    private var dims: Int { solid ? 3 : 2 }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.super.title"), instruction: text("lab.super.subtitle"))
+            HStack {
+                Picker(text("lab.super.shape"), selection: $solid) {
+                    Text(verbatim: text("lab.super.flat")).tag(false)
+                    Text(verbatim: text("lab.super.solid")).tag(true)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("lab.super.shape")
+                Button {
+                    seed += 1
+                } label: {
+                    Label(text("lab.super.again"), systemImage: "arrow.clockwise")
+                }
+                .accessibilityIdentifier("lab.super.again")
+            }
+            if solid {
+                FeatureVectorsSceneView(vectors: vectors)
+                    .frame(height: 360)
+                    .frame(maxWidth: .infinity)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(text("lab.super.sceneSpoken"))
+                    .accessibilityValue(String(alive))
+            } else {
+                plane
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.super.sparsity"), number(sparsity))).font(.callout.monospacedDigit()).frame(width: 130, alignment: .leading)
+                Slider(value: $sparsity, in: 0...0.98, step: 0.02).accessibilityIdentifier("lab.super.sparsitySlider")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.super.statAlive"), value: "\(alive) / \(features)", tint: .green, identifier: "lab.super.alive")
+                LabStat(label: text("lab.super.statStep"), value: String(step), tint: .secondary, identifier: "lab.super.step")
+                LabStat(label: text("lab.super.statLongest"), value: number(vectors.map(SuperpositionTrainer.length).max() ?? 0), tint: .accentColor, identifier: "lab.super.longest")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.super.challenge"), solved: flatDone && solidDone,
+                         solvedText: text("lab.super.challengeDone"), identifier: "lab.super.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.super.howModel"), text("lab.super.howLive")])
+        }
+        .task(id: "\(solid)-\(sparsity)-\(seed)") {
+            var trainer = SuperpositionTrainer(features: features, dims: dims, sparsity: sparsity, seed: seed)
+            let total = 4000
+            for _ in 0..<20 {
+                let current = trainer
+                trainer = await Task.detached(priority: .userInitiated) { () -> SuperpositionTrainer in
+                    var copy = current
+                    copy.run(steps: total / 20)
+                    return copy
+                }.value
+                guard !Task.isCancelled else { return }
+                vectors = trainer.vectors
+                step = trainer.step
+                alive = trainer.aliveCount
+            }
+            if alive == features {
+                if solid { solidDone = true } else { flatDone = true }
+            }
+        }
+    }
+
+    private var plane: some View {
+        Canvas { context, size in
+            let middle = CGPoint(x: size.width / 2, y: size.height / 2)
+            let unit: CGFloat = size.height * 0.38
+            let circle = CGRect(x: middle.x - unit, y: middle.y - unit, width: unit * 2, height: unit * 2)
+            context.stroke(Path(ellipseIn: circle), with: .color(.secondary.opacity(0.35)), lineWidth: 1)
+            for (index, vector) in vectors.enumerated() where vector.count == 2 {
+                let tip = CGPoint(x: middle.x + CGFloat(vector[0]) * unit, y: middle.y - CGFloat(vector[1]) * unit)
+                var line = Path()
+                line.move(to: middle)
+                line.addLine(to: tip)
+                let color = Self.colors[index % Self.colors.count]
+                context.stroke(line, with: .color(color), lineWidth: 3)
+                context.fill(Path(ellipseIn: CGRect(x: tip.x - 6, y: tip.y - 6, width: 12, height: 12)), with: .color(color))
+                context.draw(Text(verbatim: String(index + 1)).font(.caption.weight(.bold)), at: CGPoint(x: tip.x + 12, y: tip.y - 10))
+            }
+        }
+        .frame(height: 320)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.super.planeSpoken"))
+        .accessibilityValue(String(alive))
+        .accessibilityIdentifier("lab.super.plane")
     }
 }
