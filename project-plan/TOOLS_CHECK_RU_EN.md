@@ -1,8 +1,8 @@
 # Проверка инструментов на настоящем Mac / Tools check on a real Mac
 
-Дата: 2026-11-02. Версия: Beta 18, сборка 20261102855, установлена из выпуска на MacBook Air M1. Платных ИИ-вызовов не было.
+Дата: 2026-11-02, пробы агентов повторены 2026-11-03. Версия при проверке: Beta 18, сборка 20261102855, установлена из выпуска на MacBook Air M1. Beta 19 (сборка 20261103863) установлена так же: SHA-256 совпал, проверка backend прошла, записи прогресса на месте. Платных ИИ-вызовов не было.
 
-*Date: 2026-11-02. Version: Beta 18, build 20261102855, installed from the release on a MacBook Air M1. No paid AI calls were made.*
+*Date: 2026-11-02, agent trials repeated on 2026-11-03. Version checked: Beta 18, build 20261102855, installed from the release on a MacBook Air M1. Beta 19 (build 20261103863) was installed the same way: the SHA-256 matched, the backend check passed, and the progress records are in place. No paid AI calls were made.*
 
 ## Итог / Result
 
@@ -14,13 +14,27 @@
 | Видео / Video | работает / works | Тот же адрес и Referer, что в приложении: без звука проиграно 17,7 с за 18 с, есть субтитры ru и en, выбраны ru / the app's URL and Referer: 17.7 s played in 18 s, muted, with ru and en captions and ru selected | Показ текста субтитров на экране и запуск настоящим щелчком / captions text on screen and starting with a real click |
 | Obsidian | соединение есть, запись ждёт ключа / connected, writing needs the key | Плагин Local REST API 4.1.7 отвечает на порту 27123, который приложение пробует первым; без ключа запрос к хранилищу получает 401 / the plugin answers on port 27123, the app's first choice; a vault request without the key gets 401 | Сохранение урока и хранение ключа в Keychain: ключ вводит владелец / saving a lesson and keeping the key in Keychain: the owner enters the key |
 | NotebookLM | копирование работает / copying works | UI-тест в CI проверяет, что Markdown урока попадает в буфер обмена. Адрес из приложения теперь ведёт на Gemini Notebook (`notebook.google.com`) / a CI UI test checks that the lesson Markdown reaches the clipboard. The app's link now leads to Gemini Notebook (`notebook.google.com`) | Импорт: нужен вход в аккаунт Google владельца / the import needs the owner's Google sign-in |
-| OpenCode, Hermes, OpenClaw | установлены, задачу не решили / installed, did not solve the task | См. раздел ниже / see the section below | Работа с другой моделью; в приложение они не встраиваются / work with another model; they are not built into the app |
+| OpenCode, Hermes, OpenClaw | решили маленькую задачу / solved a small task | На `qwen3.5:4b`, см. раздел ниже / on `qwen3.5:4b`, see the section below | Большие задачи и режим автоодобрения; в приложение они не встраиваются / large tasks and the auto-approve mode; they are not built into the app |
 
 ## Пробы агентов / Agent trials
 
-Задача одна для всех: исправить две ошибки в маленьком `stats.py`, не меняя тестов. Каждый инструмент работал во временной папке, только на локальной Ollama, без ключей, с запретом команд и сети. Версии: OpenCode 2.2.5, Hermes 0.22.5, OpenClaw 2026.10.9.
+Задача одна для всех: исправить две ошибки в маленьком `stats.py`, не меняя тестов. Каждый инструмент работал во временной папке, только на локальной Ollama, без ключей, с запретом сети. Команды запрещены, кроме `python3 -m unittest` у OpenCode. Версии: OpenCode 2.2.5, Hermes 0.22.5, OpenClaw 2026.10.9.
 
-*One task for all: fix two bugs in a small `stats.py` without changing the tests. Each tool ran in a temporary folder, on local Ollama only, with no keys and with commands and network denied. Versions: OpenCode 2.2.5, Hermes 0.22.5, OpenClaw 2026.10.9.*
+*One task for all: fix two bugs in a small `stats.py` without changing the tests. Each tool ran in a temporary folder, on local Ollama only, with no keys and no network. Commands were denied, except `python3 -m unittest` for OpenCode. Versions: OpenCode 2.2.5, Hermes 0.22.5, OpenClaw 2026.10.9.*
+
+### Вторая проба, 2026-11-03: `qwen3.5:4b`, контекст 64K / Second trial, 2026-11-03: `qwen3.5:4b`, 64K context
+
+| Инструмент / Tool | Время / Time | Что вышло / Outcome |
+|---|---|---|
+| OpenCode | 7 мин 36 с | Обе ошибки исправлены, сам запустил тесты, все прошли, тесты не изменены / both bugs fixed, ran the tests itself, all passed, tests unchanged |
+| Hermes | 5 мин 22 с | Обе ошибки исправлены, тесты прошли при моей проверке и не изменены. Но он пытался править `test_stats.py` вопреки условию: правка сорвалась только из-за неверного пути / both bugs fixed, the tests passed when I checked and are unchanged. But it tried to edit `test_stats.py` against the instructions: the edit failed only because of a wrong path |
+| OpenClaw | 3 мин 49 с | Обе ошибки исправлены, тесты прошли при моей проверке и не изменены; сам он их запустить не мог: команды запрещены / both bugs fixed, the tests passed when I checked and are unchanged; it could not run them itself because commands were denied |
+
+**Вывод.** Дело было в модели: `qwen3.5:4b` делает настоящие вызовы инструментов, и все три агента справились. Это по одному запуску на задаче из двух ошибок, поэтому сравнивать инструменты по качеству рано, и о больших задачах проба ничего не говорит. Случай с Hermes показывает, что правки агента надо смотреть и что условие «не меняй это» не защищает файл. Запуск с автоодобрением всех действий (`--auto`) запретила автоматическая проверка прав, такой режим не проверялся. Модель занимает 4,0 ГБ.
+
+*Conclusion. The model was the limit: `qwen3.5:4b` makes real tool calls, and all three agents managed. This is one run each on a task with two bugs, so it is too early to compare the tools' quality, and the trial says nothing about large tasks. The Hermes case shows that an agent's edits need review and that the instruction "do not change this" does not protect a file. The automatic permission check refused a run that auto-approves every action (`--auto`), so that mode was not tried. The model takes 4.0 GB.*
+
+### Первая проба, 2026-11-02: задачу не решил никто / First trial, 2026-11-02: nobody solved the task
 
 | Инструмент / Tool | Модель / Model | Что вышло / Outcome |
 |---|---|---|
@@ -29,12 +43,12 @@
 | Hermes | `qwen2.5-coder:7b`, контекст 64K | Ответ за 44 с, вызовы текстом, правок нет. Контекст ниже 64K Hermes не принимает / answered in 44 s, calls as text, no edits. Hermes refuses a context below 64K |
 | OpenClaw | `qwen2.5-coder:7b`, контекст 64K | Ответ за 106 с, вызовы текстом, правок нет / answered in 106 s, calls as text, no edits |
 
-**Вывод.** Все три запускаются и связываются с Ollama, задачу не решил ни один: `qwen2.5-coder:7b` не делает настоящих вызовов инструментов, а `qwen3.5` на этом Mac слишком медленна для агента. Дело в моделях, поэтому сравнить сами инструменты по качеству эта проба не позволяет. Запуск с автоодобрением всех действий (`--auto`) запретила автоматическая проверка прав, такой режим не проверялся.
-
-*Conclusion. All three start and reach Ollama, and none solved the task: `qwen2.5-coder:7b` makes no real tool calls, and `qwen3.5` is too slow for an agent on this Mac. The models are the limit, so this trial cannot compare the tools' quality. The automatic permission check refused a run that auto-approves every action (`--auto`), so that mode was not tried.*
-
 ## Смотреть глазами / Check by eye
 
 По снимкам из CI: нейроны стали объёмными блоками, сцена поворачивается, тренажёр обученной модели пишет текст. Мелкие недочёты: на повёрнутой сцене сети подписи наезжают друг на друга, в тренажёре модели выходные кубики у правого края обрезаны. В установленной версии вращение мышью сам не проверял.
 
 *From the CI screenshots: neurons are solid blocks, the scene rotates, and the trained model's lab writes text. Small flaws: labels overlap on the turned network scene, and the output cubes are clipped at the right edge of the model lab. Mouse rotation was not tried by hand in the installed version.*
+
+В Beta 19 экран «Путь ИИ» с пятью этапами и урок об ARC открываются в установленном приложении. Тренажёры настоящими щелчками там не проверены, запуск видео щелчком и текст субтитров тоже. В приложении кнопки всё ещё называются NotebookLM, хотя адрес ведёт на Gemini Notebook.
+
+*In Beta 19 the five-stage AI Path screen and the ARC lesson open in the installed app. The labs were not tried there with real clicks, and neither were starting a video by clicking and the caption text. The app's buttons still say NotebookLM, although the link leads to Gemini Notebook.*
