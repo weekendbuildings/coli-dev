@@ -214,7 +214,7 @@ private struct QuadraticLabCard<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -293,11 +293,11 @@ private struct QuadraticFunctionPlot: View {
                     curve.addLine(to: point)
                 }
             }
-            context.stroke(curve, with: .color(Color.accentColor), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+            context.stroke(curve, with: .color(AppPalette.accent.color), style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
 
             let vertex = CGPoint(x: pointX(function.vertexX, in: plot), y: pointY(function.vertexY, in: plot))
             let marker = CGRect(x: vertex.x - 5, y: vertex.y - 5, width: 10, height: 10)
-            context.fill(Path(ellipseIn: marker), with: .color(Color.accentColor))
+            context.fill(Path(ellipseIn: marker), with: .color(AppPalette.accent.color))
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(Text(String(

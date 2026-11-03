@@ -33,7 +33,7 @@ struct NotebookLessonExport {
         let limitsHeading = isRussian ? "Ограничения" : "Limitations"
         let sourcesHeading = isRussian ? "Источники" : "Sources"
         let videoHeading = isRussian ? "Видео и наблюдение" : "Video and observation"
-        let origin = isRussian ? "Экспортировано из ColiDev" : "Exported from ColiDev"
+        let origin = isRussian ? "Экспортировано из Cause & Course" : "Exported from Cause & Course"
 
         var sections = [
             "# \(title)",
@@ -95,5 +95,21 @@ struct NotebookLessonExport {
             ? "Дата редакторской проверки источников урока"
             : "Sources in this lesson last editorially reviewed"
         return "**\(label):** \(date)"
+    }
+}
+
+/// Remembers the vault path of a lesson's saved copy, so that a second click cannot quietly add another file.
+/// Помнит путь сохранённой копии урока в vault, чтобы повторное нажатие не добавляло новый файл незаметно.
+enum ObsidianLessonCopyMemory {
+    private static func key(subject: String, resource: String, language: String) -> String {
+        "colidev.obsidianCopy.\(subject).\(resource).\(language)"
+    }
+
+    static func savedPath(subject: String, resource: String, language: String, defaults: UserDefaults = .standard) -> String? {
+        defaults.string(forKey: key(subject: subject, resource: resource, language: language))
+    }
+
+    static func remember(path: String, subject: String, resource: String, language: String, defaults: UserDefaults = .standard) {
+        defaults.set(path, forKey: key(subject: subject, resource: resource, language: language))
     }
 }

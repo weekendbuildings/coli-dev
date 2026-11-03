@@ -5,11 +5,27 @@ struct ColorToken: Equatable {
     let lightHex: UInt32
     let darkHex: UInt32
 
-    var color: Color {
-        Color(nsColor: NSColor(name: nil) { appearance in
+    var color: Color { Color(nsColor: nsColor) }
+
+    var nsColor: NSColor {
+        NSColor(name: nil) { appearance in
             let isDark = appearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
             return Self.nsColor(hex: isDark ? darkHex : lightHex)
-        })
+        }
+    }
+
+    /// WCAG contrast ratio between two opaque colors, from 1 to 21.
+    /// Контраст по WCAG между двумя непрозрачными цветами, от 1 до 21.
+    static func contrast(_ first: UInt32, _ second: UInt32) -> Double {
+        func luminance(_ hex: UInt32) -> Double {
+            func channel(_ value: UInt32) -> Double {
+                let unit = Double(value & 0xFF) / 255
+                return unit <= 0.03928 ? unit / 12.92 : pow((unit + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * channel(hex >> 16) + 0.7152 * channel(hex >> 8) + 0.0722 * channel(hex)
+        }
+        let (a, b) = (luminance(first), luminance(second))
+        return (max(a, b) + 0.05) / (min(a, b) + 0.05)
     }
 
     private static func nsColor(hex: UInt32) -> NSColor {
@@ -20,6 +36,23 @@ struct ColorToken: Equatable {
             alpha: 1
         )
     }
+}
+
+/// The one palette for the app's surfaces. Colors are explicit, not system ones: the system window
+/// background turns dull under the wallpaper tint and changes when the window loses focus.
+/// Единая палитра поверхностей приложения. Цвета заданы явно, а не берутся из системы: системный фон
+/// окна блёкнет от оттенка обоев и меняется при потере фокуса.
+enum AppPalette {
+    static let canvas = ColorToken(lightHex: 0xF4F5FA, darkHex: 0x14161D)
+    static let sidebar = ColorToken(lightHex: 0xE9ECF5, darkHex: 0x0F1117)
+    static let card = ColorToken(lightHex: 0xFFFFFF, darkHex: 0x1E212C)
+    /// A recessed area inside a card. / Углублённая область внутри карточки.
+    static let inset = ColorToken(lightHex: 0xF0F2F8, darkHex: 0x171921)
+    static let raised = ColorToken(lightHex: 0xFFFFFF, darkHex: 0x292D3A)
+    static let stroke = ColorToken(lightHex: 0xDCE0EB, darkHex: 0x2F3442)
+    static let accent = ColorToken(lightHex: 0x4A4FC4, darkHex: 0x7077F2)
+    /// The soft fill of a selected row. / Мягкая заливка выбранной строки.
+    static let selection = ColorToken(lightHex: 0xDADCF7, darkHex: 0x2C2F55)
 }
 
 enum ColiDevVisualSystem {
@@ -94,8 +127,8 @@ struct ColiDevGlassControlModifier: ViewModifier {
     private func legacyMaterial(_ content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius)
         return content
-            .background(.regularMaterial, in: shape)
-            .overlay(shape.strokeBorder(Color.primary.opacity(0.08), lineWidth: 1))
+            .background(AppPalette.raised.color, in: shape)
+            .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
     }
 }
 
@@ -108,10 +141,10 @@ struct ColiDevContentCardModifier: ViewModifier {
         content
             .background {
                 shape
-                    .fill(.regularMaterial)
+                    .fill(AppPalette.card.color)
                     .overlay {
                         LinearGradient(
-                            colors: [tint.opacity(0.15), tint.opacity(0.035)],
+                            colors: [tint.opacity(0.13), tint.opacity(0.02)],
                             startPoint: .topLeading,
                             endPoint: .bottomTrailing
                         )
@@ -119,14 +152,32 @@ struct ColiDevContentCardModifier: ViewModifier {
                     }
             }
             .overlay {
-                shape.strokeBorder(tint.opacity(0.20), lineWidth: 1)
+                shape.strokeBorder(tint.opacity(0.22), lineWidth: 1)
             }
+            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+}
+
+/// The plain card every lesson and lab sits on. / Обычная карточка, на которой лежат уроки и тренажёры.
+struct ColiDevSurfaceModifier: ViewModifier {
+    let cornerRadius: CGFloat
+
+    func body(content: Content) -> some View {
+        let shape = RoundedRectangle(cornerRadius: cornerRadius)
+        content
+            .background(AppPalette.card.color, in: shape)
+            .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
 }
 
 extension View {
     func coliGlassControl(cornerRadius: CGFloat = 16) -> some View {
         modifier(ColiDevGlassControlModifier(cornerRadius: cornerRadius))
+    }
+
+    func coliSurface(cornerRadius: CGFloat = 16) -> some View {
+        modifier(ColiDevSurfaceModifier(cornerRadius: cornerRadius))
     }
 
     func coliContentCard(tint: Color, cornerRadius: CGFloat = 16) -> some View {

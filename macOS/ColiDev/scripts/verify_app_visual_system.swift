@@ -37,6 +37,18 @@ struct VerifyAppVisualSystem {
             "A custom subject must receive the readable fallback accent."
         )
 
+        // Text must stay readable on every surface in both themes.
+        // Текст должен читаться на каждой поверхности в обеих темах.
+        let surfaces = [AppPalette.canvas, AppPalette.sidebar, AppPalette.card, AppPalette.inset, AppPalette.raised, AppPalette.selection]
+        for surface in surfaces {
+            precondition(ColorToken.contrast(0x1D1D1F, surface.lightHex) >= 7, "Primary text must read on light surfaces")
+            precondition(ColorToken.contrast(0xE5E5E7, surface.darkHex) >= 7, "Primary text must read on dark surfaces")
+        }
+        precondition(ColorToken.contrast(AppPalette.accent.lightHex, AppPalette.card.lightHex) >= 4.5, "The light accent must read on a card")
+        precondition(ColorToken.contrast(AppPalette.accent.darkHex, AppPalette.card.darkHex) >= 4, "The dark accent must read on a card")
+        precondition(ColorToken.contrast(0xFFFFFF, AppPalette.accent.lightHex) >= 4.5, "White button text must read on the light accent")
+        precondition(ColorToken.contrast(0xFFFFFF, AppPalette.accent.darkHex) >= 3.5, "White button text must read on the dark accent")
+
         print("Visual system verified: six subject accents, route inheritance, and custom-subject fallback")
     }
 }

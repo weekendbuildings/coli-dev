@@ -142,6 +142,23 @@ enum NotebookLessonExportVerification {
             "Invalid review metadata must not be rendered into Markdown. / Некорректные метаданные проверки нельзя помещать в Markdown."
         )
 
+        let suite = "colidev.verify.obsidian.\(UUID().uuidString)"
+        let defaults = UserDefaults(suiteName: suite)!
+        precondition(
+            ObsidianLessonCopyMemory.savedPath(subject: "physics", resource: "intro", language: "ru", defaults: defaults) == nil,
+            "A lesson that was never saved must offer the save button. / Несохранённый урок должен показывать кнопку сохранения."
+        )
+        ObsidianLessonCopyMemory.remember(path: "a.md", subject: "physics", resource: "intro", language: "ru", defaults: defaults)
+        precondition(
+            ObsidianLessonCopyMemory.savedPath(subject: "physics", resource: "intro", language: "ru", defaults: defaults) == "a.md",
+            "A saved copy must be remembered. / Сохранённая копия должна запоминаться."
+        )
+        precondition(
+            ObsidianLessonCopyMemory.savedPath(subject: "physics", resource: "intro", language: "en", defaults: defaults) == nil,
+            "The English copy is a separate one. / Английская копия отдельная."
+        )
+        defaults.removePersistentDomain(forName: suite)
+
         print("NotebookLM lesson export provenance checks passed. / Проверки источников и даты в экспорте NotebookLM прошли.")
     }
 }

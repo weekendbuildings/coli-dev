@@ -30,7 +30,7 @@ struct CustomSubjectCard: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, minHeight: 134, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 18))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 18))
             .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.quaternary, lineWidth: 1))
             .contentShape(RoundedRectangle(cornerRadius: 18))
         }
@@ -382,7 +382,7 @@ struct CustomTopicBranch: View {
             .menuStyle(.borderlessButton)
         }
                 .padding(12)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.quaternary, lineWidth: 1))
     }
 

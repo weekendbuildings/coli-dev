@@ -298,9 +298,13 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
         /// Each neuron shows the example the signal has already reached. / Нейрон показывает пример, до которого дошёл сигнал.
         var shownExample = [Int](repeating: 0, count: NeuronRelief.allCases.count)
         var timer: Timer?
+        var labelTimer: Timer?
         weak var scene: SCNScene?
 
-        deinit { timer?.invalidate() }
+        deinit {
+            timer?.invalidate()
+            labelTimer?.invalidate()
+        }
     }
 
     func makeCoordinator() -> Coordinator { Coordinator() }
@@ -331,6 +335,14 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
         }
         RunLoop.main.add(timer, forMode: .common)
         coordinator.timer = timer
+        let labelTimer = Timer(timeInterval: 0.12, repeats: true) { [weak view] _ in
+            guard let view, let root = view.scene?.rootNode else { return }
+            let names = NeuronRelief.allCases.map { "label-\($0.rawValue)" }
+                + ["w11-label", "w12-label", "column-inputs", "column-hidden", "column-output"]
+            TrainingStage.declutter(names.compactMap { root.childNode(withName: $0, recursively: false) }, in: view)
+        }
+        RunLoop.main.add(labelTimer, forMode: .common)
+        coordinator.labelTimer = labelTimer
         return view
     }
 
@@ -348,6 +360,8 @@ struct TrainingNetworkSceneView: NSViewRepresentable {
     static func dismantleNSView(_ view: SCNView, coordinator: Coordinator) {
         coordinator.timer?.invalidate()
         coordinator.timer = nil
+        coordinator.labelTimer?.invalidate()
+        coordinator.labelTimer = nil
         view.isPlaying = false
     }
 

@@ -132,7 +132,7 @@ struct SubjectOverviewView: View {
                                 }
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(.background, in: RoundedRectangle(cornerRadius: 14))
+                                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 14))
                                 .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.quaternary, lineWidth: 1))
                             }
                         }
@@ -491,7 +491,7 @@ private struct CurriculumLessonVideoCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(tint.opacity(0.25), lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("lesson.video.activity")
@@ -588,7 +588,7 @@ private struct CurriculumCheckOptionButton: View {
             }
             .padding(11)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 11))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 11))
             .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(.quaternary, lineWidth: 1))
         }
         .buttonStyle(.plain)
@@ -617,7 +617,7 @@ struct CurriculumModuleView: View {
     @State private var isLoadingSourceInventory = false
     @State private var isExportingNotebookSource = false
     @State private var notebookExportDocument: NotebookLMSourceFile?
-    @State private var notebookExportFilename = "ColiDev-lesson.md"
+    @State private var notebookExportFilename = "Cause-and-Course-lesson.md"
     @State private var notebookExportStatus: String?
     @State private var isSavingObsidianNote = false
     @State private var obsidianSaveStatus: String?
@@ -690,7 +690,7 @@ struct CurriculumModuleView: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+            .coliSurface(cornerRadius: 18)
             .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(subject.tint.opacity(0.25), lineWidth: 1))
         }
     }
@@ -830,13 +830,13 @@ struct CurriculumModuleView: View {
                             }
                         }
                         .padding(18)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                        .coliSurface(cornerRadius: 18)
                     } else {
                         Label(L10n.text("module.quizUnavailable", store.language), systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                             .padding(18)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                            .coliSurface(cornerRadius: 18)
                     }
 
                     postVideoReflectionContent
@@ -851,19 +851,34 @@ struct CurriculumModuleView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.text("module.obsidianTitle", store.language))
                             .font(.headline)
-                        Button(action: saveLessonToObsidian) {
-                            if isSavingObsidianNote {
-                                Label(L10n.text("module.obsidianSaving", store.language), systemImage: "arrow.triangle.2.circlepath")
-                            } else {
-                                Label(L10n.text("module.obsidianSave", store.language), systemImage: "externaldrive.badge.plus")
+                        if let savedPath = obsidianSavedPath {
+                            Label(L10n.text("module.obsidianAlreadySaved", store.language), systemImage: "checkmark.circle.fill")
+                                .font(.callout.weight(.semibold))
+                                .foregroundStyle(Color.green)
+                                .accessibilityIdentifier("lesson.obsidian.saved")
+                            Text(savedPath)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                            Button(L10n.text("module.obsidianSaveAnother", store.language), action: saveLessonToObsidian)
+                                .buttonStyle(.link)
+                                .font(.caption)
+                                .disabled(isSavingObsidianNote)
+                        } else {
+                            Button(action: saveLessonToObsidian) {
+                                if isSavingObsidianNote {
+                                    Label(L10n.text("module.obsidianSaving", store.language), systemImage: "arrow.triangle.2.circlepath")
+                                } else {
+                                    Label(L10n.text("module.obsidianSave", store.language), systemImage: "externaldrive.badge.plus")
+                                }
                             }
+                            .buttonStyle(.bordered)
+                            .disabled(
+                                isSavingObsidianNote
+                                    || store.providerSecretStatuses["obsidian"]?.configured != true
+                                    || store.aiHealth?.isObsidianEndpointLocal != true
+                            )
                         }
-                        .buttonStyle(.bordered)
-                        .disabled(
-                            isSavingObsidianNote
-                                || store.providerSecretStatuses["obsidian"]?.configured != true
-                                || store.aiHealth?.isObsidianEndpointLocal != true
-                        )
                         Text(L10n.text("module.obsidianPrivacy", store.language))
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -881,6 +896,22 @@ struct CurriculumModuleView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.text("module.notebookTitle", store.language))
                             .font(.headline)
+                        Text(L10n.text("module.notebookWhy", store.language))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(1...4, id: \.self) { step in
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text("\(step)")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(AppPalette.accent.color)
+                                        .frame(width: 14)
+                                    Text(L10n.text("module.notebookStep\(step)", store.language))
+                                        .font(.callout)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
                         HStack(spacing: 12) {
                             Button(action: copyNotebookLessonSource) {
                                 Label(L10n.text("module.notebookCopy", store.language), systemImage: "doc.on.clipboard")
@@ -892,7 +923,7 @@ struct CurriculumModuleView: View {
                                 notebookExportDocument = NotebookLMSourceFile(
                                     text: document.notebookSource(subject: subject, language: store.language)
                                 )
-                                notebookExportFilename = "ColiDev-\(subject.rawValue)-\(resource)-\(store.language.rawValue).md"
+                                notebookExportFilename = "Cause-and-Course-\(subject.rawValue)-\(resource)-\(store.language.rawValue).md"
                                 notebookExportStatus = nil
                                 isExportingNotebookSource = true
                             } label: {
@@ -901,7 +932,7 @@ struct CurriculumModuleView: View {
                             .buttonStyle(.bordered)
 
                             Button {
-                                if let url = URL(string: "https://notebooklm.google.com") {
+                                if let url = URL(string: "https://notebook.google.com") {
                                     if !NSWorkspace.shared.open(url) {
                                         notebookExportStatus = L10n.text("module.notebookOpenFailed", store.language)
                                     }
@@ -910,6 +941,27 @@ struct CurriculumModuleView: View {
                                 Label(L10n.text("module.notebookOpen", store.language), systemImage: "arrow.up.right.square")
                             }
                             .buttonStyle(.bordered)
+                        }
+                        Text(L10n.text("module.notebookAskTitle", store.language))
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.top, 4)
+                        ForEach(1...3, id: \.self) { number in
+                            let question = String(format: L10n.text("module.notebookAsk\(number)", store.language), document.title)
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(question)
+                                    .font(.callout)
+                                    .textSelection(.enabled)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Button {
+                                    copyNotebookQuestion(question)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                }
+                                .buttonStyle(.borderless)
+                                .help(L10n.text("module.notebookAskCopy", store.language))
+                                .accessibilityLabel(L10n.text("module.notebookAskCopy", store.language))
+                            }
                         }
                         Text(L10n.text("module.notebookPrivacy", store.language))
                             .font(.caption)
@@ -1021,7 +1073,7 @@ struct CurriculumModuleView: View {
                 onPracticeFocusCompleted()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(AppPalette.canvas.color)
         .navigationTitle(Text(document?.title ?? L10n.text("module.title", store.language)))
         .onAppear { loadDocument() }
         .onChange(of: lessonID) { _ in loadDocument() }
@@ -1104,6 +1156,14 @@ struct CurriculumModuleView: View {
         }
     }
 
+    private func copyNotebookQuestion(_ question: String) {
+        NSPasteboard.general.clearContents()
+        notebookExportStatus = L10n.text(
+            NSPasteboard.general.setString(question, forType: .string) ? "module.notebookAskCopied" : "module.notebookCopyFailed",
+            store.language
+        )
+    }
+
     private func selectCheckAnswer(displayedIndex: Int) {
         guard var attempt = checkAttempt else { return }
         attempt.select(displayedIndex: displayedIndex)
@@ -1139,6 +1199,10 @@ struct CurriculumModuleView: View {
         }
     }
 
+    private var obsidianSavedPath: String? {
+        ObsidianLessonCopyMemory.savedPath(subject: subject.rawValue, resource: resource, language: store.language.rawValue)
+    }
+
     private func saveLessonToObsidian() {
         guard let document, !isSavingObsidianNote else { return }
         let timestampFormatter = DateFormatter()
@@ -1156,6 +1220,7 @@ struct CurriculumModuleView: View {
             defer { isSavingObsidianNote = false }
             do {
                 try await OrchestratorClient.saveObsidianNote(path: path, content: source)
+                ObsidianLessonCopyMemory.remember(path: path, subject: subject.rawValue, resource: resource, language: store.language.rawValue)
                 obsidianSaveStatus = String(
                     format: L10n.text("module.obsidianSaved", store.language),
                     path
@@ -1380,7 +1445,7 @@ private struct ModuleTextCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -1564,7 +1629,7 @@ struct LessonSessionView: View {
             .frame(maxWidth: 900, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(AppPalette.canvas.color)
         .onAppear {
             learnerConfirmed = store.isComplete(subject)
             reflection = store.studyReflectionDrafts[subject.lessonID]
@@ -1605,7 +1670,7 @@ struct LessonSessionView: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.quaternary, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
@@ -1655,7 +1720,7 @@ struct LessonSessionView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -2663,7 +2728,7 @@ private struct AnimalLineageLab: View {
         }
         .frame(maxWidth: .infinity, minHeight: 76)
         .padding(10)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .background(AppPalette.accent.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .combine)
     }
 }
@@ -2737,7 +2802,7 @@ private struct GeometryMeasureLab: View {
                 outline.addLine(to: CGPoint(x: left + width, y: bottom))
                 outline.closeSubpath()
             }
-            context.fill(outline, with: .color(Color.accentColor.opacity(0.16)))
+            context.fill(outline, with: .color(AppPalette.accent.color.opacity(0.16)))
             var grid = Path()
             for column in 1..<Int(base.rounded(.up)) {
                 grid.move(to: CGPoint(x: left + CGFloat(column) * unit, y: bottom))
@@ -3206,7 +3271,7 @@ private struct RationalExpressionLab: View {
             line.addLine(to: plot.point(5, 8))
             context.stroke(line, with: .color(.accentColor), lineWidth: 3)
             let hole = plot.point(3, 6)
-            context.fill(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(Color(nsColor: .windowBackgroundColor)))
+            context.fill(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(AppPalette.canvas.color))
             context.stroke(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(.orange), lineWidth: 2.5)
             var asymptote = Path()
             asymptote.move(to: plot.point(3, -3))
@@ -3448,7 +3513,7 @@ private struct ConstrainedOptimizationLab: View {
 
                         let selected = location(point.x, point.y)
                         let selection = CGRect(x: selected.x - 7, y: selected.y - 7, width: 14, height: 14)
-                        context.fill(Path(ellipseIn: selection), with: .color(Color.accentColor))
+                        context.fill(Path(ellipseIn: selection), with: .color(AppPalette.accent.color))
                         context.stroke(Path(ellipseIn: selection), with: .color(.white), lineWidth: 1.5)
                     }
                     .contentShape(Rectangle())
@@ -3488,7 +3553,7 @@ private struct ConstrainedOptimizationLab: View {
                     Label(L10n.text("lab.optimization.candidates", store.language), systemImage: "line.diagonal")
                         .foregroundStyle(.orange)
                     Label(L10n.text("lab.optimization.selected", store.language), systemImage: "smallcircle.filled.circle")
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(AppPalette.accent.color)
                 }
                 .font(.caption)
                 .labelStyle(.titleAndIcon)
@@ -5150,7 +5215,7 @@ private struct LabCard<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -6253,7 +6318,7 @@ private struct Force3DVisualization: NSViewRepresentable {
         context.coordinator.sceneLanguage = language
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .windowBackgroundColor
+        view.backgroundColor = AppPalette.canvas.nsColor
         return view
     }
 
@@ -6269,7 +6334,7 @@ private struct Force3DVisualization: NSViewRepresentable {
 
     private static func makeScene(language: AppLanguage) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.windowBackgroundColor
+        scene.background.contents = AppPalette.canvas.nsColor
 
         let box = SCNBox(width: 1, height: 0.72, length: 0.72, chamferRadius: 0.08)
         let boxMaterial = SCNMaterial()
@@ -6775,14 +6840,14 @@ private struct Energy3DVisualization: View {
 
     var body: some View {
         SceneView(scene: scene, options: [.allowsCameraControl])
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(AppPalette.canvas.color)
             .onChange(of: mass) { _ in updateScene() }
             .onChange(of: speed) { _ in updateScene() }
     }
 
     private static func makeScene(mass: Double, speed: Double) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.windowBackgroundColor
+        scene.background.contents = AppPalette.canvas.nsColor
 
         let cartGeometry = SCNBox(width: 0.78, height: 0.46, length: 0.62, chamferRadius: 0.08)
         let cartMaterial = SCNMaterial()
@@ -7123,7 +7188,7 @@ private struct GeneRegulationLab: View {
                 .frame(maxWidth: .infinity, minHeight: 34)
         }
         .buttonStyle(.bordered)
-        .tint(prediction.selectedOriginalIndex == originalIndex ? Color.accentColor : nil)
+        .tint(prediction.selectedOriginalIndex == originalIndex ? AppPalette.accent.color : nil)
         .disabled(prediction.hasAnswered)
         .accessibilityAddTraits(prediction.selectedOriginalIndex == originalIndex ? .isSelected : [])
     }
@@ -8136,7 +8201,7 @@ private struct ThermalProxyBirdVisualization: NSViewRepresentable {
         view.scene = Self.makeScene()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .controlBackgroundColor
+        view.backgroundColor = AppPalette.card.nsColor
         return view
     }
 
@@ -8144,7 +8209,7 @@ private struct ThermalProxyBirdVisualization: NSViewRepresentable {
 
     private static func makeScene() -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.controlBackgroundColor
+        scene.background.contents = AppPalette.card.nsColor
         let bodyMaterial = material(color: .darkGray, roughness: 0.8)
         let wingMaterial = material(color: .gray, roughness: 0.82)
         let beakMaterial = material(color: .systemOrange, roughness: 0.62)
@@ -8227,7 +8292,7 @@ private struct DNAHelixVisualization: NSViewRepresentable {
         view.scene = Self.makeScene(variant: variant)
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .controlBackgroundColor
+        view.backgroundColor = AppPalette.card.nsColor
         return view
     }
 
@@ -8238,7 +8303,7 @@ private struct DNAHelixVisualization: NSViewRepresentable {
 
     private static func makeScene(variant: Int) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.controlBackgroundColor
+        scene.background.contents = AppPalette.card.nsColor
 
         let backboneMaterial = SCNMaterial()
         backboneMaterial.diffuse.contents = NSColor.systemBlue
@@ -9153,7 +9218,7 @@ private struct FoodWebLab: View {
                 }
             }
             .frame(width: 104, height: 44)
-            .background(selected ? Color.accentColor.opacity(0.18) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
+            .background(selected ? AppPalette.accent.color.opacity(0.18) : AppPalette.card.color, in: RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(lost ? Color.red : nodeColor(node.kind).opacity(0.7),
                                                               style: StrokeStyle(lineWidth: selected || lost ? 2 : 1, dash: lost ? [4, 3] : [])))
             .opacity(lost ? 0.6 : 1)
@@ -9315,7 +9380,7 @@ private struct EukaryoticCellScene: NSViewRepresentable {
         view.scene = Self.makeScene()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .controlBackgroundColor
+        view.backgroundColor = AppPalette.card.nsColor
         view.antialiasingMode = .multisampling4X
         Self.highlight(selectedPart, in: view.scene)
         let clickGesture = NSClickGestureRecognizer(
@@ -9461,7 +9526,7 @@ private struct EukaryoticCellScene: NSViewRepresentable {
 
     private static func makeScene() -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.controlBackgroundColor
+        scene.background.contents = AppPalette.card.nsColor
 
         let membrane = SCNNode(geometry: SCNSphere(radius: 1.42))
         membrane.name = "organelle-membrane"
@@ -9654,7 +9719,7 @@ private struct ConditionalLab: View {
             .foregroundStyle(score >= 5 ? Color.green : Color.orange)
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 }
@@ -9724,7 +9789,7 @@ private struct VariablesTypesLab: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(active ? Color.accentColor.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .background(active ? AppPalette.accent.color.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
     }
 
     // A name is a label pointing at an object. Reassigning moves the arrow to a new object; the old int is not converted.
@@ -9737,7 +9802,7 @@ private struct VariablesTypesLab: View {
                 .background(Color.secondary.opacity(0.15), in: Capsule())
             Image(systemName: "arrow.right")
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(AppPalette.accent.color)
             VStack(spacing: 10) {
                 objectBox(value: "12", type: "int", colour: .blue, current: !reassignToText)
                 objectBox(value: "\"12\"", type: "str", colour: .orange, current: reassignToText)
@@ -9879,7 +9944,7 @@ private struct PracticeMinutesRunner: View {
                 .frame(minHeight: 110, maxHeight: 180)
                 .scrollContentBackground(.hidden)
                 .padding(6)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10)
                         .strokeBorder(.quaternary, lineWidth: 1)
@@ -9944,7 +10009,7 @@ private struct PracticeMinutesRunner: View {
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
             }
 
             if let connectionErrorKey {
@@ -9956,7 +10021,7 @@ private struct PracticeMinutesRunner: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(.quaternary, lineWidth: 1)
@@ -10075,7 +10140,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let scenario = AlgorithmicThinkingPractice.maximumTestCase(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmMaximumListContract", store.language))
@@ -10086,7 +10151,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if currentQuestion.contextKey == "lab.algorithm.context.maximumList" {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmMaximumListContract", store.language))
@@ -10097,7 +10162,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let scenario = AlgorithmicThinkingPractice.averageTestCase(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmTestCaseContract", store.language))
@@ -10108,7 +10173,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let scenario = AlgorithmicThinkingPractice.decompositionScenario(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text(scenario.promptKey, store.language))
@@ -10118,7 +10183,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let testCase = AlgorithmicThinkingPractice.eligibilityTestCase(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmEligibilityRule", store.language))
@@ -10128,7 +10193,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
 
@@ -10187,7 +10252,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
             }
 
             if AlgorithmicThinkingPractice.showsMaximumTestResults(completedQuestionCount: completedSteps.count) {
@@ -10213,7 +10278,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
             }
 
@@ -10240,7 +10305,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.text("lab.algorithmDecompositionSolutions", store.language))
@@ -10254,7 +10319,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.text("lab.algorithmEligibilityTestResults", store.language))
@@ -10273,7 +10338,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
                 Button {
                     session.restart()
@@ -10442,7 +10507,7 @@ private struct PythonCodePracticeView: View {
                 .frame(minHeight: 150, maxHeight: 250)
                 .scrollContentBackground(.hidden)
                 .padding(6)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10)
                         .strokeBorder(.quaternary, lineWidth: 1)
@@ -10497,7 +10562,7 @@ private struct PythonCodePracticeView: View {
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
             }
 
             if let connectionErrorKey {
@@ -10510,7 +10575,7 @@ private struct PythonCodePracticeView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(.quaternary, lineWidth: 1)
@@ -10716,7 +10781,7 @@ private struct FileReadingLab: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(10)
-                    .background(selectedOutcome == outcome ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06),
+                    .background(selectedOutcome == outcome ? AppPalette.accent.color.opacity(0.12) : Color.secondary.opacity(0.06),
                                 in: RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -10799,7 +10864,7 @@ private struct TransactionLab: View {
 
             Label(L10n.text(snapshot.stage.titleKey, store.language), systemImage: snapshot.stage.isFinished ? "checkmark.circle.fill" : "arrow.trianglehead.2.clockwise.rotate.90")
                 .font(.callout.weight(.medium))
-                .foregroundStyle(snapshot.stage.isFinished ? Color.green : Color.accentColor)
+                .foregroundStyle(snapshot.stage.isFinished ? Color.green : AppPalette.accent.color)
 
             Text(L10n.text(snapshot.traceKey, store.language))
                 .font(.callout)
@@ -10846,7 +10911,7 @@ private struct TransactionLab: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
     }
 
@@ -10885,7 +10950,7 @@ private struct SQLSchemaQueryLab: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
             if let step = currentStep {
                 Text(String(format: L10n.text("lab.sql.progress", store.language), stepIndex + 1, SQLQueryPractice.steps.count))
@@ -10924,7 +10989,7 @@ private struct SQLSchemaQueryLab: View {
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(10)
-                            .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
                         if step.id == "programming.sql_queries.filter_and_order" && feedbackCorrect {
                             Text(SQLQueryPractice.filteredSessions(minimumMinutes: 30).map { "\($0.topic) | \($0.minutes)" }.joined(separator: "\n"))
                                 .font(.system(.caption, design: .monospaced))
@@ -11265,7 +11330,7 @@ private struct GitWorkflowLab: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
             if let step = currentStep {
                 Text(String(format: L10n.text("lab.git.progress", store.language), stepIndex + 1, GitWorkflowPractice.steps.count))
@@ -11435,7 +11500,7 @@ private struct LinearSystemLab: View {
                             }
                             .foregroundStyle(.secondary)
                             .padding(12)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                            .coliSurface(cornerRadius: 10)
                         }
                     }
                     .accessibilityElement(children: .ignore)
@@ -11844,7 +11909,7 @@ private struct MembraneTraceView: View {
                 horizontalLine(at: NeuronSignalModel.thresholdPotential, in: geometry.size)
                     .stroke(Color.orange, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                 tracePath(in: geometry.size)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    .stroke(AppPalette.accent.color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                 Text(thresholdLabel)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.orange)
@@ -12960,7 +13025,7 @@ private struct MoleculeBuilderLab: View {
                 bond.addLine(to: point)
                 let fits = index < central.valence
                 context.stroke(bond, with: .color(fits ? .secondary : .red), style: StrokeStyle(lineWidth: 3, dash: fits ? [] : [5, 4]))
-                context.fill(Path(ellipseIn: CGRect(x: point.x - 14, y: point.y - 14, width: 28, height: 28)), with: .color(fits ? Color.accentColor.opacity(0.85) : .red.opacity(0.6)))
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 14, y: point.y - 14, width: 28, height: 28)), with: .color(fits ? AppPalette.accent.color.opacity(0.85) : .red.opacity(0.6)))
                 context.draw(Text("H").font(.callout.weight(.bold)).foregroundColor(.white), at: point)
             }
             context.fill(Path(ellipseIn: CGRect(x: center.x - 22, y: center.y - 22, width: 44, height: 44)), with: .color(.indigo))
@@ -15509,7 +15574,7 @@ private struct AutocatalysisLab: View {
                           })
             var clipped = context
             clipped.clip(to: Path(plot.rect.insetBy(dx: -6, dy: -6)))
-            for (series, color, label) in [(Model.catalysed, Color.secondary, "lab.autocatalysis.statCatalyst"), (Model.autocatalytic, Color.accentColor, "lab.autocatalysis.statAuto")] {
+            for (series, color, label) in [(Model.catalysed, Color.secondary, "lab.autocatalysis.statCatalyst"), (Model.autocatalytic, AppPalette.accent.color, "lab.autocatalysis.statAuto")] {
                 var path = Path()
                 for hour in 0...max(hours, 1) {
                     let location = plot.point(Double(hour), scaled(series(hour)))
@@ -17089,7 +17154,7 @@ private struct SeesawLab: View {
             triangle.addLine(to: CGPoint(x: pivot.x + 18, y: pivot.y + 40))
             triangle.closeSubpath()
             context.fill(triangle, with: .color(.secondary))
-            for (offset, mass, color) in [(-CGFloat(leftDistance) * scale, leftMass, Color.orange), (CGFloat(rightDistance) * scale, rightMass, Color.accentColor)] {
+            for (offset, mass, color) in [(-CGFloat(leftDistance) * scale, leftMass, Color.orange), (CGFloat(rightDistance) * scale, rightMass, AppPalette.accent.color)] {
                 let side = CGFloat(22 + mass * 0.7)
                 let base = point(offset, lift: side / 2 + 4)
                 let rect = CGRect(x: base.x - side / 2, y: base.y - side / 2, width: side, height: side)
@@ -17892,7 +17957,7 @@ private struct LoopTraceLab: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(index == activeLine ? Color.accentColor.opacity(0.22) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                            .background(index == activeLine ? AppPalette.accent.color.opacity(0.22) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
                     }
                 }
                 .padding(10)
@@ -18206,7 +18271,7 @@ private struct CollectionsLoopsLab: View {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(index == activeWhileLine ? (failed ? Color.red : Color.accentColor).opacity(0.22) : Color.clear,
+                            .background(index == activeWhileLine ? (failed ? Color.red : AppPalette.accent.color).opacity(0.22) : Color.clear,
                                         in: RoundedRectangle(cornerRadius: 5))
                     }
                 }
@@ -18595,7 +18660,7 @@ struct TutorChatView: View {
                 }
             }
             .padding(16)
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(AppPalette.canvas.color)
         }
         .sheet(item: $pendingOutlineReview) { pending in
             if let outlineDestination, let outlineParentTopicID {
@@ -18825,7 +18890,7 @@ struct TutorChatView: View {
                 }
             }
             .padding(12)
-            .background(message.role == .learner ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
+            .background(message.role == .learner ? AppPalette.accent.color.opacity(0.12) : Color.secondary.opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
             if message.role == .tutor { Spacer(minLength: 50) }
         }
     }
@@ -19720,7 +19785,7 @@ private struct ModelScoreboardLab: View {
                     .padding(7)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
                     .background(tileColor(index), in: RoundedRectangle(cornerRadius: 7))
-                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selected ? Color.accentColor : Color.clear, lineWidth: 2))
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selected ? AppPalette.accent.color : Color.clear, lineWidth: 2))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -19879,7 +19944,7 @@ private struct PromptToggleLab: View {
                         .padding(7)
                         .frame(maxWidth: .infinity, minHeight: 42, alignment: .topLeading)
                         .background(color(state.combo.marks[index]).opacity(0.28), in: RoundedRectangle(cornerRadius: 7))
-                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selectedOrder ? Color.accentColor : Color.clear, lineWidth: 2))
+                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selectedOrder ? AppPalette.accent.color : Color.clear, lineWidth: 2))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -20076,7 +20141,7 @@ private struct GradGraphLab: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .frame(minWidth: 86)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+        .coliSurface(cornerRadius: 9)
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(gradient == nil ? Color.secondary.opacity(0.4) : Color.orange, lineWidth: gradient == nil ? 1 : 2))
     }
 }
@@ -20105,7 +20170,7 @@ private struct BPEMergeLab: View {
                             .font(.system(.caption, design: .monospaced).weight(id >= 256 ? .semibold : .regular))
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)
-                            .background(state.marksNextPair(at: index) ? Color.yellow.opacity(0.6) : (id >= 256 ? Color.accentColor.opacity(0.28) : Color.secondary.opacity(0.14)), in: RoundedRectangle(cornerRadius: 4))
+                            .background(state.marksNextPair(at: index) ? Color.yellow.opacity(0.6) : (id >= 256 ? AppPalette.accent.color.opacity(0.28) : Color.secondary.opacity(0.14)), in: RoundedRectangle(cornerRadius: 4))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -21970,11 +22035,11 @@ private struct AgentTraceLab: View {
                     let step = item.trace[index]
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: step.isTool ? "wrench.and.screwdriver" : "sparkles")
-                            .foregroundStyle(step.isTool ? Color.orange : Color.accentColor)
+                            .foregroundStyle(step.isTool ? Color.orange : AppPalette.accent.color)
                         Text(verbatim: step.text).font(.callout.monospaced()).frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(6)
-                    .background(RoundedRectangle(cornerRadius: 7).fill((step.isTool ? Color.orange : Color.accentColor).opacity(0.12)))
+                    .background(RoundedRectangle(cornerRadius: 7).fill((step.isTool ? Color.orange : AppPalette.accent.color).opacity(0.12)))
                 }
             }
             .accessibilityIdentifier("lab.agent.trace")
@@ -22903,7 +22968,7 @@ private struct IntegrationLab: View {
                         HStack {
                             Text(verbatim: String(format: text("lab.phi.cut"), String(node))).font(.callout).frame(width: 96, alignment: .leading)
                             GeometryReader { proxy in
-                                RoundedRectangle(cornerRadius: 3).fill(Color.accentColor).frame(width: proxy.size.width * CGFloat(losses[node] / 3))
+                                RoundedRectangle(cornerRadius: 3).fill(AppPalette.accent.color).frame(width: proxy.size.width * CGFloat(losses[node] / 3))
                             }
                             .frame(height: 12)
                             Text(verbatim: number(losses[node])).font(.caption.monospacedDigit()).frame(width: 44)

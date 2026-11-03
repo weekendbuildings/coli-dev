@@ -34,7 +34,7 @@ private struct ConstrainedOptimizationSceneView: NSViewRepresentable {
         view.defaultCameraController.inertiaEnabled = !reduceMotion
         view.autoenablesDefaultLighting = true
         view.antialiasingMode = .multisampling4X
-        view.backgroundColor = .windowBackgroundColor
+        view.backgroundColor = AppPalette.canvas.nsColor
         LagrangeSceneBuilder.update(scene: view.scene!, x: x, y: y)
         return view
     }
@@ -54,7 +54,7 @@ enum LagrangeSceneBuilder {
 
     static func makeScene() -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.windowBackgroundColor
+        scene.background.contents = AppPalette.canvas.nsColor
 
         if let mesh = LagrangeSurfaceModel.surfaceMesh(resolution: 48) {
             scene.rootNode.addChildNode(surfaceNode(mesh))

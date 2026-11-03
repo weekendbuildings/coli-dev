@@ -44,7 +44,7 @@ def test_glass_controls_have_a_legacy_material_fallback():
     assert "#if compiler(>=6.2)" in source
     assert "#available(macOS 26.0, *)" in source
     assert ".glassEffect(.regular" in source
-    assert ".regularMaterial" in source
+    assert "AppPalette.raised.color" in source
 
 
 def test_visual_system_verifier_has_explicit_entry_point_for_multi_file_swiftc():
@@ -64,13 +64,13 @@ def test_control_center_exposes_a_visible_and_accessible_overview():
     assert "minHeight: 260" in source
 
 
-def test_sidebar_uses_the_system_accent_color():
+def test_sidebar_uses_the_palette_accent_color():
     source = (APP / "ContentView.swift").read_text(encoding="utf-8")
     sidebar_subjects = source.split("ForEach(Subject.allCases) { subject in", 1)[1].split(
         "ForEach(store.customCurriculum.subjects)", 1
     )[0]
 
-    assert ".foregroundStyle(Color.accentColor)" in sidebar_subjects
+    assert "tint: AppPalette.accent.color" in sidebar_subjects
     assert "ColiDevVisualSystem.subjectColor(subject.rawValue)" not in sidebar_subjects
 
 

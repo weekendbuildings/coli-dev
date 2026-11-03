@@ -1,7 +1,7 @@
 # Агентные инструменты и границы интеграции / Agent tools and integration boundaries
 
 **Дата проверки / Checked:** 2026-10-18
-**Объём / Scope:** первичные источники проектов и текущая локальная копия ColiDev; код не менялся. Оценка относится к Cause & Corse как обучающей платформе и к ColiDev как текущему прототипу.
+**Объём / Scope:** первичные источники проектов и текущая локальная копия ColiDev; код не менялся. Оценка относится к Cause & Course как обучающей платформе и к ColiDev как текущему прототипу.
 
 ## Короткий вывод / Short answer
 
@@ -18,7 +18,7 @@
 
 ## Роли инструментов / Tool roles and fit
 
-| Инструмент | Что это по первичным источникам | Возможное место рядом с Cause & Corse | Решение и границы |
+| Инструмент | Что это по первичным источникам | Возможное место рядом с Cause & Course | Решение и границы |
 |---|---|---|---|
 | **OpenCode** | Открытый coding-agent для работы с репозиторием; поддерживает провайдеры, в том числе OpenRouter, MCP и ACP. Его разрешения могут требовать подтверждение, запрещать или разрешать инструменты; по умолчанию разрешения довольно открытые. | Разработка самой платформы: отдельный кодовый агент для задачи в выделенной feature-ветке, ревью человеком и CI. | **Лучший кандидат только как внешний dev-tool**, не как педагогический агент. Настроить edit/bash как ask или deny до явного разрешения, ограничить проектный каталог, не выдавать `.env`, Keychain, GitHub write token и доступ к Mac-профилю. OpenRouter уже подключать как provider в OpenCode, если нужно; не создавать второй ключ/маршрутизатор в ColiDev. |
 | **Hermes Agent** | Общий автономный агент с CLI, памятью/skills, несколькими моделями и провайдерами, делегированием, MCP и messaging gateway; имеет локальный или sandbox/remote terminal. | Позже — отдельный вспомогательный исполнитель для исследовательского прототипа: собирать предложения по источникам или формировать черновик редакторской задачи, которую человек проверит. | **Не включать в основной runtime сейчас.** Он дублировал бы роли/память/инструментальную оркестрацию и добавил ещё один контур доступа. Если пилотировать, то в sandbox, без shell на пользовательском Mac, с read-only доступом только к тестовым материалам, сетевым правилам и approvals в fail-closed режиме. Hermes сам поддерживает OpenRouter как провайдера — отдельная маршрутизация не нужна. |
@@ -27,9 +27,9 @@
 
 ## Как не дублировать OpenRouter / Avoiding OpenRouter duplication
 
-**RU:** Сохранить одну цепочку внутри продукта: Cause & Corse решает учебную задачу, собирает одобренный RAG-контекст, показывает источники и выбирает роль; текущий backend маршрутизирует конкретный inference в Ollama или существующий облачный provider/OpenRouter с теми же privacy/cost gates. Не помещать OpenRouter за Hermes, затем ещё за OpenClaw, и не вызывать ещё один консилиум после ответа ColiDev. Каждая дополнительная оболочка может добавить запросы, задержку, передачу того же контекста новому оператору и неочевидные расходы. Агентные coding tools оставить на стороне разработки, вне ответа ученику.
+**RU:** Сохранить одну цепочку внутри продукта: Cause & Course решает учебную задачу, собирает одобренный RAG-контекст, показывает источники и выбирает роль; текущий backend маршрутизирует конкретный inference в Ollama или существующий облачный provider/OpenRouter с теми же privacy/cost gates. Не помещать OpenRouter за Hermes, затем ещё за OpenClaw, и не вызывать ещё один консилиум после ответа ColiDev. Каждая дополнительная оболочка может добавить запросы, задержку, передачу того же контекста новому оператору и неочевидные расходы. Агентные coding tools оставить на стороне разработки, вне ответа ученику.
 
-**EN:** Keep one product path: Cause & Corse owns the learning task, approved RAG context, citations, and role selection; the existing backend routes each inference to Ollama or the already configured cloud provider/OpenRouter under the same privacy and cost gates. Do not nest OpenRouter behind Hermes and OpenClaw, then launch another council after ColiDev has answered. Each extra harness can add calls, latency, another party receiving the same context, and opaque cost. Keep coding agents on the development side, outside the learner’s answer path.
+**EN:** Keep one product path: Cause & Course owns the learning task, approved RAG context, citations, and role selection; the existing backend routes each inference to Ollama or the already configured cloud provider/OpenRouter under the same privacy and cost gates. Do not nest OpenRouter behind Hermes and OpenClaw, then launch another council after ColiDev has answered. Each extra harness can add calls, latency, another party receiving the same context, and opaque cost. Keep coding agents on the development side, outside the learner’s answer path.
 
 ## Последовательность внедрения / Safe sequence
 

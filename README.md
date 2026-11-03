@@ -1,10 +1,12 @@
-# ColiDev
+# Cause & Course
+
+The app was called ColiDev until the final beta; the repository, the `ColiDev.app` file and the internal identifiers keep that name so that progress and keys survive. / Раньше приложение называлось ColiDev; репозиторий, файл `ColiDev.app` и внутренние идентификаторы сохраняют это имя, чтобы прогресс и ключи не потерялись.
 
 **A native macOS learning platform with bilingual courses, interactive practice, and an AI tutor.**<br>
 **Нативная учебная платформа для macOS с двуязычными курсами, интерактивной практикой и ИИ-тьютором.**
 
-ColiDev combines structured courses, saved learning progress, subject-specific exercises, local course search, and configurable AI routes in one SwiftUI app with a local Python service.<br>
-ColiDev объединяет последовательные курсы, сохранение учебного прогресса, упражнения по предметам, локальный поиск по материалам и настраиваемые маршруты ИИ в одном приложении SwiftUI с локальным сервером на Python.
+Cause & Course combines structured courses, saved learning progress, subject-specific exercises, local course search, and configurable AI routes in one SwiftUI app with a local Python service.<br>
+Cause & Course объединяет последовательные курсы, сохранение учебного прогресса, упражнения по предметам, локальный поиск по материалам и настраиваемые маршруты ИИ в одном приложении SwiftUI с локальным сервером на Python.
 
 **Project status: early team prototype.** The app is not a finished, signed, or bug-free release. Feature status and known limits are described below and in the project plan.<br>
 **Статус проекта: ранний командный прототип.** Приложение ещё не является готовым, подписанным или полностью проверенным релизом. Статус функций и известные ограничения описаны ниже и в плане проекта.
@@ -55,8 +57,8 @@ These CI artifacts are unsigned test builds, not a published release. CI verifie
 <a id="project-profile"></a>
 ## Профиль проекта / Project profile
 
-**Кратко:** ColiDev — нативная учебная платформа для macOS, которая помогает изучать предметы от основ до углублённого и подходящего научного уровня с помощью курсов, предметной практики, визуальных объяснений и проверяемых рекомендаций.<br>
-**In brief:** ColiDev is a native macOS learning platform that helps learners move from foundations toward advanced and, where suitable, scientific study through courses, subject-specific practice, visual explanations, and evidence-based recommendations.
+**Кратко:** Cause & Course — нативная учебная платформа для macOS, которая помогает изучать предметы от основ до углублённого и подходящего научного уровня с помощью курсов, предметной практики, визуальных объяснений и проверяемых рекомендаций.<br>
+**In brief:** Cause & Course is a native macOS learning platform that helps learners move from foundations toward advanced and, where suitable, scientific study through courses, subject-specific practice, visual explanations, and evidence-based recommendations.
 
 ### Предметы и языки / Subjects and languages
 
@@ -88,8 +90,8 @@ These CI artifacts are unsigned test builds, not a published release. CI verifie
 
 ### Приватность, интеграции и дизайн / Privacy, integrations, and design
 
-**RU:** Учебный прогресс хранится локально, а сохранённые приложением macOS-учётные данные помещаются в Keychain. Obsidian подключается через локальный REST API. Для личного NotebookLM сейчас доступен ручной сценарий: экспорт урока в Markdown и импорт пользователем; прямой потребительский API и синхронизация не реализованы. При отправке контекста облачной модели интерфейс должен ясно сообщать об этом. Дизайн опирается на нативный SwiftUI и Apple Human Interface Guidelines: понятная иерархия, доступные элементы управления и восстановимые ошибки.<br>
-**EN:** Learning progress is stored locally, and macOS credentials saved by the app use Keychain. Obsidian connects through its local REST API. For personal NotebookLM, the supported workflow is manual: export a lesson to Markdown and import it yourself; a direct consumer API and synchronization are not implemented. The interface must clearly disclose when context is sent to a cloud model. The design follows native SwiftUI and Apple Human Interface Guidelines, with clear hierarchy, accessible controls, and recoverable errors.
+**RU:** Учебный прогресс хранится локально, а сохранённые приложением macOS-учётные данные помещаются в Keychain. Obsidian подключается через локальный REST API. Для личного Gemini Notebook сейчас доступен ручной сценарий: экспорт урока в Markdown и импорт пользователем; прямой потребительский API и синхронизация не реализованы. При отправке контекста облачной модели интерфейс должен ясно сообщать об этом. Дизайн опирается на нативный SwiftUI и Apple Human Interface Guidelines: понятная иерархия, доступные элементы управления и восстановимые ошибки.<br>
+**EN:** Learning progress is stored locally, and macOS credentials saved by the app use Keychain. Obsidian connects through its local REST API. For personal Gemini Notebook, the supported workflow is manual: export a lesson to Markdown and import it yourself; a direct consumer API and synchronization are not implemented. The interface must clearly disclose when context is sent to a cloud model. The design follows native SwiftUI and Apple Human Interface Guidelines, with clear hierarchy, accessible controls, and recoverable errors.
 
 ### Платформы / Platforms
 
@@ -175,8 +177,8 @@ Current implementation and limitations are listed below.
 - After a wrong answer in six introductory quizzes and 50 linked lesson checks, the app withholds the answer and explanation until the learner retries or asks to reveal them. A correct answer shows the explanation automatically. Feedback coverage for other interactive-practice formats still needs review.<br>
   После неправильного ответа в шести вводных тестах и 50 связанных проверках уроков приложение скрывает правильный ответ и объяснение, пока ученик не повторит попытку или сам не попросит показать разбор. После верного ответа объяснение появляется автоматически. Обратную связь в остальных форматах интерактивной практики ещё нужно проверить.
 
-- Obsidian search and note saving are optional and require its local REST API. NotebookLM currently uses a manual workflow: export a lesson as Markdown and import it yourself; direct API integration and synchronization are not implemented.<br>
-  Поиск в Obsidian и сохранение заметок доступны по желанию и требуют локального REST API. Сейчас NotebookLM используется вручную: экспортируйте урок в Markdown и импортируйте его самостоятельно; прямое подключение к API и синхронизация не реализованы.
+- Obsidian search and note saving are optional and require its local REST API. Gemini Notebook currently uses a manual workflow: export a lesson as Markdown and import it yourself; direct API integration and synchronization are not implemented.<br>
+  Поиск в Obsidian и сохранение заметок доступны по желанию и требуют локального REST API. Сейчас Gemini Notebook используется вручную: экспортируйте урок в Markdown и импортируйте его самостоятельно; прямое подключение к API и синхронизация не реализованы.
 
 - The physics starter includes interactive motion and measurement activities. One 3D prototype demonstrates one-dimensional motion under constant force; it is not a general-purpose physics simulator. Other starter visual exercises are 2D.<br>
   В начальном курсе физики есть интерактивные задания по движению и измерениям. Один 3D-прототип показывает одномерное движение под постоянной силой и не является универсальным физическим симулятором. Остальные начальные визуальные упражнения двумерные.
@@ -202,8 +204,8 @@ Current implementation and limitations are listed below.
   **EN:** Complete the Control Center with course-version editing, RAG inspection, diagnostics, and fuller data export and restore. Only part of this administration area exists today.
 - **RU:** Проверить приложение вручную на целевом Mac, включая интерфейс, клавиатурную доступность, Keychain и настоящий ответ выбранной модели. Успешная CI-сборка не заменяет эту приёмку.<br>
   **EN:** Review the app hands-on on the target Mac, including its interface, keyboard accessibility, Keychain, and a real reply from the selected model. A successful CI build does not replace this acceptance.
-- **RU:** Для NotebookLM пока остаётся ручной экспорт/импорт Markdown; прямую интеграцию добавлять только при наличии официально поддерживаемого способа. Синхронизация между устройствами также не реализована.<br>
-  **EN:** NotebookLM currently uses manual Markdown export and import; add direct integration only if an officially supported method is available. Cross-device synchronization is also not implemented.
+- **RU:** Для Gemini Notebook пока остаётся ручной экспорт/импорт Markdown; прямую интеграцию добавлять только при наличии официально поддерживаемого способа. Синхронизация между устройствами также не реализована.<br>
+  **EN:** Gemini Notebook currently uses manual Markdown export and import; add direct integration only if an officially supported method is available. Cross-device synchronization is also not implemented.
 - **RU:** После стабильного релиза macOS подготовить Windows-версию и сайт с подписанными установщиками, чтобы пользователям не приходилось скачивать исходники через GitHub.<br>
   **EN:** After a stable macOS release, prepare a Windows version and an installer website so users do not need to download source code through GitHub.
 
@@ -221,7 +223,7 @@ An approved-source check does not guarantee that every course statement is curre
 | FastAPI service | Сервис FastAPI | Tutor API, agent routing, course search, source status, and progress endpoints. | API тьютора, маршрутизация агентов, поиск по курсам, состояние источников и работа с прогрессом. |
 | Local knowledge | Локальная база знаний | Course files and retrieval index stored on the learner’s device. Retrieved Obsidian citations can include the note’s filesystem modification time when its plugin exposes it. | Файлы курсов и поисковый индекс на устройстве ученика. В найденных заметках Obsidian может показываться время изменения файла, если плагин предоставляет такие метаданные. |
 | Model providers | Провайдеры моделей | Ollama on-device and explicitly configured compatible cloud APIs. | Локальная Ollama и явно настроенные совместимые облачные API. |
-| External learning tools | Внешние учебные инструменты | Optional Obsidian bridge and Markdown export for NotebookLM. | Необязательный мост к Obsidian и экспорт Markdown для NotebookLM. |
+| External learning tools | Внешние учебные инструменты | Optional Obsidian bridge and Markdown export for Gemini Notebook. | Необязательный мост к Obsidian и экспорт Markdown для Gemini Notebook. |
 
 ## Try the tutor backend / Запустить сервер тьютора
 

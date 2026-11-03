@@ -189,7 +189,7 @@ struct AIPathView: View {
         let done = step.lessons.allSatisfy { store.isComplete(lessonID: $0.lessonID) }
         return HStack(alignment: .top, spacing: 12) {
             ZStack {
-                Circle().fill(done ? Color.green : Color.accentColor.opacity(0.2))
+                Circle().fill(done ? Color.green : AppPalette.accent.color.opacity(0.2))
                 if done {
                     Image(systemName: "checkmark").font(.callout.bold()).foregroundStyle(.white)
                 } else {
