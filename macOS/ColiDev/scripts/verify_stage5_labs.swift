@@ -31,6 +31,14 @@ enum Stage5LabsVerification {
         precondition(abs(confidence.reliability(temperature: 1.0).gap - 0.099) < 0.0006, "gap 1.0")
         precondition(abs(confidence.reliability(temperature: 2.0).gap - 0.031) < 0.0006, "gap 2.0")
         precondition(abs(confidence.reliability(temperature: 16.0).gap - 0.185) < 0.0006, "gap 16.0")
+        precondition(abs(TwoErrors.threshold(falseAlarm: 1, miss: 100) - 0.0099) < 0.0001 && TwoErrors.threshold(falseAlarm: 100, miss: 1) > 0.99, "Thresholds. / Пороги.")
+        let rare = TwoErrors.costs(probability: 0.01, falseAlarm: 1, miss: 100)
+        precondition(rare.protect < rare.ignore, "One per cent is enough here. / Здесь хватает одного процента.")
+        let fitted = MaskingFit.fit([(17, 0.2), (33, 0.45), (50, 0.6), (67, 0.825), (100, 1), (150, 1)])
+        precondition(fitted.threshold == 51 && fitted.slope == 12, "\(fitted)")
+        precondition(IndicatorJudgement.sum == 5 && IndicatorJudgement.lenient == 10 && IndicatorJudgement.strict == 0, "Ratings. / Оценки.")
+        precondition(IndicatorJudgement.large.count == 14, "Fourteen. / Четырнадцать.")
+        precondition(SelfReportRecording.rows.count == 12 && SelfReportRecording.rows.filter { $0.verdict == "claims" }.count == 2, "Reports. / Отчёты.")
         print("Stage 5 labs verified. / Тренажёры этапа 5 проверены.")
     }
 }

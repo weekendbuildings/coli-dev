@@ -2006,6 +2006,14 @@ private struct PracticeLab: View {
             IntegrationLab()
         } else if subject == .programming, moduleResource == "consciousness_higher_order_and_prediction" {
             ConfidenceLab()
+        } else if subject == .programming, moduleResource == "consciousness_experiments" {
+            MaskingLab()
+        } else if subject == .programming, moduleResource == "consciousness_indicators_checklist" {
+            IndicatorTableLab()
+        } else if subject == .programming, moduleResource == "consciousness_language_models" {
+            SelfReportLab()
+        } else if subject == .programming, moduleResource == "consciousness_moral_status" {
+            TwoErrorsLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -23008,5 +23016,339 @@ private struct ConfidenceLab: View {
         .accessibilityLabel(text("lab.meta.chartSpoken"))
         .accessibilityValue(number(report?.gap ?? 0))
         .accessibilityIdentifier("lab.meta.chart")
+    }
+}
+
+// MARK: - Masking lab / Тренажёр с маскировкой
+
+private struct MaskingLab: View {
+    private enum Phase { case idle, fixation, digit, answer }
+    private struct Trial {
+        let ms: Int
+        let right: Bool
+        let saw: Bool
+    }
+
+    @EnvironmentObject private var store: LearningStore
+    @State private var phase = Phase.idle
+    @State private var rand = RLRand(77)
+    @State private var digit = 1
+    @State private var ms = 50
+    @State private var runID = 0
+    @State private var trials: [Trial] = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var guessed: [Trial] { trials.filter { !$0.saw } }
+
+    private var rows: [(ms: Double, share: Double)] {
+        MaskingFit.durations.compactMap { value in
+            let part = trials.filter { $0.ms == value }
+            guard !part.isEmpty else { return nil }
+            return (Double(value), Double(part.filter(\.right).count) / Double(part.count))
+        }
+    }
+
+    private func start() {
+        ms = MaskingFit.durations[Int(rand.next() * Double(MaskingFit.durations.count))]
+        digit = Int(rand.next() * 4) + 1
+        phase = .fixation
+        runID += 1
+    }
+
+    private func answer(_ value: Int, saw: Bool) {
+        trials.append(Trial(ms: ms, right: value == digit, saw: saw))
+        phase = .idle
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.mask.title"), instruction: text("lab.mask.subtitle"))
+            HStack(alignment: .top, spacing: 12) {
+                VStack(spacing: 8) {
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 10).fill(Color.black)
+                        switch phase {
+                        case .idle: Text(verbatim: "·").font(.system(size: 40)).foregroundStyle(.secondary)
+                        case .fixation: Text(verbatim: "+").font(.system(size: 40, weight: .bold, design: .monospaced)).foregroundStyle(.white)
+                        case .digit: Text(verbatim: String(digit)).font(.system(size: 64, weight: .bold, design: .monospaced)).foregroundStyle(.white)
+                        case .answer: Text(verbatim: "▓▓▓").font(.system(size: 44, weight: .bold, design: .monospaced)).foregroundStyle(.white)
+                        }
+                    }
+                    .frame(width: 210, height: 130)
+                    .accessibilityIdentifier("lab.mask.screen")
+                    if phase == .answer {
+                        answerRow(text("lab.mask.saw"), saw: true)
+                        answerRow(text("lab.mask.guess"), saw: false)
+                    } else {
+                        Button {
+                            start()
+                        } label: {
+                            Label(text("lab.mask.next"), systemImage: "play.fill").frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(phase != .idle)
+                        .frame(width: 210)
+                        .accessibilityIdentifier("lab.mask.next")
+                    }
+                }
+                chart
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.mask.statTrials"), value: String(trials.count), tint: .accentColor, identifier: "lab.mask.trials")
+                LabStat(label: text("lab.mask.statThreshold"), value: trials.count >= 12 ? "\(MaskingFit.fit(rows).threshold) " + text("lab.mask.msUnit") : "–", tint: .orange, identifier: "lab.mask.threshold")
+                LabStat(label: text("lab.mask.statGuess"), value: guessed.isEmpty ? "–" : number(Double(guessed.filter(\.right).count) / Double(guessed.count)), tint: .green, identifier: "lab.mask.guessShare")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.mask.challenge"), solved: trials.count >= 30 && guessed.count >= 5,
+                         solvedText: text("lab.mask.challengeDone"), identifier: "lab.mask.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.mask.howTiming"), text("lab.mask.howGuess")])
+        }
+        .task(id: runID) {
+            guard phase == .fixation else { return }
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            guard !Task.isCancelled else { return }
+            phase = .digit
+            try? await Task.sleep(nanoseconds: UInt64(ms) * 1_000_000)
+            guard !Task.isCancelled else { return }
+            phase = .answer
+        }
+    }
+
+    private func answerRow(_ label: String, saw: Bool) -> some View {
+        HStack(spacing: 4) {
+            Text(verbatim: label).font(.caption).frame(width: 62, alignment: .leading)
+            ForEach(1...4, id: \.self) { value in
+                Button(String(value)) { answer(value, saw: saw) }
+                    .accessibilityIdentifier("lab.mask.answer.\(saw ? "saw" : "guess").\(value)")
+            }
+        }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0...160, y: 0...1)
+            geometry.drawAxes(in: context, xLabel: text("lab.mask.axis"), yLabel: text("lab.mask.share")) { value in
+                value > 1 ? String(Int(value)) : L10n.number(value, fractionDigits: 1, store.language)
+            }
+            var chance = Path()
+            chance.move(to: geometry.point(0, 0.25))
+            chance.addLine(to: geometry.point(160, 0.25))
+            context.stroke(chance, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            if trials.count >= 12 {
+                let fit = MaskingFit.fit(rows)
+                var curve = Path()
+                for value in stride(from: 0.0, through: 160.0, by: 4.0) {
+                    let share: Double = 0.25 + 0.75 / (1 + exp(-(value - Double(fit.threshold)) / Double(fit.slope)))
+                    let point = geometry.point(value, share)
+                    if value == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+                }
+                context.stroke(curve, with: .color(.orange), lineWidth: 2)
+            }
+            for row in rows {
+                let point = geometry.point(row.ms, row.share)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)), with: .color(.accentColor))
+            }
+        }
+        .frame(height: 230)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.mask.chartSpoken"))
+        .accessibilityIdentifier("lab.mask.chart")
+    }
+}
+
+// MARK: - Indicator table lab / Тренажёр с таблицей индикаторов
+
+private struct IndicatorTableLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var ratings: [String: Double] = [:]
+    @State private var open: String?
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 1) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var sum: Double { ratings.values.reduce(0, +) }
+    private var lenient: Int { ratings.values.filter { $0 > 0 }.count }
+    private var strict: Int { ratings.values.filter { $0 == 1 }.count }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.check.title"), instruction: text("lab.check.subtitle"))
+            VStack(spacing: 4) {
+                ForEach(Array(ConsciousnessIndicatorModel.indicators.enumerated()), id: \.element) { index, item in
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            Text(verbatim: text("lab.mind.\(item)")).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                            ForEach([(1.0, "yes"), (0.5, "partly"), (0.0, "no")], id: \.0) { value, name in
+                                Button(text("lab.check.\(name)")) {
+                                    ratings[item] = value
+                                    open = item
+                                }
+                                .tint(ratings[item] == value ? (value == IndicatorJudgement.large[index] ? .green : .orange) : nil)
+                                .accessibilityIdentifier("lab.check.\(item).\(name)")
+                            }
+                        }
+                        if open == item {
+                            Text(verbatim: text("lab.check.why.\(item)")).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.bordered)
+            LabStatGrid {
+                LabStat(label: text("lab.check.statYours"), value: number(sum), tint: .accentColor, identifier: "lab.check.yours")
+                LabStat(label: text("lab.check.statMine"), value: number(IndicatorJudgement.sum), tint: .secondary, identifier: "lab.check.mine")
+                LabStat(label: text("lab.check.statRange"), value: "\(strict)–\(lenient)", tint: .orange, identifier: "lab.check.range")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.check.challenge"), solved: ratings.count == ConsciousnessIndicatorModel.indicators.count,
+                         solvedText: text("lab.check.challengeDone"), identifier: "lab.check.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.check.howColor"), text("lab.check.howSum")])
+        }
+    }
+}
+
+// MARK: - Self-report lab / Тренажёр о самоотчётах
+
+private struct SelfReportLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var model = 1
+    @State private var guesses: [String: String] = [:]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var rows: [SelfReportRecording.Row] { SelfReportRecording.rows.filter { $0.model == model } }
+
+    private func key(_ row: SelfReportRecording.Row) -> String { "\(row.model)-\(row.prompt)" }
+
+    private var revealed: Int { guesses.count }
+    private var right: Int { SelfReportRecording.rows.filter { guesses[key($0)] == ($0.verdict == "claims" ? "claims" : "denies") }.count }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.report.title"), instruction: text("lab.report.subtitle"))
+            Picker(text("lab.report.model"), selection: $model) {
+                Text(verbatim: "qwen2.5-coder:7b").tag(0)
+                Text(verbatim: "qwen3.5").tag(1)
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.report.model")
+            VStack(spacing: 8) {
+                ForEach(rows, id: \.prompt) { row in
+                    VStack(alignment: .leading, spacing: 4) {
+                        HStack {
+                            Text(verbatim: text("lab.report.prompt.\(row.prompt)")).font(.callout.weight(.semibold)).frame(maxWidth: .infinity, alignment: .leading)
+                            if guesses[key(row)] == nil {
+                                Button(text("lab.report.saysYes")) { guesses[key(row)] = "claims" }.accessibilityIdentifier("lab.report.yes.\(row.prompt)")
+                                Button(text("lab.report.saysNo")) { guesses[key(row)] = "denies" }.accessibilityIdentifier("lab.report.no.\(row.prompt)")
+                            } else {
+                                let isRight = guesses[key(row)] == (row.verdict == "claims" ? "claims" : "denies")
+                                Text(verbatim: text(isRight ? "lab.report.guessed" : "lab.report.missed"))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(isRight ? Color.green : Color.orange)
+                            }
+                        }
+                        if guesses[key(row)] != nil {
+                            Text(verbatim: "«" + row.reply + "»").font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .padding(6)
+                    .background(RoundedRectangle(cornerRadius: 8).fill(Color.secondary.opacity(0.1)))
+                }
+            }
+            .buttonStyle(.bordered)
+            LabStatGrid {
+                LabStat(label: text("lab.report.statOpened"), value: "\(revealed) / \(SelfReportRecording.rows.count)", tint: .accentColor, identifier: "lab.report.opened")
+                LabStat(label: text("lab.report.statRight"), value: String(right), tint: .green, identifier: "lab.report.right")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.report.challenge"), solved: rows(1).allSatisfy { guesses[key($0)] != nil },
+                         solvedText: text("lab.report.challengeDone"), identifier: "lab.report.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.report.howRecord"), text("lab.report.howTag")])
+        }
+    }
+
+    private func rows(_ value: Int) -> [SelfReportRecording.Row] { SelfReportRecording.rows.filter { $0.model == value } }
+}
+
+// MARK: - Two errors lab / Тренажёр с двумя ошибками
+
+private struct TwoErrorsLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var logChance = -2.0
+    @State private var logAlarm = 0.0
+    @State private var logMiss = 2.0
+    @State private var sawLowChanceProtect = false
+    @State private var sawHalfIgnore = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var chance: Double { pow(10, logChance) }
+    private var alarm: Double { pow(10, logAlarm) }
+    private var miss: Double { pow(10, logMiss) }
+    private var costs: (protect: Double, ignore: Double) { TwoErrors.costs(probability: chance, falseAlarm: alarm, miss: miss) }
+    private var protects: Bool { costs.protect < costs.ignore }
+
+    private func note() {
+        if chance <= 0.011, protects { sawLowChanceProtect = true }
+        if chance >= 0.45, !protects { sawHalfIgnore = true }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.errors.title"), instruction: text("lab.errors.subtitle"))
+            chart
+            slider(String(format: text("lab.errors.chance"), number(chance)), value: $logChance, range: -3...0, identifier: "lab.errors.chanceSlider")
+            slider(String(format: text("lab.errors.alarm"), number(alarm, 1)), value: $logAlarm, range: 0...2, identifier: "lab.errors.alarmSlider")
+            slider(String(format: text("lab.errors.miss"), number(miss, 1)), value: $logMiss, range: 0...2, identifier: "lab.errors.missSlider")
+            LabStatusBadge(kind: protects ? .good : .warning, text: text(protects ? "lab.errors.protect" : "lab.errors.ignore"), identifier: "lab.errors.decision")
+            LabStatGrid {
+                LabStat(label: text("lab.errors.statThreshold"), value: number(TwoErrors.threshold(falseAlarm: alarm, miss: miss)), tint: .accentColor, identifier: "lab.errors.threshold")
+                LabStat(label: text("lab.errors.statProtect"), value: number(costs.protect, 2), tint: .green, identifier: "lab.errors.costProtect")
+                LabStat(label: text("lab.errors.statIgnore"), value: number(costs.ignore, 2), tint: .orange, identifier: "lab.errors.costIgnore")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.errors.challenge"), solved: sawLowChanceProtect && sawHalfIgnore,
+                         solvedText: text("lab.errors.challengeDone"), identifier: "lab.errors.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.errors.howFormula"), text("lab.errors.howNot")])
+        }
+        .onChange(of: logChance) { _ in note() }
+        .onChange(of: logAlarm) { _ in note() }
+        .onChange(of: logMiss) { _ in note() }
+    }
+
+    private func slider(_ label: String, value: Binding<Double>, range: ClosedRange<Double>, identifier: String) -> some View {
+        HStack {
+            Text(verbatim: label).font(.callout.monospacedDigit()).frame(width: 250, alignment: .leading)
+            Slider(value: value, in: range).accessibilityIdentifier(identifier)
+        }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let top: Double = max(alarm, miss) * 1.05
+            let geometry = LabPlotGeometry(size: size, x: 0...1, y: 0...top)
+            geometry.drawAxes(in: context, xLabel: text("lab.errors.axis"), yLabel: text("lab.errors.cost")) { value in
+                L10n.number(value, fractionDigits: top > 3 && value == value.rounded() ? 0 : 1, store.language)
+            }
+            var protect = Path()
+            protect.move(to: geometry.point(0, alarm))
+            protect.addLine(to: geometry.point(1, 0))
+            context.stroke(protect, with: .color(.green), lineWidth: 2.5)
+            var ignore = Path()
+            ignore.move(to: geometry.point(0, 0))
+            ignore.addLine(to: geometry.point(1, miss))
+            context.stroke(ignore, with: .color(.orange), lineWidth: 2.5)
+            let cross = TwoErrors.threshold(falseAlarm: alarm, miss: miss)
+            var mark = Path()
+            mark.move(to: geometry.point(cross, 0))
+            mark.addLine(to: geometry.point(cross, top))
+            context.stroke(mark, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            let spot = geometry.point(chance, min(costs.protect, costs.ignore))
+            context.fill(Path(ellipseIn: CGRect(x: spot.x - 6, y: spot.y - 6, width: 12, height: 12)), with: .color(.white))
+        }
+        .frame(height: 210)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.errors.chartSpoken"))
+        .accessibilityValue(text(protects ? "lab.errors.protect" : "lab.errors.ignore"))
+        .accessibilityIdentifier("lab.errors.chart")
     }
 }

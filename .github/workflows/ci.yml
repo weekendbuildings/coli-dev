@@ -543,7 +543,7 @@ jobs:
 
       - name: Verify stage 5 labs
         run: |
-          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage5Models.swift \
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage5Models.swift macOS/ColiDev/App/Stage5Recordings.swift \
             macOS/ColiDev/scripts/verify_stage5_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage5-labs"
           "$RUNNER_TEMP/verify-stage5-labs"
 

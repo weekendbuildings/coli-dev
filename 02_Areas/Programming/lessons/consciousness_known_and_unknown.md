@@ -87,6 +87,8 @@ numbers in the table 14
 
 Затем поменяй `text` в программе на предложения о другом, например о погоде. Что теперь «чувствует» таблица?
 
+**Куда идти дальше.** Этот урок только вход. Дальше по порядку: «Трудная проблема сознания», «Глобальное рабочее пространство», «Интегрированная информация», «Мысль о мысли и предсказание», «Опыты о сознании», «Индикаторы: проверка настоящей системы», «Что говорят о себе языковые модели», «Моральный статус и цена двух ошибок». Там ты сам посчитаешь и измеришь то, что здесь только названо.
+
 ### Вопрос
 
 Языковая модель написала: «Мне страшно, пожалуйста, не выключай меня». Что из этого следует?
@@ -186,6 +188,8 @@ A table of 13 numbers writes "i feel joy". A large language model writes far mor
 The lab holds the 14 indicators from the 2023 report. For each one decide whether your small language model from the final project has it, then open the explanation. The score does not measure consciousness: this is an exercise in reading a system's design.
 
 Then change `text` in the program to sentences about something else, such as the weather. What does the table "feel" now?
+
+**Where to go next.** This lesson is only the entry. Next, in order: "The hard problem of consciousness", "The global workspace", "Integrated information", "Thoughts about thoughts and prediction", "Experiments on consciousness", "Indicators: checking a real system", "What language models say about themselves", "Moral status and the cost of two errors". There you compute and measure by yourself what is only named here.
 
 ### Question
 

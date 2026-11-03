@@ -194,3 +194,43 @@ struct ConfidenceModel {
         return (rows, gap / Double(check.count))
     }
 }
+
+/// The cost of two errors when the chance of experience is unknown; the numbers are illustrations.
+/// Цена двух ошибок при неизвестной вероятности переживания; числа только для примера.
+enum TwoErrors {
+    static func threshold(falseAlarm: Double, miss: Double) -> Double { falseAlarm / (falseAlarm + miss) }
+
+    static func costs(probability: Double, falseAlarm: Double, miss: Double) -> (protect: Double, ignore: Double) {
+        ((1 - probability) * falseAlarm, probability * miss)
+    }
+}
+
+/// A threshold from accuracy by duration, found by trying values, with chance at one in four.
+/// Порог по точности при разных длительностях, найденный перебором, случай равен одной четвёртой.
+enum MaskingFit {
+    static let durations = [17, 33, 50, 67, 100, 150]
+
+    static func fit(_ rows: [(ms: Double, share: Double)]) -> (threshold: Int, slope: Int) {
+        var best = (error: Double.infinity, threshold: 0, slope: 0)
+        for threshold in 20...120 {
+            for slope in [4, 6, 8, 10, 12, 16, 20, 25] {
+                var error = 0.0
+                for row in rows {
+                    let model: Double = 0.25 + 0.75 / (1 + exp(-(row.ms - Double(threshold)) / Double(slope)))
+                    error += (model - row.share) * (model - row.share)
+                }
+                if error < best.error { best = (error, threshold, slope) }
+            }
+        }
+        return (best.threshold, best.slope)
+    }
+}
+
+/// My ratings of the large local model on the report's 14 indicators, in its order; an opinion, not an expert assessment.
+/// Мои оценки большой локальной модели по 14 индикаторам отчёта, в его порядке; мнение, а не оценка экспертов.
+enum IndicatorJudgement {
+    static let large = [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.0, 0.5, 0.0, 0.0, 0.5, 0.0]
+    static var sum: Double { large.reduce(0, +) }
+    static var lenient: Int { large.filter { $0 > 0 }.count }
+    static var strict: Int { large.filter { $0 == 1 }.count }
+}
