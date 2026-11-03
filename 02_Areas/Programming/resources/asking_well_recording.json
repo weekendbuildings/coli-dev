@@ -1,0 +1,855 @@
+{
+"calls": {
+"f21062af6291d7b9736c8ca0d08ff0d4350a46f6137e3f5d48da3598e6d734dd": {
+"response": "Анна заплатила 750 рублей за книги.",
+"prompt_eval_count": 50,
+"eval_count": 15,
+"done_reason": "stop"
+},
+"7a02f50b06986ccbb67833828fd81e1879c04d10048ddd635b9f9d096d958da1": {
+"response": "```json\n{\"name\": \"Анна\", \"count\": 3, \"price\": 250}\n```",
+"prompt_eval_count": 101,
+"eval_count": 27,
+"done_reason": "stop"
+},
+"cabe4d2dea4790d2d0a7401e6553a660f279c319f251bf21a87bca4b2a0aea82": {
+"response": "Тимур заплатил 480 рублей за ручки.",
+"prompt_eval_count": 57,
+"eval_count": 17,
+"done_reason": "stop"
+},
+"95382897df67687b7488a469ea101f120217afe2cc0ebd981dcf9d04926aee79": {
+"response": "Конечно, я могу помочь с этим. Вот ответ на сообщение Марии:\n\n\"Здравствуйте, Мария! \n\nВот ваш заказ:\n\n5 тетрадей по 60 рублей каждая\nИтого: 300 рублей\n\nСпасибо за покупку! Если у вас есть еще вопросы или нужна помощь",
+"prompt_eval_count": 57,
+"eval_count": 80,
+"done_reason": "length"
+},
+"b10ddcf06c7f244ed6136221d3f81cf2e8d818ef568d2aa3ed0ee1c078f14c39": {
+"response": "Цена 3000 за две штуки.",
+"prompt_eval_count": 59,
+"eval_count": 14,
+"done_reason": "stop"
+},
+"0fb87b71326904ae8af3708e8b3edc272b5b297676b5d23045e07f475d6f0eeb": {
+"response": "Заказ от Лейлы: 7 карандашей, 15 рублей за один. Общая стоимость заказа: 7 * 15 = 105 рублей.",
+"prompt_eval_count": 58,
+"eval_count": 43,
+"done_reason": "stop"
+},
+"5e8db32a150ff9e8ab05bef35fa0f0538d52604e3f5964cd2c9081cfc8b3ffaa": {
+"response": "Сергей заплатит 300 рублей за десяток яблок.",
+"prompt_eval_count": 50,
+"eval_count": 20,
+"done_reason": "stop"
+},
+"b8e4d8333aa13e22c03c3e5f05fa2a7dcf4aef251021b21b1cbc31806d5d9014": {
+"response": "Ответ: 1400 рублей",
+"prompt_eval_count": 57,
+"eval_count": 10,
+"done_reason": "stop"
+},
+"60e74224185ebe40f67ebeef5c9eb011fb0d1510e6cd45258f50a57a24d521d5": {
+"response": "Ирина, 2 рюкзака, 2300 рублей штука.",
+"prompt_eval_count": 59,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"cbba0221184bc0d0984872bbc06b7133c5bdb7bb09fbc552a44b847ed432451d": {
+"response": "Азиз просил купить 6 лампочек по 120 рублей.",
+"prompt_eval_count": 56,
+"eval_count": 20,
+"done_reason": "stop"
+},
+"968ad3fdb42a26727f75753442e5359006d81da3e42a52f006f92949eb85ff62": {
+"response": "Вера заплатила 3 * 90 = 270 рублей за муку.",
+"prompt_eval_count": 57,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"260388853bfa29490132fe44c72296fad1a3e60cb9fb38693ca387f3c490f0f2": {
+"response": "Ответ: 100 рублей.",
+"prompt_eval_count": 51,
+"eval_count": 10,
+"done_reason": "stop"
+},
+"1f36eb1704f36ab37d7081cf832e953f314024a4a77c62ab6a4260fe7a751e57": {
+"response": "Для Камиллы 1 ноутбук за 54000 рублей.",
+"prompt_eval_count": 56,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"34b7ab9bbb648b500f8c67a4dc7623b23c54e3e65078eb194a95c18669f29da5": {
+"response": "```json\n{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}\n```",
+"prompt_eval_count": 108,
+"eval_count": 27,
+"done_reason": "stop"
+},
+"4b9ef5ced73f55f8de7cabbb19360a6e0a3896f62b25fb04db76d02e499b5177": {
+"response": "```json\n{\"name\": \"Мария\", \"count\": 5, \"price\": 60}\n```",
+"prompt_eval_count": 108,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"b9e8293b2f33bda37d33305f44e26dfc8e6f7aba40817198d2fd9542750a2830": {
+"response": "```json\n{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}\n```",
+"prompt_eval_count": 110,
+"eval_count": 27,
+"done_reason": "stop"
+},
+"d8ee5662869d24ad5f7f56a790e6a90ba7d1a24bd6c70fe74acf73cd3ec81b88": {
+"response": "```json\n{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}\n```",
+"prompt_eval_count": 109,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"6e4133a28730c612c247610d0e4d8e2d57c7331927ad3b959171df424e19a1d0": {
+"response": "```json\n{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}\n```",
+"prompt_eval_count": 101,
+"eval_count": 28,
+"done_reason": "stop"
+},
+"f9cd3d00530092ab754bc3c325380cb131847d403c683a437e90222b8edf2136": {
+"response": "```json\n{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}\n```",
+"prompt_eval_count": 108,
+"eval_count": 28,
+"done_reason": "stop"
+},
+"93b8afbf07f2ac111998b79bb81f1c2bb0d1504b76190a9393c973ab7294a774": {
+"response": "```json\n{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}\n```",
+"prompt_eval_count": 110,
+"eval_count": 28,
+"done_reason": "stop"
+},
+"38af226aa85cbffb9c2a4faccff1e63dd070f25248445fee59e857abdd0cb351": {
+"response": "```json\n{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}\n```",
+"prompt_eval_count": 107,
+"eval_count": 27,
+"done_reason": "stop"
+},
+"38c860d9d9a54d55c0c02fbc8e554b7777cd2db97343a113791e205c7d4298a6": {
+"response": "```json\n{\"name\": \"Вера\", \"count\": 3, \"price\": 90}\n```",
+"prompt_eval_count": 108,
+"eval_count": 25,
+"done_reason": "stop"
+},
+"ef254fc51cf74c768b73404181de3877ff87a546cfb8a42f4268210246f5d96e": {
+"response": "```json\n{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}\n```",
+"prompt_eval_count": 102,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"475bfc84fc44355b4617961cfd665bff4f72dc6924987c3556f164fb1ef16859": {
+"response": "```json\n{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}\n```",
+"prompt_eval_count": 107,
+"eval_count": 30,
+"done_reason": "stop"
+},
+"2d5d0b9f6fdebe390c3afb2c22f9cbc27e96bd28b7cd74cef63282b181dcbd8f": {
+"response": "{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"prompt_eval_count": 143,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"8d1891be77c7473c45ef19c09e7c9438c9dca0feb032374199569e73f7598fea": {
+"response": "{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"prompt_eval_count": 150,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"5219acc1f100ac08e462284845526260e190883cac71b14312e9fd54dfa9b112": {
+"response": "{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"prompt_eval_count": 150,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"d67282a64a04c1b1fdd1f7a1901f8c2c5c1124fc125a373ab5df57ef39e0a919": {
+"response": "{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"prompt_eval_count": 152,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"c29a0d18ff4fe9d2d30591a3f83eb9e4b0493b688fe1d767d0c93fbbddb7d169": {
+"response": "{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"prompt_eval_count": 151,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"8c800ad3188a38d848d53df4e67d21ca2c1d4491e63c2118c2a77dec65062b63": {
+"response": "{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"prompt_eval_count": 143,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"23db1c213348df34c12f43b1b4dbf1cd714e929f869371abb5d6bddbbdb5fecc": {
+"response": "{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"prompt_eval_count": 150,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"eee1fa19ce2ce09beb26de9a8251369436f168ec9615e94655ae9bf75f48adb0": {
+"response": "{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"prompt_eval_count": 152,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"f6018b45e1853bcb5b34acb1351b4798c47d214439b286828de08dc8cc84e790": {
+"response": "{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"prompt_eval_count": 149,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"2fde28da76f627a0b23f033cd07b8ffb4b9fa4408d47f993e9c243dac3b74a8e": {
+"response": "{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"prompt_eval_count": 150,
+"eval_count": 21,
+"done_reason": "stop"
+},
+"86e33bb97999484236b01e18a12c8c34be4a5bde8d9c07bab75a4eaab264e048": {
+"response": "{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"prompt_eval_count": 144,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"56403bf61e3c5d4073a76ea0c516c517ba54e542e37696d1b130de4ab5cc1dd6": {
+"response": "{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}",
+"prompt_eval_count": 149,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"7da9be58908449f0745e1b70b0e583a1500ac58d549076b784f551e58d8d64b5": {
+"response": "{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"prompt_eval_count": 194,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"25bb4a53c163d0a1a18ce8105c31141610d71700ab9547673cbea7c097c38e3e": {
+"response": "{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"prompt_eval_count": 201,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"8282d553980d3bee4dd4f659531fcdd0c96a78c1132216410e976cef794c8b26": {
+"response": "{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"prompt_eval_count": 201,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"79c4dd59740899716035a5226f45fdde9b076c93554d7eed27980e54fff74219": {
+"response": "{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"prompt_eval_count": 203,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"023256d9150c81dafdeff43d64a9dbc64d144d4926c4ef48187810703d1a517d": {
+"response": "{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"prompt_eval_count": 202,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"9dad47acdedbcfd207dbb5741e3d18349da5a2f5db5b4beb06050116b84f9e60": {
+"response": "{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"prompt_eval_count": 194,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"3437af1f80e4e7e8d17600dea8421b11a615669a407c5c094f4faa386140456c": {
+"response": "{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"prompt_eval_count": 201,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"f6b63d84a245b626b02757bc821209c818ecb38221d1e24005365ea52ed05a2e": {
+"response": "{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"prompt_eval_count": 203,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"d8de09223ca1cab0b8d3cdffbb01fda4e59ac02f883195ab4d4cc5a8a2f97b3f": {
+"response": "{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"prompt_eval_count": 200,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"09888f1b2f28222f0d561098b9caee13301dd340953d6923c4d6e914531d8e3e": {
+"response": "{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"prompt_eval_count": 201,
+"eval_count": 21,
+"done_reason": "stop"
+},
+"1c875866faff3c7b01fafce1dc121f6e6dd617a4aca75a007281b8ba0bd13d0b": {
+"response": "{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"prompt_eval_count": 195,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"17140f880a6c3f5ddcfab9e1068294ebeca736274515033013d6373b0ea20d92": {
+"response": "{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}",
+"prompt_eval_count": 200,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"1d45707dce419ede54c3d6d1ce0346462f3e0ce4ec58ffca37afefc0eb651b70": {
+"response": "{ \"name\": \"Анна\", \"count\": 3, \"price\": 250 }",
+"prompt_eval_count": 50,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"5e905e8742a33868a90866c7e8e6d81d0876e91b7d68d30c6e8c33d7d9885c4a": {
+"response": "{ \"name\": \"Тимур купил 12 ручек, каждая стоит 40 рублей.\", \"count\": 12, \"price\": 40 }",
+"prompt_eval_count": 57,
+"eval_count": 41,
+"done_reason": "stop"
+},
+"ad6d5b9ca0d0d067d1de3f132a9918d58ee7b79c036edd7a8e2091e730686f09": {
+"response": "{ \"name\": \"Мария\", \"count\": 5, \"price\": 60 }",
+"prompt_eval_count": 57,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"9bc9d39f4700d30f4e19576b72b1311ad8b0c8641952b85046eee5f6d2f28aa2": {
+"response": "{ \"name\": \"Олег\", \"count\": 2, \"price\": 1500 }",
+"prompt_eval_count": 59,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"ff8f517a47ae0a57bee1edf868d1123a54e925db1b49906dae0bbcf4f2546ebb": {
+"response": "{ \"name\": \"Лейла\", \"count\": 7, \"price\": 15 }",
+"prompt_eval_count": 58,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"67e48793ea975a108f72096f3ef8e2b18eb24098d3bf94d793f7853391b2ac2b": {
+"response": "{ \"name\": \"Сергей берёт десяток яблок по 30 рублей.\", \"count\": 10, \"price\": 30 }",
+"prompt_eval_count": 50,
+"eval_count": 37,
+"done_reason": "stop"
+},
+"bf4442d43c51037b492b04322e235d12a75c08909c43fef03b229f93f5dbd1e0": {
+"response": "{ \"name\": \"Дилшод\", \"count\": 4, \"price\": 350 }",
+"prompt_eval_count": 57,
+"eval_count": 25,
+"done_reason": "stop"
+},
+"0cbd93772e7df4a9394cf7a8946c607c0cf4f326a252bd322a01cf87064bc39e": {
+"response": "{ \"name\": \"Ирина\", \"count\": 2, \"price\": 2300 }",
+"prompt_eval_count": 59,
+"eval_count": 25,
+"done_reason": "stop"
+},
+"ef618bc40159efaa8808e0f602219745fdbf7eb56399bc04e8afd479ee4c4f79": {
+"response": "{ \"name\": \"Азиз\", \"count\": 6, \"price\": 120 }",
+"prompt_eval_count": 56,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"01563e33fa58e3a4da15264c285f8e436f7dc882b14cf575f3f87870859e3ffb": {
+"response": "{ \"name\": \"Вера\", \"count\": 3, \"price\": 90 }",
+"prompt_eval_count": 57,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"1213c44d4a06710778a9976b4223a6679f1a00be06da9470546463451206b927": {
+"response": "{ \"name\": \"Пётр\", \"count\": 20, \"price\": 5 }",
+"prompt_eval_count": 51,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"7790caf425a4a5cca39ae87a529162c46048a7d9cbe3bfab7cf24b45a51820d4": {
+"response": "{ \"name\": \"Камилла\", \"count\": 1, \"price\": 54000 }",
+"prompt_eval_count": 56,
+"eval_count": 27,
+"done_reason": "stop"
+},
+"629e81932345e0a8b9abff9dc63fd1a3fb84390d79dfa0327463f44aeb42fd59": {
+"response": "{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"prompt_eval_count": 101,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"19c657905ba34767879367b6ecea59663ed40888177402999b2bd77874eabef5": {
+"response": "{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"prompt_eval_count": 108,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"223047323c559b9521b7ab3390307a7ec0bae7880211befd85db3467150244bd": {
+"response": "{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"prompt_eval_count": 108,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"62fa308359bef99a0c2244780864ef6670f186b19ed1a26c40e99c4fce62bf8c": {
+"response": "{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"prompt_eval_count": 110,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"d10fdb75a12813f338f3fd1a73eb4e471b2f575acd117e12cb11f97bab850e6d": {
+"response": "{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"prompt_eval_count": 109,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"1ab7c19f8157872e937ebc7b649d89ca3ed11a06f40c71d3edac8a20211a68a8": {
+"response": "{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"prompt_eval_count": 101,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"1f7554725072346fa71e4a8151ef53f7fd50feb5d7b52a242ad807b561dc26de": {
+"response": "{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"prompt_eval_count": 108,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"582a4afc5cbf3905ad8a127dbf063f1acad76398a3c21d88c2c359c2fdb73b70": {
+"response": "{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"prompt_eval_count": 110,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"bc22c11aaac1cdd5ba949a39d0729bda3621fc2ee8793d91b4005875b461250c": {
+"response": "{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"prompt_eval_count": 107,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"0cee9f5aa192216c165041e37d3b1295953ca736f90143e49f5034c38f2f334f": {
+"response": "{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"prompt_eval_count": 108,
+"eval_count": 21,
+"done_reason": "stop"
+},
+"216da6dca3514cb9ff9d11b7f6d2869e74fb5b84641498d45735dfb316c5a2d6": {
+"response": "{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"prompt_eval_count": 102,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"f261c68e85daf69cf86a133c2cd768fecf9ce12c94af6fad83d8c7fa0fc2864c": {
+"response": "{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}",
+"prompt_eval_count": 107,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"1749b7d849aeb35b2b74c7404c00c0497074930e202aef9251e903f8dde5c577": {
+"response": "{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"prompt_eval_count": 143,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"e2298d34deec9e54df946062adfc0150ef7cb84274adfa1fb4e15b35a91efc03": {
+"response": "{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"prompt_eval_count": 150,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"b703fe8ab374c920bd7ed29e84fc4fa29de6b913c14c915c30bbd577b36ca836": {
+"response": "{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"prompt_eval_count": 150,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"f081150bc8b00afd9dbcaa735f7033a6e1d865062a855aa8cd13dbc61a9e7384": {
+"response": "{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"prompt_eval_count": 152,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"e9f8674359b46461c4098c1e087a50dd80241edc10953ba9864b4ef9edbd2671": {
+"response": "{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"prompt_eval_count": 151,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"97c41cd50e8d19e68ecb79f799f9f3bd566da9dbf8e90d8dd7a1f88a7f773057": {
+"response": "{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"prompt_eval_count": 143,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"4a4692e22c6f0660dcd42253889aac3d4539913291e9b38a7d3c7f2e226d7319": {
+"response": "{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"prompt_eval_count": 150,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"28a53b938c7c5d95e544403b201bbf76669c06ab8befc47c5cddfdd0123cff1a": {
+"response": "{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"prompt_eval_count": 152,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"aa580c875157aeb218004bdaeaa72e76a334ad4c361a34cd899e6236cc45f617": {
+"response": "{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"prompt_eval_count": 149,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"f0075a33bebf83eb6e1c36a6d66ee0dbb5e16b6d97ef2a4251107c120e152501": {
+"response": "{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"prompt_eval_count": 150,
+"eval_count": 21,
+"done_reason": "stop"
+},
+"a10df9d425a7cc5dab4829364bbe0fa4f4963f2e6646f034e11799c26fc7a4fd": {
+"response": "{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"prompt_eval_count": 144,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"397b3d26750ed12c2d5eaebebf11722f0d8ce3c806377ca0e014016c20b312bf": {
+"response": "{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}",
+"prompt_eval_count": 149,
+"eval_count": 26,
+"done_reason": "stop"
+},
+"5ee7e7e78bfc5d601a327ff14928658f654833c897822c17af08b6edfbb4efc2": {
+"response": "{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"prompt_eval_count": 194,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"c0dffdc75854ea37c03bd0e50b38965e610c502de4f3968766abe13a5cbb2411": {
+"response": "{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"prompt_eval_count": 201,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"d940cfd9baad9a18201b3174e65813f76cf373aa0ce565d745c74ca6004a7d81": {
+"response": "{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"prompt_eval_count": 201,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"e1f4174eb176b8cc730d6f65a5d5cfa39868e60525db1b9dc6cb978c4f92d23d": {
+"response": "{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"prompt_eval_count": 203,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"fc81bc8a145d87d41a7bdb4c44f7bc348744b2ca222a6026e2c4e79b6171bf68": {
+"response": "{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"prompt_eval_count": 202,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"cc54f82a3fd3b88e57dfaeb6e18d07410a6b6049ef6b21a7600111644664853c": {
+"response": "{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"prompt_eval_count": 194,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"071e235921cad931283b0173c459a2f38e90bbc3706a8b1963b631fd323806c3": {
+"response": "{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"prompt_eval_count": 201,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"e45a458bcf77b1ae3ec8e695067d9b86be92f5c9a80d10715bc16eb1bb79bcb5": {
+"response": "{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"prompt_eval_count": 203,
+"eval_count": 24,
+"done_reason": "stop"
+},
+"4a177ac5e00a0f881592e5faf17f9bd24a584b38ba0ff639d33797ccd8455cfb": {
+"response": "{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"prompt_eval_count": 200,
+"eval_count": 23,
+"done_reason": "stop"
+},
+"624cbdfb168899d7721cff7af96eadd8db60e18a34e87c65375b7b057e1ff378": {
+"response": "{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"prompt_eval_count": 201,
+"eval_count": 21,
+"done_reason": "stop"
+},
+"838052a4849b32c91327ffd70784549abaec180b5fd65515d4bcbab57fb900c2": {
+"response": "{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"prompt_eval_count": 195,
+"eval_count": 22,
+"done_reason": "stop"
+},
+"e87d492f844b4eec2e08222f107b4b3ec6265dccb7b0b053f415b71823bde0bd": {
+"response": "{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}",
+"prompt_eval_count": 200,
+"eval_count": 26,
+"done_reason": "stop"
+}
+},
+"combos": [
+{
+"rule": false,
+"examples": false,
+"shape": false,
+"tokens": 50,
+"answers": [
+"Анна заплатила 750 рублей за книги.",
+"Тимур заплатил 480 рублей за ручки.",
+"Конечно, я могу помочь с этим. Вот ответ на сообщение Марии:\n\n\"Здравствуйте, Мария! \n\nВот ваш заказ:\n\n5 тетрадей по 60 рублей каждая\nИтого: 300 рублей\n\nСпасибо за покупку! Если у вас есть еще вопросы или нужна помощь",
+"Цена 3000 за две штуки.",
+"Заказ от Лейлы: 7 карандашей, 15 рублей за один. Общая стоимость заказа: 7 * 15 = 105 рублей.",
+"Сергей заплатит 300 рублей за десяток яблок.",
+"Ответ: 1400 рублей",
+"Ирина, 2 рюкзака, 2300 рублей штука.",
+"Азиз просил купить 6 лампочек по 120 рублей.",
+"Вера заплатила 3 * 90 = 270 рублей за муку.",
+"Ответ: 100 рублей.",
+"Для Камиллы 1 ноутбук за 54000 рублей."
+],
+"marks": [
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken"
+]
+},
+{
+"rule": true,
+"examples": false,
+"shape": false,
+"tokens": 101,
+"answers": [
+"```json\n{\"name\": \"Анна\", \"count\": 3, \"price\": 250}\n```",
+"```json\n{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}\n```",
+"```json\n{\"name\": \"Мария\", \"count\": 5, \"price\": 60}\n```",
+"```json\n{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}\n```",
+"```json\n{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}\n```",
+"```json\n{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}\n```",
+"```json\n{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}\n```",
+"```json\n{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}\n```",
+"```json\n{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}\n```",
+"```json\n{\"name\": \"Вера\", \"count\": 3, \"price\": 90}\n```",
+"```json\n{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}\n```",
+"```json\n{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}\n```"
+],
+"marks": [
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken",
+"broken"
+]
+},
+{
+"rule": false,
+"examples": true,
+"shape": false,
+"tokens": 143,
+"answers": [
+"{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}"
+],
+"marks": [
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right"
+]
+},
+{
+"rule": true,
+"examples": true,
+"shape": false,
+"tokens": 194,
+"answers": [
+"{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}"
+],
+"marks": [
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right"
+]
+},
+{
+"rule": false,
+"examples": false,
+"shape": true,
+"tokens": 50,
+"answers": [
+"{ \"name\": \"Анна\", \"count\": 3, \"price\": 250 }",
+"{ \"name\": \"Тимур купил 12 ручек, каждая стоит 40 рублей.\", \"count\": 12, \"price\": 40 }",
+"{ \"name\": \"Мария\", \"count\": 5, \"price\": 60 }",
+"{ \"name\": \"Олег\", \"count\": 2, \"price\": 1500 }",
+"{ \"name\": \"Лейла\", \"count\": 7, \"price\": 15 }",
+"{ \"name\": \"Сергей берёт десяток яблок по 30 рублей.\", \"count\": 10, \"price\": 30 }",
+"{ \"name\": \"Дилшод\", \"count\": 4, \"price\": 350 }",
+"{ \"name\": \"Ирина\", \"count\": 2, \"price\": 2300 }",
+"{ \"name\": \"Азиз\", \"count\": 6, \"price\": 120 }",
+"{ \"name\": \"Вера\", \"count\": 3, \"price\": 90 }",
+"{ \"name\": \"Пётр\", \"count\": 20, \"price\": 5 }",
+"{ \"name\": \"Камилла\", \"count\": 1, \"price\": 54000 }"
+],
+"marks": [
+"right",
+"wrong",
+"right",
+"right",
+"right",
+"wrong",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right"
+]
+},
+{
+"rule": true,
+"examples": false,
+"shape": true,
+"tokens": 101,
+"answers": [
+"{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}"
+],
+"marks": [
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right"
+]
+},
+{
+"rule": false,
+"examples": true,
+"shape": true,
+"tokens": 143,
+"answers": [
+"{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}"
+],
+"marks": [
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right"
+]
+},
+{
+"rule": true,
+"examples": true,
+"shape": true,
+"tokens": 194,
+"answers": [
+"{\"name\": \"Анна\", \"count\": 3, \"price\": 250}",
+"{\"name\": \"Тимур\", \"count\": 12, \"price\": 40}",
+"{\"name\": \"Мария\", \"count\": 5, \"price\": 60}",
+"{\"name\": \"Олег\", \"count\": 2, \"price\": 1500}",
+"{\"name\": \"Лейла\", \"count\": 7, \"price\": 15}",
+"{\"name\": \"Сергей\", \"count\": 10, \"price\": 30}",
+"{\"name\": \"Дилшод\", \"count\": 4, \"price\": 350}",
+"{\"name\": \"Ирина\", \"count\": 2, \"price\": 2300}",
+"{\"name\": \"Азиз\", \"count\": 6, \"price\": 120}",
+"{\"name\": \"Вера\", \"count\": 3, \"price\": 90}",
+"{\"name\": \"Пётр\", \"count\": 20, \"price\": 5}",
+"{\"name\": \"Камилла\", \"count\": 1, \"price\": 54000}"
+],
+"marks": [
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right",
+"right"
+]
+}
+],
+"rule_without_fences_right": 12
+}

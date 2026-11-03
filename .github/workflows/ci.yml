@@ -463,6 +463,90 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-pattern-attention"
           "$RUNNER_TEMP/verify-pattern-attention"
 
+      - name: Verify live model lab
+        run: |
+          swiftc macOS/ColiDev/App/LiveModelLabModel.swift macOS/ColiDev/scripts/verify_live_model.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-live-model"
+          "$RUNNER_TEMP/verify-live-model"
+
+      - name: Verify chat anatomy lab
+        run: |
+          swiftc macOS/ColiDev/App/ChatLabModel.swift macOS/ColiDev/scripts/verify_chat_lab.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-chat-lab"
+          "$RUNNER_TEMP/verify-chat-lab"
+
+      - name: Verify model scoreboard lab
+        run: |
+          swiftc macOS/ColiDev/App/ModelScoreboard.swift macOS/ColiDev/scripts/verify_model_scoreboard.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-model-scoreboard"
+          "$RUNNER_TEMP/verify-model-scoreboard"
+
+      - name: Verify prompt techniques lab
+        run: |
+          swiftc macOS/ColiDev/App/PromptLabModel.swift macOS/ColiDev/scripts/verify_prompt_lab.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-prompt-lab"
+          "$RUNNER_TEMP/verify-prompt-lab"
+
+      - name: Verify gradient graph lab
+        run: |
+          swiftc macOS/ColiDev/App/GradGraphModel.swift macOS/ColiDev/scripts/verify_grad_graph.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-grad-graph"
+          "$RUNNER_TEMP/verify-grad-graph"
+
+      - name: Verify BPE merge lab
+        run: |
+          swiftc macOS/ColiDev/App/BPEMergeModel.swift macOS/ColiDev/scripts/verify_bpe_merge.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-bpe-merge"
+          "$RUNNER_TEMP/verify-bpe-merge"
+
+      - name: Verify init and normalization lab
+        run: |
+          swiftc macOS/ColiDev/App/InitNormModel.swift macOS/ColiDev/scripts/verify_init_norm.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-init-norm"
+          "$RUNNER_TEMP/verify-init-norm"
+
+      - name: Verify optimizer valley lab
+        run: |
+          swiftc macOS/ColiDev/App/OptimizerValleyModel.swift macOS/ColiDev/scripts/verify_optimizer_valley.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-optimizer-valley"
+          "$RUNNER_TEMP/verify-optimizer-valley"
+
+      - name: Verify training doctor lab
+        run: |
+          swiftc macOS/ColiDev/App/TrainingDoctorModel.swift macOS/ColiDev/scripts/verify_training_doctor.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-training-doctor"
+          "$RUNNER_TEMP/verify-training-doctor"
+
+      - name: Verify reinforcement learning labs
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/scripts/verify_rl_labs.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-rl-labs"
+          "$RUNNER_TEMP/verify-rl-labs"
+
+      - name: Verify stage 3 labs
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage3Models.swift macOS/ColiDev/App/Stage3Recordings.swift \
+            macOS/ColiDev/scripts/verify_stage3_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage3-labs"
+          "$RUNNER_TEMP/verify-stage3-labs"
+
+      - name: Verify stage 3 labs with recorded models
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage3LiveModels.swift macOS/ColiDev/App/Stage3LiveRecordings.swift \
+            macOS/ColiDev/scripts/verify_stage3_live_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage3-live-labs"
+          "$RUNNER_TEMP/verify-stage3-live-labs"
+
+      - name: Verify stage 4 labs
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage4Models.swift macOS/ColiDev/App/Stage4Recordings.swift \
+            macOS/ColiDev/scripts/verify_stage4_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage4-labs"
+          "$RUNNER_TEMP/verify-stage4-labs"
+
+      - name: Verify stage 5 labs
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage5Models.swift macOS/ColiDev/App/Stage5Recordings.swift \
+            macOS/ColiDev/scripts/verify_stage5_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage5-labs"
+          "$RUNNER_TEMP/verify-stage5-labs"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \

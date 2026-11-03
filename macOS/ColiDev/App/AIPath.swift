@@ -18,36 +18,81 @@ struct AIPathStep: Identifiable, Equatable {
     var whyKey: String { "path.step\(number).why" }
 }
 
-/// The one route from the first line of Python to a language model the learner trains themselves.
+/// One of the five big parts of the path. / Один из пяти больших этапов пути.
+struct AIPathStage: Identifiable, Equatable {
+    let number: Int
+    let steps: [AIPathStep]
+
+    var id: Int { number }
+    var titleKey: String { "path.stage\(number).title" }
+    var whyKey: String { "path.stage\(number).why" }
+}
+
+/// The one route from the first run of a real model to a language model the learner trains themselves.
 /// See `project-plan/AI_PATH_RU_EN.md`. A lesson appears here before it is written and opens once it is in its curriculum.
-/// Единый маршрут от первой строки на Python до своей обученной языковой модели. Урок виден здесь заранее,
+/// Единый маршрут от первого запуска настоящей модели до своей обученной языковой модели. Урок виден здесь заранее,
 /// а открывается, когда появится в карте своего курса.
 enum AIPathCatalog {
     private static func math(_ resource: String) -> AIPathLesson { AIPathLesson(subject: .mathematics, resource: resource) }
     private static func code(_ resource: String) -> AIPathLesson { AIPathLesson(subject: .programming, resource: resource) }
 
-    static let steps: [AIPathStep] = [
-        AIPathStep(number: 1, lessons: [
-            code("variables_and_types"), code("conditions_loops_functions"), code("collections_and_loops"),
-            code("strings_files_and_exceptions"), code("python_classes_and_composition")
+    static let stages: [AIPathStage] = [
+        AIPathStage(number: 1, steps: [
+            AIPathStep(number: 1, lessons: [
+                code("live_model_tokens_temperature"), code("chat_roles_and_context"),
+                code("model_mistakes_and_checking"), code("asking_well_and_structured_output")
+            ])
         ]),
-        AIPathStep(number: 2, lessons: [math("vectors_and_matrices")]),
-        AIPathStep(number: 3, lessons: [
-            math("rates_of_change_and_derivative"), math("gradient_and_partial_derivatives"), code("gradient_descent_and_learning_rate")
+        AIPathStage(number: 2, steps: [
+            AIPathStep(number: 2, lessons: [
+                code("variables_and_types"), code("conditions_loops_functions"), code("collections_and_loops"),
+                code("strings_files_and_exceptions"), code("python_classes_and_composition")
+            ]),
+            AIPathStep(number: 3, lessons: [math("vectors_and_matrices")]),
+            AIPathStep(number: 4, lessons: [
+                math("rates_of_change_and_derivative"), math("gradient_and_partial_derivatives"), code("gradient_descent_and_learning_rate")
+            ]),
+            AIPathStep(number: 5, lessons: [
+                math("descriptive_statistics_and_potential_outliers"), math("probability_and_bayes"), math("random_variables_and_sampling")
+            ]),
+            AIPathStep(number: 6, lessons: [math("information_and_cross_entropy")]),
+            AIPathStep(number: 7, lessons: [code("classification_and_softmax")]),
+            AIPathStep(number: 8, lessons: [code("neural_network_backpropagation"), code("neural_network_hidden_layer_xor"), code("autograd_engine")]),
+            AIPathStep(number: 9, lessons: [
+                code("ml_baseline_and_holdout"), code("minibatches_and_overfitting"), code("training_recipe_and_diagnostics"),
+                code("optimizers_momentum_adam"), code("initialization_and_normalization")
+            ]),
+            AIPathStep(number: 10, lessons: [code("tokenizer_bpe"), code("bigram_language_model"), code("embeddings_and_similarity")]),
+            AIPathStep(number: 11, lessons: [code("attention_mechanism"), code("transformer_block")]),
+            AIPathStep(number: 12, lessons: [code("build_your_language_model"), code("sampling_and_generation")])
         ]),
-        AIPathStep(number: 4, lessons: [
-            math("descriptive_statistics_and_potential_outliers"), math("probability_and_bayes"), math("random_variables_and_sampling")
+        AIPathStage(number: 3, steps: [
+            AIPathStep(number: 13, lessons: [code("rl_bandits"), code("rl_mdp_bellman"), code("rl_q_learning"), code("rl_policy_gradient")]),
+            AIPathStep(number: 14, lessons: [
+                code("finetuning_and_lora"), code("rlhf_from_preferences"), code("reasoning_and_rlvr"), code("constitutional_ai_and_dpo")
+            ]),
+            AIPathStep(number: 15, lessons: [code("rag_from_scratch"), code("agents_and_tools"), code("evaluation_that_means_something")]),
+            AIPathStep(number: 16, lessons: [code("scaling_laws_and_resources"), code("data_for_language_models")]),
+            AIPathStep(number: 17, lessons: [code("interp_probes"), code("interp_superposition"), code("interp_sparse_features"), code("interp_circuits")]),
+            AIPathStep(number: 18, lessons: [code("safety_what_goes_wrong")])
         ]),
-        AIPathStep(number: 5, lessons: [math("information_and_cross_entropy")]),
-        AIPathStep(number: 6, lessons: [code("classification_and_softmax")]),
-        AIPathStep(number: 7, lessons: [code("neural_network_backpropagation"), code("neural_network_hidden_layer_xor")]),
-        AIPathStep(number: 8, lessons: [code("ml_baseline_and_holdout"), code("minibatches_and_overfitting")]),
-        AIPathStep(number: 9, lessons: [code("embeddings_and_similarity")]),
-        AIPathStep(number: 10, lessons: [code("attention_mechanism"), code("transformer_block")]),
-        AIPathStep(number: 11, lessons: [code("build_your_language_model")]),
-        AIPathStep(number: 12, lessons: [code("consciousness_known_and_unknown")])
+        AIPathStage(number: 4, steps: [
+            AIPathStep(number: 19, lessons: [code("agi_what_is_intelligence"), code("agi_measuring_arc")]),
+            AIPathStep(number: 20, lessons: [code("agi_world_models"), code("agi_planning_search")]),
+            AIPathStep(number: 21, lessons: [code("agi_continual_learning")]),
+            AIPathStep(number: 22, lessons: [code("agi_scaling_debate"), code("agi_open_problems")])
+        ]),
+        AIPathStage(number: 5, steps: [
+            AIPathStep(number: 23, lessons: [code("consciousness_known_and_unknown"), code("consciousness_hard_problem")]),
+            AIPathStep(number: 24, lessons: [
+                code("consciousness_global_workspace"), code("consciousness_integrated_information"), code("consciousness_higher_order_and_prediction")
+            ]),
+            AIPathStep(number: 25, lessons: [code("consciousness_experiments"), code("consciousness_indicators_checklist"), code("consciousness_language_models")]),
+            AIPathStep(number: 26, lessons: [code("consciousness_biology_vs_function"), code("consciousness_moral_status"), code("consciousness_what_you_can_do")])
+        ])
     ]
 
+    static var steps: [AIPathStep] { stages.flatMap(\.steps) }
     static var lessons: [AIPathLesson] { steps.flatMap(\.lessons) }
 
     /// The first open lesson that is not finished. / Первый открытый и ещё не пройденный урок.
@@ -86,8 +131,11 @@ struct AIPathView: View {
                 Text(text("path.title")).font(.largeTitle.bold())
                 Text(text("path.subtitle")).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
                 summary
-                ForEach(AIPathCatalog.steps) { step in
-                    stepRow(step)
+                ForEach(AIPathCatalog.stages) { stage in
+                    stageHeader(stage)
+                    ForEach(stage.steps) { step in
+                        stepRow(step)
+                    }
                 }
                 finishLine
             }
@@ -122,6 +170,19 @@ struct AIPathView: View {
         }
         .padding(14)
         .coliContentCard(tint: .accentColor)
+    }
+
+    private func stageHeader(_ stage: AIPathStage) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(verbatim: String(format: text("path.stageLabel"), String(stage.number)))
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(.secondary)
+            Text(text(stage.titleKey)).font(.title2.bold())
+            Text(text(stage.whyKey)).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(.top, 12)
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("path.stage.\(stage.number)")
     }
 
     private func stepRow(_ step: AIPathStep) -> some View {

@@ -6,9 +6,23 @@ import Foundation
 /// inline syntax only, fenced code keeps its line breaks, and blocks are rejoined with a blank line.
 /// Отрисовывает Markdown урока для SwiftUI `Text`, не теряя разрывы абзацев и строки списков.
 enum LessonMarkdown {
-    private enum Block: Equatable {
+    enum Block: Equatable {
         case prose(String)
         case code(String)
+    }
+
+    /// Text and code blocks in order, with neighbouring paragraphs kept together, so code can be drawn on its own.
+    /// Текст и блоки кода по порядку, соседние абзацы вместе: так код можно нарисовать отдельно.
+    static func segments(_ markdown: String) -> [Block] {
+        var result: [Block] = []
+        for block in blocks(in: markdown) {
+            if case .prose(let text) = block, case .prose(let earlier)? = result.last {
+                result[result.count - 1] = .prose(earlier + "\n\n" + text)
+            } else {
+                result.append(block)
+            }
+        }
+        return result
     }
 
     static func attributed(_ markdown: String) -> AttributedString {

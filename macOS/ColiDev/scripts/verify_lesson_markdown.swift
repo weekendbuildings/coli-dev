@@ -18,6 +18,12 @@ enum LessonMarkdownVerification {
             "Inline code must render without backticks. / Инлайн-код должен отображаться без обратных кавычек."
         )
 
+        let withCode = "Первый абзац.\n\nВторой абзац.\n\n```bash\nollama list\n```\n\nТретий."
+        precondition(
+            LessonMarkdown.segments(withCode) == [.prose("Первый абзац.\n\nВторой абзац."), .code("ollama list"), .prose("Третий.")],
+            "Code blocks must be separate segments, and paragraphs must stay together. / Блоки кода отделяются, абзацы остаются вместе."
+        )
+
         let list = """
         Дальше идут три коротких абзаца:
 

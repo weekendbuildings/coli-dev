@@ -1,5 +1,7 @@
 # Текущий статус, агенты и учебный маршрут / Current status, agents, and learning path
 
+> **Устарело на 2026-11-02 / Out of date on 2026-11-02.** Текущее состояние: `PROTOTYPE_READINESS_RU_EN.md`, раздел Beta 18. / For the current state see the Beta 18 section of `PROTOTYPE_READINESS_RU_EN.md`.
+
 **Дата / Date:** 2026-10-24
 **Назначение / Purpose:** продолжить общий план Cause & Corse / ColiDev, не подменяя проверки на пользовательском Mac выводами из CI. / Continue the unified Cause & Corse / ColiDev plan without treating CI as a user-Mac test.
 
