@@ -529,6 +529,12 @@ jobs:
             macOS/ColiDev/scripts/verify_stage3_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage3-labs"
           "$RUNNER_TEMP/verify-stage3-labs"
 
+      - name: Verify stage 3 labs with recorded models
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage3LiveModels.swift macOS/ColiDev/App/Stage3LiveRecordings.swift \
+            macOS/ColiDev/scripts/verify_stage3_live_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage3-live-labs"
+          "$RUNNER_TEMP/verify-stage3-live-labs"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \
