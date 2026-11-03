@@ -126,9 +126,11 @@ struct ColiDevGlassControlModifier: ViewModifier {
 
     private func legacyMaterial(_ content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius)
-        return content
-            .background(AppPalette.raised.color, in: shape)
-            .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+        return content.background {
+            shape
+                .fill(AppPalette.raised.color)
+                .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+        }
     }
 }
 
@@ -150,24 +152,26 @@ struct ColiDevContentCardModifier: ViewModifier {
                         )
                         .clipShape(shape)
                     }
+                    .overlay(shape.strokeBorder(tint.opacity(0.22), lineWidth: 1))
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
             }
-            .overlay {
-                shape.strokeBorder(tint.opacity(0.22), lineWidth: 1)
-            }
-            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
     }
 }
 
-/// The plain card every lesson and lab sits on. / Обычная карточка, на которой лежат уроки и тренажёры.
+/// The plain card every lesson and lab sits on. The border and shadow stay behind the content, so that
+/// nothing covers a 3D scene or redraws with it. / Обычная карточка, на которой лежат уроки и тренажёры.
+/// Рамка и тень лежат за содержимым: ничто не закрывает 3D-сцену и не перерисовывается вместе с ней.
 struct ColiDevSurfaceModifier: ViewModifier {
     let cornerRadius: CGFloat
 
     func body(content: Content) -> some View {
         let shape = RoundedRectangle(cornerRadius: cornerRadius)
-        content
-            .background(AppPalette.card.color, in: shape)
-            .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
-            .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        content.background {
+            shape
+                .fill(AppPalette.card.color)
+                .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+                .shadow(color: Color.black.opacity(0.05), radius: 8, x: 0, y: 2)
+        }
     }
 }
 
@@ -180,8 +184,11 @@ struct ColiDevTextFieldModifier: ViewModifier {
             .textFieldStyle(.plain)
             .padding(.horizontal, 8)
             .padding(.vertical, 5)
-            .background(AppPalette.inset.color, in: shape)
-            .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+            .background {
+                shape
+                    .fill(AppPalette.inset.color)
+                    .overlay(shape.strokeBorder(AppPalette.stroke.color, lineWidth: 1))
+            }
     }
 }
 
