@@ -517,6 +517,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-training-doctor"
           "$RUNNER_TEMP/verify-training-doctor"
 
+      - name: Verify reinforcement learning labs
+        run: |
+          swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/scripts/verify_rl_labs.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-rl-labs"
+          "$RUNNER_TEMP/verify-rl-labs"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \
