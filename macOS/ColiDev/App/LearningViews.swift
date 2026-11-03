@@ -1988,6 +1988,16 @@ private struct PracticeLab: View {
             AgentTraceLab()
         } else if subject == .programming, moduleResource == "safety_what_goes_wrong" {
             BoatRaceLab()
+        } else if subject == .programming, moduleResource == "agi_what_is_intelligence" {
+            IntelligenceLab()
+        } else if subject == .programming, moduleResource == "agi_measuring_arc" {
+            ArcPainterLab()
+        } else if subject == .programming, moduleResource == "agi_world_models" {
+            DynaLab()
+        } else if subject == .programming, moduleResource == "agi_continual_learning" {
+            ForgettingLab()
+        } else if subject == .programming, moduleResource == "agi_scaling_debate" {
+            ScalingLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -22063,5 +22073,578 @@ private struct BoatRaceLab: View {
         .accessibilityLabel(text("lab.boat.trackSpoken"))
         .accessibilityValue(text(result.finished ? "lab.boat.finished" : "lab.boat.looping"))
         .accessibilityIdentifier("lab.boat.track")
+    }
+}
+
+// MARK: - Definitions of intelligence lab / Тренажёр с определениями интеллекта
+
+private struct IntelligenceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var experience = log10(100.0)
+    @State private var simplicity = 1.0
+    @State private var onlyFirst = false
+    @State private var table: [[Double]] = []
+    @State private var sawSpecialist = false
+    @State private var sawLearner = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var steps: Int { Int(pow(10, experience).rounded()) }
+    private static let names = ["blind", "specialist", "learner"]
+    private static let colors: [Color] = [.gray, .orange, .accentColor]
+
+    private var scores: [Double] {
+        table.map { row in onlyFirst ? (row.first ?? 0) : IntelligenceModel.score(row, simplicity: simplicity) }
+    }
+
+    private var winner: Int? {
+        guard !scores.isEmpty else { return nil }
+        return scores.indices.max { scores[$0] < scores[$1] }
+    }
+
+    private func note() {
+        if winner == 1 { sawSpecialist = true }
+        if winner == 2 { sawLearner = true }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.intel.title"), instruction: text("lab.intel.subtitle"))
+            heat
+            HStack {
+                Text(verbatim: String(format: text("lab.intel.experience"), String(steps))).font(.callout.monospacedDigit()).frame(width: 150, alignment: .leading)
+                Slider(value: $experience, in: 0.7...2.6).accessibilityIdentifier("lab.intel.experienceSlider")
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.intel.simplicity"), number(simplicity, 1))).font(.callout.monospacedDigit()).frame(width: 150, alignment: .leading)
+                Slider(value: $simplicity, in: 0...1).disabled(onlyFirst).accessibilityIdentifier("lab.intel.simplicitySlider")
+                Toggle(text("lab.intel.onlyFirst"), isOn: $onlyFirst).accessibilityIdentifier("lab.intel.onlyFirst")
+            }
+            VStack(spacing: 5) {
+                ForEach(scores.indices, id: \.self) { index in
+                    HStack {
+                        Text(verbatim: text("lab.intel.system.\(Self.names[index])")).font(.callout).frame(width: 110, alignment: .trailing)
+                        GeometryReader { proxy in
+                            RoundedRectangle(cornerRadius: 3).fill(Self.colors[index]).frame(width: proxy.size.width * CGFloat(min(scores[index], 1)))
+                        }
+                        .frame(height: 14)
+                        Text(verbatim: number(scores[index])).font(.caption.monospacedDigit().weight(index == winner ? .bold : .regular)).frame(width: 48)
+                    }
+                }
+            }
+            .accessibilityIdentifier("lab.intel.scores")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.intel.challenge"), solved: sawSpecialist && sawLearner,
+                         solvedText: text("lab.intel.challengeDone"), identifier: "lab.intel.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.intel.howScore"), text("lab.intel.howReal")])
+        }
+        .task(id: steps) {
+            let value = steps
+            let result = await Task.detached(priority: .userInitiated) { IntelligenceModel.table(steps: value) }.value
+            guard !Task.isCancelled else { return }
+            table = result
+            note()
+        }
+        .onChange(of: onlyFirst) { _ in note() }
+        .onChange(of: simplicity) { _ in note() }
+    }
+
+    private var heat: some View {
+        Canvas { context, size in
+            guard !table.isEmpty else { return }
+            let left: CGFloat = 112
+            let top: CGFloat = 18
+            let width: CGFloat = (size.width - left) / 8
+            let height: CGFloat = (size.height - top) / 3
+            for world in 0..<8 {
+                context.draw(Text(verbatim: String(IntelligenceModel.worlds[world].bits) + " " + text("lab.intel.bits")).font(.caption2).foregroundColor(.secondary),
+                             at: CGPoint(x: left + (CGFloat(world) + 0.5) * width, y: 8))
+            }
+            for system in 0..<3 {
+                context.draw(Text(verbatim: text("lab.intel.system.\(Self.names[system])")).font(.caption), at: CGPoint(x: left - 6, y: top + (CGFloat(system) + 0.5) * height), anchor: .trailing)
+                for world in 0..<8 {
+                    let rect = CGRect(x: left + CGFloat(world) * width + 1, y: top + CGFloat(system) * height + 1, width: width - 2, height: height - 2)
+                    let value = table[system][world]
+                    context.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(Color.green.opacity(max(0, min(1, (value - 0.2) * 1.4)))))
+                    context.draw(Text(verbatim: number(value, 2)).font(.caption2.monospacedDigit()), at: CGPoint(x: rect.midX, y: rect.midY))
+                }
+            }
+        }
+        .frame(height: 130)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.intel.heatSpoken"))
+        .accessibilityIdentifier("lab.intel.heat")
+    }
+}
+
+// MARK: - ARC lab / Тренажёр с задачами в духе ARC
+
+private struct ArcPainterLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var index = 0
+    @State private var answers: [Int: [[Character]]] = [:]
+    @State private var solved: Set<Int> = []
+    @State private var checked: Set<Int> = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var task: ArcRecording.Task { ArcRecording.tasks[index] }
+
+    private static func grid(_ text: String) -> [[Character]] {
+        text.split(separator: "/").map(Array.init)
+    }
+
+    private var testOut: [[Character]] { Self.grid(task.testOut) }
+
+    private var current: [[Character]] {
+        answers[index] ?? testOut.map { row in row.map { _ in "0" } }
+    }
+
+    private var palette: [Character] {
+        var set = Set<Character>(task.pairs.flatMap { $0.0 + "/" + $0.1 }.filter { $0 != "/" })
+        set.formUnion(task.testIn.filter { $0 != "/" })
+        set.insert("0")
+        return set.sorted()
+    }
+
+    private func color(_ digit: Character) -> Color {
+        switch digit {
+        case "0": return Color.secondary.opacity(0.15)
+        case "1": return .blue
+        case "2": return .red
+        case "3": return .green
+        case "4": return .yellow
+        case "5": return .gray
+        case "6": return .pink
+        case "7": return .orange
+        case "8": return .teal
+        default: return .purple
+        }
+    }
+
+    private func cell(_ digit: Character, size: CGFloat) -> some View {
+        RoundedRectangle(cornerRadius: 3)
+            .fill(color(digit))
+            .frame(width: size, height: size)
+            .overlay(Text(String(digit)).font(.system(size: size * 0.45, weight: .semibold, design: .monospaced)).foregroundStyle(digit == "0" ? Color.secondary : Color.white))
+    }
+
+    private func picture(_ text: String, size: CGFloat = 18) -> some View {
+        VStack(spacing: 2) {
+            ForEach(Array(Self.grid(text).enumerated()), id: \.offset) { _, row in
+                HStack(spacing: 2) {
+                    ForEach(Array(row.enumerated()), id: \.offset) { _, digit in
+                        cell(digit, size: size)
+                    }
+                }
+            }
+        }
+    }
+
+    private func paint(_ row: Int, _ column: Int) {
+        var grid = current
+        let colors = palette
+        let place = colors.firstIndex(of: grid[row][column]) ?? 0
+        grid[row][column] = colors[(place + 1) % colors.count]
+        answers[index] = grid
+        checked.remove(index)
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.arc.title"), instruction: text("lab.arc.subtitle"))
+            Picker(text("lab.arc.task"), selection: $index) {
+                ForEach(0..<ArcRecording.tasks.count, id: \.self) { item in
+                    Text(verbatim: (solved.contains(item) ? "✓" : "") + String(item + 1)).tag(item)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.arc.task")
+            HStack(alignment: .top, spacing: 22) {
+                ForEach(Array(task.pairs.enumerated()), id: \.offset) { _, pair in
+                    HStack(spacing: 8) {
+                        picture(pair.0)
+                        Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                        picture(pair.1)
+                    }
+                }
+            }
+            .padding(.vertical, 4)
+            HStack(alignment: .center, spacing: 12) {
+                picture(task.testIn, size: 28)
+                Image(systemName: "arrow.right").foregroundStyle(.secondary)
+                VStack(spacing: 2) {
+                    ForEach(0..<current.count, id: \.self) { row in
+                        HStack(spacing: 2) {
+                            ForEach(0..<current[row].count, id: \.self) { column in
+                                Button {
+                                    paint(row, column)
+                                } label: {
+                                    cell(current[row][column], size: 28)
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("lab.arc.cell.\(row).\(column)")
+                            }
+                        }
+                    }
+                }
+                Spacer()
+                Button(text("lab.arc.check")) {
+                    checked.insert(index)
+                    if current == testOut { solved.insert(index) }
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.arc.check")
+            }
+            if checked.contains(index) {
+                if solved.contains(index), current == testOut {
+                    LabStatusBadge(kind: .good, text: String(format: text("lab.arc.compare"), text(task.search ? "lab.arc.right" : "lab.arc.wrongWord"), text(task.coderRight ? "lab.arc.right" : "lab.arc.wrongWord"), text(task.qwenRight ? "lab.arc.right" : "lab.arc.wrongWord")), identifier: "lab.arc.compareBadge")
+                } else {
+                    LabStatusBadge(kind: .warning, text: text("lab.arc.tryAgain"), identifier: "lab.arc.tryAgain")
+                }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.arc.statYou"), value: "\(solved.count) / 10", tint: .accentColor, identifier: "lab.arc.you")
+                LabStat(label: text("lab.arc.statSearch"), value: "\(ArcRecording.tasks.filter(\.search).count) / 10", tint: .green, identifier: "lab.arc.search")
+                LabStat(label: "qwen2.5-coder", value: "\(ArcRecording.tasks.filter(\.coderRight).count) / 10", tint: .orange, identifier: "lab.arc.coder")
+                LabStat(label: "qwen3.5", value: "\(ArcRecording.tasks.filter(\.qwenRight).count) / 10", tint: .orange, identifier: "lab.arc.qwen")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.arc.challenge"), solved: solved.count >= 7,
+                         solvedText: text("lab.arc.challengeDone"), identifier: "lab.arc.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.arc.howGrid"), text("lab.arc.howReal")])
+        }
+    }
+}
+
+// MARK: - World model lab / Тренажёр с моделью мира
+
+private struct DynaLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var plans = 5.0
+    @State private var moved = false
+    @State private var curve: [Double] = []
+    @State private var baseline: [Double] = []
+    @State private var sawFast = false
+    @State private var sawMoved = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 0) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var games: Int { moved ? 60 : 50 }
+
+    private func mean(_ values: [Double], _ range: Range<Int>) -> Double {
+        guard values.count >= range.upperBound else { return 0 }
+        return values[range].reduce(0, +) / Double(range.count)
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.dyna.title"), instruction: text("lab.dyna.subtitle"))
+            HStack(alignment: .top, spacing: 12) {
+                map.frame(width: 190, height: 160)
+                chart
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.dyna.plans"), String(Int(plans)))).font(.callout.monospacedDigit()).frame(width: 190, alignment: .leading)
+                Slider(value: $plans, in: 0...50, step: 1).accessibilityIdentifier("lab.dyna.plansSlider")
+                Toggle(text("lab.dyna.moved"), isOn: $moved).accessibilityIdentifier("lab.dyna.moved")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.dyna.statEarly"), value: number(mean(curve, 2..<5)), tint: .accentColor, identifier: "lab.dyna.early")
+                LabStat(label: text("lab.dyna.statBase"), value: number(mean(baseline, 2..<5)), tint: .secondary, identifier: "lab.dyna.base")
+                LabStat(label: text("lab.dyna.statCost"), value: "×" + String(Int(plans) + 1), tint: .orange, identifier: "lab.dyna.cost")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.dyna.challenge"), solved: sawFast && sawMoved,
+                         solvedText: text("lab.dyna.challengeDone"), identifier: "lab.dyna.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.dyna.howPlan"), text("lab.dyna.howReal")])
+        }
+        .task(id: "\(Int(plans))-\(moved)") {
+            let count = Int(plans)
+            let isMoved = moved
+            let result = await Task.detached(priority: .userInitiated) { () -> ([Double], [Double]) in
+                let games = isMoved ? 60 : 50
+                let move: Int? = isMoved ? 30 : nil
+                return (DynaModel.meanSteps(plans: count, games: games, moveAt: move), DynaModel.meanSteps(plans: 0, games: games, moveAt: move))
+            }.value
+            guard !Task.isCancelled else { return }
+            curve = result.0
+            baseline = result.1
+            if !isMoved, mean(result.0, 2..<5) < 15 { sawFast = true }
+            if isMoved, mean(result.0, 31..<40) < mean(result.1, 31..<40) { sawMoved = true }
+        }
+    }
+
+    private var map: some View {
+        Canvas { context, size in
+            let side: CGFloat = min(size.width / 6, size.height / 5)
+            let walls = moved ? DynaModel.movedWalls : DynaModel.walls
+            for cell in 0..<(DynaModel.rows * DynaModel.columns) {
+                let rect = CGRect(x: CGFloat(cell % 6) * side + 1, y: CGFloat(cell / 6) * side + 1, width: side - 2, height: side - 2)
+                let color: Color = walls.contains(cell) ? .gray : (cell == DynaModel.goal ? .green : .secondary.opacity(0.15))
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(color))
+                if cell == DynaModel.start { context.draw(Text(verbatim: "S").font(.caption.weight(.bold)), at: CGPoint(x: rect.midX, y: rect.midY)) }
+                if cell == DynaModel.goal { context.draw(Text(verbatim: "G").font(.caption.weight(.bold)), at: CGPoint(x: rect.midX, y: rect.midY)) }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.dyna.mapSpoken"))
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 1...Double(games), y: 0...200)
+            geometry.drawAxes(in: context, xLabel: text("lab.dyna.games"), yLabel: text("lab.dyna.steps")) { String(Int($0)) }
+            func stroke(_ values: [Double], _ color: Color, _ width: CGFloat) {
+                guard values.count == games else { return }
+                var path = Path()
+                for (index, value) in values.enumerated() {
+                    let point = geometry.point(Double(index + 1), min(value, 200))
+                    if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                }
+                context.stroke(path, with: .color(color), lineWidth: width)
+            }
+            stroke(baseline, .gray, 1.5)
+            stroke(curve, .accentColor, 2.5)
+        }
+        .frame(height: 200)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.dyna.chartSpoken"))
+        .accessibilityIdentifier("lab.dyna.chart")
+    }
+}
+
+// MARK: - Forgetting lab / Тренажёр с забыванием
+
+private struct ForgettingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var net = ReplayNet(seed: 11)
+    @State private var stored = 0.0
+    @State private var share = 0.2
+    @State private var done = 0
+    @State private var running = false
+    @State private var history: [(a: Double, b: Double)] = []
+    @State private var ready = false
+    @State private var bestStored: Int?
+
+    private static let totalSteps = 8000
+    private static let trainA = ReplayNet.points(side: -1, count: 200, seed: 1)
+    private static let trainB = ReplayNet.points(side: 1, count: 200, seed: 2)
+    private static let checkA = ReplayNet.points(side: -1, count: 300, seed: 3)
+    private static let checkB = ReplayNet.points(side: 1, count: 300, seed: 4)
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private func trainedOnA() -> ReplayNet {
+        var first = ReplayNet(seed: 11)
+        var rand = RLRand(12)
+        first.train(Self.trainA, steps: 12000, rand: &rand)
+        return first
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.forget.title"), instruction: text("lab.forget.subtitle"))
+            HStack(alignment: .top, spacing: 12) {
+                field.frame(width: 240, height: 240)
+                curves
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.forget.stored"), String(Int(stored)))).font(.callout.monospacedDigit()).frame(width: 150, alignment: .leading)
+                Slider(value: $stored, in: 0...200, step: 5).disabled(running).accessibilityIdentifier("lab.forget.storedSlider")
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.forget.share"), number(share))).font(.callout.monospacedDigit()).frame(width: 150, alignment: .leading)
+                Slider(value: $share, in: 0...0.8, step: 0.1).disabled(running).accessibilityIdentifier("lab.forget.shareSlider")
+                Button {
+                    running = true
+                } label: {
+                    Label(text("lab.forget.train"), systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .disabled(running || !ready)
+                .accessibilityIdentifier("lab.forget.train")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.forget.statA"), value: number(net.accuracy(Self.checkA)), tint: .orange, identifier: "lab.forget.a")
+                LabStat(label: text("lab.forget.statB"), value: number(net.accuracy(Self.checkB)), tint: .accentColor, identifier: "lab.forget.b")
+                LabStat(label: text("lab.forget.statBest"), value: bestStored.map(String.init) ?? "–", tint: .green, identifier: "lab.forget.best")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.forget.challenge"), solved: (bestStored ?? 999) <= 100,
+                         solvedText: text("lab.forget.challengeDone"), identifier: "lab.forget.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.forget.howField"), text("lab.forget.howPrice")])
+        }
+        .task {
+            let first = await Task.detached(priority: .userInitiated) { trainedOnA() }.value
+            net = first
+            ready = true
+            history = [(first.accuracy(Self.checkA), first.accuracy(Self.checkB))]
+        }
+        .task(id: running) {
+            guard running else { return }
+            var current = await Task.detached(priority: .userInitiated) { trainedOnA() }.value
+            net = current
+            history = [(current.accuracy(Self.checkA), current.accuracy(Self.checkB))]
+            var rand = RLRand(13)
+            let replay = Array(Self.trainA.prefix(Int(stored)))
+            let mix = share
+            for _ in 0..<20 {
+                let piece = current
+                let generator = rand
+                let result = await Task.detached(priority: .userInitiated) { () -> (ReplayNet, RLRand) in
+                    var copy = piece
+                    var source = generator
+                    copy.train(Self.trainB, steps: Self.totalSteps / 20, rand: &source, replay: replay, share: mix)
+                    return (copy, source)
+                }.value
+                guard !Task.isCancelled else { return }
+                current = result.0
+                rand = result.1
+                net = current
+                history.append((current.accuracy(Self.checkA), current.accuracy(Self.checkB)))
+            }
+            if current.accuracy(Self.checkA) >= 0.9, current.accuracy(Self.checkB) >= 0.9, !replay.isEmpty {
+                bestStored = min(bestStored ?? Int.max, replay.count)
+            }
+            running = false
+        }
+    }
+
+    private var field: some View {
+        Canvas { context, size in
+            let cells = 36
+            let side: CGFloat = size.width / CGFloat(cells)
+            for row in 0..<cells {
+                for column in 0..<cells {
+                    let x: Double = (Double(column) + 0.5) / Double(cells) * 2 - 1
+                    let y: Double = 1 - (Double(row) + 0.5) / Double(cells) * 2
+                    let p = net.probability(x, y)
+                    context.fill(Path(CGRect(x: CGFloat(column) * side, y: CGFloat(row) * side, width: side + 0.5, height: side + 0.5)),
+                                 with: .color((p > 0.5 ? Color.green : Color.purple).opacity(0.15 + 0.5 * abs(p - 0.5))))
+                }
+            }
+            for point in Self.checkA.prefix(30) + Self.checkB.prefix(30) {
+                let place = CGPoint(x: (point.x + 1) / 2 * size.width, y: (1 - point.y) / 2 * size.height)
+                context.fill(Path(ellipseIn: CGRect(x: place.x - 3, y: place.y - 3, width: 6, height: 6)), with: .color(point.label ? .green : .purple))
+                context.stroke(Path(ellipseIn: CGRect(x: place.x - 3, y: place.y - 3, width: 6, height: 6)), with: .color(.white.opacity(0.8)), lineWidth: 0.7)
+            }
+            var middle = Path()
+            middle.move(to: CGPoint(x: size.width / 2, y: 0))
+            middle.addLine(to: CGPoint(x: size.width / 2, y: size.height))
+            context.stroke(middle, with: .color(.white.opacity(0.5)), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.forget.fieldSpoken"))
+        .accessibilityIdentifier("lab.forget.field")
+    }
+
+    private var curves: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0...20, y: 0...1)
+            geometry.drawAxes(in: context, xLabel: text("lab.forget.pieces"), yLabel: text("lab.forget.accuracy")) { value in
+                abs(value) < 1 ? L10n.number(value, fractionDigits: 1, store.language) : String(Int(value))
+            }
+            func stroke(_ values: [Double], _ color: Color) {
+                var path = Path()
+                for (index, value) in values.enumerated() {
+                    let point = geometry.point(Double(index), value)
+                    if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                }
+                context.stroke(path, with: .color(color), lineWidth: 2.5)
+            }
+            stroke(history.map(\.a), .orange)
+            stroke(history.map(\.b), .accentColor)
+        }
+        .frame(height: 240)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.forget.curvesSpoken"))
+        .accessibilityIdentifier("lab.forget.curves")
+    }
+}
+
+// MARK: - Scaling debate lab / Тренажёр о споре вокруг масштаба
+
+private struct ScalingLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var count = 4.0
+    @State private var sawAll = false
+    @State private var picks: [Int: String] = [:]
+
+    private static let kinds: [String] = ["measured", "measured", "measured", "measured", "opinion", "opinion", "forecast", "forecast"]
+    private static let order = [4, 0, 6, 2, 5, 1, 7, 3]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var fit: (slope: Double, scale: Double) {
+        ScalingFit.fit(Array(ScalingRecording.sizes.prefix(Int(count))), Array(ScalingRecording.errors.prefix(Int(count))))
+    }
+
+    private var rightCount: Int { picks.filter { Self.kinds[$0.key] == $0.value }.count }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.scale.title"), instruction: text("lab.scale.subtitle"))
+            chart
+            HStack {
+                Text(verbatim: String(format: text("lab.scale.points"), String(Int(count)))).font(.callout.monospacedDigit()).frame(width: 170, alignment: .leading)
+                Slider(value: $count, in: 2...7, step: 1).accessibilityIdentifier("lab.scale.pointsSlider")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.scale.statExponent"), value: number(fit.slope), tint: .accentColor, identifier: "lab.scale.exponent")
+                LabStat(label: text("lab.scale.statBillion"), value: number(ScalingFit.law(1e9, fit)), tint: .orange, identifier: "lab.scale.billion")
+                LabStat(label: text("lab.scale.statLimit"), value: number(0.58, 2), tint: .green, identifier: "lab.scale.limit")
+            }
+            VStack(spacing: 6) {
+                ForEach(Self.order, id: \.self) { claim in
+                    HStack(spacing: 6) {
+                        Text(verbatim: text("lab.scale.claim.\(claim)")).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(["measured", "forecast", "opinion"], id: \.self) { kind in
+                            Button(text("lab.scale.kind.\(kind)")) { picks[claim] = kind }
+                                .tint(picks[claim] == kind ? (Self.kinds[claim] == kind ? .green : .red) : nil)
+                                .accessibilityIdentifier("lab.scale.pick.\(claim).\(kind)")
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.bordered)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.scale.challenge"), solved: rightCount == Self.kinds.count && sawAll,
+                         solvedText: text("lab.scale.challengeDone"), identifier: "lab.scale.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.scale.howFit"), text("lab.scale.howClaims")])
+        }
+        .onChange(of: count) { value in if value >= 7 { sawAll = true } }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 2...9, y: -2...0.5)
+            let powers: [Double] = [2, 3, 4, 5, 6, 7, 8, 9]
+            geometry.drawAxes(in: context, xLabel: text("lab.scale.axis"), yLabel: text("lab.scale.errorAxis"), xTicks: powers, yTicks: [-2, -1, 0]) { value in
+                if value >= 2 { return String(Int(value)) }
+                return L10n.number(pow(10, value), fractionDigits: value < -1.5 ? 2 : (value < 0 ? 1 : 0), store.language)
+            }
+            var limit = Path()
+            limit.move(to: geometry.point(2, log10(0.58)))
+            limit.addLine(to: geometry.point(9, log10(0.58)))
+            context.stroke(limit, with: .color(.green), style: StrokeStyle(lineWidth: 1.2, dash: [5, 3]))
+            var law = Path()
+            for step in 0...70 {
+                let power: Double = 2 + Double(step) * 0.1
+                let value: Double = log10(ScalingFit.law(pow(10, power), fit))
+                let point = geometry.point(power, min(max(value, -2), 0.5))
+                if step == 0 { law.move(to: point) } else { law.addLine(to: point) }
+            }
+            context.stroke(law, with: .color(.accentColor), lineWidth: 2)
+            for (index, size) in ScalingRecording.sizes.enumerated() {
+                let point = geometry.point(log10(size), log10(ScalingRecording.errors[index]))
+                let inFit = index < Int(count)
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)), with: .color(inFit ? .orange : .orange.opacity(0.35)))
+            }
+        }
+        .frame(height: 230)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.scale.chartSpoken"))
+        .accessibilityIdentifier("lab.scale.chart")
     }
 }
