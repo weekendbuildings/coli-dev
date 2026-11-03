@@ -1952,6 +1952,10 @@ private struct PracticeLab: View {
             ModelScoreboardLab()
         } else if subject == .programming, moduleResource == "asking_well_and_structured_output" {
             PromptToggleLab()
+        } else if subject == .programming, moduleResource == "autograd_engine" {
+            GradGraphLab()
+        } else if subject == .programming, moduleResource == "tokenizer_bpe" {
+            BPEMergeLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -19892,5 +19896,243 @@ private struct PromptToggleLab: View {
         var point: CGPoint = geometry.point(Double(combo.tokens), Double(combo.rightCount))
         point.x += combo.shape ? 7 : -7
         return hypot(point.x - location.x, point.y - location.y)
+    }
+}
+
+// MARK: - Gradient graph lab / Тренажёр: граф градиентов
+
+private struct GradGraphLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var state = GradGraphState()
+
+    private typealias Node = GradGraphState.Node
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 1) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    /// Where each node stands, as shares of the board. / Где стоит каждый узел, в долях доски.
+    private static let places: [Node: CGPoint] = [
+        .a: CGPoint(x: 0.1, y: 0.15), .b: CGPoint(x: 0.1, y: 0.47), .c: CGPoint(x: 0.1, y: 0.8),
+        .f: CGPoint(x: 0.62, y: 0.86), .product: CGPoint(x: 0.36, y: 0.28), .sum: CGPoint(x: 0.62, y: 0.42), .result: CGPoint(x: 0.9, y: 0.62)
+    ]
+    private static let edges: [(from: Node, to: Node)] = [(.a, .product), (.b, .product), (.product, .sum), (.c, .sum), (.sum, .result), (.f, .result)]
+
+    private func name(_ node: Node) -> String {
+        switch node {
+        case .product: return "a · b"
+        case .sum: return "a · b + c"
+        case .result: return "L"
+        default: return node.rawValue
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.gradGraph.title"), instruction: text("lab.gradGraph.subtitle"))
+            board
+            Text(text("lab.gradGraph.rule\(state.stage)"))
+                .font(.callout)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(10)
+                .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 8))
+                .accessibilityIdentifier("lab.gradGraph.rule")
+            HStack(spacing: 10) {
+                Button { withAnimation { state.stepBack() } } label: { Label(text("lab.gradGraph.step"), systemImage: "arrow.left") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(state.finished)
+                    .accessibilityIdentifier("lab.gradGraph.step")
+                Button { withAnimation { state.finishBackward() } } label: { Label(text("lab.gradGraph.all"), systemImage: "backward.end.fill") }
+                    .buttonStyle(.bordered)
+                    .disabled(state.finished)
+                    .accessibilityIdentifier("lab.gradGraph.all")
+                Button { withAnimation { state.reset() } } label: { Label(text("lab.liveModel.restart"), systemImage: "arrow.counterclockwise") }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("lab.gradGraph.reset")
+            }
+            LabStatGrid {
+                LabStat(label: "L", value: number(state.result, 2), tint: state.result > 0 ? .green : .red, identifier: "lab.gradGraph.result")
+                LabStat(label: text("lab.gradGraph.statNudges"), value: "\(state.nudges) / \(GradGraphState.nudgeLimit)", tint: .accentColor, identifier: "lab.gradGraph.nudges")
+                LabStat(label: text("lab.gradGraph.statPredicted"), value: state.lastPredicted.map { number($0, 2) } ?? "—", tint: .orange, identifier: "lab.gradGraph.predicted")
+                LabStat(label: text("lab.gradGraph.statReal"), value: state.lastReal.map { number($0, 2) } ?? "—", tint: .purple, identifier: "lab.gradGraph.real")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: String(format: text("lab.gradGraph.challenge"), number(GradGraphState.nudgeSize), String(GradGraphState.nudgeLimit)),
+                         solved: state.solved, solvedText: text("lab.gradGraph.challengeDone"), identifier: "lab.gradGraph.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.gradGraph.howRules"), text("lab.gradGraph.howPredict")])
+        }
+    }
+
+    private var board: some View {
+        GeometryReader { proxy in
+            let size: CGSize = proxy.size
+            ZStack {
+                Canvas { context, _ in
+                    for edge in Self.edges {
+                        let start = point(edge.from, in: size)
+                        let end = point(edge.to, in: size)
+                        var path = Path()
+                        path.move(to: start)
+                        path.addCurve(to: end, control1: CGPoint(x: start.x + 60, y: start.y), control2: CGPoint(x: end.x - 60, y: end.y))
+                        let active: Bool = state.revealedGradient(of: edge.from) != nil
+                        context.stroke(path, with: .color(active ? .orange : .secondary.opacity(0.4)), lineWidth: active ? 3 : 1.5)
+                    }
+                }
+                ForEach(Node.allCases) { node in
+                    nodeView(node).position(point(node, in: size))
+                }
+            }
+        }
+        .frame(height: 340)
+        .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 12))
+        .accessibilityIdentifier("lab.gradGraph.board")
+    }
+
+    private func point(_ node: Node, in size: CGSize) -> CGPoint {
+        let place = Self.places[node] ?? .zero
+        return CGPoint(x: size.width * place.x, y: size.height * place.y)
+    }
+
+    private func nodeView(_ node: Node) -> some View {
+        let gradient = state.revealedGradient(of: node)
+        let input = GradGraphState.Input(rawValue: node.rawValue)
+        return VStack(spacing: 2) {
+            Text(verbatim: name(node)).font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+            Text(verbatim: number(state.value(of: node), 2)).font(.system(.callout, design: .rounded).weight(.semibold)).monospacedDigit()
+            Text(verbatim: gradient.map { "∂L = \(number($0, 2))" } ?? "∂L = ?")
+                .font(.caption.weight(.semibold))
+                .monospacedDigit()
+                .foregroundStyle(gradient == nil ? Color.secondary : Color.orange)
+                .accessibilityIdentifier("lab.gradGraph.grad.\(node.rawValue)")
+            if let input {
+                HStack(spacing: 4) {
+                    Button { withAnimation { state.nudge(input, up: false) } } label: { Image(systemName: "minus") }
+                        .accessibilityLabel("\(input.rawValue) −")
+                        .accessibilityIdentifier("lab.gradGraph.down.\(input.rawValue)")
+                    Button { withAnimation { state.nudge(input, up: true) } } label: { Image(systemName: "plus") }
+                        .accessibilityLabel("\(input.rawValue) +")
+                        .accessibilityIdentifier("lab.gradGraph.up.\(input.rawValue)")
+                }
+                .controlSize(.mini)
+            }
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 5)
+        .frame(minWidth: 86)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+        .overlay(RoundedRectangle(cornerRadius: 9).stroke(gradient == nil ? Color.secondary.opacity(0.4) : Color.orange, lineWidth: gradient == nil ? 1 : 2))
+    }
+}
+
+// MARK: - BPE merge lab / Тренажёр: слияния BPE
+
+private struct BPEMergeLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var state = BPEMergeState(text: BPEMergeLab.lessonText)
+    @State private var draft = BPEMergeLab.lessonText
+
+    private static let lessonText = "Модель читает текст кусочками. Кусочки называют токенами. "
+        + "Модель учится на текстах, и текст становится токенами, а токены становятся числами. "
+        + "The model reads text in pieces, and the pieces of text are called tokens. "
+    private static let examples = ["hug hug pug", "мама мыла раму, мама мыла раму", lessonText]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.bpe.title"), instruction: text("lab.bpe.subtitle"))
+            ScrollView {
+                LiveModelFlow(spacing: 3) {
+                    ForEach(Array(state.ids.enumerated()), id: \.offset) { index, id in
+                        Text(verbatim: state.label(id))
+                            .font(.system(.caption, design: .monospaced).weight(id >= 256 ? .semibold : .regular))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(state.marksNextPair(at: index) ? Color.yellow.opacity(0.6) : (id >= 256 ? Color.accentColor.opacity(0.28) : Color.secondary.opacity(0.14)), in: RoundedRectangle(cornerRadius: 4))
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(8)
+            }
+            .frame(height: 210)
+            .background(Color.primary.opacity(0.04), in: RoundedRectangle(cornerRadius: 10))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.bpe.tokensSpoken"))
+            .accessibilityValue(String(state.ids.count))
+            .accessibilityIdentifier("lab.bpe.tokens")
+            if let next = state.nextPair {
+                Text(verbatim: String(format: text("lab.bpe.next"), state.label(next.pair.first), state.label(next.pair.second), String(next.count)))
+                    .font(.callout.weight(.medium))
+                    .accessibilityIdentifier("lab.bpe.next")
+            } else {
+                LabStatusBadge(kind: .info, text: text("lab.bpe.noPair"), identifier: "lab.bpe.noPair")
+            }
+            HStack(spacing: 10) {
+                Button { state.mergeNext() } label: { Label(text("lab.bpe.merge"), systemImage: "arrow.triangle.merge") }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(state.nextPair == nil)
+                    .accessibilityIdentifier("lab.bpe.merge")
+                Button { for _ in 0..<10 { state.mergeNext() } } label: { Label(text("lab.bpe.mergeTen"), systemImage: "forward.fill") }
+                    .buttonStyle(.bordered)
+                    .disabled(state.nextPair == nil)
+                    .accessibilityIdentifier("lab.bpe.mergeTen")
+                Button { state.restart(text: draft) } label: { Label(text("lab.liveModel.restart"), systemImage: "arrow.counterclockwise") }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("lab.bpe.restart")
+            }
+            historyChart
+            HStack(spacing: 8) {
+                TextField(text("lab.bpe.field"), text: $draft)
+                    .textFieldStyle(.roundedBorder)
+                    .onSubmit { state.restart(text: draft) }
+                    .accessibilityIdentifier("lab.bpe.field")
+                Button(text("lab.bpe.use")) { state.restart(text: draft) }
+                    .disabled(draft.isEmpty)
+                    .accessibilityIdentifier("lab.bpe.use")
+            }
+            HStack(spacing: 6) {
+                ForEach(Self.examples, id: \.self) { example in
+                    Button {
+                        draft = example
+                        state.restart(text: example)
+                    } label: {
+                        Text(verbatim: String(example.prefix(24))).font(.caption).lineLimit(1)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.bpe.statBytes"), value: String(state.byteCount), tint: .secondary, identifier: "lab.bpe.bytes")
+                LabStat(label: text("lab.bpe.statTokens"), value: String(state.ids.count), tint: .accentColor, identifier: "lab.bpe.count")
+                LabStat(label: text("lab.bpe.statMerges"), value: String(state.merges.count), tint: .orange, identifier: "lab.bpe.merges")
+                LabStat(label: text("lab.bpe.statDecode"), value: state.roundTrips ? "✓" : "✗", tint: .green, identifier: "lab.bpe.roundTrip")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.bpe.challenge"), solved: state.solved,
+                         solvedText: String(format: text("lab.bpe.challengeDone"), String(state.merges.count)), identifier: "lab.bpe.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.bpe.howBytes"), text("lab.bpe.howLearned")])
+        }
+    }
+
+    private var historyChart: some View {
+        Canvas { context, size in
+            let last: Double = max(Double(state.history.count - 1), 10)
+            let geometry = LabPlotGeometry(size: size, x: 0...last, y: 0...Double(max(state.byteCount, 1)))
+            geometry.drawAxes(in: context, xLabel: text("lab.bpe.statMerges"), yLabel: text("lab.bpe.statTokens")) { String(Int($0)) }
+            var line = Path()
+            for (index, count) in state.history.enumerated() {
+                let point: CGPoint = geometry.point(Double(index), Double(count))
+                if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+            }
+            context.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+            var half = Path()
+            half.move(to: geometry.point(0, Double(state.byteCount) / 2))
+            half.addLine(to: geometry.point(last, Double(state.byteCount) / 2))
+            context.stroke(half, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+        }
+        .frame(height: 150)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.bpe.chartSpoken"))
+        .accessibilityValue(String(state.ids.count))
+        .accessibilityIdentifier("lab.bpe.chart")
     }
 }

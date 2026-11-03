@@ -487,6 +487,18 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-prompt-lab"
           "$RUNNER_TEMP/verify-prompt-lab"
 
+      - name: Verify gradient graph lab
+        run: |
+          swiftc macOS/ColiDev/App/GradGraphModel.swift macOS/ColiDev/scripts/verify_grad_graph.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-grad-graph"
+          "$RUNNER_TEMP/verify-grad-graph"
+
+      - name: Verify BPE merge lab
+        run: |
+          swiftc macOS/ColiDev/App/BPEMergeModel.swift macOS/ColiDev/scripts/verify_bpe_merge.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-bpe-merge"
+          "$RUNNER_TEMP/verify-bpe-merge"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \
