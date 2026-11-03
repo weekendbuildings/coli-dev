@@ -74,9 +74,9 @@
 | `neural_network_backpropagation`, `neural_network_hidden_layer_xor` | Обратное распространение, XOR, объёмная модель сети | Karpathy, micrograd | A | есть |
 | `autograd_engine` | Свой механизм градиентов на 100 строк, сверка с численной производной | Karpathy, micrograd | A | есть |
 | `ml_baseline_and_holdout`, `minibatches_and_overfitting` | Проверка и переобучение | | B | есть |
-| `training_recipe_and_diagnostics` | Переобучить один пакет, найти намеренно спрятанные ошибки по кривым | Karpathy, makemore 3 и «A Recipe for Training Neural Networks» | A | новый |
-| `optimizers_momentum_adam` | SGD, импульс, Adam катятся по объёмному рельефу ошибки (3D: высота это настоящая ошибка) | Prince, главы об оптимизации; CS336, лекция 3 | A | новый |
-| `initialization_and_normalization` | Плохая инициализация, гистограммы активаций и градиентов, нормализация | Karpathy, makemore 3 | A | новый |
+| `training_recipe_and_diagnostics` | Переобучить один пакет, найти намеренно спрятанные ошибки по кривым | Karpathy, makemore 3 и «A Recipe for Training Neural Networks» | A | есть |
+| `optimizers_momentum_adam` | SGD, импульс, Adam катятся по объёмному рельефу ошибки (3D: высота это настоящая ошибка) | Prince, главы об оптимизации; CS336, лекция 3 | A | есть |
+| `initialization_and_normalization` | Плохая инициализация, гистограммы активаций и градиентов, нормализация | Karpathy, makemore 3 | A | есть |
 | `tokenizer_bpe` | Свой токенизатор BPE, сравнение со словарём настоящей модели | Karpathy, Let's build the GPT Tokenizer; CS336, задание 1 | A | есть |
 | `bigram_language_model` | Счётчик пар, выборка, температура на своей модели | Karpathy, makemore 1 | B | новый |
 | `embeddings_and_similarity` | Эмбеддинги | CS224N, лекция о векторах слов | A | есть |

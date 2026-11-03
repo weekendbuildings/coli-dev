@@ -1956,6 +1956,12 @@ private struct PracticeLab: View {
             GradGraphLab()
         } else if subject == .programming, moduleResource == "tokenizer_bpe" {
             BPEMergeLab()
+        } else if subject == .programming, moduleResource == "initialization_and_normalization" {
+            InitHeatLab()
+        } else if subject == .programming, moduleResource == "optimizers_momentum_adam" {
+            OptimizerRaceLab()
+        } else if subject == .programming, moduleResource == "training_recipe_and_diagnostics" {
+            TrainingDoctorLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -20134,5 +20140,340 @@ private struct BPEMergeLab: View {
         .accessibilityLabel(text("lab.bpe.chartSpoken"))
         .accessibilityValue(String(state.ids.count))
         .accessibilityIdentifier("lab.bpe.chart")
+    }
+}
+
+// MARK: - Activation heat map lab / Тренажёр: как сигнал идёт по слоям
+
+private struct InitHeatLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var logScale = log10(0.25)
+    @State private var normalized = false
+    @State private var run = InitNormModel.run(scale: 0.25, normalized: false)
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private var scale: Double { pow(10, logScale) }
+    private var solved: Bool { !normalized && InitNormModel.isHealthy(run) }
+
+    private func recompute() {
+        run = InitNormModel.run(scale: scale, normalized: normalized)
+    }
+
+    private func compact(_ value: Double) -> String {
+        if value >= 0.01 { return number(value, value >= 1 ? 1 : 2) }
+        return String(format: "%.0e", value)
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.initHeat.title"), instruction: text("lab.initHeat.subtitle"))
+            VStack(alignment: .leading, spacing: 4) {
+                Text(text("lab.initHeat.heatTitle")).font(.callout.weight(.semibold))
+                heatMap
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(text("lab.initHeat.gradTitle")).font(.callout.weight(.semibold))
+                gradientBars
+            }
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(text("lab.initHeat.scale")).font(.callout.weight(.semibold))
+                Text(verbatim: number(scale)).font(.system(.title3, design: .rounded).weight(.semibold)).monospacedDigit().accessibilityIdentifier("lab.initHeat.scaleValue")
+                Slider(value: $logScale, in: -1...0.7)
+                    .accessibilityLabel(text("lab.initHeat.scale"))
+                    .accessibilityIdentifier("lab.initHeat.slider")
+            }
+            HStack(spacing: 8) {
+                ForEach([0.25, 1.0, 4.0], id: \.self) { preset in
+                    Button(number(preset)) { logScale = log10(preset) }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("lab.initHeat.preset.\(preset)")
+                }
+                Toggle(text("lab.initHeat.normalize"), isOn: $normalized)
+                    .toggleStyle(.switch)
+                    .padding(.leading, 12)
+                    .accessibilityIdentifier("lab.initHeat.normalize")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.initHeat.statFirst"), value: compact(run.activationSpread[0]), tint: .accentColor, identifier: "lab.initHeat.first")
+                LabStat(label: text("lab.initHeat.statLast"), value: compact(run.activationSpread[InitNormModel.layers - 1]), tint: .accentColor, identifier: "lab.initHeat.last")
+                LabStat(label: text("lab.initHeat.statGradFirst"), value: compact(run.gradientSize[0]), tint: .orange, identifier: "lab.initHeat.gradFirst")
+                LabStat(label: text("lab.initHeat.statGradLast"), value: compact(run.gradientSize[InitNormModel.layers - 1]), tint: .orange, identifier: "lab.initHeat.gradLast")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.initHeat.challenge"), solved: solved,
+                         solvedText: text("lab.initHeat.challengeDone"), identifier: "lab.initHeat.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.initHeat.howHeat"), text("lab.initHeat.howNorm")])
+        }
+        .onChange(of: logScale) { _ in recompute() }
+        .onChange(of: normalized) { _ in recompute() }
+    }
+
+    private var heatMap: some View {
+        Canvas { context, size in
+            let left: CGFloat = 44
+            let top: CGFloat = 18
+            let bottom: CGFloat = 18
+            let cellWidth: CGFloat = (size.width - left - 4) / CGFloat(InitNormModel.layers)
+            let cellHeight: CGFloat = (size.height - top - bottom) / CGFloat(InitNormModel.bins)
+            for layer in 0..<InitNormModel.layers {
+                let x: CGFloat = left + CGFloat(layer) * cellWidth
+                for bin in 0..<InitNormModel.bins {
+                    let y: CGFloat = top + CGFloat(InitNormModel.bins - 1 - bin) * cellHeight
+                    let rect = CGRect(x: x, y: y, width: cellWidth - 1, height: cellHeight - 0.5)
+                    context.fill(Path(rect), with: .color(LabHeatScale.color(min(run.histograms[layer][bin] * 5, 1))))
+                }
+                let middle: CGFloat = x + cellWidth / 2
+                context.draw(Text(verbatim: compact(run.activationSpread[layer])).font(.caption2.weight(.semibold)).foregroundColor(.primary), at: CGPoint(x: middle, y: 8))
+                context.draw(Text(verbatim: String(layer + 1)).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: middle, y: size.height - 8))
+            }
+            for (value, label) in [(0.0, "+1"), (0.5, "0"), (1.0, "−1")] {
+                let y: CGFloat = top + CGFloat(value) * (size.height - top - bottom)
+                context.draw(Text(verbatim: label).font(.caption2).foregroundColor(.secondary), at: CGPoint(x: left - 8, y: y), anchor: .trailing)
+            }
+        }
+        .frame(height: 210)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.initHeat.heatTitle"))
+        .accessibilityValue(run.activationSpread.map { compact($0) }.joined(separator: ", "))
+        .accessibilityIdentifier("lab.initHeat.heat")
+    }
+
+    private var gradientBars: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0.5...8.5, y: -6...2)
+            geometry.drawAxes(in: context, xLabel: "", yLabel: "", xTicks: [], yTicks: [-6, -4, -2, 0, 2]) { value in
+                value == 0 ? "1" : "10^\(Int(value))"
+            }
+            for layer in 0..<InitNormModel.layers {
+                let value: Double = max(log10(max(run.gradientSize[layer], 1e-9)), -6)
+                let low: CGPoint = geometry.point(Double(layer + 1) - 0.32, -6)
+                let high: CGPoint = geometry.point(Double(layer + 1) + 0.32, min(value, 2))
+                let rect = CGRect(x: low.x, y: high.y, width: high.x - low.x, height: low.y - high.y)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.orange))
+            }
+        }
+        .frame(height: 120)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.initHeat.gradTitle"))
+        .accessibilityValue(run.gradientSize.map { compact($0) }.joined(separator: ", "))
+        .accessibilityIdentifier("lab.initHeat.gradients")
+    }
+}
+
+// MARK: - Optimizer race lab / Тренажёр: гонка оптимизаторов
+
+private struct OptimizerRaceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var state = OptimizerRaceState()
+    @State private var playing = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private func tint(_ kind: OptimizerKind) -> Color {
+        switch kind {
+        case .plain: return .orange
+        case .momentum: return .white
+        case .adam: return .pink
+        }
+    }
+
+    private func limit(_ kind: OptimizerKind) -> ClosedRange<Double> {
+        kind == .plain ? 0.05...1.05 : 0.05...1.0
+    }
+
+    private func outcome(_ kind: OptimizerKind) -> String {
+        if state.diverged(kind) { return text("lab.opt.diverged") }
+        if let steps = state.steps(kind) { return String(format: text("lab.opt.steps"), String(steps)) }
+        return String(format: text("lab.opt.notReached"), String(OptimizerValley.stepsLimit))
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.opt.title"), instruction: text("lab.opt.subtitle"))
+            OptimizerValleySceneView(paths: state.paths, step: state.step, revision: state.revision, minimumLabel: text("lab.opt.minimum")) { point in
+                playing = false
+                state.setStart(point)
+            }
+            .frame(height: 400)
+            .frame(maxWidth: .infinity)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(text("lab.opt.sceneLabel"))
+            .accessibilityValue(String(state.step))
+            .accessibilityIdentifier("lab.opt.scene")
+            ForEach(OptimizerKind.allCases) { kind in
+                HStack(spacing: 10) {
+                    Circle().fill(tint(kind)).frame(width: 12, height: 12).overlay(Circle().stroke(Color.secondary, lineWidth: 0.5))
+                    Text(text("lab.opt.kind.\(kind.rawValue)")).font(.callout.weight(.semibold)).frame(width: 120, alignment: .leading)
+                    Slider(value: Binding(get: { state.rate(kind) }, set: { value in
+                        playing = false
+                        state.setRate(kind, (value * 100).rounded() / 100)
+                    }), in: limit(kind))
+                    .accessibilityLabel(text("lab.opt.kind.\(kind.rawValue)"))
+                    .accessibilityIdentifier("lab.opt.rate.\(kind.rawValue)")
+                    Text(verbatim: number(state.rate(kind))).font(.callout).monospacedDigit().frame(width: 40, alignment: .trailing)
+                    Text(verbatim: outcome(kind)).font(.callout.weight(.medium)).monospacedDigit().frame(width: 130, alignment: .trailing)
+                        .foregroundStyle(state.diverged(kind) ? Color.red : Color.primary)
+                        .accessibilityIdentifier("lab.opt.outcome.\(kind.rawValue)")
+                }
+            }
+            HStack(spacing: 10) {
+                Button {
+                    if state.step >= OptimizerRaceState.lastStep { state.restart() }
+                    playing.toggle()
+                } label: {
+                    Label(text(playing ? "lab.opt.pause" : "lab.opt.play"), systemImage: playing ? "pause.fill" : "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.opt.play")
+                Button {
+                    playing = false
+                    state.restart()
+                } label: {
+                    Label(text("lab.liveModel.restart"), systemImage: "arrow.counterclockwise")
+                }
+                .buttonStyle(.bordered)
+                .accessibilityIdentifier("lab.opt.restart")
+                Text(verbatim: String(format: text("lab.opt.stepLine"), String(state.step), String(OptimizerRaceState.lastStep)))
+                    .font(.callout)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("lab.opt.step")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.opt.challenge"), solved: state.solved,
+                         solvedText: text("lab.opt.challengeDone"), identifier: "lab.opt.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.opt.howValley"), text("lab.opt.howRules")])
+        }
+        .task(id: playing) {
+            guard playing else { return }
+            while playing, state.step < OptimizerRaceState.lastStep {
+                if reduceMotion {
+                    for _ in 0..<OptimizerRaceState.lastStep { state.advance() }
+                } else {
+                    state.advance()
+                }
+                try? await Task.sleep(nanoseconds: 40_000_000)
+                if Task.isCancelled { return }
+            }
+            playing = false
+        }
+    }
+}
+
+// MARK: - Training doctor lab / Тренажёр: доктор обучения
+
+private struct TrainingDoctorLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var state = TrainingDoctorState()
+    @State private var showHealthy = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.doctor.title"), instruction: text("lab.doctor.subtitle"))
+            HStack {
+                Text(verbatim: String(format: text("lab.doctor.patient"), String(state.current + 1), String(TrainingDoctorState.order.count)))
+                    .font(.title3.weight(.semibold))
+                    .accessibilityIdentifier("lab.doctor.patient")
+                Spacer()
+                legend(.accentColor, text("lab.doctor.train"))
+                legend(.orange, text("lab.doctor.check"))
+            }
+            chart
+            LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: 8)], spacing: 8) {
+                ForEach(TrainingDoctorState.diagnoses, id: \.self) { diagnosis in
+                    Button {
+                        state.guess(diagnosis)
+                        showHealthy = false
+                    } label: {
+                        Text(text("lab.doctor.diagnosis.\(diagnosis)"))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 3)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(buttonTint(diagnosis))
+                    .disabled(state.isCurrentSolved)
+                    .accessibilityIdentifier("lab.doctor.guess.\(diagnosis)")
+                }
+            }
+            if state.isCurrentSolved {
+                LabStatusBadge(kind: .good, text: text("lab.doctor.why.\(state.currentCase)"), identifier: "lab.doctor.why")
+                HStack(spacing: 10) {
+                    Toggle(text("lab.doctor.compare"), isOn: $showHealthy).accessibilityIdentifier("lab.doctor.compare")
+                    Spacer()
+                    if state.current + 1 < TrainingDoctorState.order.count {
+                        Button {
+                            state.next()
+                            showHealthy = false
+                        } label: {
+                            Label(text("lab.doctor.next"), systemImage: "arrow.right")
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .accessibilityIdentifier("lab.doctor.next")
+                    }
+                }
+            } else if !state.wrongGuesses.isEmpty {
+                LabStatusBadge(kind: .warning, text: text("lab.doctor.tryAgain"), identifier: "lab.doctor.tryAgain")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.doctor.statDone"), value: "\(state.solvedCount) / \(TrainingDoctorState.order.count)", tint: .green, identifier: "lab.doctor.done")
+                LabStat(label: text("lab.doctor.statFirst"), value: String(state.firstTry), tint: .accentColor, identifier: "lab.doctor.first")
+                LabStat(label: text("lab.doctor.statStart"), value: L10n.number(state.curve[0].0, fractionDigits: 3, store.language), tint: .orange, identifier: "lab.doctor.start")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.doctor.challenge"), solved: state.solved,
+                         solvedText: text("lab.doctor.challengeDone"), identifier: "lab.doctor.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.doctor.howChecks"), text("lab.doctor.howReal")])
+        }
+    }
+
+    private func buttonTint(_ diagnosis: String) -> Color? {
+        if state.wrongGuesses.contains(diagnosis) { return .red }
+        if state.isCurrentSolved, diagnosis == state.currentCase { return .green }
+        return nil
+    }
+
+    private func legend(_ color: Color, _ label: String) -> some View {
+        HStack(spacing: 4) {
+            RoundedRectangle(cornerRadius: 2).fill(color).frame(width: 14, height: 4)
+            Text(verbatim: label).font(.caption).foregroundStyle(.secondary)
+        }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let curve = state.curve
+            let healthy = TrainingDoctorRecording.curves["healthy"] ?? []
+            let top: Double = max(curve.map { max($0.0, $0.1) }.max() ?? 1, 1) * 1.08
+            let geometry = LabPlotGeometry(size: size, x: 0...300, y: 0...top)
+            geometry.drawAxes(in: context, xLabel: text("lab.doctor.epochs"), yLabel: text("lab.doctor.error")) { value in
+                value >= 10 || value == value.rounded() ? String(Int(value)) : L10n.number(value, fractionDigits: 1, store.language)
+            }
+            var chance = Path()
+            chance.move(to: geometry.point(0, log(2)))
+            chance.addLine(to: geometry.point(300, log(2)))
+            context.stroke(chance, with: .color(.secondary), style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+            func line(_ values: [(Double, Double)], _ value: ((Double, Double)) -> Double) -> Path {
+                var path = Path()
+                for (index, item) in values.enumerated() {
+                    let point: CGPoint = geometry.point(Double(index) * 10, min(value(item), top))
+                    if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
+                }
+                return path
+            }
+            if showHealthy {
+                context.stroke(line(healthy) { $0.0 }, with: .color(.green.opacity(0.7)), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+                context.stroke(line(healthy) { $0.1 }, with: .color(.green.opacity(0.4)), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+            }
+            context.stroke(line(curve) { $0.0 }, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(line(curve) { $0.1 }, with: .color(.orange), lineWidth: 2.5)
+        }
+        .frame(height: 230)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.doctor.chartSpoken"))
+        .accessibilityValue("\(state.curve[0].0), \(state.curve[state.curve.count - 1].0), \(state.curve[state.curve.count - 1].1)")
+        .accessibilityIdentifier("lab.doctor.chart")
     }
 }

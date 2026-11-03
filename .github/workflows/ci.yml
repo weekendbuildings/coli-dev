@@ -499,6 +499,24 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-bpe-merge"
           "$RUNNER_TEMP/verify-bpe-merge"
 
+      - name: Verify init and normalization lab
+        run: |
+          swiftc macOS/ColiDev/App/InitNormModel.swift macOS/ColiDev/scripts/verify_init_norm.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-init-norm"
+          "$RUNNER_TEMP/verify-init-norm"
+
+      - name: Verify optimizer valley lab
+        run: |
+          swiftc macOS/ColiDev/App/OptimizerValleyModel.swift macOS/ColiDev/scripts/verify_optimizer_valley.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-optimizer-valley"
+          "$RUNNER_TEMP/verify-optimizer-valley"
+
+      - name: Verify training doctor lab
+        run: |
+          swiftc macOS/ColiDev/App/TrainingDoctorModel.swift macOS/ColiDev/scripts/verify_training_doctor.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-training-doctor"
+          "$RUNNER_TEMP/verify-training-doctor"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \
