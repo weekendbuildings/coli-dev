@@ -333,11 +333,11 @@ The world here is noiseless and tiny, so the model is just a table and is always
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 8, recalled; the site answered with an error on the check of 2026-11-03: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 8, recalled; the book page opened 2026-11-03, the chapter itself not re-read: [book page](http://incompleteideas.net/book/the-book-2nd.html)
 - David Ha, Jürgen Schmidhuber, "World Models", arXiv:1803.10122 (2018), title read 2026-11-03: [arXiv:1803.10122](https://arxiv.org/abs/1803.10122)
 - Danijar Hafner et al., "Mastering Diverse Domains through World Models", arXiv:2301.04104 (2023), title read 2026-11-03: [arXiv:2301.04104](https://arxiv.org/abs/2301.04104)
-- Yann LeCun, "A Path Towards Autonomous Machine Intelligence" (2022), recalled: [OpenReview](https://openreview.net/forum?id=BZ5a1r-kVsf)
+- Yann LeCun, "A Path Towards Autonomous Machine Intelligence" (2022), recalled: OpenReview asked for a browser check on 2026-11-03, so the paper was not read; JEPA comparing representations rather than pixels read in the I-JEPA post the same day: [OpenReview](https://openreview.net/forum?id=BZ5a1r-kVsf), [I-JEPA post](https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/)
 - Mido Assran et al., "V-JEPA 2", arXiv:2506.09985 (2025), title read 2026-11-03: [arXiv:2506.09985](https://arxiv.org/abs/2506.09985)
-- Kenneth Li et al., "Emergent World Representations", arXiv:2210.13382 (2022), recalled: [arXiv:2210.13382](https://arxiv.org/abs/2210.13382)
-- Julian Schrittwieser et al., "Mastering Atari, Go, Chess and Shogi by Planning with a Learned Model", arXiv:1911.08265 (2019), recalled: [arXiv:1911.08265](https://arxiv.org/abs/1911.08265)
+- Kenneth Li et al., "Emergent World Representations", arXiv:2210.13382 (2022), abstract and the probes section read 2026-11-03: [arXiv:2210.13382](https://arxiv.org/abs/2210.13382)
+- Julian Schrittwieser et al., "Mastering Atari, Go, Chess and Shogi by Planning with a Learned Model", arXiv:1911.08265 (2019), abstract read 2026-11-03: [arXiv:1911.08265](https://arxiv.org/abs/1911.08265)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

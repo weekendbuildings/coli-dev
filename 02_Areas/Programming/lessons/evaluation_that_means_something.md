@@ -348,8 +348,8 @@ Models here are coins with independent answers. Real models have linked errors a
 ## Sources
 
 - David Manheim, Scott Garrabrant, "Categorizing Variants of Goodhart's Law", arXiv:1803.04585 (2018), title read 2026-11-03: [arXiv:1803.04585](https://arxiv.org/abs/1803.04585)
-- Benjamin Recht et al., "Do ImageNet Classifiers Generalize to ImageNet?", arXiv:1902.10811 (2019), title read 2026-11-03; the figures are recalled from the abstract: [arXiv:1902.10811](https://arxiv.org/abs/1902.10811)
+- Benjamin Recht et al., "Do ImageNet Classifiers Generalize to ImageNet?", arXiv:1902.10811 (2019), abstract with the figures read 2026-11-03: [arXiv:1902.10811](https://arxiv.org/abs/1902.10811)
 - Shivalika Singh et al., "The Leaderboard Illusion", arXiv:2504.20879 (2025), title read 2026-11-03: [arXiv:2504.20879](https://arxiv.org/abs/2504.20879)
-- Edwin B. Wilson, "Probable Inference, the Law of Succession, and Statistical Inference", Journal of the American Statistical Association 22 (1927), for the interval formula, recalled.
+- Edwin B. Wilson, "Probable Inference, the Law of Succession, and Statistical Inference", Journal of the American Statistical Association 22 (1927), title and journal checked 2026-11-03; the interval formula is the standard one, recalled.
 - Stanford CS224N and CS336, titles read 2026-11-03: [CS224N](https://web.stanford.edu/class/cs224n/), [CS336](https://stanford-cs336.github.io/spring2025/)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

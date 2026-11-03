@@ -303,9 +303,9 @@ In the lab, screen timing is no more accurate than one frame, so this is an expe
 
 ## Sources
 
-- Cogitate Consortium, "Adversarial testing of global neuronal workspace and integrated information theories of consciousness", Nature (2025), title read 2026-11-03; the findings are recalled from the paper: [article](https://www.nature.com/articles/s41586-025-08888-1)
-- Stanislas Dehaene, Lionel Naccache et al., work on masking and ignition, recalled; "Consciousness and the Brain" (2014).
-- Naotsugu Tsuchiya et al., "No-Report Paradigms: Extracting the True Neural Correlates of Consciousness", Trends in Cognitive Sciences 19 (2015), recalled.
-- Neil A. Macmillan, C. Douglas Creelman, "Detection Theory: A User's Guide", for d′ and c, recalled.
+- Cogitate Consortium, "Adversarial testing of global neuronal workspace and integrated information theories of consciousness", Nature 642 (2025), abstract read 2026-11-03: [article](https://www.nature.com/articles/s41586-025-08888-1)
+- Stanislas Dehaene, Jean-Pierre Changeux, Lionel Naccache et al., "Conscious, preconscious, and subliminal processing: a testable taxonomy", Trends in Cognitive Sciences 10 (2006), title and journal checked 2026-11-03; the paper itself not re-read; "Consciousness and the Brain" (2014), recalled.
+- Naotsugu Tsuchiya et al., "No-Report Paradigms: Extracting the True Neural Correlates of Consciousness", Trends in Cognitive Sciences 19 (2015), title and journal checked 2026-11-03; the paper itself not re-read.
+- Neil A. Macmillan, C. Douglas Creelman, "Detection Theory: A User's Guide" (third edition with Hautus, 2021, found 2026-11-03), for d′ and c, recalled; the numbers are computed in the lesson.
 - Stanford Encyclopedia of Philosophy, "Consciousness": [entry](https://plato.stanford.edu/entries/consciousness/)
 - The programs and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

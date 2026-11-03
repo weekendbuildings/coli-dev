@@ -513,9 +513,9 @@ The model here is a table of word pairs, and the reward is a sum of weights that
 
 ## Sources
 
-- Long Ouyang et al., "Training language models to follow instructions with human feedback", arXiv:2203.02155 (2022), recalled from the paper: [arXiv:2203.02155](https://arxiv.org/abs/2203.02155)
+- Long Ouyang et al., "Training language models to follow instructions with human feedback", arXiv:2203.02155 (2022), abstract read 2026-11-03: [arXiv:2203.02155](https://arxiv.org/abs/2203.02155)
 - Paul Christiano et al., "Deep reinforcement learning from human preferences", arXiv:1706.03741 (2017), title read 2026-11-03: [arXiv:1706.03741](https://arxiv.org/abs/1706.03741)
-- Leo Gao, John Schulman, Jacob Hilton, "Scaling Laws for Reward Model Overoptimization", arXiv:2210.10760 (2022), title read 2026-11-03; the hump is recalled from the paper: [arXiv:2210.10760](https://arxiv.org/abs/2210.10760)
+- Leo Gao, John Schulman, Jacob Hilton, "Scaling Laws for Reward Model Overoptimization", arXiv:2210.10760 (2022), abstract read 2026-11-03: [arXiv:2210.10760](https://arxiv.org/abs/2210.10760)
 - Daniel M. Ziegler et al., "Fine-Tuning Language Models from Human Preferences", arXiv:1909.08593 (2019): [arXiv:1909.08593](https://arxiv.org/abs/1909.08593)
 - Nathan Lambert, "Reinforcement Learning from Human Feedback", title read 2026-11-03: [book](https://rlhfbook.com/)
 - Stanford CS336, "Language Modeling from Scratch" (2025), title read 2026-11-03: [course](https://stanford-cs336.github.io/spring2025/)

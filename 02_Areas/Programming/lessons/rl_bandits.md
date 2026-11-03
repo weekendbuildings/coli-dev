@@ -339,8 +339,8 @@ The probabilities here are constant, while in real life they change, and then a 
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 2, recalled from the book; the site answered with an error on the check of 2026-11-03, and the rules and numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
-- Peter Auer, Nicolò Cesa-Bianchi, Paul Fischer, "Finite-time Analysis of the Multiarmed Bandit Problem", Machine Learning 47 (2002), title read 2026-11-03; the UCB1 formula and the logarithmic bound are recalled from the paper: [Springer](https://link.springer.com/article/10.1023/A:1013689704352)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 2, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read, and the rules and numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Peter Auer, Nicolò Cesa-Bianchi, Paul Fischer, "Finite-time Analysis of the Multiarmed Bandit Problem", Machine Learning 47 (2002), logarithmic regret read in the abstract 2026-11-03; the UCB1 formula recalled from the paper: [Springer](https://link.springer.com/article/10.1023/A:1013689704352)
 - David Silver, "Lectures on Reinforcement Learning", lecture 9 (the site refused the automated check on 2026-11-03): [course page](https://www.davidsilver.uk/teaching/)
 - Stanford CS234, "Reinforcement Learning": [course page](https://web.stanford.edu/class/cs234/)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

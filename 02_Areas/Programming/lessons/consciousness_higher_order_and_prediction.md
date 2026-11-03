@@ -371,10 +371,10 @@ The model is logistic regression on toy data. I chose the data to make overconfi
 
 ## Sources
 
-- Richard Brown, Hakwan Lau, Joseph E. LeDoux, "Understanding the Higher-Order Approach to Consciousness", Trends in Cognitive Sciences 23 (2019), recalled: [article](https://www.cell.com/trends/cognitive-sciences/fulltext/S1364-6613(19)30161-4)
-- David M. Rosenthal, "Consciousness and Mind" (2005), recalled.
-- Andy Clark, "Whatever next? Predictive brains, situated agents, and the future of cognitive science", Behavioral and Brain Sciences 36 (2013), recalled.
-- Anil Seth, "Being You" (2021), recalled; TED talk: [Your brain hallucinates your conscious reality](https://www.ted.com/talks/anil_seth_your_brain_hallucinates_your_conscious_reality)
+- Richard Brown, Hakwan Lau, Joseph E. LeDoux, "Understanding the Higher-Order Approach to Consciousness", Trends in Cognitive Sciences 23 (2019), title and journal checked 2026-11-03; the paper itself not re-read: [article](https://www.cell.com/trends/cognitive-sciences/fulltext/S1364-6613(19)30161-4)
+- David M. Rosenthal, "Consciousness and Mind", Oxford University Press (2005), details checked 2026-11-03; the book itself not re-read.
+- Andy Clark, "Whatever next? Predictive brains, situated agents, and the future of cognitive science", Behavioral and Brain Sciences 36 (2013), title and journal checked 2026-11-03; the paper itself not re-read.
+- Anil Seth, "Being You" (Dutton, 2021), details checked 2026-11-03 through a published review, the book itself not re-read; TED talk, page opened the same day: [Your brain hallucinates your conscious reality](https://www.ted.com/talks/anil_seth_your_brain_hallucinates_your_conscious_reality)
 - Chuan Guo et al., "On Calibration of Modern Neural Networks", arXiv:1706.04599 (2017): [arXiv:1706.04599](https://arxiv.org/abs/1706.04599)
 - Saurav Kadavath et al., "Language Models (Mostly) Know What They Know", arXiv:2207.05221 (2022): [arXiv:2207.05221](https://arxiv.org/abs/2207.05221)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

@@ -373,7 +373,7 @@ There is only one number in this policy and one return, and real models are far 
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 13 and Example 13.1, recalled from the book; the site answered with an error on the check of 2026-11-03; the value formula and its maximum are derived and checked by simulation in the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 13 and Example 13.1, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read; the value formula and its maximum are derived and checked by simulation in the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
 - Ronald J. Williams, "Simple statistical gradient-following algorithms for connectionist reinforcement learning", Machine Learning 8 (1992), title read 2026-11-03: [Springer](https://link.springer.com/article/10.1007/BF00992696)
 - John Schulman et al., "Proximal Policy Optimization Algorithms", arXiv:1707.06347 (2017): [arXiv:1707.06347](https://arxiv.org/abs/1707.06347)
 - Long Ouyang et al., "Training language models to follow instructions with human feedback", arXiv:2203.02155 (2022): [arXiv:2203.02155](https://arxiv.org/abs/2203.02155)

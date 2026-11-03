@@ -268,9 +268,9 @@ My measure is **not Φ**: it has no perturbation over all subsets, no separate c
 ## Sources
 
 - Larissa Albantakis et al., "Integrated information theory (IIT) 4.0", arXiv:2212.14787 (2022), title read 2026-11-03: [arXiv:2212.14787](https://arxiv.org/abs/2212.14787)
-- Giulio Tononi, "Consciousness as Integrated Information: a Provisional Manifesto", The Biological Bulletin 215 (2008), recalled.
-- Stephen M. Fleming et al., "The Integrated Information Theory of Consciousness as Pseudoscience", PsyArXiv (2023), recalled: [preprint](https://osf.io/preprints/psyarxiv/zsr78)
-- Scott Aaronson, "Why I Am Not An Integrated Information Theorist" (2014), recalled: [blog](https://scottaaronson.blog/?p=1799)
+- Giulio Tononi, "Consciousness as Integrated Information: a Provisional Manifesto", The Biological Bulletin 215 (2008), title and journal checked 2026-11-03; the paper itself not re-read.
+- Stephen M. Fleming et al., "The Integrated Information Theory of Consciousness as Pseudoscience", PsyArXiv (2023), title read 2026-11-03; the 124 signatures read in the Nature news report: [preprint](https://osf.io/preprints/psyarxiv/zsr78), [Nature news](https://www.nature.com/articles/d41586-023-02971-1)
+- Scott Aaronson, "Why I Am Not An Integrated Information Theorist" (2014), read 2026-11-03: [blog](https://scottaaronson.blog/?p=1799)
 - Cogitate Consortium, "Adversarial testing of global neuronal workspace and integrated information theories of consciousness", Nature (2025), title read 2026-11-03: [article](https://www.nature.com/articles/s41586-025-08888-1)
 - Stanford Encyclopedia of Philosophy, "Consciousness": [entry](https://plato.stanford.edu/entries/consciousness/)
 - The simplified measure, program and numbers were written for this lesson and are not IIT's Φ. The lesson paraphrases these sources and does not copy their text.

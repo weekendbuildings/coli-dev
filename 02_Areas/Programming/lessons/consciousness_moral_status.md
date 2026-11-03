@@ -207,6 +207,6 @@ The formula is simple and counts just two costs, while real decisions are far mo
 
 - Robert Long, Jeff Sebo et al., "Taking AI Welfare Seriously", arXiv:2411.00986 (2024), title read 2026-11-03: [arXiv:2411.00986](https://arxiv.org/abs/2411.00986)
 - Mustafa Suleyman, "We must build AI for people; not to be a person" (2025), title read 2026-11-03: [essay](https://mustafa-suleyman.ai/seemingly-conscious-ai-is-coming)
-- Jonathan Birch, "The Edge of Sentience", Oxford University Press (2024), recalled.
-- Anil Seth, "Conscious artificial intelligence and biological naturalism", Behavioral and Brain Sciences (2025), recalled.
+- Jonathan Birch, "The Edge of Sentience", Oxford University Press (2024), title confirmed and marked open access in OpenAlex on 2026-11-03; the publisher's page refused the check and the book itself was not re-read.
+- Anil Seth, "Conscious artificial intelligence and biological naturalism", Behavioral and Brain Sciences 49 (2025), title and journal checked 2026-11-03; the paper itself not re-read.
 - The formula, program and numbers were written for this lesson as an illustration. The lesson paraphrases these sources and does not copy their text.

@@ -407,7 +407,7 @@ The network and tasks are toys chosen to make forgetting total. Real tasks usual
 
 ## Sources
 
-- James Kirkpatrick et al., "Overcoming catastrophic forgetting in neural networks", arXiv:1612.00796 (2016), title read 2026-11-03; the fine is recalled from the paper: [arXiv:1612.00796](https://arxiv.org/abs/1612.00796)
+- James Kirkpatrick et al., "Overcoming catastrophic forgetting in neural networks", arXiv:1612.00796 (2016), equation 3, the fine, read 2026-11-03: [arXiv:1612.00796](https://arxiv.org/abs/1612.00796)
 - Richard S. Sutton, Michael Bowling, Patrick M. Pilarski, "The Alberta Plan for AI Research", arXiv:2208.11173 (2022), title read 2026-11-03: [arXiv:2208.11173](https://arxiv.org/abs/2208.11173)
-- Shibhansh Dohare et al., "Loss of plasticity in deep continual learning", Nature 632 (2024), recalled: [Nature](https://www.nature.com/articles/s41586-024-07711-7)
+- Shibhansh Dohare et al., "Loss of plasticity in deep continual learning", Nature 632 (2024), abstract read 2026-11-03: [Nature](https://www.nature.com/articles/s41586-024-07711-7)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.
