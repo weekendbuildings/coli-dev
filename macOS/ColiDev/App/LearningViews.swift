@@ -1998,6 +1998,14 @@ private struct PracticeLab: View {
             ForgettingLab()
         } else if subject == .programming, moduleResource == "agi_scaling_debate" {
             ScalingLab()
+        } else if subject == .programming, moduleResource == "consciousness_hard_problem" {
+            HardProblemLab()
+        } else if subject == .programming, moduleResource == "consciousness_global_workspace" {
+            WorkspaceLab()
+        } else if subject == .programming, moduleResource == "consciousness_integrated_information" {
+            IntegrationLab()
+        } else if subject == .programming, moduleResource == "consciousness_higher_order_and_prediction" {
+            ConfidenceLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {
@@ -22646,5 +22654,359 @@ private struct ScalingLab: View {
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(text("lab.scale.chartSpoken"))
         .accessibilityIdentifier("lab.scale.chart")
+    }
+}
+
+// MARK: - Hard problem lab / Тренажёр о трудной проблеме
+
+private struct HardProblemLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var agent = PainAgent()
+    @State private var picks: [Int: String] = [:]
+
+    private static let kinds = ["easy", "easy", "easy", "easy", "hard", "hard", "hard", "hard"]
+    private static let order = [4, 0, 5, 1, 6, 2, 7, 3]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double) -> String { L10n.number(value, fractionDigits: 2, store.language) }
+
+    private var solved: Bool { Self.kinds.indices.allSatisfy { picks[$0] == Self.kinds[$0] } }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.hard.title"), instruction: text("lab.hard.subtitle"))
+            HStack(spacing: 12) {
+                ForEach(PainAgent.places, id: \.self) { place in
+                    Button {
+                        agent.touch(place)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Text(verbatim: place == "stove" ? "🔥" : "🟫").font(.largeTitle)
+                            Text(verbatim: text("lab.hard.\(place)")).font(.callout.weight(.semibold))
+                            Text(verbatim: text("lab.hard.avoid") + " " + number(agent.avoid[place] ?? 0)).font(.caption.monospacedDigit()).foregroundStyle(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(8)
+                    }
+                    .buttonStyle(.bordered)
+                    .accessibilityIdentifier("lab.hard.touch.\(place)")
+                }
+                VStack(alignment: .leading, spacing: 6) {
+                    Text(verbatim: text("lab.hard.reportLabel")).font(.caption).foregroundStyle(.secondary)
+                    Text(verbatim: "«" + text(agent.hurts ? "lab.hard.reportPain" : "lab.hard.reportFine") + "»").font(.title3.weight(.semibold)).accessibilityIdentifier("lab.hard.report")
+                    Text(verbatim: text("lab.hard.codeLine")).font(.caption.monospaced()).foregroundStyle(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            VStack(spacing: 6) {
+                ForEach(Self.order, id: \.self) { item in
+                    HStack(spacing: 6) {
+                        Text(verbatim: text("lab.hard.q.\(item)")).font(.callout).frame(maxWidth: .infinity, alignment: .leading)
+                        ForEach(["easy", "hard"], id: \.self) { kind in
+                            Button(text("lab.hard.kind.\(kind)")) { picks[item] = kind }
+                                .tint(picks[item] == kind ? (Self.kinds[item] == kind ? .green : .red) : nil)
+                                .accessibilityIdentifier("lab.hard.pick.\(item).\(kind)")
+                        }
+                    }
+                }
+            }
+            .buttonStyle(.bordered)
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.hard.challenge"), solved: solved,
+                         solvedText: text("lab.hard.challengeDone"), identifier: "lab.hard.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.hard.howSort"), text("lab.hard.howObjection")])
+        }
+    }
+}
+
+// MARK: - Workspace lab / Тренажёр с рабочим пространством
+
+private struct WorkspaceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var strength = 0.5
+    @State private var curve: [(Double, Double)] = []
+    @State private var trace: [Double] = []
+    @State private var step = 0
+    @State private var seed: UInt64 = 40
+    @State private var sawLit = false
+    @State private var sawDark = false
+    @State private var share = 0.0
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private static let modules = ["vision", "hearing", "memory", "speech", "motion"]
+    private var current: Double { trace.isEmpty ? 0 : trace[min(step, trace.count - 1)] }
+    private var nearThreshold: Bool { share >= 0.3 && share <= 0.7 }
+    private var solved: Bool { sawLit && sawDark }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.work.title"), instruction: text("lab.work.subtitle"))
+            HStack(alignment: .top, spacing: 12) {
+                stage.frame(width: 240, height: 220)
+                chart
+            }
+            HStack {
+                Text(verbatim: String(format: text("lab.work.strength"), number(strength))).font(.callout.monospacedDigit()).frame(width: 150, alignment: .leading)
+                Slider(value: $strength, in: 0.2...1, step: 0.02).accessibilityIdentifier("lab.work.strengthSlider")
+                Button {
+                    seed += 1
+                } label: {
+                    Label(text("lab.work.flash"), systemImage: "bolt.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .accessibilityIdentifier("lab.work.flash")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.work.statShare"), value: number(share), tint: .accentColor, identifier: "lab.work.share")
+                LabStat(label: text("lab.work.statNow"), value: number(current), tint: .orange, identifier: "lab.work.now")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.work.challenge"), solved: solved,
+                         solvedText: text("lab.work.challengeDone"), identifier: "lab.work.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.work.howLoop"), text("lab.work.howNot")])
+        }
+        .task(id: strength) {
+            let value = strength
+            let result = await Task.detached(priority: .userInitiated) { () -> ([(Double, Double)], Double) in
+                var rand = RLRand(4)
+                var points: [(Double, Double)] = []
+                for index in 0...16 {
+                    let level: Double = 0.2 + Double(index) * 0.05
+                    points.append((level, WorkspaceModel.ignitionShare(strength: level, rand: &rand)))
+                }
+                var again = RLRand(9)
+                return (points, WorkspaceModel.ignitionShare(strength: value, rand: &again))
+            }.value
+            guard !Task.isCancelled else { return }
+            curve = result.0
+            share = result.1
+        }
+        .task(id: seed) {
+            var rand = RLRand(seed)
+            let new = WorkspaceModel.trial(strength: strength, rand: &rand)
+            trace = new
+            step = 0
+            for index in 0..<new.count {
+                guard !Task.isCancelled else { return }
+                step = index
+                try? await Task.sleep(nanoseconds: 110_000_000)
+            }
+            if nearThreshold, seed > 40 {
+                if (new.last ?? 0) > 0.5 { sawLit = true } else { sawDark = true }
+            }
+        }
+    }
+
+    private var stage: some View {
+        Canvas { context, size in
+            let middle = CGPoint(x: size.width / 2, y: size.height / 2)
+            let radius: CGFloat = min(size.width, size.height) * 0.36
+            let heat = current
+            for (index, name) in Self.modules.enumerated() {
+                let angle: Double = Double(index) / Double(Self.modules.count) * 2 * Double.pi - Double.pi / 2
+                let place = CGPoint(x: middle.x + CGFloat(cos(angle)) * radius, y: middle.y + CGFloat(sin(angle)) * radius)
+                var line = Path()
+                line.move(to: middle)
+                line.addLine(to: place)
+                context.stroke(line, with: .color(.orange.opacity(0.15 + 0.8 * heat)), lineWidth: 1 + 3 * CGFloat(heat))
+                let rect = CGRect(x: place.x - 26, y: place.y - 15, width: 52, height: 30)
+                context.fill(Path(roundedRect: rect, cornerRadius: 7), with: .color(.orange.opacity(0.12 + 0.8 * heat)))
+                context.draw(Text(verbatim: text("lab.work.module.\(name)")).font(.caption2), at: place)
+            }
+            let core = CGRect(x: middle.x - 22, y: middle.y - 22, width: 44, height: 44)
+            context.fill(Path(ellipseIn: core), with: .color(.orange.opacity(0.2 + 0.8 * heat)))
+            context.draw(Text(verbatim: number(heat)).font(.caption.monospacedDigit().weight(.semibold)), at: middle)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.work.stageSpoken"))
+        .accessibilityValue(number(current))
+        .accessibilityIdentifier("lab.work.stage")
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0.2...1, y: 0...1)
+            geometry.drawAxes(in: context, xLabel: text("lab.work.axis"), yLabel: text("lab.work.shareAxis")) { L10n.number($0, fractionDigits: 1, store.language) }
+            var path = Path()
+            for (index, point) in curve.enumerated() {
+                let place = geometry.point(point.0, point.1)
+                if index == 0 { path.move(to: place) } else { path.addLine(to: place) }
+            }
+            context.stroke(path, with: .color(.accentColor), lineWidth: 2.5)
+            var cursor = Path()
+            cursor.move(to: geometry.point(strength, 0))
+            cursor.addLine(to: geometry.point(strength, 1))
+            context.stroke(cursor, with: .color(.orange), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+        }
+        .frame(height: 220)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.work.chartSpoken"))
+        .accessibilityIdentifier("lab.work.chart")
+    }
+}
+
+// MARK: - Integration lab / Тренажёр с интеграцией
+
+private struct IntegrationLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var gates: [IntegrationModel.Gate] = [.keep, .keep, .keep]
+    @State private var sawConnectedZero = false
+    @State private var sawChain = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double) -> String { L10n.number(value, fractionDigits: 3, store.language) }
+
+    private var losses: [Double] { (0..<3).map { IntegrationModel.loss(gates, cutNode: $0) } }
+    private var weakest: Double { IntegrationModel.weakestCut(gates) }
+
+    private func note() {
+        if weakest == 0, gates.contains(where: { $0 != .keep }) { sawConnectedZero = true }
+        if gates.allSatisfy({ $0 == .previous }) || gates.allSatisfy({ $0 == .next }) { sawChain = true }
+    }
+
+    private func inputs(_ node: Int) -> [Int] {
+        switch gates[node] {
+        case .keep: return [node]
+        case .previous: return [(node + 2) % 3]
+        case .next: return [(node + 1) % 3]
+        case .and, .xor: return [(node + 1) % 3, (node + 2) % 3]
+        case .majority: return [0, 1, 2]
+        }
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.phi.title"), instruction: text("lab.phi.subtitle"))
+            HStack(alignment: .center, spacing: 16) {
+                network.frame(width: 220, height: 190)
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(0..<3, id: \.self) { node in
+                        Picker(String(format: text("lab.phi.node"), String(node)), selection: Binding(get: { gates[node] }, set: { value in
+                            gates[node] = value
+                            note()
+                        })) {
+                            ForEach(IntegrationModel.Gate.allCases, id: \.self) { gate in
+                                Text(verbatim: text("lab.phi.gate.\(gate.rawValue)")).tag(gate)
+                            }
+                        }
+                        .accessibilityIdentifier("lab.phi.node.\(node)")
+                    }
+                    ForEach(0..<3, id: \.self) { node in
+                        HStack {
+                            Text(verbatim: String(format: text("lab.phi.cut"), String(node))).font(.callout).frame(width: 96, alignment: .leading)
+                            GeometryReader { proxy in
+                                RoundedRectangle(cornerRadius: 3).fill(Color.accentColor).frame(width: proxy.size.width * CGFloat(losses[node] / 3))
+                            }
+                            .frame(height: 12)
+                            Text(verbatim: number(losses[node])).font(.caption.monospacedDigit()).frame(width: 44)
+                        }
+                    }
+                }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.phi.statWeakest"), value: number(weakest), tint: .orange, identifier: "lab.phi.weakest")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.phi.challenge"), solved: sawConnectedZero && sawChain,
+                         solvedText: text("lab.phi.challengeDone"), identifier: "lab.phi.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.phi.howMeasure"), text("lab.phi.howNot")])
+        }
+    }
+
+    private var network: some View {
+        Canvas { context, size in
+            let middle = CGPoint(x: size.width / 2, y: size.height / 2 + 8)
+            let radius: CGFloat = min(size.width, size.height) * 0.38
+            func place(_ node: Int) -> CGPoint {
+                let angle: Double = Double(node) / 3 * 2 * Double.pi - Double.pi / 2
+                return CGPoint(x: middle.x + CGFloat(cos(angle)) * radius, y: middle.y + CGFloat(sin(angle)) * radius)
+            }
+            for node in 0..<3 {
+                for source in inputs(node) where source != node {
+                    let from = place(source)
+                    let to = place(node)
+                    var line = Path()
+                    line.move(to: from)
+                    line.addLine(to: CGPoint(x: to.x + (from.x - to.x) * 0.2, y: to.y + (from.y - to.y) * 0.2))
+                    context.stroke(line, with: .color(.accentColor), lineWidth: 2)
+                    let tip = CGPoint(x: to.x + (from.x - to.x) * 0.2, y: to.y + (from.y - to.y) * 0.2)
+                    context.fill(Path(ellipseIn: CGRect(x: tip.x - 4, y: tip.y - 4, width: 8, height: 8)), with: .color(.accentColor))
+                }
+                if inputs(node).contains(node) {
+                    let spot = place(node)
+                    context.stroke(Path(ellipseIn: CGRect(x: spot.x - 26, y: spot.y - 26, width: 52, height: 52)), with: .color(.accentColor.opacity(0.6)), lineWidth: 1.5)
+                }
+            }
+            for node in 0..<3 {
+                let spot = place(node)
+                context.fill(Path(ellipseIn: CGRect(x: spot.x - 20, y: spot.y - 20, width: 40, height: 40)), with: .color(.orange.opacity(0.85)))
+                context.draw(Text(verbatim: String(node)).font(.headline), at: spot)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.phi.networkSpoken"))
+        .accessibilityValue(number(weakest))
+        .accessibilityIdentifier("lab.phi.network")
+    }
+}
+
+// MARK: - Confidence lab / Тренажёр об уверенности
+
+private struct ConfidenceLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var temperature = 1.0
+    @State private var model: ConfidenceModel?
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    private var report: (rows: [(count: Int, accuracy: Double, confidence: Double)], gap: Double)? {
+        model?.reliability(temperature: temperature)
+    }
+
+    var body: some View {
+        LabCard {
+            LabHeader(title: text("lab.meta.title"), instruction: text("lab.meta.subtitle"))
+            chart
+            HStack {
+                Text(verbatim: String(format: text("lab.meta.temperature"), number(temperature, 1))).font(.callout.monospacedDigit()).frame(width: 150, alignment: .leading)
+                Slider(value: $temperature, in: 0.5...16).accessibilityIdentifier("lab.meta.temperatureSlider")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.meta.statGap"), value: number(report?.gap ?? 0), tint: .orange, identifier: "lab.meta.gap")
+                LabStat(label: text("lab.meta.statAccuracy"), value: number(model?.accuracy ?? 0), tint: .green, identifier: "lab.meta.accuracy")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.meta.challenge"), solved: (report?.gap ?? 1) < 0.04,
+                         solvedText: text("lab.meta.challengeDone"), identifier: "lab.meta.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.meta.howBars"), text("lab.meta.howNot")])
+        }
+        .task {
+            model = await Task.detached(priority: .userInitiated) { ConfidenceModel() }.value
+        }
+    }
+
+    private var chart: some View {
+        Canvas { context, size in
+            let geometry = LabPlotGeometry(size: size, x: 0.5...1, y: 0.4...1)
+            geometry.drawAxes(in: context, xLabel: text("lab.meta.axis"), yLabel: text("lab.meta.right")) { L10n.number($0, fractionDigits: 1, store.language) }
+            var ideal = Path()
+            ideal.move(to: geometry.point(0.5, 0.5))
+            ideal.addLine(to: geometry.point(1, 1))
+            context.stroke(ideal, with: .color(.green), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
+            guard let rows = report?.rows else { return }
+            for (index, row) in rows.enumerated() where row.count > 0 {
+                let left = geometry.point(0.5 + Double(index) * 0.1, row.accuracy)
+                let right = geometry.point(0.6 + Double(index) * 0.1, 0.4)
+                let rect = CGRect(x: left.x + 3, y: left.y, width: right.x - left.x - 6, height: right.y - left.y)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.accentColor.opacity(0.75)))
+                let mark = geometry.point(min(max(row.confidence, 0.5), 1), row.accuracy)
+                context.fill(Path(ellipseIn: CGRect(x: mark.x - 5, y: mark.y - 5, width: 10, height: 10)), with: .color(.orange))
+                context.draw(Text(verbatim: String(row.count)).font(.caption2).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.maxY - 9))
+            }
+        }
+        .frame(height: 250)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text("lab.meta.chartSpoken"))
+        .accessibilityValue(number(report?.gap ?? 0))
+        .accessibilityIdentifier("lab.meta.chart")
     }
 }
