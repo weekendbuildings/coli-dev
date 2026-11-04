@@ -796,7 +796,7 @@ enum L10n {
         "path.lesson.consciousness_known_and_unknown": ("Сознание: что известно и что нет", "Consciousness: what is known and what is not"),
         "nav.settings": ("Настройки", "Settings"),
         "nav.tools": ("Инструменты", "Tools"),
-        "home.progressLoading": ("Загружаю записи о проверках. Числа ниже обновятся сами.", "Loading your check records. The numbers below will update on their own."),
+        "home.progressLoading": ("Записи о проверках ещё не загружены: локальный сервис пока не ответил. Числа ниже могут быть неполными.", "Check records are not loaded yet: the local service has not answered. The numbers below may be incomplete."),
         "tools.title": ("Инструменты", "Tools"),
         "tools.subtitle": ("Локальные агенты и сервисы, которые уже стоят на этом Mac. Приложение только проверяет их и запускает: всё работает бесплатно и локально, кроме Gemini Notebook.", "Local agents and services already on this Mac. The app only checks and launches them: everything is free and local except Gemini Notebook."),
         "tools.checking": ("Проверяю…", "Checking…"),
