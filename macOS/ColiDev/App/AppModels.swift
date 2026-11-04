@@ -197,6 +197,7 @@ final class LearningStore: ObservableObject {
     @Published private(set) var aiHealth: OrchestratorHealth?
     @Published private(set) var isCheckingAI = false
     @Published private(set) var providerSecretStatuses: [String: ProviderSecretStatus] = [:]
+    @Published private(set) var didLoadStudyProgress = false
     @Published private(set) var openAICompatibleSettings: OpenAICompatibleSettings?
     @Published private(set) var subjectModelRoutes: [String: SubjectModelRoute] = [:]
     @Published private(set) var autoAgentModelRoutes: [String: AutoAgentModelRoute] = [:]
@@ -651,6 +652,7 @@ final class LearningStore: ObservableObject {
 
         do {
             let snapshot = try await OrchestratorClient.studyProgress()
+            didLoadStudyProgress = true
             studyProgress = Dictionary(uniqueKeysWithValues: snapshot.records.map { ($0.lessonID, $0) })
             studyAssessmentEvidence = Dictionary(
                 uniqueKeysWithValues: (snapshot.assessmentEvidence ?? []).map { ($0.lessonID, $0) }
@@ -2766,5 +2768,7 @@ enum AppSection: Hashable {
     case builtInCustomTopic(Subject, UUID)
     case management
     case localModels
+    case tools
+    case serviceKeys
     case settings
 }

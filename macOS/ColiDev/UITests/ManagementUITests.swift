@@ -31,6 +31,22 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
+    func testToolsScreenShowsSixToolCards() async throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        let toolsItem = app.staticTexts["sidebar.tools"]
+        XCTAssertTrue(toolsItem.waitForExistence(timeout: 15))
+        toolsItem.click()
+
+        for tool in ["opencode", "hermes", "openclaw", "ollama", "obsidian", "notebook"] {
+            XCTAssertTrue(
+                app.staticTexts["tools.title.\(tool)"].waitForExistence(timeout: 15),
+                "The Tools screen must show the \(tool) card. / На экране инструментов нужна карточка \(tool)."
+            )
+        }
+    }
+
     func testReleaseCatalogOffersBetaArchiveForCurrentMacArchitecture() async throws {
         let app = XCUIApplication()
         // A fixed catalog keeps the test off the rate-limited GitHub API. / Фиксированный каталог не зависит от лимитов GitHub API.
