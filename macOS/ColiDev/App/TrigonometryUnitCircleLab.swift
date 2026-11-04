@@ -250,12 +250,12 @@ private struct UnitCircleDiagram: View {
             var radiusLine = Path()
             radiusLine.move(to: center)
             radiusLine.addLine(to: point)
-            context.stroke(radiusLine, with: .color(.accentColor), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
+            context.stroke(radiusLine, with: .color(AppPalette.accent.color), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
 
             let origin = Path(ellipseIn: CGRect(x: center.x - 3, y: center.y - 3, width: 6, height: 6))
             let marker = Path(ellipseIn: CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12))
             context.fill(origin, with: .color(.secondary))
-            context.fill(marker, with: .color(.accentColor))
+            context.fill(marker, with: .color(AppPalette.accent.color))
         }
         .accessibilityElement()
         .accessibilityLabel(Text(L10n.text("lab.trigonometry.circleTitle", language)))

@@ -37,7 +37,7 @@ in_set = timeit.timeit(lambda: 9_999 in numbers_set, number=1_000)
 print(in_set < in_list)
 ```
 
-Программа выводит в поток ошибок WARNING source not checked for 400 days, а затем печатает True. Сообщение уровня INFO не попало в журнал: уровень по умолчанию — WARNING. Измерение показало, что проверка числа во множестве быстрее, чем в списке: список проверяется элемент за элементом, а множество в Python как раз предназначено для быстрой проверки принадлежности. На Mac, где писался урок, разница была примерно в 2000 раз. Backend ColiDev тоже пишет журнал через logging.getLogger("colidev").
+Программа выводит в поток ошибок WARNING source not checked for 400 days, а затем печатает True. Сообщение уровня INFO не попало в журнал: уровень по умолчанию — WARNING. Измерение показало, что проверка числа во множестве быстрее, чем в списке: список проверяется элемент за элементом, а множество в Python как раз предназначено для быстрой проверки принадлежности. На Mac, где писался урок, разница была примерно в 2000 раз. Backend Cause & Course тоже пишет журнал через logging.getLogger("colidev").
 
 ### Исследуй и потренируйся
 
@@ -93,7 +93,7 @@ in_set = timeit.timeit(lambda: 9_999 in numbers_set, number=1_000)
 print(in_set < in_list)
 ```
 
-The program writes WARNING source not checked for 400 days to the error stream and then prints True. The INFO message did not reach the log: the default level is WARNING. The measurement showed that checking for a number in a set is faster than in a list: a list is checked element by element, while a Python set is designed for fast membership testing. On the Mac where this lesson was written the difference was about 2000 times. The ColiDev backend also writes its log through logging.getLogger("colidev").
+The program writes WARNING source not checked for 400 days to the error stream and then prints True. The INFO message did not reach the log: the default level is WARNING. The measurement showed that checking for a number in a set is faster than in a list: a list is checked element by element, while a Python set is designed for fast membership testing. On the Mac where this lesson was written the difference was about 2000 times. The Cause & Course backend also writes its log through logging.getLogger("colidev").
 
 ### Explore and practise
 

@@ -323,9 +323,9 @@ This is no model of the brain: one number instead of billions of neurons, and th
 
 ## Sources
 
-- Bernard J. Baars, "A Cognitive Theory of Consciousness" (1988), recalled.
-- Stanislas Dehaene, Jean-Pierre Changeux, "Experimental and Theoretical Approaches to Conscious Processing", Neuron 70 (2011), recalled.
-- George A. Mashour et al., "Conscious Processing and the Global Neuronal Workspace Hypothesis", Neuron 105 (2020), recalled: [article](https://www.cell.com/neuron/fulltext/S0896-6273(20)30052-3)
+- Bernard J. Baars, "A Cognitive Theory of Consciousness", Cambridge University Press (1988), details checked 2026-11-03 in the Stanford Encyclopedia bibliography; the book itself not re-read.
+- Stanislas Dehaene, Jean-Pierre Changeux, "Experimental and Theoretical Approaches to Conscious Processing", Neuron 70 (2011), abstract read 2026-11-03.
+- George A. Mashour et al., "Conscious Processing and the Global Neuronal Workspace Hypothesis", Neuron 105 (2020), title and journal checked 2026-11-03; the paper itself not re-read: [article](https://www.cell.com/neuron/fulltext/S0896-6273(20)30052-3)
 - Cogitate Consortium, "Adversarial testing of global neuronal workspace and integrated information theories of consciousness", Nature (2025), title read 2026-11-03: [article](https://www.nature.com/articles/s41586-025-08888-1)
 - Wes Gurnee et al., "Verbalizable Representations Form a Global Workspace in Language Models", Transformer Circuits (2026), title and parts read 2026-11-03: [paper](https://transformer-circuits.pub/2026/workspace/index.html)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

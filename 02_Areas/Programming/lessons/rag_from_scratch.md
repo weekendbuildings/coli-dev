@@ -406,7 +406,7 @@ Just 10 notes and 9 questions, which I wrote myself, so the numbers serve only t
 ## Sources
 
 - Patrick Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", arXiv:2005.11401 (2020): [arXiv:2005.11401](https://arxiv.org/abs/2005.11401)
-- Gordon V. Cormack, Charles L. A. Clarke, Stefan Büttcher, "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods", SIGIR (2009), for the mixing formula, recalled.
+- Gordon V. Cormack, Charles L. A. Clarke, Stefan Büttcher, "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods", SIGIR (2009), paper confirmed in OpenAlex on 2026-11-03; the mixing formula with the constant 60 recalled.
 - Stanford CS224N, title read 2026-11-03: [course](https://web.stanford.edu/class/cs224n/)
 - Ollama, embeddings API: [docs](https://docs.ollama.com/api/embed)
 - The notes, questions, program and numbers were written and computed for this lesson with bge-m3 and qwen2.5-coder:7b on the owner's Mac. The lesson paraphrases these sources and does not copy their text.

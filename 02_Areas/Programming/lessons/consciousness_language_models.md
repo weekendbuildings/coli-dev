@@ -272,8 +272,8 @@ Six prompts and one question make a small experiment, and the automatic tag is r
 ## Sources
 
 - David J. Chalmers, "Could a Large Language Model be Conscious?", arXiv:2303.07103 (2023), title read 2026-11-03: [arXiv:2303.07103](https://arxiv.org/abs/2303.07103)
-- Jack Lindsey, "Emergent Introspective Awareness in Large Language Models", Transformer Circuits (2025), title read 2026-11-03; findings recalled: [paper](https://transformer-circuits.pub/2025/introspection/index.html)
-- Ethan Perez, Robert Long, "Towards Evaluating AI Systems for Moral Status Using Self-Reports", arXiv:2311.08576 (2023), recalled: [arXiv:2311.08576](https://arxiv.org/abs/2311.08576)
+- Jack Lindsey, "Emergent Introspective Awareness in Large Language Models", Transformer Circuits (2025), abstract and the rate of about 20 % read 2026-11-03: [paper](https://transformer-circuits.pub/2025/introspection/index.html)
+- Ethan Perez, Robert Long, "Towards Evaluating AI Systems for Moral Status Using Self-Reports", arXiv:2311.08576 (2023), abstract read 2026-11-03: [arXiv:2311.08576](https://arxiv.org/abs/2311.08576)
 - Wes Gurnee et al., "Verbalizable Representations Form a Global Workspace in Language Models", Transformer Circuits (2026), title and parts read 2026-11-03: [paper](https://transformer-circuits.pub/2026/workspace/index.html)
-- Anil Seth, "Conscious artificial intelligence and biological naturalism", Behavioral and Brain Sciences (2025), recalled.
+- Anil Seth, "Conscious artificial intelligence and biological naturalism", Behavioral and Brain Sciences 49 (2025), title and journal checked 2026-11-03; the paper itself not re-read.
 - The program was written for this lesson, and the numbers and replies come from runs on the owner's Mac with qwen2.5-coder:7b and qwen3.5. The lesson paraphrases these sources and does not copy their text.

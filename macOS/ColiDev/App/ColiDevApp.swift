@@ -13,6 +13,8 @@ struct ColiDevApp: App {
                 .environmentObject(backendSupervisor)
                 .environmentObject(updater)
                 .frame(minWidth: 980, minHeight: 680)
+                .tint(AppPalette.accent.color)
+                .background(AppPalette.canvas.color.ignoresSafeArea())
         }
     }
 }

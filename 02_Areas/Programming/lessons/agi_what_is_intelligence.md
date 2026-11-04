@@ -419,7 +419,7 @@ The environments are simple slot machines, and this experiment is no measure of 
 
 ## Sources
 
-- Shane Legg, Marcus Hutter, "Universal Intelligence: A Definition of Machine Intelligence", arXiv:0712.3329 (2007), title read 2026-11-03; the formula is recalled from the paper: [arXiv:0712.3329](https://arxiv.org/abs/0712.3329)
+- Shane Legg, Marcus Hutter, "Universal Intelligence: A Definition of Machine Intelligence", arXiv:0712.3329 (2007), the formula read 2026-11-03: [arXiv:0712.3329](https://arxiv.org/abs/0712.3329)
 - François Chollet, "On the Measure of Intelligence", arXiv:1911.01547 (2019), title read 2026-11-03: [arXiv:1911.01547](https://arxiv.org/abs/1911.01547)
 - Meredith Ringel Morris et al., "Levels of AGI for Operationalizing Progress on the Path to AGI", arXiv:2311.02462 (2023), title read 2026-11-03: [arXiv:2311.02462](https://arxiv.org/abs/2311.02462)
 - The environments, program and numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

@@ -25,9 +25,9 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-Окружение не переносят между компьютерами и не хранят в git — вместо этого хранят простой способ его пересоздать. Это файл требований `requirements.txt`: список пакетов, который `pip install -r requirements.txt` ставит одной командой. В ColiDev так и устроено: в корне проекта лежат `requirements.txt`, `requirements-test.txt` и другие файлы требований для разных задач.
+Окружение не переносят между компьютерами и не хранят в git — вместо этого хранят простой способ его пересоздать. Это файл требований `requirements.txt`: список пакетов, который `pip install -r requirements.txt` ставит одной командой. В Cause & Course так и устроено: в корне проекта лежат `requirements.txt`, `requirements-test.txt` и другие файлы требований для разных задач.
 
-Настройки, которые меняются от запуска к запуску или не должны попасть в код, — порт, путь к файлу, ключи — передают через переменные окружения. Например, приложение ColiDev сообщает своему backend номер своего процесса через переменную `COLIDEV_PARENT_PID`, а тот читает её через `os.environ`. Ключи доступа никогда не записывают прямо в код и не коммитят в git.
+Настройки, которые меняются от запуска к запуску или не должны попасть в код, — порт, путь к файлу, ключи — передают через переменные окружения. Например, приложение Cause & Course сообщает своему backend номер своего процесса через переменную `COLIDEV_PARENT_PID`, а тот читает её через `os.environ`. Ключи доступа никогда не записывают прямо в код и не коммитят в git.
 
 ### Исследуй и потренируйся
 
@@ -71,9 +71,9 @@ source .venv/bin/activate
 python -m pip install -r requirements.txt
 ```
 
-An environment is not copied between computers or stored in git; instead you keep a simple way to recreate it. That is the requirements file `requirements.txt`: a list of packages that `pip install -r requirements.txt` installs in one command. ColiDev is set up this way: the project root holds `requirements.txt`, `requirements-test.txt`, and other requirements files for different tasks.
+An environment is not copied between computers or stored in git; instead you keep a simple way to recreate it. That is the requirements file `requirements.txt`: a list of packages that `pip install -r requirements.txt` installs in one command. Cause & Course is set up this way: the project root holds `requirements.txt`, `requirements-test.txt`, and other requirements files for different tasks.
 
-Settings that change between runs or must not end up in the code, such as a port, a file path, or keys, are passed through environment variables. For example, the ColiDev app tells its backend its own process number through the `COLIDEV_PARENT_PID` variable, and the backend reads it through `os.environ`. Access keys are never written into code or committed to git.
+Settings that change between runs or must not end up in the code, such as a port, a file path, or keys, are passed through environment variables. For example, the Cause & Course app tells its backend its own process number through the `COLIDEV_PARENT_PID` variable, and the backend reads it through `os.environ`. Access keys are never written into code or committed to git.
 
 ### Explore and practise
 

@@ -1469,7 +1469,7 @@ class ConsiliumEngine:
         t2 = datetime.now(timezone.utc)
         if self.language == "en":
             consensus_prompt = (
-                "You are ColiDev's lead learning tutor and final synthesizer. Compare the independent "
+                "You are Cause & Course's lead learning tutor and final synthesizer. Compare the independent "
                 "candidate drafts with the learner's question and course context. Use the critical review "
                 "and independent verification as evidence to assess, not as unquestionable truth. Resolve "
                 "conflicts using sound subject knowledge, reject unsupported claims, and do not invent facts. "
@@ -1482,7 +1482,7 @@ class ConsiliumEngine:
             )
         else:
             consensus_prompt = (
-                "Ты — главный учебный тьютор и финальный синтезатор ColiDev. Сопоставь независимые черновики "
+                "Ты — главный учебный тьютор и финальный синтезатор Cause & Course. Сопоставь независимые черновики "
                 "с вопросом ученика и контекстом курса. Используй критический разбор и независимую проверку "
                 "как основания для оценки, но не принимай их замечания на веру. Разрешай противоречия с опорой "
                 "на знания по предмету, отклоняй неподтверждённые утверждения и не выдумывай факты. Ответь "

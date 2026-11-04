@@ -42,7 +42,7 @@ struct TinyModelAttentionSceneView: NSViewRepresentable {
         let view = LabSceneView()
         view.scene = Self.makeScene()
         view.pointOfView = view.scene?.rootNode.childNode(withName: "camera", recursively: false)
-        view.orbit(around: SIMD3(0, 0.8, 0))
+        view.orbit(around: SIMD3(0.5, 0.8, 0))
         view.antialiasingMode = .multisampling4X
         view.backgroundColor = TrainingStage.background
         return view
@@ -132,14 +132,16 @@ struct TinyModelAttentionSceneView: NSViewRepresentable {
         }
         let camera = SCNCamera()
         camera.projectionDirection = .horizontal
-        camera.fieldOfView = 28
+        // Wide enough for the whole table from any side: at 28° the output pillars on the right were cut off.
+        // Достаточно широко для всего стола с любой стороны: при 28° выходные столбики справа обрезались.
+        camera.fieldOfView = 36
         camera.zNear = 1
         camera.zFar = 90
         let cameraNode = SCNNode()
         cameraNode.name = "camera"
         cameraNode.camera = camera
         cameraNode.position = SCNVector3(-8, 22, 27)
-        cameraNode.look(at: SCNVector3(0, 0.8, 0))
+        cameraNode.look(at: SCNVector3(0.5, 0.8, 0))
         scene.rootNode.addChildNode(cameraNode)
         return scene
     }

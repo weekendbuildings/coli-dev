@@ -44,7 +44,7 @@ def test_glass_controls_have_a_legacy_material_fallback():
     assert "#if compiler(>=6.2)" in source
     assert "#available(macOS 26.0, *)" in source
     assert ".glassEffect(.regular" in source
-    assert ".regularMaterial" in source
+    assert "AppPalette.raised.color" in source
 
 
 def test_visual_system_verifier_has_explicit_entry_point_for_multi_file_swiftc():
@@ -64,13 +64,13 @@ def test_control_center_exposes_a_visible_and_accessible_overview():
     assert "minHeight: 260" in source
 
 
-def test_sidebar_uses_the_system_accent_color():
+def test_sidebar_uses_the_palette_accent_color():
     source = (APP / "ContentView.swift").read_text(encoding="utf-8")
     sidebar_subjects = source.split("ForEach(Subject.allCases) { subject in", 1)[1].split(
         "ForEach(store.customCurriculum.subjects)", 1
     )[0]
 
-    assert ".foregroundStyle(Color.accentColor)" in sidebar_subjects
+    assert "tint: AppPalette.accent.color" in sidebar_subjects
     assert "ColiDevVisualSystem.subjectColor(subject.rawValue)" not in sidebar_subjects
 
 
@@ -125,3 +125,32 @@ def test_completion_sound_is_opt_in_and_exposed_in_both_languages():
     assert 'L10n.text("settings.soundEffects", store.language)' in settings
     assert '"settings.soundEffects":' in localization
     assert "AppSoundFeedback.playCompletion()" in models
+
+
+def test_arc_painter_can_paint_every_answer_color():
+    views = (APP / "LearningViews.swift").read_text(encoding="utf-8")
+    painter = views.split("private struct ArcPainterLab:", 1)[1].split("private func color(", 1)[0]
+
+    assert "set.formUnion(task.testOut.filter" in painter
+
+
+def test_obsidian_save_remembers_the_copy_instead_of_adding_silently():
+    views = (APP / "LearningViews.swift").read_text(encoding="utf-8")
+
+    assert "ObsidianLessonCopyMemory.remember(path: path" in views
+    assert '"module.obsidianAlreadySaved"' in views
+    assert "notebook.google.com" in views
+    assert "notebooklm.google.com" not in views
+
+
+def test_app_shows_the_new_name_but_keeps_the_identifiers_that_hold_user_data():
+    plist = (APP / "Info.plist").read_text(encoding="utf-8")
+    project = (ROOT / "macOS" / "ColiDev" / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    orchestrator = (ROOT / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+
+    assert "Cause &amp; Course" in plist
+    assert "PRODUCT_BUNDLE_IDENTIFIER = com.colidev.learningstudio;" in project
+    assert '_KEYCHAIN_SERVICE = "ColiDev"' in orchestrator
+    for language in ("en", "ru"):
+        strings = (APP / f"{language}.lproj" / "InfoPlist.strings").read_text(encoding="utf-8")
+        assert '"CFBundleDisplayName" = "Cause & Course";' in strings

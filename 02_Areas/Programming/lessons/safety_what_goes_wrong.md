@@ -434,9 +434,9 @@ A track of 8 cells is a toy. The experiments with a model use one small local mo
 ## Sources
 
 - Dario Amodei et al., "Concrete Problems in AI Safety", arXiv:1606.06565 (2016): [arXiv:1606.06565](https://arxiv.org/abs/1606.06565)
-- Jack Clark, Dario Amodei, "Faulty Reward Functions in the Wild", OpenAI (2016), recalled: [article](https://openai.com/index/faulty-reward-functions/)
+- Jack Clark, Dario Amodei, "Faulty Reward Functions in the Wild", OpenAI (2016), read 2026-11-03: [article](https://openai.com/index/faulty-reward-functions/)
 - Mrinank Sharma et al., "Towards Understanding Sycophancy in Language Models", arXiv:2310.13548 (2023): [arXiv:2310.13548](https://arxiv.org/abs/2310.13548)
-- OpenAI, "Sycophancy in GPT-4o" (2025), recalled: [article](https://openai.com/index/sycophancy-in-gpt-4o/)
+- OpenAI, "Sycophancy in GPT-4o" (2025), read 2026-11-03: [article](https://openai.com/index/sycophancy-in-gpt-4o/)
 - Kai Greshake et al., "Not what you've signed up for", arXiv:2302.12173 (2023): [arXiv:2302.12173](https://arxiv.org/abs/2302.12173)
 - Ryan Greenblatt et al., "Alignment faking in large language models", arXiv:2412.14093 (2024): [arXiv:2412.14093](https://arxiv.org/abs/2412.14093)
 - Stanford CS224N, title read 2026-11-03: [course](https://web.stanford.edu/class/cs224n/)

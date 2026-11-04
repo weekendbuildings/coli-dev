@@ -64,7 +64,7 @@ else:
 
 ### Мини-проект: учёт минут практики
 
-Собери отчёт о занятии: передай функции минуты двух занятий, сложи их и верни итог. В уроке ColiDev есть редактор этого проекта: поля принимают два неотрицательных целых числа, а кнопка запускает `solve(values)` в ограниченном учебном интерпретаторе во встроенном локальном сервисе.
+Собери отчёт о занятии: передай функции минуты двух занятий, сложи их и верни итог. В уроке Cause & Course есть редактор этого проекта: поля принимают два неотрицательных целых числа, а кнопка запускает `solve(values)` в ограниченном учебном интерпретаторе во встроенном локальном сервисе.
 
 ```python
 def solve(values):
@@ -174,7 +174,7 @@ Try `12` first, then optionally `-12`, `twelve`, `3.5`, and empty input. Convers
 
 ### Mini-project: practice minute total
 
-Build a session report: pass the minutes from two study sessions to a function, add them, and return the total. ColiDev’s lesson includes an editor for this project: enter two non-negative whole numbers in the fields, then run `solve(values)` in the app’s bounded teaching interpreter on its bundled local service.
+Build a session report: pass the minutes from two study sessions to a function, add them, and return the total. Cause & Course’s lesson includes an editor for this project: enter two non-negative whole numbers in the fields, then run `solve(values)` in the app’s bounded teaching interpreter on its bundled local service.
 
 ```python
 def solve(values):

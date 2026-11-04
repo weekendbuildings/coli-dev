@@ -169,7 +169,7 @@ struct AIPathView: View {
             }
         }
         .padding(14)
-        .coliContentCard(tint: .accentColor)
+        .coliContentCard(tint: AppPalette.accent.color)
     }
 
     private func stageHeader(_ stage: AIPathStage) -> some View {
@@ -189,7 +189,7 @@ struct AIPathView: View {
         let done = step.lessons.allSatisfy { store.isComplete(lessonID: $0.lessonID) }
         return HStack(alignment: .top, spacing: 12) {
             ZStack {
-                Circle().fill(done ? Color.green : Color.accentColor.opacity(0.2))
+                Circle().fill(done ? Color.green : AppPalette.accent.color.opacity(0.2))
                 if done {
                     Image(systemName: "checkmark").font(.callout.bold()).foregroundStyle(.white)
                 } else {
@@ -207,7 +207,7 @@ struct AIPathView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(14)
-        .coliContentCard(tint: done ? .green : .accentColor)
+        .coliContentCard(tint: done ? .green : AppPalette.accent.color)
     }
 
     @ViewBuilder

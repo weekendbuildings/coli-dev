@@ -587,8 +587,8 @@ This is a toy with 1355 weights and an artificial style, and conclusions on size
 
 ## Sources
 
-- Edward J. Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models", arXiv:2106.09685 (2021), title read 2026-11-03; the idea of frozen weights plus a low-rank addition is recalled from the paper: [arXiv:2106.09685](https://arxiv.org/abs/2106.09685)
+- Edward J. Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models", arXiv:2106.09685 (2021), abstract with frozen weights and the low-rank addition read 2026-11-03: [arXiv:2106.09685](https://arxiv.org/abs/2106.09685)
 - MIT 6.S191, "Introduction to Deep Learning", title read 2026-11-03: [course](http://introtodeeplearning.com/)
 - Stanford CS336, "Language Modeling from Scratch" (2025), title read 2026-11-03: [course](https://stanford-cs336.github.io/spring2025/)
-- Ollama, Modelfile reference, the `ADAPTER` instruction, recalled from the documentation: [docs](https://docs.ollama.com/modelfile)
+- Ollama, Modelfile reference, the `ADAPTER` instruction, recalled: the documentation could not be read as text on 2026-11-03: [docs](https://docs.ollama.com/modelfile)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

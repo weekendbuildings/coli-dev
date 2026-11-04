@@ -403,9 +403,9 @@ Just 12 tasks, one model, one seed. I chose the 3000-token limit, and with a lar
 
 ## Sources
 
-- DeepSeek-AI, "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning", arXiv:2501.12948 (2025), recalled from the paper: [arXiv:2501.12948](https://arxiv.org/abs/2501.12948)
-- Miles Turpin et al., "Language Models Don't Always Say What They Think", arXiv:2305.04388 (2023), recalled: [arXiv:2305.04388](https://arxiv.org/abs/2305.04388)
-- Yanda Chen et al., "Reasoning Models Don't Always Say What They Think", arXiv:2505.05410 (2025), recalled: [arXiv:2505.05410](https://arxiv.org/abs/2505.05410)
+- DeepSeek-AI, "DeepSeek-R1: Incentivizing Reasoning Capability in LLMs via Reinforcement Learning", arXiv:2501.12948 (2025), the reward section read 2026-11-03: [arXiv:2501.12948](https://arxiv.org/abs/2501.12948)
+- Miles Turpin et al., "Language Models Don't Always Say What They Think", arXiv:2305.04388 (2023), abstract read 2026-11-03: [arXiv:2305.04388](https://arxiv.org/abs/2305.04388)
+- Yanda Chen et al., "Reasoning Models Don't Always Say What They Think", arXiv:2505.05410 (2025), abstract read 2026-11-03: [arXiv:2505.05410](https://arxiv.org/abs/2505.05410)
 - Jason Wei et al., "Chain-of-Thought Prompting Elicits Reasoning in Large Language Models", arXiv:2201.11903 (2022): [arXiv:2201.11903](https://arxiv.org/abs/2201.11903)
 - Stanford CS336 and CS224N, titles read 2026-11-03: [CS336](https://stanford-cs336.github.io/spring2025/), [CS224N](https://web.stanford.edu/class/cs224n/)
 - The programs were written for this lesson, and the numbers come from a run on the owner's Mac with qwen3.5. The lesson paraphrases these sources and does not copy their text.

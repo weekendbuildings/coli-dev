@@ -116,6 +116,38 @@ enum TrainingStage {
         return node
     }
 
+    /// Hides a label while it would land on a more important one on screen, so that a turned scene stays
+    /// readable. Earlier labels in the list win. / Скрывает подпись, пока на экране она наезжает на более
+    /// важную, чтобы повёрнутая сцена оставалась читаемой. Побеждают подписи, стоящие в списке раньше.
+    static func declutter(_ labels: [SCNNode], in view: SCNView) {
+        var taken: [CGRect] = []
+        for label in labels where !label.isHidden {
+            let rect = screenRect(of: label, in: view)
+            let isFree = !taken.contains { $0.intersects(rect) }
+            label.opacity = isFree ? 1 : 0
+            if isFree { taken.append(rect.insetBy(dx: -3, dy: -3)) }
+        }
+    }
+
+    private static func screenRect(of label: SCNNode, in view: SCNView) -> CGRect {
+        let (minimum, maximum) = label.boundingBox
+        var left = CGFloat.infinity
+        var right = -CGFloat.infinity
+        var bottom = CGFloat.infinity
+        var top = -CGFloat.infinity
+        for x in [minimum.x, maximum.x] {
+            for y in [minimum.y, maximum.y] {
+                let world: SCNVector3 = label.presentation.convertPosition(SCNVector3(x, y, 0), to: nil)
+                let point: SCNVector3 = view.projectPoint(world)
+                left = min(left, CGFloat(point.x))
+                right = max(right, CGFloat(point.x))
+                bottom = min(bottom, CGFloat(point.y))
+                top = max(top, CGFloat(point.y))
+            }
+        }
+        return CGRect(x: left, y: bottom, width: right - left, height: top - bottom)
+    }
+
     /// Replaces the text of a label and keeps it centred on its position.
     static func setLabel(_ node: SCNNode, _ string: String) {
         guard let geometry = node.geometry as? SCNText, geometry.string as? String != string else { return }

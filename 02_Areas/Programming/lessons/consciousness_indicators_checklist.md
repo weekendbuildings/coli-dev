@@ -203,8 +203,8 @@ The table's ratings are mine, and I may err: I know the large model's design onl
 
 - Patrick Butlin et al., "Consciousness in Artificial Intelligence: Insights from the Science of Consciousness", arXiv:2308.08708 (2023), title read 2026-11-03: [arXiv:2308.08708](https://arxiv.org/abs/2308.08708)
 - David J. Chalmers, "Could a Large Language Model be Conscious?", arXiv:2303.07103 (2023), title read 2026-11-03: [arXiv:2303.07103](https://arxiv.org/abs/2303.07103)
-- Patrick Butlin et al., the 2025 update of the indicators, Trends in Cognitive Sciences, recalled.
-- Anil Seth, "Conscious artificial intelligence and biological naturalism", Behavioral and Brain Sciences (2025), recalled.
+- Patrick Butlin et al., "Identifying indicators of consciousness in AI systems", Trends in Cognitive Sciences 30 (2026, online 2025), abstract read 2026-11-03: [DOI](https://doi.org/10.1016/j.tics.2025.10.011)
+- Anil Seth, "Conscious artificial intelligence and biological naturalism", Behavioral and Brain Sciences 49 (2025), title and journal checked 2026-11-03; the paper itself not re-read.
 - Saurav Kadavath et al., "Language Models (Mostly) Know What They Know", arXiv:2207.05221 (2022): [arXiv:2207.05221](https://arxiv.org/abs/2207.05221)
 - Wes Gurnee et al., "Verbalizable Representations Form a Global Workspace in Language Models" (2026), title read 2026-11-03: [paper](https://transformer-circuits.pub/2026/workspace/index.html)
 - The ratings and the program were written for this lesson and are my judgement, not an expert assessment. The lesson paraphrases these sources and does not copy their text.

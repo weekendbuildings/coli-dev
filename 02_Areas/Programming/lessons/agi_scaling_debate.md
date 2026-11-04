@@ -368,10 +368,10 @@ A character counter is not a language model, and I set the limit in my text. Rea
 ## Sources
 
 - Jared Kaplan et al., "Scaling Laws for Neural Language Models", arXiv:2001.08361 (2020), title read 2026-11-03: [arXiv:2001.08361](https://arxiv.org/abs/2001.08361)
-- Jordan Hoffmann et al., "Training Compute-Optimal Large Language Models", arXiv:2203.15556 (2022), title read 2026-11-03; the rule of about 20 tokens per parameter is recalled: [arXiv:2203.15556](https://arxiv.org/abs/2203.15556)
+- Jordan Hoffmann et al., "Training Compute-Optimal Large Language Models", arXiv:2203.15556 (2022), read 2026-11-03: 1.4 trillion tokens for 70 billion parameters, which gives the ratio of 20 tokens per parameter: [arXiv:2203.15556](https://arxiv.org/abs/2203.15556)
 - Thomas Kwa et al. (METR), "Measuring AI Ability to Complete Long Software Tasks", arXiv:2503.14499 (2025), title read 2026-11-03: [arXiv:2503.14499](https://arxiv.org/abs/2503.14499)
 - Joel Becker et al. (METR), "Measuring the Impact of Early-2025 AI on Experienced Open-Source Developer Productivity", arXiv:2507.09089 (2025), abstract read 2026-11-03: [arXiv:2507.09089](https://arxiv.org/abs/2507.09089)
-- Richard Sutton, "The Bitter Lesson" (2019), recalled; the site answered with an error on the check of 2026-11-03: [essay](http://www.incompleteideas.net/IncIdeas/BitterLesson.html)
-- Ilya Sutskever, interview on the Dwarkesh Podcast (2025), recalled from memory, without an exact quotation.
+- Richard Sutton, "The Bitter Lesson" (2019), read 2026-11-03: [essay](http://www.incompleteideas.net/IncIdeas/BitterLesson.html)
+- Ilya Sutskever, interview on the Dwarkesh Podcast (2025), the title "We're moving from the age of scaling to the age of research" read 2026-11-03, the transcript not re-read: [episode](https://www.dwarkesh.com/p/ilya-sutskever-2)
 - Stanford CS336, title read 2026-11-03: [course](https://stanford-cs336.github.io/spring2025/)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

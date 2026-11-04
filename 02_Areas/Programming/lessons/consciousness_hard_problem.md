@@ -225,11 +225,11 @@ Our agent is a teaching toy, and nobody considers it conscious. I simplified the
 
 ## Sources
 
-- David J. Chalmers, "Facing Up to the Problem of Consciousness", Journal of Consciousness Studies 2 (1995), recalled: [paper](https://consc.net/papers/facing.pdf)
-- Thomas Nagel, "What Is It Like to Be a Bat?", The Philosophical Review 83 (1974), recalled.
-- Ned Block, "On a confusion about a function of consciousness", Behavioral and Brain Sciences 18 (1995), recalled.
-- Daniel C. Dennett, "Consciousness Explained" (1991), recalled; TED talk: [The illusion of consciousness](https://www.ted.com/talks/dan_dennett_the_illusion_of_consciousness)
-- Keith Frankish, "Illusionism as a Theory of Consciousness", Journal of Consciousness Studies 23 (2016), recalled.
-- Lawrence Weiskrantz, work on blindsight, recalled through the survey: [Stanford Encyclopedia: Consciousness](https://plato.stanford.edu/entries/consciousness/)
+- David J. Chalmers, "Facing Up to the Problem of Consciousness", Journal of Consciousness Studies 2 (1995), section on the easy and hard problems read 2026-11-03: [paper](https://consc.net/papers/facing.html)
+- Thomas Nagel, "What Is It Like to Be a Bat?", The Philosophical Review 83 (1974), title and journal checked 2026-11-03; the paper itself not re-read.
+- Ned Block, "On a confusion about a function of consciousness", Behavioral and Brain Sciences 18 (1995), title and journal checked 2026-11-03; the paper itself not re-read; access consciousness as a separate sense read in the survey: [Stanford Encyclopedia: Consciousness](https://plato.stanford.edu/entries/consciousness/)
+- Daniel C. Dennett, "Consciousness Explained" (1991), details checked 2026-11-03 in the Stanford Encyclopedia bibliography, the book itself not re-read; TED talk: [The illusion of consciousness](https://www.ted.com/talks/dan_dennett_the_illusion_of_consciousness)
+- Keith Frankish, "Illusionism as a Theory of Consciousness", Journal of Consciousness Studies 23 (2016), recalled: not found in Crossref or OpenAlex on 2026-11-03, so not confirmed.
+- Lawrence Weiskrantz, Elizabeth K. Warrington et al., "Visual capacity in the hemianopic field following a restricted occipital ablation", Brain (1974), the first report of blindsight, title and journal checked 2026-11-03; the paper itself not re-read.
 - David Chalmers, TED talk: [How do you explain consciousness?](https://www.ted.com/talks/david_chalmers_how_do_you_explain_consciousness)
 - The program was written for this lesson. The lesson paraphrases these sources and does not copy their text.

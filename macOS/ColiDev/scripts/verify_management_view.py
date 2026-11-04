@@ -48,8 +48,8 @@ if '.accessibilityIdentifier("control-center.pane-picker")' not in source:
         "Control Center pane picker needs a stable accessibility identifier"
     )
 
-management_row = source.find(".tag(AppSection.management)")
-management_id = source.find('.accessibilityIdentifier("sidebar.management")')
+management_row = source.find("sidebarRow(.management,")
+management_id = source.find('identifier: "sidebar.management"')
 if management_row < 0 or management_id < 0 or abs(management_row - management_id) > 220:
     raise AssertionError(
         "Пункт Центра управления в боковой панели должен иметь стабильный ID / "

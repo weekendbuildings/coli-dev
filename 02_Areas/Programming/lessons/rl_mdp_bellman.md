@@ -545,7 +545,7 @@ Here the agent knows the whole model of the world in advance: where each action 
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapters 3 and 4, recalled from the book; the site answered with an error on the check of 2026-11-03, and the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapters 3 and 4, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read, and the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
 - David Silver, "Lectures on Reinforcement Learning", lectures 2 and 3 (the site refused the automated check on 2026-11-03): [course page](https://www.davidsilver.uk/teaching/)
 - Stanford CS234, "Reinforcement Learning": [course page](https://web.stanford.edu/class/cs234/)
 - The world, the program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

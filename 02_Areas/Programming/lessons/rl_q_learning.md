@@ -397,8 +397,8 @@ The world is small and noiseless, so Q-learning converges quickly here. The conv
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 6 and the cliff walking example, recalled from the book; the site answered with an error on the check of 2026-11-03, and the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
-- Christopher J. C. H. Watkins, Peter Dayan, "Q-learning", Machine Learning 8 (1992), title read 2026-11-03; the conditions of the theorem are recalled from the paper: [Springer](https://link.springer.com/article/10.1007/BF00992698)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 6 and the cliff walking example, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read, and the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Christopher J. C. H. Watkins, Peter Dayan, "Q-learning", Machine Learning 8 (1992), abstract with the repeated sampling condition read 2026-11-03; the step condition recalled from the paper: [Springer](https://link.springer.com/article/10.1007/BF00992698)
 - Volodymyr Mnih et al., "Playing Atari with Deep Reinforcement Learning", arXiv:1312.5602 (2013): [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
 - David Silver, "Lectures on Reinforcement Learning", lectures 4 and 5 (the site refused the automated check on 2026-11-03): [course page](https://www.davidsilver.uk/teaching/)
 - Hugging Face, Deep RL Course (page read 2026-11-03): [course](https://huggingface.co/learn/deep-rl-course/unit1/introduction)

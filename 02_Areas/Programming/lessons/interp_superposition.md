@@ -311,6 +311,6 @@ This is a toy, not a language model: the data is artificial, with independent fe
 
 ## Sources
 
-- Nelson Elhage et al., "Toy Models of Superposition", Transformer Circuits Thread (2022), arXiv:2209.10652, title read 2026-11-03; the model and the figures are recalled from the paper and reproduced by the program: [paper](https://transformer-circuits.pub/2022/toy_model/index.html), [arXiv:2209.10652](https://arxiv.org/abs/2209.10652)
-- Trenton Bricken et al., "Towards Monosemanticity", Transformer Circuits Thread (2023), recalled: [paper](https://transformer-circuits.pub/2023/monosemantic-features/index.html)
+- Nelson Elhage et al., "Toy Models of Superposition", Transformer Circuits Thread (2022), arXiv:2209.10652, abstract read 2026-11-03; the figures are reproduced by the program: [paper](https://transformer-circuits.pub/2022/toy_model/index.html), [arXiv:2209.10652](https://arxiv.org/abs/2209.10652)
+- Trenton Bricken et al., "Towards Monosemanticity", Transformer Circuits Thread (2023), introduction read 2026-11-03: [paper](https://transformer-circuits.pub/2023/monosemantic-features/index.html)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

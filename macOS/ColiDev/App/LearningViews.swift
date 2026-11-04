@@ -132,7 +132,7 @@ struct SubjectOverviewView: View {
                                 }
                                 .padding(14)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .background(.background, in: RoundedRectangle(cornerRadius: 14))
+                                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 14))
                                 .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(.quaternary, lineWidth: 1))
                             }
                         }
@@ -491,7 +491,7 @@ private struct CurriculumLessonVideoCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(18)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
         .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(tint.opacity(0.25), lineWidth: 1))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("lesson.video.activity")
@@ -588,7 +588,7 @@ private struct CurriculumCheckOptionButton: View {
             }
             .padding(11)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 11))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 11))
             .overlay(RoundedRectangle(cornerRadius: 11).strokeBorder(.quaternary, lineWidth: 1))
         }
         .buttonStyle(.plain)
@@ -617,7 +617,7 @@ struct CurriculumModuleView: View {
     @State private var isLoadingSourceInventory = false
     @State private var isExportingNotebookSource = false
     @State private var notebookExportDocument: NotebookLMSourceFile?
-    @State private var notebookExportFilename = "ColiDev-lesson.md"
+    @State private var notebookExportFilename = "Cause-and-Course-lesson.md"
     @State private var notebookExportStatus: String?
     @State private var isSavingObsidianNote = false
     @State private var obsidianSaveStatus: String?
@@ -679,7 +679,7 @@ struct CurriculumModuleView: View {
                     .accessibilityIdentifier("lesson.video.after")
 
                 TextField(L10n.text("lesson.video.responsePlaceholder", store.language), text: $reflection, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .lineLimit(2...4)
                     .accessibilityIdentifier("lesson.video.response")
                     .onChange(of: reflection) { value in
@@ -690,7 +690,7 @@ struct CurriculumModuleView: View {
             }
             .padding(18)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+            .coliSurface(cornerRadius: 18)
             .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(subject.tint.opacity(0.25), lineWidth: 1))
         }
     }
@@ -830,13 +830,13 @@ struct CurriculumModuleView: View {
                             }
                         }
                         .padding(18)
-                        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                        .coliSurface(cornerRadius: 18)
                     } else {
                         Label(L10n.text("module.quizUnavailable", store.language), systemImage: "exclamationmark.triangle")
                             .foregroundStyle(.orange)
                             .padding(18)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+                            .coliSurface(cornerRadius: 18)
                     }
 
                     postVideoReflectionContent
@@ -851,19 +851,34 @@ struct CurriculumModuleView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.text("module.obsidianTitle", store.language))
                             .font(.headline)
-                        Button(action: saveLessonToObsidian) {
-                            if isSavingObsidianNote {
-                                Label(L10n.text("module.obsidianSaving", store.language), systemImage: "arrow.triangle.2.circlepath")
-                            } else {
-                                Label(L10n.text("module.obsidianSave", store.language), systemImage: "externaldrive.badge.plus")
+                        if let savedPath = obsidianSavedPath {
+                            Label(L10n.text("module.obsidianAlreadySaved", store.language), systemImage: "checkmark.circle.fill")
+                                .font(.callout.weight(.semibold))
+                                .foregroundStyle(Color.green)
+                                .accessibilityIdentifier("lesson.obsidian.saved")
+                            Text(savedPath)
+                                .font(.caption.monospaced())
+                                .foregroundStyle(.secondary)
+                                .textSelection(.enabled)
+                            Button(L10n.text("module.obsidianSaveAnother", store.language), action: saveLessonToObsidian)
+                                .buttonStyle(.link)
+                                .font(.caption)
+                                .disabled(isSavingObsidianNote)
+                        } else {
+                            Button(action: saveLessonToObsidian) {
+                                if isSavingObsidianNote {
+                                    Label(L10n.text("module.obsidianSaving", store.language), systemImage: "arrow.triangle.2.circlepath")
+                                } else {
+                                    Label(L10n.text("module.obsidianSave", store.language), systemImage: "externaldrive.badge.plus")
+                                }
                             }
+                            .buttonStyle(.bordered)
+                            .disabled(
+                                isSavingObsidianNote
+                                    || store.providerSecretStatuses["obsidian"]?.configured != true
+                                    || store.aiHealth?.isObsidianEndpointLocal != true
+                            )
                         }
-                        .buttonStyle(.bordered)
-                        .disabled(
-                            isSavingObsidianNote
-                                || store.providerSecretStatuses["obsidian"]?.configured != true
-                                || store.aiHealth?.isObsidianEndpointLocal != true
-                        )
                         Text(L10n.text("module.obsidianPrivacy", store.language))
                             .font(.caption)
                             .foregroundStyle(.secondary)
@@ -881,6 +896,22 @@ struct CurriculumModuleView: View {
                     VStack(alignment: .leading, spacing: 10) {
                         Text(L10n.text("module.notebookTitle", store.language))
                             .font(.headline)
+                        Text(L10n.text("module.notebookWhy", store.language))
+                            .font(.callout)
+                            .foregroundStyle(.secondary)
+                        VStack(alignment: .leading, spacing: 6) {
+                            ForEach(1...4, id: \.self) { step in
+                                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                    Text("\(step)")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundStyle(AppPalette.accent.color)
+                                        .frame(width: 14)
+                                    Text(L10n.text("module.notebookStep\(step)", store.language))
+                                        .font(.callout)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
+                        }
                         HStack(spacing: 12) {
                             Button(action: copyNotebookLessonSource) {
                                 Label(L10n.text("module.notebookCopy", store.language), systemImage: "doc.on.clipboard")
@@ -892,7 +923,7 @@ struct CurriculumModuleView: View {
                                 notebookExportDocument = NotebookLMSourceFile(
                                     text: document.notebookSource(subject: subject, language: store.language)
                                 )
-                                notebookExportFilename = "ColiDev-\(subject.rawValue)-\(resource)-\(store.language.rawValue).md"
+                                notebookExportFilename = "Cause-and-Course-\(subject.rawValue)-\(resource)-\(store.language.rawValue).md"
                                 notebookExportStatus = nil
                                 isExportingNotebookSource = true
                             } label: {
@@ -901,7 +932,7 @@ struct CurriculumModuleView: View {
                             .buttonStyle(.bordered)
 
                             Button {
-                                if let url = URL(string: "https://notebooklm.google.com") {
+                                if let url = URL(string: "https://notebook.google.com") {
                                     if !NSWorkspace.shared.open(url) {
                                         notebookExportStatus = L10n.text("module.notebookOpenFailed", store.language)
                                     }
@@ -910,6 +941,27 @@ struct CurriculumModuleView: View {
                                 Label(L10n.text("module.notebookOpen", store.language), systemImage: "arrow.up.right.square")
                             }
                             .buttonStyle(.bordered)
+                        }
+                        Text(L10n.text("module.notebookAskTitle", store.language))
+                            .font(.subheadline.weight(.semibold))
+                            .padding(.top, 4)
+                        ForEach(1...3, id: \.self) { number in
+                            let question = String(format: L10n.text("module.notebookAsk\(number)", store.language), document.title)
+                            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                                Text(question)
+                                    .font(.callout)
+                                    .textSelection(.enabled)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Button {
+                                    copyNotebookQuestion(question)
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                }
+                                .buttonStyle(.borderless)
+                                .help(L10n.text("module.notebookAskCopy", store.language))
+                                .accessibilityLabel(L10n.text("module.notebookAskCopy", store.language))
+                            }
                         }
                         Text(L10n.text("module.notebookPrivacy", store.language))
                             .font(.caption)
@@ -1021,7 +1073,7 @@ struct CurriculumModuleView: View {
                 onPracticeFocusCompleted()
             }
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(AppPalette.canvas.color)
         .navigationTitle(Text(document?.title ?? L10n.text("module.title", store.language)))
         .onAppear { loadDocument() }
         .onChange(of: lessonID) { _ in loadDocument() }
@@ -1104,6 +1156,14 @@ struct CurriculumModuleView: View {
         }
     }
 
+    private func copyNotebookQuestion(_ question: String) {
+        NSPasteboard.general.clearContents()
+        notebookExportStatus = L10n.text(
+            NSPasteboard.general.setString(question, forType: .string) ? "module.notebookAskCopied" : "module.notebookCopyFailed",
+            store.language
+        )
+    }
+
     private func selectCheckAnswer(displayedIndex: Int) {
         guard var attempt = checkAttempt else { return }
         attempt.select(displayedIndex: displayedIndex)
@@ -1139,6 +1199,10 @@ struct CurriculumModuleView: View {
         }
     }
 
+    private var obsidianSavedPath: String? {
+        ObsidianLessonCopyMemory.savedPath(subject: subject.rawValue, resource: resource, language: store.language.rawValue)
+    }
+
     private func saveLessonToObsidian() {
         guard let document, !isSavingObsidianNote else { return }
         let timestampFormatter = DateFormatter()
@@ -1156,6 +1220,7 @@ struct CurriculumModuleView: View {
             defer { isSavingObsidianNote = false }
             do {
                 try await OrchestratorClient.saveObsidianNote(path: path, content: source)
+                ObsidianLessonCopyMemory.remember(path: path, subject: subject.rawValue, resource: resource, language: store.language.rawValue)
                 obsidianSaveStatus = String(
                     format: L10n.text("module.obsidianSaved", store.language),
                     path
@@ -1380,7 +1445,7 @@ private struct ModuleTextCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -1564,7 +1629,7 @@ struct LessonSessionView: View {
             .frame(maxWidth: 900, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(AppPalette.canvas.color)
         .onAppear {
             learnerConfirmed = store.isComplete(subject)
             reflection = store.studyReflectionDrafts[subject.lessonID]
@@ -1605,7 +1670,7 @@ struct LessonSessionView: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                     .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(.quaternary, lineWidth: 1))
                 }
                 .buttonStyle(.plain)
@@ -1655,7 +1720,7 @@ struct LessonSessionView: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -1671,7 +1736,7 @@ private struct StudyReflectionFields: View {
                 .font(.headline)
             if showsReflectionInput {
                 TextField(L10n.text("session.reflectionPlaceholder", language), text: $reflection, axis: .vertical)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .lineLimit(2...4)
                     .onChange(of: reflection) { value in
                         if value.unicodeScalars.count > 500 {
@@ -2154,7 +2219,7 @@ private struct ReadingStrategyLab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                 }
 
@@ -2308,7 +2373,7 @@ private struct DailyRoutineVocabularyLab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selectedOption == displayIndex ? .accentColor : .secondary)
+                    .tint(selectedOption == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selectedOption == displayIndex ? .isSelected : [])
                 }
 
@@ -2449,7 +2514,7 @@ private struct AnimalGroupLab: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                 }
 
@@ -2593,7 +2658,7 @@ private struct AnimalLineageLab: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                 }
 
@@ -2663,7 +2728,7 @@ private struct AnimalLineageLab: View {
         }
         .frame(maxWidth: .infinity, minHeight: 76)
         .padding(10)
-        .background(Color.accentColor.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
+        .background(AppPalette.accent.color.opacity(0.08), in: RoundedRectangle(cornerRadius: 10))
         .accessibilityElement(children: .combine)
     }
 }
@@ -2704,7 +2769,7 @@ private struct GeometryMeasureLab: View {
             slider("lab.geometryHeight", value: $height)
             LabStatGrid {
                 LabStat(label: text("lab.geometryArea"), value: (measure.areaNeedsRoundingForDisplay ? "≈ " : "")
-                        + L10n.measurement(measure.area, fractionDigits: 2, unit: "m²", store.language), tint: .accentColor)
+                        + L10n.measurement(measure.area, fractionDigits: 2, unit: "m²", store.language), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.geometryPerimeter"), value: (measure.perimeterNeedsRoundingForDisplay ? "≈ " : "")
                         + L10n.measurement(measure.perimeter, fractionDigits: 2, unit: "m", store.language), tint: .orange)
             }
@@ -2737,7 +2802,7 @@ private struct GeometryMeasureLab: View {
                 outline.addLine(to: CGPoint(x: left + width, y: bottom))
                 outline.closeSubpath()
             }
-            context.fill(outline, with: .color(Color.accentColor.opacity(0.16)))
+            context.fill(outline, with: .color(AppPalette.accent.color.opacity(0.16)))
             var grid = Path()
             for column in 1..<Int(base.rounded(.up)) {
                 grid.move(to: CGPoint(x: left + CGFloat(column) * unit, y: bottom))
@@ -2749,8 +2814,8 @@ private struct GeometryMeasureLab: View {
             }
             var clipped = context
             clipped.clip(to: outline)
-            clipped.stroke(grid, with: .color(.accentColor.opacity(0.35)), lineWidth: 1)
-            context.stroke(outline, with: .color(.accentColor), lineWidth: 3)
+            clipped.stroke(grid, with: .color(AppPalette.accent.color.opacity(0.35)), lineWidth: 1)
+            context.stroke(outline, with: .color(AppPalette.accent.color), lineWidth: 3)
             if shape == .rightTriangle {
                 var rightAngle = Path()
                 rightAngle.move(to: CGPoint(x: left, y: bottom - 12))
@@ -2767,7 +2832,7 @@ private struct GeometryMeasureLab: View {
             context.draw(Text(verbatim: "h = " + measureText(height, "m")).font(.caption.weight(.semibold)).foregroundColor(.primary),
                          at: CGPoint(x: left - 6, y: bottom - tall / 2), anchor: .trailing)
             let handle = CGPoint(x: left + width, y: bottom - tall)
-            context.fill(Path(ellipseIn: CGRect(x: handle.x - 8, y: handle.y - 8, width: 16, height: 16)), with: .color(.accentColor))
+            context.fill(Path(ellipseIn: CGRect(x: handle.x - 8, y: handle.y - 8, width: 16, height: 16)), with: .color(AppPalette.accent.color))
             context.draw(Text(verbatim: measureText(1, "m") + " = □").font(.caption2).foregroundColor(.secondary),
                          at: CGPoint(x: size.width - 8, y: 10), anchor: .trailing)
         }
@@ -3183,7 +3248,7 @@ private struct RationalExpressionLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.rationalOriginal"), value: originalValue.map(number) ?? text("lab.rationalUndefined"),
-                        tint: originalValue == nil ? .orange : .accentColor)
+                        tint: originalValue == nil ? .orange : AppPalette.accent.color)
                 LabStat(label: text("lab.rationalReduced"), value: number(simplifiedValue), tint: .purple)
             }
             Label(text(originalValue == nil ? "lab.rationalExcluded" : "lab.rationalDefined"),
@@ -3204,9 +3269,9 @@ private struct RationalExpressionLab: View {
             var line = Path()
             line.move(to: plot.point(-5, -2))
             line.addLine(to: plot.point(5, 8))
-            context.stroke(line, with: .color(.accentColor), lineWidth: 3)
+            context.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 3)
             let hole = plot.point(3, 6)
-            context.fill(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(Color(nsColor: .windowBackgroundColor)))
+            context.fill(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(AppPalette.canvas.color))
             context.stroke(Path(ellipseIn: CGRect(x: hole.x - 7, y: hole.y - 7, width: 14, height: 14)), with: .color(.orange), lineWidth: 2.5)
             var asymptote = Path()
             asymptote.move(to: plot.point(3, -3))
@@ -3221,7 +3286,7 @@ private struct RationalExpressionLab: View {
                 guide.move(to: plot.point(input, 0))
                 guide.addLine(to: marker)
                 context.stroke(guide, with: .color(.secondary.opacity(0.6)), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(.accentColor))
+                context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(AppPalette.accent.color))
             }
         }
     }
@@ -3448,7 +3513,7 @@ private struct ConstrainedOptimizationLab: View {
 
                         let selected = location(point.x, point.y)
                         let selection = CGRect(x: selected.x - 7, y: selected.y - 7, width: 14, height: 14)
-                        context.fill(Path(ellipseIn: selection), with: .color(Color.accentColor))
+                        context.fill(Path(ellipseIn: selection), with: .color(AppPalette.accent.color))
                         context.stroke(Path(ellipseIn: selection), with: .color(.white), lineWidth: 1.5)
                     }
                     .contentShape(Rectangle())
@@ -3488,7 +3553,7 @@ private struct ConstrainedOptimizationLab: View {
                     Label(L10n.text("lab.optimization.candidates", store.language), systemImage: "line.diagonal")
                         .foregroundStyle(.orange)
                     Label(L10n.text("lab.optimization.selected", store.language), systemImage: "smallcircle.filled.circle")
-                        .foregroundStyle(Color.accentColor)
+                        .foregroundStyle(AppPalette.accent.color)
                 }
                 .font(.caption)
                 .labelStyle(.titleAndIcon)
@@ -3998,7 +4063,7 @@ private struct EnglishWordStressLab: View {
                         .fixedSize(horizontal: false, vertical: true)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                     .accessibilityIdentifier("english.stress.option.\(questions[index].id).\(originalIndex)")
                 }
@@ -4127,7 +4192,7 @@ private struct EnglishBeLab: View {
                         .fixedSize(horizontal: false, vertical: true)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .disabled(wasCorrect == true)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                     .accessibilityIdentifier("english.be.option.\(question.id).\(originalIndex)")
@@ -4253,7 +4318,7 @@ private struct ConditionalsLab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                 }
 
@@ -4372,7 +4437,7 @@ private struct ReportedSpeechLab: View {
                         .fixedSize(horizontal: false, vertical: true)
                     }
                     .buttonStyle(.bordered)
-                    .tint(selection == displayIndex ? .accentColor : .secondary)
+                    .tint(selection == displayIndex ? AppPalette.accent.color : .secondary)
                     .accessibilityAddTraits(selection == displayIndex ? .isSelected : [])
                 }
 
@@ -5052,7 +5117,7 @@ private struct PhotosynthesisLab: View {
             context.stroke(diagonal, with: .color(.white.opacity(0.5)), style: StrokeStyle(lineWidth: 1, dash: [4, 4]))
             let current = plot.point(light, carbonDioxide)
             context.fill(Path(ellipseIn: CGRect(x: current.x - 8, y: current.y - 8, width: 16, height: 16)), with: .color(.white))
-            context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(.accentColor))
+            context.fill(Path(ellipseIn: CGRect(x: current.x - 5, y: current.y - 5, width: 10, height: 10)), with: .color(AppPalette.accent.color))
         }
     }
 }
@@ -5150,7 +5215,7 @@ private struct LabCard<Content: View>: View {
         }
         .padding(18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .coliSurface(cornerRadius: 18)
     }
 }
 
@@ -5202,7 +5267,7 @@ private struct LinearFunctionLab: View {
                 LabStat(label: text("lab.linear.slope"), value: format(slope), tint: .purple)
                 LabStat(label: text("lab.linear.statIntercept"), value: format(intercept), tint: .orange)
                 LabStat(label: "x", value: format(input), tint: .teal)
-                LabStat(label: "y", value: revealed ? format(function.value(at: input)!) : "?", tint: .accentColor)
+                LabStat(label: "y", value: revealed ? format(function.value(at: input)!) : "?", tint: AppPalette.accent.color)
             }
             predictionPanel
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.linear.challenge"),
@@ -5220,7 +5285,7 @@ private struct LinearFunctionLab: View {
                 .font(.callout.weight(.medium).monospacedDigit())
             HStack(alignment: .firstTextBaseline, spacing: 10) {
                 TextField(text("lab.linear.placeholder"), text: $predictionText)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .frame(maxWidth: 240)
                     .accessibilityLabel(Text(text("lab.linear.prediction")))
                     .onSubmit { checkPrediction() }
@@ -5705,7 +5770,7 @@ private struct LengthMeasurementLab: View {
                 .textSelection(.enabled)
             LabStatGrid {
                 LabStat(label: text("lab.measurementInterval"),
-                        value: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language) + "–" + measure(measurement.upperCentimetres, 1, "cm"), tint: .accentColor)
+                        value: L10n.number(measurement.lowerCentimetres, fractionDigits: 1, store.language) + "–" + measure(measurement.upperCentimetres, 1, "cm"), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.measurementRelative"), value: measure(measurement.relativeUncertaintyPercent, 1, "%"),
                         tint: measurement.relativeUncertaintyPercent < 1 ? .green : .orange)
                 LabStat(label: text("lab.measurementInMetres"), value: measure(measurement.metres, 3, "m"), tint: .purple)
@@ -5860,7 +5925,7 @@ private struct FrictionLab: View {
         ground.addLine(to: CGPoint(x: size.width - 8, y: floor))
         context.stroke(ground, with: .color(.secondary.opacity(0.6)), lineWidth: 3)
         let block = CGRect(x: blockX, y: floor - 44, width: 64, height: 44)
-        context.fill(Path(roundedRect: block, cornerRadius: 8), with: .color(motion.isSliding ? .orange : .accentColor))
+        context.fill(Path(roundedRect: block, cornerRadius: 8), with: .color(motion.isSliding ? .orange : AppPalette.accent.color))
         context.draw(Text(verbatim: L10n.measurement(mass, fractionDigits: 1, unit: "kg", store.language)).font(.caption.weight(.bold)).foregroundColor(.white),
                      at: CGPoint(x: block.midX, y: block.midY))
         let pixelsPerNewton: CGFloat = 1.6
@@ -5900,7 +5965,7 @@ private struct FrictionLab: View {
         var curve = Path()
         curve.move(to: plot.point(0, 0))
         curve.addLine(to: plot.point(limit, limit))
-        context.stroke(curve, with: .color(.accentColor), lineWidth: 3)
+        context.stroke(curve, with: .color(AppPalette.accent.color), lineWidth: 3)
         if threshold < 60 {
             var drop = Path()
             drop.move(to: plot.point(threshold, threshold))
@@ -5913,10 +5978,10 @@ private struct FrictionLab: View {
             context.draw(Text(L10n.text("lab.frictionZoneSlide", store.language)).font(.caption.weight(.semibold)).foregroundColor(.orange),
                          at: CGPoint(x: plot.point((threshold + 60) / 2, 0).x, y: plot.point(0, kinetic).y - 12))
         }
-        context.draw(Text(L10n.text("lab.frictionZoneRest", store.language)).font(.caption.weight(.semibold)).foregroundColor(.accentColor),
+        context.draw(Text(L10n.text("lab.frictionZoneRest", store.language)).font(.caption.weight(.semibold)).foregroundColor(AppPalette.accent.color),
                      at: CGPoint(x: plot.point(limit / 2, 0).x + 26, y: plot.point(0, limit / 2).y + 6))
         let now = plot.point(appliedForce, motion.frictionForce)
-        context.fill(Path(ellipseIn: CGRect(x: now.x - 7, y: now.y - 7, width: 14, height: 14)), with: .color(motion.isSliding ? .orange : .accentColor))
+        context.fill(Path(ellipseIn: CGRect(x: now.x - 7, y: now.y - 7, width: 14, height: 14)), with: .color(motion.isSliding ? .orange : AppPalette.accent.color))
     }
 
     private var predictionPracticeView: some View {
@@ -5949,7 +6014,7 @@ private struct FrictionLab: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .buttonStyle(.bordered)
-                    .tint(isSelected ? .accentColor : nil)
+                    .tint(isSelected ? AppPalette.accent.color : nil)
                     .disabled(predictionPractice.feedback == .correct)
                     .accessibilityIdentifier("lesson.friction.prediction.option.\(question.id).\(originalIndex)")
                 }
@@ -6074,7 +6139,7 @@ private struct ProjectileMotionLab: View {
             .accessibilityValue(Text(verbatim: measure(launchSpeed, 0, "m/s") + ", " + L10n.number(angleDegrees, fractionDigits: 0, store.language) + "°, "
                                      + text("lab.projectile.range") + " " + measure(motion.horizontalRange, 1, "m")))
             HStack(spacing: 14) {
-                legendItem(.accentColor, text("lab.projectile.current"))
+                legendItem(AppPalette.accent.color, text("lab.projectile.current"))
                 if comparesComplement { legendItem(.orange, "90° − θ") }
                 legendItem(.blue, "vx")
                 legendItem(.pink, "vy")
@@ -6099,7 +6164,7 @@ private struct ProjectileMotionLab: View {
             projectileSlider(title: text("lab.projectile.speed"), value: $launchSpeed, range: 5...30, unit: "m/s")
             projectileSlider(title: text("lab.projectile.angle"), value: $angleDegrees, range: 15...75, unit: "°")
             LabStatGrid {
-                LabStat(label: text("lab.projectile.range"), value: measure(motion.horizontalRange, 1, "m"), tint: hitsTarget ? .green : .accentColor)
+                LabStat(label: text("lab.projectile.range"), value: measure(motion.horizontalRange, 1, "m"), tint: hitsTarget ? .green : AppPalette.accent.color)
                 LabStat(label: text("lab.projectile.height"), value: measure(motion.maximumHeight, 1, "m"), tint: .purple)
                 LabStat(label: text("lab.projectile.flight"), value: measure(motion.flightTime, 2, "s"), tint: .orange)
                 LabStat(label: "vx", value: measure(motion.horizontalVelocity, 1, "m/s"), tint: .blue)
@@ -6140,24 +6205,24 @@ private struct ProjectileMotionLab: View {
             if comparesComplement {
                 context.stroke(arc(complement, plot: plot), with: .color(.orange.opacity(0.85)), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
             }
-            context.stroke(arc(motion, plot: plot), with: .color(.accentColor), lineWidth: 3)
+            context.stroke(arc(motion, plot: plot), with: .color(AppPalette.accent.color), lineWidth: 3)
             var tick = 0.0
             while tick <= elapsed {
                 let point = motion.position(at: tick)
                 let spot = plot.point(point.x, point.y)
-                context.fill(Path(ellipseIn: CGRect(x: spot.x - 2.5, y: spot.y - 2.5, width: 5, height: 5)), with: .color(.accentColor.opacity(0.45)))
+                context.fill(Path(ellipseIn: CGRect(x: spot.x - 2.5, y: spot.y - 2.5, width: 5, height: 5)), with: .color(AppPalette.accent.color.opacity(0.45)))
                 tick += 0.25
             }
             let origin = plot.point(0, 0)
             let aimEnd = CGPoint(x: origin.x + CGFloat(cos(angleDegrees * .pi / 180)) * CGFloat(launchSpeed) * Self.aimScale,
                                  y: origin.y - CGFloat(sin(angleDegrees * .pi / 180)) * CGFloat(launchSpeed) * Self.aimScale)
-            arrow(context, from: origin, to: aimEnd, color: .accentColor.opacity(0.75), width: 3)
-            context.stroke(Path(ellipseIn: CGRect(x: aimEnd.x - 8, y: aimEnd.y - 8, width: 16, height: 16)), with: .color(.accentColor), lineWidth: 2)
+            arrow(context, from: origin, to: aimEnd, color: AppPalette.accent.color.opacity(0.75), width: 3)
+            context.stroke(Path(ellipseIn: CGRect(x: aimEnd.x - 8, y: aimEnd.y - 8, width: 16, height: 16)), with: .color(AppPalette.accent.color), lineWidth: 2)
             let now = motion.position(at: elapsed)
             let ball = plot.point(now.x, now.y)
             arrow(context, from: ball, to: CGPoint(x: ball.x + CGFloat(motion.horizontalVelocity) * 2.4, y: ball.y), color: .blue, width: 2)
             arrow(context, from: ball, to: CGPoint(x: ball.x, y: ball.y - CGFloat(verticalVelocityNow) * 2.4), color: .pink, width: 2)
-            context.fill(Path(ellipseIn: CGRect(x: ball.x - 7, y: ball.y - 7, width: 14, height: 14)), with: .color(.accentColor))
+            context.fill(Path(ellipseIn: CGRect(x: ball.x - 7, y: ball.y - 7, width: 14, height: 14)), with: .color(AppPalette.accent.color))
         }
     }
 
@@ -6253,7 +6318,7 @@ private struct Force3DVisualization: NSViewRepresentable {
         context.coordinator.sceneLanguage = language
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .windowBackgroundColor
+        view.backgroundColor = AppPalette.canvas.nsColor
         return view
     }
 
@@ -6269,7 +6334,7 @@ private struct Force3DVisualization: NSViewRepresentable {
 
     private static func makeScene(language: AppLanguage) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.windowBackgroundColor
+        scene.background.contents = AppPalette.canvas.nsColor
 
         let box = SCNBox(width: 1, height: 0.72, length: 0.72, chamferRadius: 0.08)
         let boxMaterial = SCNMaterial()
@@ -6395,7 +6460,7 @@ private struct KineticEnergyLab: View {
                 .foregroundStyle(.secondary)
 
             LabStatGrid {
-                LabStat(label: L10n.text("lab.energyInitial", store.language), value: L10n.measurement(initialEnergy, fractionDigits: 1, unit: "J", store.language), tint: .accentColor)
+                LabStat(label: L10n.text("lab.energyInitial", store.language), value: L10n.measurement(initialEnergy, fractionDigits: 1, unit: "J", store.language), tint: AppPalette.accent.color)
                 LabStat(label: L10n.text("lab.energyNetWork", store.language), value: L10n.measurement(netWork, fractionDigits: 1, unit: "J", store.language), tint: netWork >= 0 ? .green : .red)
                 LabStat(label: L10n.text("lab.energyFinal", store.language), value: L10n.measurement(finalEnergy, fractionDigits: 1, unit: "J", store.language), tint: .orange)
                 LabStat(label: L10n.text("lab.energyFinalSpeed", store.language), value: L10n.measurement(finalSpeed, fractionDigits: 2, unit: "m/s", store.language), tint: .purple)
@@ -6428,7 +6493,7 @@ private struct KineticEnergyLab: View {
             let zeroY = size.height * 0.62
             let slot = size.width / 3
             let titles = ["lab.energyInitial", "lab.energyNetWork", "lab.energyFinal"]
-            let colors: [Color] = [.accentColor, netWork >= 0 ? .green : .red, .orange]
+            let colors: [Color] = [AppPalette.accent.color, netWork >= 0 ? .green : .red, .orange]
             for (index, value) in values.enumerated() {
                 let height = (zeroY - 14) * CGFloat(abs(value) / top)
                 let rect = CGRect(x: CGFloat(index) * slot + slot * 0.3, y: value >= 0 ? zeroY - height : zeroY, width: slot * 0.4, height: max(2, height))
@@ -6751,7 +6816,7 @@ private struct MomentumCollisionLab: View {
     private func predictionButton(title: String, tag: Int) -> some View {
         Button(title) { prediction = tag }
             .buttonStyle(.bordered)
-            .tint(prediction == tag ? .accentColor : nil)
+            .tint(prediction == tag ? AppPalette.accent.color : nil)
             .accessibilityAddTraits(prediction == tag ? .isSelected : [])
     }
 
@@ -6775,14 +6840,14 @@ private struct Energy3DVisualization: View {
 
     var body: some View {
         SceneView(scene: scene, options: [.allowsCameraControl])
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(AppPalette.canvas.color)
             .onChange(of: mass) { _ in updateScene() }
             .onChange(of: speed) { _ in updateScene() }
     }
 
     private static func makeScene(mass: Double, speed: Double) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.windowBackgroundColor
+        scene.background.contents = AppPalette.canvas.nsColor
 
         let cartGeometry = SCNBox(width: 0.78, height: 0.46, length: 0.62, chamferRadius: 0.08)
         let cartMaterial = SCNMaterial()
@@ -7123,7 +7188,7 @@ private struct GeneRegulationLab: View {
                 .frame(maxWidth: .infinity, minHeight: 34)
         }
         .buttonStyle(.bordered)
-        .tint(prediction.selectedOriginalIndex == originalIndex ? Color.accentColor : nil)
+        .tint(prediction.selectedOriginalIndex == originalIndex ? AppPalette.accent.color : nil)
         .disabled(prediction.hasAnswered)
         .accessibilityAddTraits(prediction.selectedOriginalIndex == originalIndex ? .isSelected : [])
     }
@@ -8136,7 +8201,7 @@ private struct ThermalProxyBirdVisualization: NSViewRepresentable {
         view.scene = Self.makeScene()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .controlBackgroundColor
+        view.backgroundColor = AppPalette.card.nsColor
         return view
     }
 
@@ -8144,7 +8209,7 @@ private struct ThermalProxyBirdVisualization: NSViewRepresentable {
 
     private static func makeScene() -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.controlBackgroundColor
+        scene.background.contents = AppPalette.card.nsColor
         let bodyMaterial = material(color: .darkGray, roughness: 0.8)
         let wingMaterial = material(color: .gray, roughness: 0.82)
         let beakMaterial = material(color: .systemOrange, roughness: 0.62)
@@ -8227,7 +8292,7 @@ private struct DNAHelixVisualization: NSViewRepresentable {
         view.scene = Self.makeScene(variant: variant)
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .controlBackgroundColor
+        view.backgroundColor = AppPalette.card.nsColor
         return view
     }
 
@@ -8238,7 +8303,7 @@ private struct DNAHelixVisualization: NSViewRepresentable {
 
     private static func makeScene(variant: Int) -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.controlBackgroundColor
+        scene.background.contents = AppPalette.card.nsColor
 
         let backboneMaterial = SCNMaterial()
         backboneMaterial.diffuse.contents = NSColor.systemBlue
@@ -9153,7 +9218,7 @@ private struct FoodWebLab: View {
                 }
             }
             .frame(width: 104, height: 44)
-            .background(selected ? Color.accentColor.opacity(0.18) : Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 9))
+            .background(selected ? AppPalette.accent.color.opacity(0.18) : AppPalette.card.color, in: RoundedRectangle(cornerRadius: 9))
             .overlay(RoundedRectangle(cornerRadius: 9).stroke(lost ? Color.red : nodeColor(node.kind).opacity(0.7),
                                                               style: StrokeStyle(lineWidth: selected || lost ? 2 : 1, dash: lost ? [4, 3] : [])))
             .opacity(lost ? 0.6 : 1)
@@ -9315,7 +9380,7 @@ private struct EukaryoticCellScene: NSViewRepresentable {
         view.scene = Self.makeScene()
         view.allowsCameraControl = true
         view.autoenablesDefaultLighting = true
-        view.backgroundColor = .controlBackgroundColor
+        view.backgroundColor = AppPalette.card.nsColor
         view.antialiasingMode = .multisampling4X
         Self.highlight(selectedPart, in: view.scene)
         let clickGesture = NSClickGestureRecognizer(
@@ -9461,7 +9526,7 @@ private struct EukaryoticCellScene: NSViewRepresentable {
 
     private static func makeScene() -> SCNScene {
         let scene = SCNScene()
-        scene.background.contents = NSColor.controlBackgroundColor
+        scene.background.contents = AppPalette.card.nsColor
 
         let membrane = SCNNode(geometry: SCNSphere(radius: 1.42))
         membrane.name = "organelle-membrane"
@@ -9654,7 +9719,7 @@ private struct ConditionalLab: View {
             .foregroundStyle(score >= 5 ? Color.green : Color.orange)
             .padding(10)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         }
     }
 }
@@ -9699,7 +9764,7 @@ private struct VariablesTypesLab: View {
                 .font(.system(.body, design: .monospaced).weight(.medium))
                 HStack(alignment: .firstTextBaseline, spacing: 10) {
                     TextField(text("lab.input.placeholder"), text: $inputText)
-                        .textFieldStyle(.roundedBorder)
+                        .coliTextField()
                         .frame(maxWidth: 260)
                         .accessibilityLabel(Text(text("lab.input.accessibility")))
                         .onSubmit(convertInput)
@@ -9724,7 +9789,7 @@ private struct VariablesTypesLab: View {
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(active ? Color.accentColor.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
+            .background(active ? AppPalette.accent.color.opacity(0.16) : Color.clear, in: RoundedRectangle(cornerRadius: 6))
     }
 
     // A name is a label pointing at an object. Reassigning moves the arrow to a new object; the old int is not converted.
@@ -9737,7 +9802,7 @@ private struct VariablesTypesLab: View {
                 .background(Color.secondary.opacity(0.15), in: Capsule())
             Image(systemName: "arrow.right")
                 .font(.title2.weight(.semibold))
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(AppPalette.accent.color)
             VStack(spacing: 10) {
                 objectBox(value: "12", type: "int", colour: .blue, current: !reassignToText)
                 objectBox(value: "\"12\"", type: "str", colour: .orange, current: reassignToText)
@@ -9861,12 +9926,12 @@ private struct PracticeMinutesRunner: View {
 
             HStack(spacing: 12) {
                 TextField(L10n.text("lab.practiceMinutes.earlier", store.language), text: $earlierMinutes)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .accessibilityLabel(Text(L10n.text("lab.practiceMinutes.earlier", store.language)))
                     .accessibilityIdentifier("python.minutes.earlier")
                     .disabled(isRunning)
                 TextField(L10n.text("lab.practiceMinutes.today", store.language), text: $todayMinutes)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .accessibilityLabel(Text(L10n.text("lab.practiceMinutes.today", store.language)))
                     .accessibilityIdentifier("python.minutes.today")
                     .disabled(isRunning)
@@ -9879,7 +9944,7 @@ private struct PracticeMinutesRunner: View {
                 .frame(minHeight: 110, maxHeight: 180)
                 .scrollContentBackground(.hidden)
                 .padding(6)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10)
                         .strokeBorder(.quaternary, lineWidth: 1)
@@ -9944,7 +10009,7 @@ private struct PracticeMinutesRunner: View {
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
             }
 
             if let connectionErrorKey {
@@ -9956,7 +10021,7 @@ private struct PracticeMinutesRunner: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(.quaternary, lineWidth: 1)
@@ -10037,7 +10102,7 @@ private struct AlgorithmicThinkingLab: View {
         LabCard {
             LabHeader(title: L10n.text("labkit.title.AlgorithmicThinkingLab", store.language), instruction: L10n.text("lab.algorithmHint", store.language))
             ProgressView(value: Double(completedSteps.count), total: Double(max(stepOrder.count, 1)))
-                .tint(session.isComplete ? .green : .accentColor)
+                .tint(session.isComplete ? .green : AppPalette.accent.color)
                 .accessibilityLabel(Text(String(format: L10n.text("lab.algorithmProgress", store.language), min(completedSteps.count + 1, stepOrder.count), stepOrder.count)))
 
             if let currentQuestion = session.currentQuestion {
@@ -10075,7 +10140,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let scenario = AlgorithmicThinkingPractice.maximumTestCase(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmMaximumListContract", store.language))
@@ -10086,7 +10151,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if currentQuestion.contextKey == "lab.algorithm.context.maximumList" {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmMaximumListContract", store.language))
@@ -10097,7 +10162,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let scenario = AlgorithmicThinkingPractice.averageTestCase(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmTestCaseContract", store.language))
@@ -10108,7 +10173,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let scenario = AlgorithmicThinkingPractice.decompositionScenario(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text(scenario.promptKey, store.language))
@@ -10118,7 +10183,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 } else if let testCase = AlgorithmicThinkingPractice.eligibilityTestCase(forQuestionID: currentQuestion.id) {
                     VStack(alignment: .leading, spacing: 8) {
                         Text(L10n.text("lab.algorithmEligibilityRule", store.language))
@@ -10128,7 +10193,7 @@ private struct AlgorithmicThinkingLab: View {
                     }
                     .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
                 }
             }
 
@@ -10187,7 +10252,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
             }
 
             if AlgorithmicThinkingPractice.showsMaximumTestResults(completedQuestionCount: completedSteps.count) {
@@ -10213,7 +10278,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
             }
 
@@ -10240,7 +10305,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.text("lab.algorithmDecompositionSolutions", store.language))
@@ -10254,7 +10319,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
                 VStack(alignment: .leading, spacing: 8) {
                     Text(L10n.text("lab.algorithmEligibilityTestResults", store.language))
@@ -10273,7 +10338,7 @@ private struct AlgorithmicThinkingLab: View {
                 }
                 .padding(12)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 12))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
                 Button {
                     session.restart()
@@ -10442,7 +10507,7 @@ private struct PythonCodePracticeView: View {
                 .frame(minHeight: 150, maxHeight: 250)
                 .scrollContentBackground(.hidden)
                 .padding(6)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
                 .overlay {
                     RoundedRectangle(cornerRadius: 10)
                         .strokeBorder(.quaternary, lineWidth: 1)
@@ -10497,7 +10562,7 @@ private struct PythonCodePracticeView: View {
                 }
                 .padding(10)
                 .frame(maxWidth: .infinity, alignment: .leading)
-                .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
             }
 
             if let connectionErrorKey {
@@ -10510,7 +10575,7 @@ private struct PythonCodePracticeView: View {
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .overlay {
             RoundedRectangle(cornerRadius: 12)
                 .strokeBorder(.quaternary, lineWidth: 1)
@@ -10716,7 +10781,7 @@ private struct FileReadingLab: View {
                             .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(10)
-                    .background(selectedOutcome == outcome ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.06),
+                    .background(selectedOutcome == outcome ? AppPalette.accent.color.opacity(0.12) : Color.secondary.opacity(0.06),
                                 in: RoundedRectangle(cornerRadius: 10))
                 }
                 .buttonStyle(.plain)
@@ -10799,7 +10864,7 @@ private struct TransactionLab: View {
 
             Label(L10n.text(snapshot.stage.titleKey, store.language), systemImage: snapshot.stage.isFinished ? "checkmark.circle.fill" : "arrow.trianglehead.2.clockwise.rotate.90")
                 .font(.callout.weight(.medium))
-                .foregroundStyle(snapshot.stage.isFinished ? Color.green : Color.accentColor)
+                .foregroundStyle(snapshot.stage.isFinished ? Color.green : AppPalette.accent.color)
 
             Text(L10n.text(snapshot.traceKey, store.language))
                 .font(.callout)
@@ -10846,7 +10911,7 @@ private struct TransactionLab: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
-        .background(.background, in: RoundedRectangle(cornerRadius: 12))
+        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
         .accessibilityElement(children: .combine)
     }
 
@@ -10885,7 +10950,7 @@ private struct SQLSchemaQueryLab: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
             if let step = currentStep {
                 Text(String(format: L10n.text("lab.sql.progress", store.language), stepIndex + 1, SQLQueryPractice.steps.count))
@@ -10924,7 +10989,7 @@ private struct SQLSchemaQueryLab: View {
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
                             .padding(10)
-                            .background(.background, in: RoundedRectangle(cornerRadius: 10))
+                            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 10))
                         if step.id == "programming.sql_queries.filter_and_order" && feedbackCorrect {
                             Text(SQLQueryPractice.filteredSessions(minimumMinutes: 30).map { "\($0.topic) | \($0.minutes)" }.joined(separator: "\n"))
                                 .font(.system(.caption, design: .monospaced))
@@ -11265,7 +11330,7 @@ private struct GitWorkflowLab: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(12)
-            .background(.background, in: RoundedRectangle(cornerRadius: 12))
+            .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 12))
 
             if let step = currentStep {
                 Text(String(format: L10n.text("lab.git.progress", store.language), stepIndex + 1, GitWorkflowPractice.steps.count))
@@ -11435,7 +11500,7 @@ private struct LinearSystemLab: View {
                             }
                             .foregroundStyle(.secondary)
                             .padding(12)
-                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
+                            .coliSurface(cornerRadius: 10)
                         }
                     }
                     .accessibilityElement(children: .ignore)
@@ -11780,7 +11845,7 @@ private struct NeuronSignalLab: View {
                     .accessibilityLabel(text("lab.neuron.stimulusLabel"))
             }
             LabStatGrid {
-                LabStat(label: text("lab.neuron.statMembrane"), value: millivolts(Model.membranePotential(afterDepolarization: depolarization)), tint: .accentColor)
+                LabStat(label: text("lab.neuron.statMembrane"), value: millivolts(Model.membranePotential(afterDepolarization: depolarization)), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.neuron.statPeak"), value: millivolts(Model.highestPotential(afterDepolarization: depolarization)), tint: fires ? .yellow : .secondary)
             }
             LabStatusBadge(kind: fires ? .good : .info, text: text(fires ? "lab.neuron.fires" : "lab.neuron.noFire"), identifier: "lab.neuron.outcome")
@@ -11821,7 +11886,7 @@ private struct NeuronSignalLab: View {
                 let location = plot.point(point.milliseconds, point.millivolts)
                 if started { line.addLine(to: location) } else { line.move(to: location); started = true }
             }
-            clipped.stroke(line, with: .color(fires ? .yellow : .accentColor), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
+            clipped.stroke(line, with: .color(fires ? .yellow : AppPalette.accent.color), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
         }
     }
 }
@@ -11844,7 +11909,7 @@ private struct MembraneTraceView: View {
                 horizontalLine(at: NeuronSignalModel.thresholdPotential, in: geometry.size)
                     .stroke(Color.orange, style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
                 tracePath(in: geometry.size)
-                    .stroke(Color.accentColor, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
+                    .stroke(AppPalette.accent.color, style: StrokeStyle(lineWidth: 2.5, lineCap: .round, lineJoin: .round))
                 Text(thresholdLabel)
                     .font(.caption2.weight(.medium))
                     .foregroundStyle(.orange)
@@ -11938,7 +12003,7 @@ private struct VectorKinematicsLab: View {
                 .frame(maxWidth: 280)
             }
             LabStatGrid {
-                LabStat(label: text("lab.vector.magnitude"), value: measure(vector.magnitude, 0, "m"), tint: .accentColor)
+                LabStat(label: text("lab.vector.magnitude"), value: measure(vector.magnitude, 0, "m"), tint: AppPalette.accent.color)
                 LabStat(label: "θ", value: measure(vector.angleDegrees, 0, "°"), tint: .purple)
                 LabStat(label: text("lab.vector.xComponent"), value: showsComponents ? measure(vector.xComponent, 2, "m") : "?", tint: .orange)
                 LabStat(label: text("lab.vector.yComponent"), value: showsComponents ? measure(vector.yComponent, 2, "m") : "?", tint: .green)
@@ -11992,8 +12057,8 @@ private struct VectorKinematicsLab: View {
                 context.draw(Text(verbatim: "Δy").font(.caption.weight(.bold)).foregroundColor(.green),
                              at: CGPoint(x: corner.x + (vector.xComponent >= 0 ? 16 : -16), y: (origin.y + tip.y) / 2))
             }
-            arrow(context, from: origin, to: tip, color: .accentColor, width: 3.5)
-            context.stroke(Path(ellipseIn: CGRect(x: tip.x - 9, y: tip.y - 9, width: 18, height: 18)), with: .color(.accentColor), lineWidth: 2)
+            arrow(context, from: origin, to: tip, color: AppPalette.accent.color, width: 3.5)
+            context.stroke(Path(ellipseIn: CGRect(x: tip.x - 9, y: tip.y - 9, width: 18, height: 18)), with: .color(AppPalette.accent.color), lineWidth: 2)
             context.fill(Path(ellipseIn: CGRect(x: origin.x - 3, y: origin.y - 3, width: 6, height: 6)), with: .color(.primary))
         }
     }
@@ -12453,7 +12518,7 @@ private struct GradientDescentLab: View {
                     .accessibilityLabel(text("lab.gd.stepsLabel"))
             }
             LabStatGrid {
-                LabStat(label: "w", value: number(last.weight, 3), tint: .accentColor)
+                LabStat(label: "w", value: number(last.weight, 3), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.gd.statLoss"), value: number(last.loss, 3), tint: .orange)
                 LabStat(label: text("lab.gd.statFactor"), value: number(1 - 15 * rate, 2), tint: .purple)
             }
@@ -12490,7 +12555,7 @@ private struct GradientDescentLab: View {
             var line = Path()
             line.move(to: plot.point(0, 0))
             line.addLine(to: plot.point(4.5, 4.5 * weight))
-            clipped.stroke(line, with: .color(.accentColor), lineWidth: 3)
+            clipped.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 3)
             for (x, y) in zip(Model.inputs, Model.targets) {
                 let measured = plot.point(x, y), predicted = plot.point(x, weight * x)
                 var residual = Path()
@@ -12499,7 +12564,7 @@ private struct GradientDescentLab: View {
                 clipped.stroke(residual, with: .color(.orange.opacity(0.7)), lineWidth: 1.5)
                 clipped.fill(Path(ellipseIn: CGRect(x: measured.x - 6, y: measured.y - 6, width: 12, height: 12)), with: .color(.orange))
             }
-            context.draw(Text(verbatim: "y = " + number(weight, 2) + "·x").font(.caption.weight(.bold)).foregroundColor(.accentColor),
+            context.draw(Text(verbatim: "y = " + number(weight, 2) + "·x").font(.caption.weight(.bold)).foregroundColor(AppPalette.accent.color),
                          at: CGPoint(x: plot.rect.minX + 8, y: plot.rect.minY + 14), anchor: .leading)
         }
     }
@@ -12529,7 +12594,7 @@ private struct GradientDescentLab: View {
                 let location = plot.point(min(max(step.weight, -0.5), 4.5), min(step.loss, maxLoss))
                 let radius: CGFloat = index == path.count - 1 ? 7 : 4
                 clipped.fill(Path(ellipseIn: CGRect(x: location.x - radius, y: location.y - radius, width: 2 * radius, height: 2 * radius)),
-                             with: .color(index == path.count - 1 ? .accentColor : .orange))
+                             with: .color(index == path.count - 1 ? AppPalette.accent.color : .orange))
             }
             let minimum = plot.point(Model.optimalWeight, Model.loss(weight: Model.optimalWeight))
             clipped.fill(Path(ellipseIn: CGRect(x: minimum.x - 5, y: minimum.y - 5, width: 10, height: 10)), with: .color(.green))
@@ -12631,7 +12696,7 @@ private struct SynapticSummationLab: View {
             let potential = Model.membranePotential(excitatory: excitatory, inhibitory: inhibitory)
             let top = y(potential)
             context.fill(Path(roundedRect: CGRect(x: bar.minX, y: top, width: bar.width, height: bar.maxY - top), cornerRadius: 10),
-                         with: .color(potential >= Model.thresholdPotential ? .yellow : .accentColor))
+                         with: .color(potential >= Model.thresholdPotential ? .yellow : AppPalette.accent.color))
             for (value, key, color) in [(Model.thresholdPotential, "lab.neuron.thresholdLine", Color.orange), (Model.restingPotential, "lab.neuron.restLine", Color.secondary)] {
                 var line = Path()
                 line.move(to: CGPoint(x: bar.minX - 6, y: y(value)))
@@ -12725,7 +12790,7 @@ private struct ReplicatorErrorThresholdLab: View {
                 let location = plot.point(l, min(Model.exactOffspring(length: l, errorRate: errorRate, advantage: advantage), plot.y.upperBound))
                 if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
             }
-            clipped.stroke(curve, with: .color(.accentColor), lineWidth: 2.5)
+            clipped.stroke(curve, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             if let maximum {
                 var mark = Path()
                 mark.move(to: plot.point(Double(maximum), 0))
@@ -12960,7 +13025,7 @@ private struct MoleculeBuilderLab: View {
                 bond.addLine(to: point)
                 let fits = index < central.valence
                 context.stroke(bond, with: .color(fits ? .secondary : .red), style: StrokeStyle(lineWidth: 3, dash: fits ? [] : [5, 4]))
-                context.fill(Path(ellipseIn: CGRect(x: point.x - 14, y: point.y - 14, width: 28, height: 28)), with: .color(fits ? Color.accentColor.opacity(0.85) : .red.opacity(0.6)))
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 14, y: point.y - 14, width: 28, height: 28)), with: .color(fits ? AppPalette.accent.color.opacity(0.85) : .red.opacity(0.6)))
                 context.draw(Text("H").font(.callout.weight(.bold)).foregroundColor(.white), at: point)
             }
             context.fill(Path(ellipseIn: CGRect(x: center.x - 22, y: center.y - 22, width: 44, height: 44)), with: .color(.indigo))
@@ -13184,7 +13249,7 @@ private struct NeuronTrainingLab: View {
             LabStatGrid {
                 LabStat(label: text("lab.neurontrain.statSteps"), value: String(model.lossHistory.count))
                 LabStat(label: "w · b", value: number(model.weight, 3) + " · " + number(model.bias, 3), tint: .purple)
-                LabStat(label: text("lab.neurontrain.statOutput"), value: number(model.output, 3), tint: .accentColor)
+                LabStat(label: text("lab.neurontrain.statOutput"), value: number(model.output, 3), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.neurontrain.statLoss"), value: number(model.loss, 4), tint: .orange, identifier: "lab.neurontrain.loss")
             }
             LabStatusBadge(kind: status.0, text: status.1)
@@ -14608,11 +14673,11 @@ private struct ConsciousnessIndicatorLab: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 Button(text("lab.mind.yes")) { model.answer(indicator, has: true) }
                     .buttonStyle(.bordered)
-                    .tint(answer == true ? .accentColor : .secondary)
+                    .tint(answer == true ? AppPalette.accent.color : .secondary)
                     .accessibilityIdentifier("lab.mind.\(indicator).yes")
                 Button(text("lab.mind.no")) { model.answer(indicator, has: false) }
                     .buttonStyle(.bordered)
-                    .tint(answer == false ? .accentColor : .secondary)
+                    .tint(answer == false ? AppPalette.accent.color : .secondary)
                     .accessibilityIdentifier("lab.mind.\(indicator).no")
             }
             if answer != nil {
@@ -14686,8 +14751,11 @@ private struct TinyModelLab: View {
                     .accessibilityIdentifier("lab.tiny.scene")
                 TextEditor(text: $text)
                     .font(.body)
+                    .scrollContentBackground(.hidden)
+                    .padding(6)
                     .frame(height: 74)
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.secondary.opacity(0.35)))
+                    .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(AppPalette.stroke.color))
                     .accessibilityLabel(text("lab.tiny.textLabel"))
                     .accessibilityIdentifier("lab.tiny.text")
                 HStack(spacing: 12) {
@@ -14852,7 +14920,7 @@ private struct CoinEntropyLab: View {
                 let top = plot.point(Double(heads), Double(count))
                 let rect = CGRect(x: top.x - slot * 0.35, y: top.y, width: slot * 0.7, height: plot.rect.maxY - top.y)
                 let likely = heads == Model.mostLikelyHeads(coins: coins) || heads == coins - Model.mostLikelyHeads(coins: coins)
-                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(likely ? .orange : .accentColor.opacity(0.55)))
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(likely ? .orange : AppPalette.accent.color.opacity(0.55)))
                 if heads == highlight {
                     context.stroke(Path(roundedRect: rect.insetBy(dx: -3, dy: -3), cornerRadius: 4), with: .color(.primary), lineWidth: 2.5)
                 }
@@ -15034,7 +15102,7 @@ private struct LeastSquaresFitLab: View {
             var userPath = Path()
             userPath.move(to: plot.point(0, line.value(at: 0)))
             userPath.addLine(to: plot.point(1.1, line.value(at: 1.1)))
-            clipped.stroke(userPath, with: .color(.accentColor), lineWidth: 3)
+            clipped.stroke(userPath, with: .color(AppPalette.accent.color), lineWidth: 3)
             for point in Model.points(lengthOffset: lengthOffset) {
                 let location = plot.point(point.x, point.y)
                 clipped.fill(Path(ellipseIn: CGRect(x: location.x - 6, y: location.y - 6, width: 12, height: 12)), with: .color(.orange))
@@ -15042,7 +15110,7 @@ private struct LeastSquaresFitLab: View {
             for (index, x) in handleX.enumerated() {
                 let handle = plot.point(x, line.value(at: x))
                 let radius: CGFloat = draggedHandle == index ? 11 : 9
-                clipped.fill(Path(ellipseIn: CGRect(x: handle.x - radius, y: handle.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(.accentColor))
+                clipped.fill(Path(ellipseIn: CGRect(x: handle.x - radius, y: handle.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(AppPalette.accent.color))
                 clipped.stroke(Path(ellipseIn: CGRect(x: handle.x - radius, y: handle.y - radius, width: 2 * radius, height: 2 * radius)), with: .color(.white), lineWidth: 2.5)
             }
         }
@@ -15227,7 +15295,7 @@ private struct MichaelisMentenLab: View {
 
             LabStatGrid {
                 LabStat(label: text("lab.enzyme.statRate"), value: number(rate, 1), tint: .orange, identifier: "lab.enzyme.rate")
-                LabStat(label: text("lab.enzyme.statShare"), value: number(share * 100, 0) + " %", tint: share >= 0.9 ? .green : .accentColor)
+                LabStat(label: text("lab.enzyme.statShare"), value: number(share * 100, 0) + " %", tint: share >= 0.9 ? .green : AppPalette.accent.color)
                 LabStat(label: text("lab.enzyme.statRatio"), value: number(substrate / michaelisConstant, 1), tint: .purple)
             }
             busyBar(share: share)
@@ -15301,8 +15369,8 @@ private struct MichaelisMentenLab: View {
             }
             area.addLine(to: plot.point(plot.x.upperBound, 0))
             area.closeSubpath()
-            clipped.fill(area, with: .color(.accentColor.opacity(0.12)))
-            clipped.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+            clipped.fill(area, with: .color(AppPalette.accent.color.opacity(0.12)))
+            clipped.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             let current = plot.point(substrate, Model.rate(substrate: substrate, maximumRate: maximumRate, michaelisConstant: michaelisConstant))
             var guide = Path()
             guide.move(to: CGPoint(x: current.x, y: plot.rect.maxY))
@@ -15385,7 +15453,7 @@ private struct EulerMethodLab: View {
                 let location = plot.point(t, Model.exactValue(at: t))
                 if index == 0 { exactPath.move(to: location) } else { exactPath.addLine(to: location) }
             }
-            clipped.stroke(exactPath, with: .color(.accentColor), lineWidth: 2.5)
+            clipped.stroke(exactPath, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             let points = Model.eulerPoints(stepSize: stepSize, endTime: endTime)
             var eulerPath = Path()
             for (index, point) in points.enumerated() {
@@ -15469,7 +15537,7 @@ private struct AutocatalysisLab: View {
 
             LabStatGrid {
                 LabStat(label: text("lab.autocatalysis.statCatalyst"), value: grouped(Model.catalysed(hours: hours)), tint: .secondary)
-                LabStat(label: text("lab.autocatalysis.statAuto"), value: grouped(Model.autocatalytic(hours: hours)), tint: .accentColor)
+                LabStat(label: text("lab.autocatalysis.statAuto"), value: grouped(Model.autocatalytic(hours: hours)), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.autocatalysis.statRatio"), value: "× " + L10n.number(ratio, fractionDigits: ratio < 10 ? 1 : 0, store.language), tint: .orange)
             }
             Text(String(format: text("lab.autocatalysis.counts"), String(hours), grouped(Model.catalysed(hours: hours)), grouped(Model.autocatalytic(hours: hours))))
@@ -15509,7 +15577,7 @@ private struct AutocatalysisLab: View {
                           })
             var clipped = context
             clipped.clip(to: Path(plot.rect.insetBy(dx: -6, dy: -6)))
-            for (series, color, label) in [(Model.catalysed, Color.secondary, "lab.autocatalysis.statCatalyst"), (Model.autocatalytic, Color.accentColor, "lab.autocatalysis.statAuto")] {
+            for (series, color, label) in [(Model.catalysed, Color.secondary, "lab.autocatalysis.statCatalyst"), (Model.autocatalytic, AppPalette.accent.color, "lab.autocatalysis.statAuto")] {
                 var path = Path()
                 for hour in 0...max(hours, 1) {
                     let location = plot.point(Double(hour), scaled(series(hour)))
@@ -15786,7 +15854,7 @@ private struct GradientDescent2DLab: View {
             }
             clipped.stroke(arrow, with: .color(.red), style: StrokeStyle(lineWidth: 2.5, lineCap: .round))
             clipped.fill(Path(ellipseIn: CGRect(x: from.x - 7, y: from.y - 7, width: 14, height: 14)), with: .color(.white))
-            clipped.fill(Path(ellipseIn: CGRect(x: from.x - 5, y: from.y - 5, width: 10, height: 10)), with: .color(.accentColor))
+            clipped.fill(Path(ellipseIn: CGRect(x: from.x - 5, y: from.y - 5, width: 10, height: 10)), with: .color(AppPalette.accent.color))
         }
     }
 
@@ -15933,11 +16001,11 @@ private struct HammingDistanceLab: View {
             }
             HStack(spacing: 10) {
                 TextField(text("lab.hamming.first"), text: $first)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .font(.body.monospaced())
                     .accessibilityIdentifier("lab.hamming.first")
                 TextField(text("lab.hamming.second"), text: $second)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .font(.body.monospaced())
                     .accessibilityIdentifier("lab.hamming.second")
                 Button(text("lab.hamming.reset")) { withAnimation { first = "ATGCCGTA"; second = "ATGACGTT" } }
@@ -16042,7 +16110,7 @@ private struct RadioactiveDatingLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.dating.statAge"), value: years(age), tint: .orange)
-                LabStat(label: text("lab.dating.statHalfLives"), value: number(halfLives, 2), tint: .accentColor)
+                LabStat(label: text("lab.dating.statHalfLives"), value: number(halfLives, 2), tint: AppPalette.accent.color)
             }
             Text(String(format: text("lab.dating.age"), years(age), number(halfLives, 2)))
                 .font(.callout.monospacedDigit())
@@ -16077,7 +16145,7 @@ private struct RadioactiveDatingLab: View {
                 let location = plot.point(x, 100 * pow(0.5, x))
                 if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
             }
-            clipped.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+            clipped.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             let marker = plot.point(min(halfLives, 7), remainingPercent)
             clipped.fill(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.orange))
             clipped.stroke(Path(ellipseIn: CGRect(x: marker.x - 8, y: marker.y - 8, width: 16, height: 16)), with: .color(.white), lineWidth: 2)
@@ -16154,7 +16222,7 @@ private struct FeedbackLoopLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.feedback.statFinal"), value: number(Model.setPoint + max(min(finalDeviation, 99), -99), 2) + " °C", tint: negative ? .green : .red)
-                LabStat(label: text("lab.feedback.statSettle"), value: settleStep.map(String.init) ?? "—", tint: .accentColor)
+                LabStat(label: text("lab.feedback.statSettle"), value: settleStep.map(String.init) ?? "—", tint: AppPalette.accent.color)
             }
             Text(String(format: text("lab.feedback.result"), String(Model.steps), number(finalDeviation, 2)))
                 .font(.callout.monospacedDigit())
@@ -16191,7 +16259,7 @@ private struct FeedbackLoopLab: View {
             clipped.draw(Text(text("lab.feedback.setPoint")).font(.caption.weight(.semibold)).foregroundColor(.green),
                          at: plot.point(Double(Model.steps), Model.setPoint + 0.3), anchor: .bottomTrailing)
             let values = Model.temperatures(initial: disturbance, gain: gain, negative: negative).prefix(shownSteps + 1)
-            let color: Color = negative ? .accentColor : .red
+            let color: Color = negative ? AppPalette.accent.color : .red
             var line = Path()
             for (step, value) in values.enumerated() {
                 let location = plot.point(Double(step), min(max(value, plot.y.lowerBound - 0.5), plot.y.upperBound + 0.5))
@@ -16244,7 +16312,7 @@ private struct EnergyCouplingLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.coupling.statTotal"), value: number(total, 1), tint: runs ? .green : .red, identifier: "lab.coupling.total")
-                LabStat(label: text("lab.coupling.statMinimum"), value: String(Model.minimumATP(reaction: reaction)), tint: .accentColor)
+                LabStat(label: text("lab.coupling.statMinimum"), value: String(Model.minimumATP(reaction: reaction)), tint: AppPalette.accent.color)
             }
             LabStatusBadge(kind: runs ? .good : .bad, text: text(runs ? "lab.coupling.runs" : "lab.coupling.stalls"), identifier: "lab.coupling.verdict")
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.coupling.challenge"),
@@ -16432,7 +16500,7 @@ private struct TimeDilationLab: View {
 
             HStack(spacing: 20) {
                 clock(text("lab.relativity.shipClock"), seconds: properTime * flight, color: .orange)
-                clock(text("lab.relativity.earthClock"), seconds: properTime * gamma * flight, color: .accentColor)
+                clock(text("lab.relativity.earthClock"), seconds: properTime * gamma * flight, color: AppPalette.accent.color)
                 GeometryReader { proxy in
                     let plot = LabPlotGeometry(size: proxy.size, x: 0...1, y: 0...8)
                     curve(plot)
@@ -16469,7 +16537,7 @@ private struct TimeDilationLab: View {
             LabStatGrid {
                 LabStat(label: "γ = 1 / √(1 − v²/c²)", value: number(gamma, 3), tint: .purple)
                 LabStat(label: text("lab.relativity.statShip"), value: number(properTime, 0) + " " + text("lab.relativity.unitS"), tint: .orange)
-                LabStat(label: text("lab.relativity.statEarth"), value: number(Model.dilatedTime(properTime: properTime, speed: speed), 2) + " " + text("lab.relativity.unitS"), tint: .accentColor)
+                LabStat(label: text("lab.relativity.statEarth"), value: number(Model.dilatedTime(properTime: properTime, speed: speed), 2) + " " + text("lab.relativity.unitS"), tint: AppPalette.accent.color)
             }
             Text(String(format: text("lab.relativity.result"), number(gamma, 3), number(properTime, 0), number(Model.dilatedTime(properTime: properTime, speed: speed), 2)))
                 .font(.callout.monospacedDigit())
@@ -16930,7 +16998,7 @@ private struct RefractionLab: View {
             }
             LabStatGrid {
                 LabStat(label: "θ₁", value: number(incidence, 0) + "°", tint: .orange)
-                LabStat(label: "θ₂", value: refracted.map { number($0, 1) + "°" } ?? "—", tint: refracted == nil ? .red : .accentColor)
+                LabStat(label: "θ₂", value: refracted.map { number($0, 1) + "°" } ?? "—", tint: refracted == nil ? .red : AppPalette.accent.color)
                 LabStat(label: text("lab.refraction.statSpeed"), value: number(Model.speed(in: second) / 1e8, 2) + " · 10⁸", tint: .purple)
             }
             Text(refracted.map { String(format: text("lab.refraction.angle"), number($0, 1)) }
@@ -16989,11 +17057,11 @@ private struct RefractionLab: View {
             if let refracted {
                 let angle = refracted * .pi / 180
                 outgoing.addLine(to: CGPoint(x: center.x + length * CGFloat(sin(angle)), y: center.y + length * CGFloat(cos(angle))))
-                context.stroke(outgoing, with: .color(.accentColor), lineWidth: 3.5)
+                context.stroke(outgoing, with: .color(AppPalette.accent.color), lineWidth: 3.5)
                 var arc2 = Path()
                 arc2.addArc(center: center, radius: 46, startAngle: .degrees(90), endAngle: .degrees(90 - refracted), clockwise: true)
-                context.stroke(arc2, with: .color(.accentColor), lineWidth: 1.5)
-                context.draw(Text(verbatim: "θ₂ = " + number(refracted, 1) + "°").font(.caption.weight(.bold)).foregroundColor(.accentColor),
+                context.stroke(arc2, with: .color(AppPalette.accent.color), lineWidth: 1.5)
+                context.draw(Text(verbatim: "θ₂ = " + number(refracted, 1) + "°").font(.caption.weight(.bold)).foregroundColor(AppPalette.accent.color),
                              at: CGPoint(x: center.x + 60 * CGFloat(sin(angle / 2)) + 6, y: center.y + 60 * CGFloat(cos(angle / 2))), anchor: .leading)
             } else {
                 outgoing.addLine(to: CGPoint(x: center.x + length * CGFloat(sin(incoming)), y: center.y - length * CGFloat(cos(incoming))))
@@ -17044,7 +17112,7 @@ private struct SeesawLab: View {
             }
             LabStatGrid {
                 LabStat(label: String(format: text("lab.seesaw.statLeft"), number(leftDistance, 2)), value: number(Model.torque(mass: leftMass, distance: leftDistance), 0) + " " + text("lab.seesaw.unitNm"), tint: .orange)
-                LabStat(label: String(format: text("lab.seesaw.statRight"), number(rightDistance, 2)), value: number(Model.torque(mass: rightMass, distance: rightDistance), 0) + " " + text("lab.seesaw.unitNm"), tint: .accentColor)
+                LabStat(label: String(format: text("lab.seesaw.statRight"), number(rightDistance, 2)), value: number(Model.torque(mass: rightMass, distance: rightDistance), 0) + " " + text("lab.seesaw.unitNm"), tint: AppPalette.accent.color)
             }
             LabStatusBadge(kind: balanced ? .good : .warning, text: text(balanced ? "lab.seesaw.balanced" : (net > 0 ? "lab.seesaw.rightDown" : "lab.seesaw.leftDown")))
             Text(String(format: text("lab.seesaw.balance"), number(Model.balancingDistance(mass: leftMass, distance: leftDistance, otherMass: rightMass), 2)))
@@ -17089,7 +17157,7 @@ private struct SeesawLab: View {
             triangle.addLine(to: CGPoint(x: pivot.x + 18, y: pivot.y + 40))
             triangle.closeSubpath()
             context.fill(triangle, with: .color(.secondary))
-            for (offset, mass, color) in [(-CGFloat(leftDistance) * scale, leftMass, Color.orange), (CGFloat(rightDistance) * scale, rightMass, Color.accentColor)] {
+            for (offset, mass, color) in [(-CGFloat(leftDistance) * scale, leftMass, Color.orange), (CGFloat(rightDistance) * scale, rightMass, AppPalette.accent.color)] {
                 let side = CGFloat(22 + mass * 0.7)
                 let base = point(offset, lift: side / 2 + 4)
                 let rect = CGRect(x: base.x - side / 2, y: base.y - side / 2, width: side, height: side)
@@ -17138,7 +17206,7 @@ private struct LogisticGrowthLab: View {
             slider(String(format: text("lab.logistic.capacity"), number(capacity, 0)), "lab.logistic.capacity",
                    Binding(get: { capacity }, set: { capacity = ($0 / 50).rounded() * 50; population = min(population, capacity) }), Model.capacityRange)
             LabStatGrid {
-                LabStat(label: text("lab.logistic.statPopulation"), value: number(population, 0), tint: .accentColor)
+                LabStat(label: text("lab.logistic.statPopulation"), value: number(population, 0), tint: AppPalette.accent.color)
                 LabStat(label: text("lab.logistic.statGrowth"), value: number(growth, 1), tint: .orange, identifier: "lab.logistic.growth")
                 LabStat(label: text("lab.logistic.statExponential"), value: number(Model.exponentialGrowth(population: population, rate: rate), 1), tint: .secondary)
             }
@@ -17170,7 +17238,7 @@ private struct LogisticGrowthLab: View {
                 let location = plot.point(n, Model.growth(population: n, rate: rate, capacity: capacity))
                 if index == 0 { line.move(to: location) } else { line.addLine(to: location) }
             }
-            clipped.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+            clipped.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             var half = Path()
             half.move(to: plot.point(capacity / 2, 0))
             half.addLine(to: plot.point(capacity / 2, Model.growth(population: capacity / 2, rate: rate, capacity: capacity)))
@@ -17477,7 +17545,7 @@ private struct PendulumLab: View {
                 let location = plot.point(l, Model.period(length: l))
                 if index == 0 { curve.move(to: location) } else { curve.addLine(to: location) }
             }
-            clipped.stroke(curve, with: .color(.accentColor), lineWidth: 2.5)
+            clipped.stroke(curve, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             for l in [0.25, 1.0] {
                 let location = plot.point(l, Model.period(length: l))
                 clipped.fill(Path(ellipseIn: CGRect(x: location.x - 4, y: location.y - 4, width: 8, height: 8)), with: .color(.green))
@@ -17511,7 +17579,7 @@ private struct PendulumDrawing: View {
             string.addLine(to: bob)
             context.stroke(string, with: .color(.secondary), lineWidth: 1.5)
             let radius = 6 + 8 * CGFloat(massFraction)
-            context.fill(Path(ellipseIn: CGRect(x: bob.x - radius, y: bob.y - radius, width: radius * 2, height: radius * 2)), with: .color(.accentColor))
+            context.fill(Path(ellipseIn: CGRect(x: bob.x - radius, y: bob.y - radius, width: radius * 2, height: radius * 2)), with: .color(AppPalette.accent.color))
         }
     }
 }
@@ -17892,7 +17960,7 @@ private struct LoopTraceLab: View {
                             .padding(.horizontal, 8)
                             .padding(.vertical, 3)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(index == activeLine ? Color.accentColor.opacity(0.22) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
+                            .background(index == activeLine ? AppPalette.accent.color.opacity(0.22) : Color.clear, in: RoundedRectangle(cornerRadius: 5))
                     }
                 }
                 .padding(10)
@@ -18206,7 +18274,7 @@ private struct CollectionsLoopsLab: View {
                             .padding(.horizontal, 6)
                             .padding(.vertical, 2)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(index == activeWhileLine ? (failed ? Color.red : Color.accentColor).opacity(0.22) : Color.clear,
+                            .background(index == activeWhileLine ? (failed ? Color.red : AppPalette.accent.color).opacity(0.22) : Color.clear,
                                         in: RoundedRectangle(cornerRadius: 5))
                     }
                 }
@@ -18256,7 +18324,7 @@ private struct CollectionsLoopsLab: View {
                 .foregroundStyle(.secondary)
             }
             LabStatGrid {
-                LabStat(label: text("lab.collectionsStatCurrent"), value: "\(whileTrace.currentValue)", tint: whileTrace.isComplete ? .green : .accentColor)
+                LabStat(label: text("lab.collectionsStatCurrent"), value: "\(whileTrace.currentValue)", tint: whileTrace.isComplete ? .green : AppPalette.accent.color)
                 LabStat(label: text("lab.collectionsStatChecks"), value: "\(whileTrace.steps.count)", tint: .purple)
                 LabStat(label: text("lab.collectionsWhileOutput"), value: "[" + whileTrace.printedValues.map(String.init).joined(separator: ", ") + "]", tint: .teal)
             }
@@ -18292,10 +18360,10 @@ private struct CollectionsLoopsLab: View {
             var hop = Path()
             hop.move(to: start)
             hop.addQuadCurve(to: end, control: CGPoint(x: (start.x + end.x) / 2, y: baseline - 8 - abs(start.x - end.x) * 0.6))
-            context.stroke(hop, with: .color(.accentColor), lineWidth: 2)
+            context.stroke(hop, with: .color(AppPalette.accent.color), lineWidth: 2)
         }
         let marker = CGPoint(x: x(whileTrace.currentValue), y: baseline)
-        context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(whileTrace.isComplete ? .green : .accentColor))
+        context.fill(Path(ellipseIn: CGRect(x: marker.x - 7, y: marker.y - 7, width: 14, height: 14)), with: .color(whileTrace.isComplete ? .green : AppPalette.accent.color))
     }
 
     private func finishRun() {
@@ -18576,7 +18644,7 @@ struct TutorChatView: View {
                 }
                 HStack(alignment: .bottom, spacing: 10) {
                     TextField(L10n.text("tutor.placeholder", language), text: $draft, axis: .vertical)
-                        .textFieldStyle(.roundedBorder)
+                        .coliTextField()
                         .lineLimit(1...4)
                         .onSubmit(send)
                         .disabled(chat.isSending || !canSend)
@@ -18595,7 +18663,7 @@ struct TutorChatView: View {
                 }
             }
             .padding(16)
-            .background(Color(nsColor: .windowBackgroundColor))
+            .background(AppPalette.canvas.color)
         }
         .sheet(item: $pendingOutlineReview) { pending in
             if let outlineDestination, let outlineParentTopicID {
@@ -18825,7 +18893,7 @@ struct TutorChatView: View {
                 }
             }
             .padding(12)
-            .background(message.role == .learner ? Color.accentColor.opacity(0.12) : Color.secondary.opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
+            .background(message.role == .learner ? AppPalette.accent.color.opacity(0.12) : Color.secondary.opacity(0.09), in: RoundedRectangle(cornerRadius: 14))
             if message.role == .tutor { Spacer(minLength: 50) }
         }
     }
@@ -19169,7 +19237,7 @@ private struct LiveModelLab: View {
                          identifier: "lab.liveModel.challenge")
             promptPicker
             LabStatGrid {
-                LabStat(label: text("lab.liveModel.statPrompt"), value: String(state.promptTokens), tint: .accentColor, identifier: "lab.liveModel.promptTokens")
+                LabStat(label: text("lab.liveModel.statPrompt"), value: String(state.promptTokens), tint: AppPalette.accent.color, identifier: "lab.liveModel.promptTokens")
                 LabStat(label: text("lab.liveModel.statWritten"), value: String(state.written.count), tint: .green)
                 LabStat(label: text("lab.liveModel.statBest"), value: state.best.map { percent($0.probability) } ?? "—", tint: .orange, identifier: "lab.liveModel.bestShare")
                 LabStat(label: text("lab.liveModel.statSpeed"), value: state.milliseconds > 0 ? "\(number(state.milliseconds, 0)) \(text("lab.liveModel.ms"))" : "—", tint: .purple)
@@ -19232,7 +19300,7 @@ private struct LiveModelLab: View {
         VStack(alignment: .leading, spacing: 8) {
             HStack(spacing: 8) {
                 TextField(text("lab.liveModel.promptField"), text: $draft)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .font(.system(.body, design: .monospaced))
                     .onSubmit { controller.use(prompt: draft) }
                     .accessibilityIdentifier("lab.liveModel.prompt")
@@ -19264,12 +19332,12 @@ private struct LiveModelLab: View {
                 Text(text("lab.liveModel.candidates")).font(.callout.weight(.semibold))
                 Spacer()
                 legendDot(Color.secondary.opacity(0.45), text("lab.liveModel.legendComputed"))
-                legendDot(.accentColor, state.countedTemperature.map { String(format: text("lab.liveModel.legendFallen"), number($0)) } ?? text("lab.liveModel.legendNotYet"))
+                legendDot(AppPalette.accent.color, state.countedTemperature.map { String(format: text("lab.liveModel.legendFallen"), number($0)) } ?? text("lab.liveModel.legendNotYet"))
             }
             ForEach(Array(state.shown.enumerated()), id: \.element.id) { index, candidate in
                 Button { controller.pick(token: candidate.token) } label: {
                     candidateRow(token: LiveModelMath.visibleToken(candidate.token), computed: candidate.probability,
-                                 fallen: state.share(of: candidate.token), tint: .accentColor)
+                                 fallen: state.share(of: candidate.token), tint: AppPalette.accent.color)
                 }
                 .buttonStyle(.plain)
                 .disabled(controller.busy)
@@ -19399,11 +19467,11 @@ private struct LiveModelLab: View {
                     let point: CGPoint = geometry.point(item.temperature, item.bestShare * 100)
                     if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
                 }
-                context.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+                context.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2.5)
                 for item in state.experiments {
                     let point: CGPoint = geometry.point(item.temperature, item.bestShare * 100)
                     let dot = CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)
-                    context.fill(Path(ellipseIn: dot), with: .color(.accentColor))
+                    context.fill(Path(ellipseIn: dot), with: .color(AppPalette.accent.color))
                     context.stroke(Path(ellipseIn: dot), with: .color(.white), lineWidth: 1.5)
                     let label = Text(verbatim: percent(item.bestShare)).font(.caption.weight(.semibold)).foregroundColor(.primary)
                     // A point at the right edge keeps its label inside the chart. / У точки на правом краю подпись остаётся внутри графика.
@@ -19522,7 +19590,7 @@ private struct ChatAnatomyLab: View {
                     controller.changed()
                     controller.state.forgedAnswer = value
                 }))
-                .textFieldStyle(.roundedBorder)
+                .coliTextField()
                 .accessibilityIdentifier("lab.chat.forged")
             }
             Picker(text("lab.chat.followUp"), selection: Binding(get: { controller.state.followUp }, set: { value in
@@ -19614,7 +19682,7 @@ private struct ChatAnatomyLab: View {
                     let rect = CGRect(x: CGFloat(index) * cell + 0.5, y: 18, width: max(cell - 1, 1), height: size.height - 18)
                     let isSecret = index == 0
                     let inside = index >= dropped
-                    let color: Color = isSecret ? (inside ? .orange : .red.opacity(0.35)) : (inside ? .accentColor.opacity(index % 2 == 0 ? 0.85 : 0.5) : .secondary.opacity(0.18))
+                    let color: Color = isSecret ? (inside ? .orange : .red.opacity(0.35)) : (inside ? AppPalette.accent.color.opacity(index % 2 == 0 ? 0.85 : 0.5) : .secondary.opacity(0.18))
                     context.fill(Path(roundedRect: rect, cornerRadius: 2), with: .color(color))
                 }
                 let label = Text(verbatim: ChatLabState.secret).font(.caption.weight(.semibold)).foregroundColor(dropped > 0 ? .red : .orange)
@@ -19647,7 +19715,7 @@ private struct ChatAnatomyLab: View {
                         .accessibilityIdentifier("lab.chat.answer")
                 }
                 LabStatGrid {
-                    LabStat(label: text("lab.liveModel.statPrompt"), value: String(answer.promptTokens), tint: .accentColor, identifier: "lab.chat.promptTokens")
+                    LabStat(label: text("lab.liveModel.statPrompt"), value: String(answer.promptTokens), tint: AppPalette.accent.color, identifier: "lab.chat.promptTokens")
                     if let hand = state.handAnswer {
                         LabStat(label: text("lab.chat.handTokens"), value: String(hand.promptTokens), tint: .purple)
                     }
@@ -19690,7 +19758,7 @@ private struct ModelScoreboardLab: View {
             LabStatGrid {
                 LabStat(label: text("lab.score.statYou"), value: "\(state.guessedRight) / \(state.bets.count)", tint: .green, identifier: "lab.score.you")
                 LabStat(label: text("lab.score.statTrustAll"), value: "\(Items.items.filter(\.right).count) / \(Items.items.count)", tint: .orange, identifier: "lab.score.trustAll")
-                LabStat(label: text("lab.score.statRule"), value: "\(state.currentRule.right) / \(state.currentRule.trusted)", tint: .accentColor, identifier: "lab.score.rule")
+                LabStat(label: text("lab.score.statRule"), value: "\(state.currentRule.right) / \(state.currentRule.trusted)", tint: AppPalette.accent.color, identifier: "lab.score.rule")
             }
             LabChallenge(caption: text("lab.kit.task"), task: String(format: text("lab.score.challenge"), String(Items.betsForTask)), solved: state.solved,
                          solvedText: text("lab.score.challengeDone"), identifier: "lab.score.challenge")
@@ -19720,7 +19788,7 @@ private struct ModelScoreboardLab: View {
                     .padding(7)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .topLeading)
                     .background(tileColor(index), in: RoundedRectangle(cornerRadius: 7))
-                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selected ? Color.accentColor : Color.clear, lineWidth: 2))
+                    .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selected ? AppPalette.accent.color : Color.clear, lineWidth: 2))
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -19860,7 +19928,7 @@ private struct PromptToggleLab: View {
             LabStatGrid {
                 LabStat(label: text("lab.prompt.statRight"), value: "\(state.combo.rightCount) / \(PromptLabRecording.orders.count)", tint: .green, identifier: "lab.prompt.right")
                 LabStat(label: text("lab.prompt.statBroken"), value: String(state.combo.brokenCount), tint: .gray, identifier: "lab.prompt.broken")
-                LabStat(label: text("lab.prompt.statTokens"), value: String(state.combo.tokens), tint: .accentColor, identifier: "lab.prompt.tokens")
+                LabStat(label: text("lab.prompt.statTokens"), value: String(state.combo.tokens), tint: AppPalette.accent.color, identifier: "lab.prompt.tokens")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.prompt.challenge"), solved: state.solved,
                          solvedText: text("lab.prompt.challengeDone"), identifier: "lab.prompt.challenge")
@@ -19879,7 +19947,7 @@ private struct PromptToggleLab: View {
                         .padding(7)
                         .frame(maxWidth: .infinity, minHeight: 42, alignment: .topLeading)
                         .background(color(state.combo.marks[index]).opacity(0.28), in: RoundedRectangle(cornerRadius: 7))
-                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selectedOrder ? Color.accentColor : Color.clear, lineWidth: 2))
+                        .overlay(RoundedRectangle(cornerRadius: 7).stroke(index == state.selectedOrder ? AppPalette.accent.color : Color.clear, lineWidth: 2))
                         .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
@@ -19930,7 +19998,7 @@ private struct PromptToggleLab: View {
                         let selected: Bool = combo == state.combo
                         let radius: CGFloat = selected ? 9 : 6
                         let dot = CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)
-                        context.fill(Path(ellipseIn: dot), with: .color(selected ? .orange : .accentColor.opacity(0.7)))
+                        context.fill(Path(ellipseIn: dot), with: .color(selected ? .orange : AppPalette.accent.color.opacity(0.7)))
                     }
                 }
                 .contentShape(Rectangle())
@@ -20010,7 +20078,7 @@ private struct GradGraphLab: View {
             }
             LabStatGrid {
                 LabStat(label: "L", value: number(state.result, 2), tint: state.result > 0 ? .green : .red, identifier: "lab.gradGraph.result")
-                LabStat(label: text("lab.gradGraph.statNudges"), value: "\(state.nudges) / \(GradGraphState.nudgeLimit)", tint: .accentColor, identifier: "lab.gradGraph.nudges")
+                LabStat(label: text("lab.gradGraph.statNudges"), value: "\(state.nudges) / \(GradGraphState.nudgeLimit)", tint: AppPalette.accent.color, identifier: "lab.gradGraph.nudges")
                 LabStat(label: text("lab.gradGraph.statPredicted"), value: state.lastPredicted.map { number($0, 2) } ?? "—", tint: .orange, identifier: "lab.gradGraph.predicted")
                 LabStat(label: text("lab.gradGraph.statReal"), value: state.lastReal.map { number($0, 2) } ?? "—", tint: .purple, identifier: "lab.gradGraph.real")
             }
@@ -20076,7 +20144,7 @@ private struct GradGraphLab: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 5)
         .frame(minWidth: 86)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 9))
+        .coliSurface(cornerRadius: 9)
         .overlay(RoundedRectangle(cornerRadius: 9).stroke(gradient == nil ? Color.secondary.opacity(0.4) : Color.orange, lineWidth: gradient == nil ? 1 : 2))
     }
 }
@@ -20105,7 +20173,7 @@ private struct BPEMergeLab: View {
                             .font(.system(.caption, design: .monospaced).weight(id >= 256 ? .semibold : .regular))
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)
-                            .background(state.marksNextPair(at: index) ? Color.yellow.opacity(0.6) : (id >= 256 ? Color.accentColor.opacity(0.28) : Color.secondary.opacity(0.14)), in: RoundedRectangle(cornerRadius: 4))
+                            .background(state.marksNextPair(at: index) ? Color.yellow.opacity(0.6) : (id >= 256 ? AppPalette.accent.color.opacity(0.28) : Color.secondary.opacity(0.14)), in: RoundedRectangle(cornerRadius: 4))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -20140,7 +20208,7 @@ private struct BPEMergeLab: View {
             historyChart
             HStack(spacing: 8) {
                 TextField(text("lab.bpe.field"), text: $draft)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .onSubmit { state.restart(text: draft) }
                     .accessibilityIdentifier("lab.bpe.field")
                 Button(text("lab.bpe.use")) { state.restart(text: draft) }
@@ -20161,7 +20229,7 @@ private struct BPEMergeLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.bpe.statBytes"), value: String(state.byteCount), tint: .secondary, identifier: "lab.bpe.bytes")
-                LabStat(label: text("lab.bpe.statTokens"), value: String(state.ids.count), tint: .accentColor, identifier: "lab.bpe.count")
+                LabStat(label: text("lab.bpe.statTokens"), value: String(state.ids.count), tint: AppPalette.accent.color, identifier: "lab.bpe.count")
                 LabStat(label: text("lab.bpe.statMerges"), value: String(state.merges.count), tint: .orange, identifier: "lab.bpe.merges")
                 LabStat(label: text("lab.bpe.statDecode"), value: state.roundTrips ? "✓" : "✗", tint: .green, identifier: "lab.bpe.roundTrip")
             }
@@ -20181,7 +20249,7 @@ private struct BPEMergeLab: View {
                 let point: CGPoint = geometry.point(Double(index), Double(count))
                 if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
             }
-            context.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             var half = Path()
             half.move(to: geometry.point(0, Double(state.byteCount) / 2))
             half.addLine(to: geometry.point(last, Double(state.byteCount) / 2))
@@ -20247,8 +20315,8 @@ private struct InitHeatLab: View {
                     .accessibilityIdentifier("lab.initHeat.normalize")
             }
             LabStatGrid {
-                LabStat(label: text("lab.initHeat.statFirst"), value: compact(run.activationSpread[0]), tint: .accentColor, identifier: "lab.initHeat.first")
-                LabStat(label: text("lab.initHeat.statLast"), value: compact(run.activationSpread[InitNormModel.layers - 1]), tint: .accentColor, identifier: "lab.initHeat.last")
+                LabStat(label: text("lab.initHeat.statFirst"), value: compact(run.activationSpread[0]), tint: AppPalette.accent.color, identifier: "lab.initHeat.first")
+                LabStat(label: text("lab.initHeat.statLast"), value: compact(run.activationSpread[InitNormModel.layers - 1]), tint: AppPalette.accent.color, identifier: "lab.initHeat.last")
                 LabStat(label: text("lab.initHeat.statGradFirst"), value: compact(run.gradientSize[0]), tint: .orange, identifier: "lab.initHeat.gradFirst")
                 LabStat(label: text("lab.initHeat.statGradLast"), value: compact(run.gradientSize[InitNormModel.layers - 1]), tint: .orange, identifier: "lab.initHeat.gradLast")
             }
@@ -20431,7 +20499,7 @@ private struct TrainingDoctorLab: View {
                     .font(.title3.weight(.semibold))
                     .accessibilityIdentifier("lab.doctor.patient")
                 Spacer()
-                legend(.accentColor, text("lab.doctor.train"))
+                legend(AppPalette.accent.color, text("lab.doctor.train"))
                 legend(.orange, text("lab.doctor.check"))
             }
             chart
@@ -20472,7 +20540,7 @@ private struct TrainingDoctorLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.doctor.statDone"), value: "\(state.solvedCount) / \(TrainingDoctorState.order.count)", tint: .green, identifier: "lab.doctor.done")
-                LabStat(label: text("lab.doctor.statFirst"), value: String(state.firstTry), tint: .accentColor, identifier: "lab.doctor.first")
+                LabStat(label: text("lab.doctor.statFirst"), value: String(state.firstTry), tint: AppPalette.accent.color, identifier: "lab.doctor.first")
                 LabStat(label: text("lab.doctor.statStart"), value: L10n.number(state.curve[0].0, fractionDigits: 3, store.language), tint: .orange, identifier: "lab.doctor.start")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.doctor.challenge"), solved: state.solved,
@@ -20519,7 +20587,7 @@ private struct TrainingDoctorLab: View {
                 context.stroke(line(healthy) { $0.0 }, with: .color(.green.opacity(0.7)), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
                 context.stroke(line(healthy) { $0.1 }, with: .color(.green.opacity(0.4)), style: StrokeStyle(lineWidth: 1.5, dash: [5, 3]))
             }
-            context.stroke(line(curve) { $0.0 }, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(line(curve) { $0.0 }, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             context.stroke(line(curve) { $0.1 }, with: .color(.orange), lineWidth: 2.5)
         }
         .frame(height: 230)
@@ -20570,7 +20638,7 @@ private struct BanditLab: View {
                 .accessibilityIdentifier("lab.bandit.newGame")
             }
             LabStatGrid {
-                LabStat(label: text("lab.bandit.statPulls"), value: String(game.pulls), tint: .accentColor, identifier: "lab.bandit.pulls")
+                LabStat(label: text("lab.bandit.statPulls"), value: String(game.pulls), tint: AppPalette.accent.color, identifier: "lab.bandit.pulls")
                 LabStat(label: text("lab.bandit.statWins"), value: String(game.wins), tint: .green, identifier: "lab.bandit.wins")
                 LabStat(label: text("lab.bandit.statRegret"), value: number(game.regret, 2), tint: .orange, identifier: "lab.bandit.regret")
             }
@@ -20582,7 +20650,7 @@ private struct BanditLab: View {
             }
             HStack(spacing: 14) {
                 legend(.red, text("lab.bandit.greedy"))
-                legend(.accentColor, text("lab.bandit.yourRule"))
+                legend(AppPalette.accent.color, text("lab.bandit.yourRule"))
                 legend(.purple, "UCB1")
                 Spacer()
                 if let last = curve.last {
@@ -20622,7 +20690,7 @@ private struct BanditLab: View {
                 Canvas { context, size in
                     let barHeight: CGFloat = size.height * CGFloat(game.values[arm])
                     let bar = CGRect(x: 8, y: size.height - barHeight, width: size.width - 16, height: barHeight)
-                    context.fill(Path(roundedRect: bar, cornerRadius: 3), with: .color(.accentColor))
+                    context.fill(Path(roundedRect: bar, cornerRadius: 3), with: .color(AppPalette.accent.color))
                     if revealed {
                         let y: CGFloat = size.height * CGFloat(1 - game.probabilities[arm])
                         var tick = Path()
@@ -20669,7 +20737,7 @@ private struct BanditLab: View {
             }
             stroke(greedy, .red)
             stroke(ucb, .purple)
-            stroke(curve, .accentColor)
+            stroke(curve, AppPalette.accent.color)
         }
         .frame(height: 220)
         .accessibilityElement(children: .ignore)
@@ -20764,7 +20832,7 @@ private struct ValueTowersLab: View {
                 LabStatusBadge(kind: .warning, text: text("lab.mdp.waiting"), identifier: "lab.mdp.waiting")
             }
             LabStatGrid {
-                LabStat(label: text("lab.mdp.statSweeps"), value: String(current.sweeps), tint: .accentColor, identifier: "lab.mdp.sweeps")
+                LabStat(label: text("lab.mdp.statSweeps"), value: String(current.sweeps), tint: AppPalette.accent.color, identifier: "lab.mdp.sweeps")
                 LabStat(label: text("lab.mdp.statValue"), value: number(current.values[GridWorld.start]), tint: .green, identifier: "lab.mdp.value")
                 LabStat(label: text("lab.mdp.statRoute"), value: path.map { String($0.count - 1) } ?? "–", tint: .orange, identifier: "lab.mdp.route")
             }
@@ -20858,7 +20926,7 @@ private struct QMazeLab: View {
             }
             chart
             LabStatGrid {
-                LabStat(label: text("lab.qmaze.statGames"), value: String(learner.log.count), tint: .accentColor, identifier: "lab.qmaze.games")
+                LabStat(label: text("lab.qmaze.statGames"), value: String(learner.log.count), tint: AppPalette.accent.color, identifier: "lab.qmaze.games")
                 LabStat(label: text("lab.qmaze.statRoute"), value: learner.reachesGoal ? String(learner.route.count - 1) : "–", tint: .green, identifier: "lab.qmaze.route")
                 LabStat(label: text("lab.qmaze.statShortest"), value: shortest.map(String.init) ?? "–", tint: .secondary, identifier: "lab.qmaze.shortest")
                 LabStat(label: text("lab.qmaze.statStart"), value: number(learner.q[GridWorld.start].max() ?? 0, 3), tint: .orange, identifier: "lab.qmaze.start")
@@ -20946,7 +21014,7 @@ private struct QMazeLab: View {
                                     y: origin.y + (CGFloat(learner.cell / GridWorld.columns) + 0.5) * side)
                 let dot = CGRect(x: agent.x - side * 0.17, y: agent.y - side * 0.17, width: side * 0.34, height: side * 0.34)
                 context.fill(Path(ellipseIn: dot), with: .color(.white))
-                context.stroke(Path(ellipseIn: dot), with: .color(.accentColor), lineWidth: 3)
+                context.stroke(Path(ellipseIn: dot), with: .color(AppPalette.accent.color), lineWidth: 3)
             }
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onEnded { value in
@@ -20976,7 +21044,7 @@ private struct QMazeLab: View {
                 let point = geometry.point(Double(index + chunk), max(total / Double(chunk), -2.5))
                 if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
             }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(path, with: .color(AppPalette.accent.color), lineWidth: 2.5)
         }
         .frame(height: 160)
         .accessibilityElement(children: .ignore)
@@ -21039,7 +21107,7 @@ private struct CorridorLab: View {
             LabStatGrid {
                 LabStat(label: text("lab.corridor.statHand"), value: number(probability), tint: .orange, identifier: "lab.corridor.hand")
                 LabStat(label: text("lab.corridor.statValue"), value: number(CorridorModel.exactValue(probability)), tint: .orange, identifier: "lab.corridor.value")
-                LabStat(label: text("lab.corridor.statPolicy"), value: livePolicy.map { number($0, 3) } ?? "–", tint: .accentColor, identifier: "lab.corridor.policy")
+                LabStat(label: text("lab.corridor.statPolicy"), value: livePolicy.map { number($0, 3) } ?? "–", tint: AppPalette.accent.color, identifier: "lab.corridor.policy")
                 LabStat(label: text("lab.corridor.statGames"), value: String(shown), tint: .secondary, identifier: "lab.corridor.games")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.corridor.challenge"), solved: foundByHand && trained && collapsed,
@@ -21105,7 +21173,7 @@ private struct CorridorLab: View {
                     let point = geometry.point(clamped, max(CorridorModel.exactValue(clamped), -60))
                     let rect = CGRect(x: point.x - 6, y: point.y - 6, width: 12, height: 12)
                     context.fill(Path(ellipseIn: rect), with: .color(.white))
-                    context.stroke(Path(ellipseIn: rect), with: .color(.accentColor), lineWidth: 2.5)
+                    context.stroke(Path(ellipseIn: rect), with: .color(AppPalette.accent.color), lineWidth: 2.5)
                 }
             }
             .contentShape(Rectangle())
@@ -21142,7 +21210,7 @@ private struct CorridorLab: View {
                 let point = geometry.point(Double(index + 10), max(total / 10, -100))
                 if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
             }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(path, with: .color(AppPalette.accent.color), lineWidth: 2.5)
         }
         .frame(height: 150)
         .accessibilityElement(children: .ignore)
@@ -21170,7 +21238,7 @@ private struct FineTuneLab: View {
         case "all weights": return .green
         case "last layer": return .orange
         case "LoRA 1": return .teal
-        case "LoRA 2": return .accentColor
+        case "LoRA 2": return AppPalette.accent.color
         default: return .purple
         }
     }
@@ -21377,7 +21445,7 @@ private struct PreferenceLab: View {
                 chart
                 if let point = current {
                     LabStatGrid {
-                        LabStat(label: text("lab.rlhf.statReward"), value: number(point.reward), tint: .accentColor, identifier: "lab.rlhf.reward")
+                        LabStat(label: text("lab.rlhf.statReward"), value: number(point.reward), tint: AppPalette.accent.color, identifier: "lab.rlhf.reward")
                         LabStat(label: text("lab.rlhf.statDifferent"), value: "\(point.different) / 300", tint: .orange, identifier: "lab.rlhf.different")
                         LabStat(label: text("lab.rlhf.statLength"), value: number(point.length, 1), tint: .secondary, identifier: "lab.rlhf.length")
                     }
@@ -21451,7 +21519,7 @@ private struct PreferenceLab: View {
                     different.addLine(to: b)
                 }
             }
-            context.stroke(reward, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(reward, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             context.stroke(different, with: .color(.orange), lineWidth: 2.5)
             var cursor = Path()
             cursor.move(to: geometry.point(position, 0))
@@ -21545,7 +21613,7 @@ private struct WinnerCurseLab: View {
                 let isBest = score == best
                 let radius: CGFloat = isBest ? 7 : 3.5
                 context.fill(Path(ellipseIn: CGRect(x: point.x - radius, y: point.y - radius, width: radius * 2, height: radius * 2)),
-                             with: .color(isBest ? .orange : .accentColor.opacity(0.65)))
+                             with: .color(isBest ? .orange : AppPalette.accent.color.opacity(0.65)))
             }
             let mark = geometry.point(min(max(fresh, 0.4), 1), 0.04)
             context.fill(Path(ellipseIn: CGRect(x: mark.x - 6, y: mark.y - 6, width: 12, height: 12)), with: .color(.green))
@@ -21601,7 +21669,7 @@ private struct ProbeLab: View {
             }
             plot
             LabStatGrid {
-                LabStat(label: text("lab.probe.statLine"), value: number(accuracy), tint: .accentColor, identifier: "lab.probe.line")
+                LabStat(label: text("lab.probe.statLine"), value: number(accuracy), tint: AppPalette.accent.color, identifier: "lab.probe.line")
                 LabStat(label: text("lab.probe.statFull"), value: number(fullAccuracy), tint: .green, identifier: "lab.probe.full")
                 LabStat(label: text("lab.probe.statAlways"), value: number(ProbeRecording.always[question] ?? 0), tint: .secondary, identifier: "lab.probe.always")
             }
@@ -21619,7 +21687,7 @@ private struct ProbeLab: View {
                 for point in points {
                     let place = geometry.point(point.x, point.y)
                     context.fill(Path(ellipseIn: CGRect(x: place.x - 3.5, y: place.y - 3.5, width: 7, height: 7)),
-                                 with: .color(point.label ? .orange : .accentColor.opacity(0.7)))
+                                 with: .color(point.label ? .orange : AppPalette.accent.color.opacity(0.7)))
                 }
                 let from = geometry.point(a.x, a.y)
                 let to = geometry.point(b.x, b.y)
@@ -21705,7 +21773,7 @@ private struct SuperpositionLab: View {
             LabStatGrid {
                 LabStat(label: text("lab.super.statAlive"), value: "\(alive) / \(features)", tint: .green, identifier: "lab.super.alive")
                 LabStat(label: text("lab.super.statStep"), value: String(step), tint: .secondary, identifier: "lab.super.step")
-                LabStat(label: text("lab.super.statLongest"), value: number(vectors.map(SuperpositionTrainer.length).max() ?? 0), tint: .accentColor, identifier: "lab.super.longest")
+                LabStat(label: text("lab.super.statLongest"), value: number(vectors.map(SuperpositionTrainer.length).max() ?? 0), tint: AppPalette.accent.color, identifier: "lab.super.longest")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.super.challenge"), solved: flatDone && solidDone,
                          solvedText: text("lab.super.challengeDone"), identifier: "lab.super.challenge")
@@ -21777,7 +21845,7 @@ private struct ReasoningLab: View {
             LabHeader(title: text("lab.reason.title"), instruction: text("lab.reason.subtitle"))
             bars
             LabStatGrid {
-                LabStat(label: text("lab.reason.statLimit"), value: String(Int(limit)), tint: .accentColor, identifier: "lab.reason.limit")
+                LabStat(label: text("lab.reason.statLimit"), value: String(Int(limit)), tint: AppPalette.accent.color, identifier: "lab.reason.limit")
                 LabStat(label: text("lab.reason.statReason"), value: "\(ReasoningChoice.solved(limit: Int(limit))) / 12", tint: .green, identifier: "lab.reason.solved")
                 LabStat(label: text("lab.reason.statDirect"), value: "\(ReasoningRecording.tasks.filter(\.directRight).count) / 12", tint: .orange, identifier: "lab.reason.direct")
             }
@@ -21823,9 +21891,9 @@ private struct ReasoningLab: View {
                 var line = Path()
                 line.move(to: geometry.point(limit, 0))
                 line.addLine(to: geometry.point(limit, 12))
-                context.stroke(line, with: .color(.accentColor), lineWidth: 2.5)
+                context.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2.5)
                 let knob = geometry.point(limit, 12)
-                context.fill(Path(ellipseIn: CGRect(x: knob.x - 7, y: knob.y - 2, width: 14, height: 14)), with: .color(.accentColor))
+                context.fill(Path(ellipseIn: CGRect(x: knob.x - 7, y: knob.y - 2, width: 14, height: 14)), with: .color(AppPalette.accent.color))
             }
             .contentShape(Rectangle())
             .gesture(DragGesture(minimumDistance: 0).onChanged { value in
@@ -21853,7 +21921,7 @@ private struct ReasoningLab: View {
                 let point = geometry.point(Double(index) * 40, value)
                 if index == 0 { path.move(to: point) } else { path.addLine(to: point) }
             }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(path, with: .color(AppPalette.accent.color), lineWidth: 2.5)
         }
         .frame(height: 150)
         .accessibilityElement(children: .ignore)
@@ -21925,7 +21993,7 @@ private struct SearchLab: View {
             .accessibilityIdentifier("lab.search.results")
             LabStatGrid {
                 LabStat(label: text("lab.search.statFound"), value: number(SearchScore.foundShare(places: places, within: Int(k))), tint: .green, identifier: "lab.search.found")
-                LabStat(label: text("lab.search.statMrr"), value: number(SearchScore.meanReciprocalRank(places: places)), tint: .accentColor, identifier: "lab.search.mrr")
+                LabStat(label: text("lab.search.statMrr"), value: number(SearchScore.meanReciprocalRank(places: places)), tint: AppPalette.accent.color, identifier: "lab.search.mrr")
                 LabStat(label: text("lab.search.statDone"), value: "\(solvedMethods.count) / 3", tint: .orange, identifier: "lab.search.done")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.search.challenge"), solved: solvedMethods.count == 3,
@@ -21970,11 +22038,11 @@ private struct AgentTraceLab: View {
                     let step = item.trace[index]
                     HStack(alignment: .top, spacing: 8) {
                         Image(systemName: step.isTool ? "wrench.and.screwdriver" : "sparkles")
-                            .foregroundStyle(step.isTool ? Color.orange : Color.accentColor)
+                            .foregroundStyle(step.isTool ? Color.orange : AppPalette.accent.color)
                         Text(verbatim: step.text).font(.callout.monospaced()).frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .padding(6)
-                    .background(RoundedRectangle(cornerRadius: 7).fill((step.isTool ? Color.orange : Color.accentColor).opacity(0.12)))
+                    .background(RoundedRectangle(cornerRadius: 7).fill((step.isTool ? Color.orange : AppPalette.accent.color).opacity(0.12)))
                 }
             }
             .accessibilityIdentifier("lab.agent.trace")
@@ -22044,7 +22112,7 @@ private struct BoatRaceLab: View {
             LabStatusBadge(kind: result.finished ? .good : .warning, text: text(result.finished ? "lab.boat.finished" : "lab.boat.looping"), identifier: "lab.boat.verdict")
             LabStatGrid {
                 LabStat(label: text("lab.boat.statScore"), value: number(result.score), tint: .orange, identifier: "lab.boat.score")
-                LabStat(label: text("lab.boat.statSteps"), value: String(result.route.count - 1), tint: .accentColor, identifier: "lab.boat.steps")
+                LabStat(label: text("lab.boat.statSteps"), value: String(result.route.count - 1), tint: AppPalette.accent.color, identifier: "lab.boat.steps")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.boat.challenge"), solved: sawLoop && fixed,
                          solvedText: text("lab.boat.challengeDone"), identifier: "lab.boat.challenge")
@@ -22108,7 +22176,7 @@ private struct IntelligenceLab: View {
 
     private var steps: Int { Int(pow(10, experience).rounded()) }
     private static let names = ["blind", "specialist", "learner"]
-    private static let colors: [Color] = [.gray, .orange, .accentColor]
+    private static let colors: [Color] = [.gray, .orange, AppPalette.accent.color]
 
     private var scores: [Double] {
         table.map { row in onlyFirst ? (row.first ?? 0) : IntelligenceModel.score(row, simplicity: simplicity) }
@@ -22219,6 +22287,9 @@ private struct ArcPainterLab: View {
     private var palette: [Character] {
         var set = Set<Character>(task.pairs.flatMap { $0.0 + "/" + $0.1 }.filter { $0 != "/" })
         set.formUnion(task.testIn.filter { $0 != "/" })
+        // Task 10 answers with a color seen nowhere else; without this it could not be solved.
+        // В задаче 10 ответ это цвет, которого больше нигде нет; без этой строки её нельзя было решить.
+        set.formUnion(task.testOut.filter { $0 != "/" })
         set.insert("0")
         return set.sorted()
     }
@@ -22320,7 +22391,7 @@ private struct ArcPainterLab: View {
                 }
             }
             LabStatGrid {
-                LabStat(label: text("lab.arc.statYou"), value: "\(solved.count) / 10", tint: .accentColor, identifier: "lab.arc.you")
+                LabStat(label: text("lab.arc.statYou"), value: "\(solved.count) / 10", tint: AppPalette.accent.color, identifier: "lab.arc.you")
                 LabStat(label: text("lab.arc.statSearch"), value: "\(ArcRecording.tasks.filter(\.search).count) / 10", tint: .green, identifier: "lab.arc.search")
                 LabStat(label: "qwen2.5-coder", value: "\(ArcRecording.tasks.filter(\.coderRight).count) / 10", tint: .orange, identifier: "lab.arc.coder")
                 LabStat(label: "qwen3.5", value: "\(ArcRecording.tasks.filter(\.qwenRight).count) / 10", tint: .orange, identifier: "lab.arc.qwen")
@@ -22366,7 +22437,7 @@ private struct DynaLab: View {
                 Toggle(text("lab.dyna.moved"), isOn: $moved).accessibilityIdentifier("lab.dyna.moved")
             }
             LabStatGrid {
-                LabStat(label: text("lab.dyna.statEarly"), value: number(mean(curve, 2..<5)), tint: .accentColor, identifier: "lab.dyna.early")
+                LabStat(label: text("lab.dyna.statEarly"), value: number(mean(curve, 2..<5)), tint: AppPalette.accent.color, identifier: "lab.dyna.early")
                 LabStat(label: text("lab.dyna.statBase"), value: number(mean(baseline, 2..<5)), tint: .secondary, identifier: "lab.dyna.base")
                 LabStat(label: text("lab.dyna.statCost"), value: "×" + String(Int(plans) + 1), tint: .orange, identifier: "lab.dyna.cost")
             }
@@ -22420,7 +22491,7 @@ private struct DynaLab: View {
                 context.stroke(path, with: .color(color), lineWidth: width)
             }
             stroke(baseline, .gray, 1.5)
-            stroke(curve, .accentColor, 2.5)
+            stroke(curve, AppPalette.accent.color, 2.5)
         }
         .frame(height: 200)
         .accessibilityElement(children: .ignore)
@@ -22483,7 +22554,7 @@ private struct ForgettingLab: View {
             }
             LabStatGrid {
                 LabStat(label: text("lab.forget.statA"), value: number(net.accuracy(Self.checkA)), tint: .orange, identifier: "lab.forget.a")
-                LabStat(label: text("lab.forget.statB"), value: number(net.accuracy(Self.checkB)), tint: .accentColor, identifier: "lab.forget.b")
+                LabStat(label: text("lab.forget.statB"), value: number(net.accuracy(Self.checkB)), tint: AppPalette.accent.color, identifier: "lab.forget.b")
                 LabStat(label: text("lab.forget.statBest"), value: bestStored.map(String.init) ?? "–", tint: .green, identifier: "lab.forget.best")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.forget.challenge"), solved: (bestStored ?? 999) <= 100,
@@ -22491,6 +22562,9 @@ private struct ForgettingLab: View {
             LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.forget.howField"), text("lab.forget.howPrice")])
         }
         .task {
+            // Scrolling away and back restarts this task; a finished result must stay on screen.
+            // Прокрутка туда и обратно запускает задачу заново; готовый результат должен остаться на экране.
+            guard !ready else { return }
             let first = await Task.detached(priority: .userInitiated) { trainedOnA() }.value
             net = first
             ready = true
@@ -22570,7 +22644,7 @@ private struct ForgettingLab: View {
                 context.stroke(path, with: .color(color), lineWidth: 2.5)
             }
             stroke(history.map(\.a), .orange)
-            stroke(history.map(\.b), .accentColor)
+            stroke(history.map(\.b), AppPalette.accent.color)
         }
         .frame(height: 240)
         .accessibilityElement(children: .ignore)
@@ -22608,7 +22682,7 @@ private struct ScalingLab: View {
                 Slider(value: $count, in: 2...7, step: 1).accessibilityIdentifier("lab.scale.pointsSlider")
             }
             LabStatGrid {
-                LabStat(label: text("lab.scale.statExponent"), value: number(fit.slope), tint: .accentColor, identifier: "lab.scale.exponent")
+                LabStat(label: text("lab.scale.statExponent"), value: number(fit.slope), tint: AppPalette.accent.color, identifier: "lab.scale.exponent")
                 LabStat(label: text("lab.scale.statBillion"), value: number(ScalingFit.law(1e9, fit)), tint: .orange, identifier: "lab.scale.billion")
                 LabStat(label: text("lab.scale.statLimit"), value: number(0.58, 2), tint: .green, identifier: "lab.scale.limit")
             }
@@ -22651,7 +22725,7 @@ private struct ScalingLab: View {
                 let point = geometry.point(power, min(max(value, -2), 0.5))
                 if step == 0 { law.move(to: point) } else { law.addLine(to: point) }
             }
-            context.stroke(law, with: .color(.accentColor), lineWidth: 2)
+            context.stroke(law, with: .color(AppPalette.accent.color), lineWidth: 2)
             for (index, size) in ScalingRecording.sizes.enumerated() {
                 let point = geometry.point(log10(size), log10(ScalingRecording.errors[index]))
                 let inFit = index < Int(count)
@@ -22766,7 +22840,7 @@ private struct WorkspaceLab: View {
                 .accessibilityIdentifier("lab.work.flash")
             }
             LabStatGrid {
-                LabStat(label: text("lab.work.statShare"), value: number(share), tint: .accentColor, identifier: "lab.work.share")
+                LabStat(label: text("lab.work.statShare"), value: number(share), tint: AppPalette.accent.color, identifier: "lab.work.share")
                 LabStat(label: text("lab.work.statNow"), value: number(current), tint: .orange, identifier: "lab.work.now")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.work.challenge"), solved: solved,
@@ -22840,7 +22914,7 @@ private struct WorkspaceLab: View {
                 let place = geometry.point(point.0, point.1)
                 if index == 0 { path.move(to: place) } else { path.addLine(to: place) }
             }
-            context.stroke(path, with: .color(.accentColor), lineWidth: 2.5)
+            context.stroke(path, with: .color(AppPalette.accent.color), lineWidth: 2.5)
             var cursor = Path()
             cursor.move(to: geometry.point(strength, 0))
             cursor.addLine(to: geometry.point(strength, 1))
@@ -22903,7 +22977,7 @@ private struct IntegrationLab: View {
                         HStack {
                             Text(verbatim: String(format: text("lab.phi.cut"), String(node))).font(.callout).frame(width: 96, alignment: .leading)
                             GeometryReader { proxy in
-                                RoundedRectangle(cornerRadius: 3).fill(Color.accentColor).frame(width: proxy.size.width * CGFloat(losses[node] / 3))
+                                RoundedRectangle(cornerRadius: 3).fill(AppPalette.accent.color).frame(width: proxy.size.width * CGFloat(losses[node] / 3))
                             }
                             .frame(height: 12)
                             Text(verbatim: number(losses[node])).font(.caption.monospacedDigit()).frame(width: 44)
@@ -22935,13 +23009,13 @@ private struct IntegrationLab: View {
                     var line = Path()
                     line.move(to: from)
                     line.addLine(to: CGPoint(x: to.x + (from.x - to.x) * 0.2, y: to.y + (from.y - to.y) * 0.2))
-                    context.stroke(line, with: .color(.accentColor), lineWidth: 2)
+                    context.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2)
                     let tip = CGPoint(x: to.x + (from.x - to.x) * 0.2, y: to.y + (from.y - to.y) * 0.2)
-                    context.fill(Path(ellipseIn: CGRect(x: tip.x - 4, y: tip.y - 4, width: 8, height: 8)), with: .color(.accentColor))
+                    context.fill(Path(ellipseIn: CGRect(x: tip.x - 4, y: tip.y - 4, width: 8, height: 8)), with: .color(AppPalette.accent.color))
                 }
                 if inputs(node).contains(node) {
                     let spot = place(node)
-                    context.stroke(Path(ellipseIn: CGRect(x: spot.x - 26, y: spot.y - 26, width: 52, height: 52)), with: .color(.accentColor.opacity(0.6)), lineWidth: 1.5)
+                    context.stroke(Path(ellipseIn: CGRect(x: spot.x - 26, y: spot.y - 26, width: 52, height: 52)), with: .color(AppPalette.accent.color.opacity(0.6)), lineWidth: 1.5)
                 }
             }
             for node in 0..<3 {
@@ -23005,7 +23079,7 @@ private struct ConfidenceLab: View {
                 let left = geometry.point(0.5 + Double(index) * 0.1, row.accuracy)
                 let right = geometry.point(0.6 + Double(index) * 0.1, 0.4)
                 let rect = CGRect(x: left.x + 3, y: left.y, width: right.x - left.x - 6, height: right.y - left.y)
-                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(.accentColor.opacity(0.75)))
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(AppPalette.accent.color.opacity(0.75)))
                 let mark = geometry.point(min(max(row.confidence, 0.5), 1), row.accuracy)
                 context.fill(Path(ellipseIn: CGRect(x: mark.x - 5, y: mark.y - 5, width: 10, height: 10)), with: .color(.orange))
                 context.draw(Text(verbatim: String(row.count)).font(.caption2).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.maxY - 9))
@@ -23096,7 +23170,7 @@ private struct MaskingLab: View {
                 chart
             }
             LabStatGrid {
-                LabStat(label: text("lab.mask.statTrials"), value: String(trials.count), tint: .accentColor, identifier: "lab.mask.trials")
+                LabStat(label: text("lab.mask.statTrials"), value: String(trials.count), tint: AppPalette.accent.color, identifier: "lab.mask.trials")
                 LabStat(label: text("lab.mask.statThreshold"), value: trials.count >= 12 ? "\(MaskingFit.fit(rows).threshold) " + text("lab.mask.msUnit") : "–", tint: .orange, identifier: "lab.mask.threshold")
                 LabStat(label: text("lab.mask.statGuess"), value: guessed.isEmpty ? "–" : number(Double(guessed.filter(\.right).count) / Double(guessed.count)), tint: .green, identifier: "lab.mask.guessShare")
             }
@@ -23147,7 +23221,7 @@ private struct MaskingLab: View {
             }
             for row in rows {
                 let point = geometry.point(row.ms, row.share)
-                context.fill(Path(ellipseIn: CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)), with: .color(.accentColor))
+                context.fill(Path(ellipseIn: CGRect(x: point.x - 5, y: point.y - 5, width: 10, height: 10)), with: .color(AppPalette.accent.color))
             }
         }
         .frame(height: 230)
@@ -23196,7 +23270,7 @@ private struct IndicatorTableLab: View {
             }
             .buttonStyle(.bordered)
             LabStatGrid {
-                LabStat(label: text("lab.check.statYours"), value: number(sum), tint: .accentColor, identifier: "lab.check.yours")
+                LabStat(label: text("lab.check.statYours"), value: number(sum), tint: AppPalette.accent.color, identifier: "lab.check.yours")
                 LabStat(label: text("lab.check.statMine"), value: number(IndicatorJudgement.sum), tint: .secondary, identifier: "lab.check.mine")
                 LabStat(label: text("lab.check.statRange"), value: "\(strict)–\(lenient)", tint: .orange, identifier: "lab.check.range")
             }
@@ -23257,7 +23331,7 @@ private struct SelfReportLab: View {
             }
             .buttonStyle(.bordered)
             LabStatGrid {
-                LabStat(label: text("lab.report.statOpened"), value: "\(revealed) / \(SelfReportRecording.rows.count)", tint: .accentColor, identifier: "lab.report.opened")
+                LabStat(label: text("lab.report.statOpened"), value: "\(revealed) / \(SelfReportRecording.rows.count)", tint: AppPalette.accent.color, identifier: "lab.report.opened")
                 LabStat(label: text("lab.report.statRight"), value: String(right), tint: .green, identifier: "lab.report.right")
             }
             LabChallenge(caption: text("lab.kit.task"), task: text("lab.report.challenge"), solved: rows(1).allSatisfy { guesses[key($0)] != nil },
@@ -23302,7 +23376,7 @@ private struct TwoErrorsLab: View {
             slider(String(format: text("lab.errors.miss"), number(miss, 1)), value: $logMiss, range: 0...2, identifier: "lab.errors.missSlider")
             LabStatusBadge(kind: protects ? .good : .warning, text: text(protects ? "lab.errors.protect" : "lab.errors.ignore"), identifier: "lab.errors.decision")
             LabStatGrid {
-                LabStat(label: text("lab.errors.statThreshold"), value: number(TwoErrors.threshold(falseAlarm: alarm, miss: miss)), tint: .accentColor, identifier: "lab.errors.threshold")
+                LabStat(label: text("lab.errors.statThreshold"), value: number(TwoErrors.threshold(falseAlarm: alarm, miss: miss)), tint: AppPalette.accent.color, identifier: "lab.errors.threshold")
                 LabStat(label: text("lab.errors.statProtect"), value: number(costs.protect, 2), tint: .green, identifier: "lab.errors.costProtect")
                 LabStat(label: text("lab.errors.statIgnore"), value: number(costs.ignore, 2), tint: .orange, identifier: "lab.errors.costIgnore")
             }

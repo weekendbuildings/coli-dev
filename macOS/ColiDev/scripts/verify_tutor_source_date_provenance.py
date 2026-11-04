@@ -52,7 +52,7 @@ require(
         '"tutor.sourceSnapshotFetchedAt": ("Текст страницы загружен", "Page text snapshot fetched")',
         '"tutor.publisherPublishedAt": ("Дата публикации по данным страницы", "Published (page-declared)")',
         '"tutor.publisherUpdatedAt": ("Дата обновления по данным страницы", "Updated (page-declared)")',
-        '"tutor.publisherDateCaveat": ("Даты указаны страницей; ColiDev не проверяет их независимо.", "Dates are declared by the page; ColiDev does not independently verify them.")',
+        '"tutor.publisherDateCaveat": ("Даты указаны страницей; Cause & Course не проверяет их независимо.", "Dates are declared by the page; Cause & Course does not independently verify them.")',
     ),
     "RU/EN source-date localization",
 )

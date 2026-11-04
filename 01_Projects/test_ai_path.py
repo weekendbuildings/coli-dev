@@ -51,4 +51,4 @@ def test_path_opens_lessons_without_the_course_lock() -> None:
     assert "selection = .courseLesson(lesson.subject, lesson.resource)" in opener
     assert "isAvailable" not in opener
     assert "AIPathView(openLesson: openPathLesson)" in view
-    assert '.accessibilityIdentifier("sidebar.ai-path")' in view
+    assert 'identifier: "sidebar.ai-path"' in view

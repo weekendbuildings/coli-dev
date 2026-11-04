@@ -360,5 +360,5 @@ We looked only at the starting state, before training. A good picture here does 
 - Sergey Ioffe, Christian Szegedy, "Batch Normalization", arXiv:1502.03167 (2015), title read 2026-11-02: [arXiv:1502.03167](https://arxiv.org/abs/1502.03167)
 - Jimmy Lei Ba, Jamie Ryan Kiros, Geoffrey Hinton, "Layer Normalization", arXiv:1607.06450 (2016), title read 2026-11-02: [arXiv:1607.06450](https://arxiv.org/abs/1607.06450)
 - Kaiming He and colleagues, "Delving Deep into Rectifiers", arXiv:1502.01852 (2015), title read 2026-11-02: [arXiv:1502.01852](https://arxiv.org/abs/1502.01852)
-- Shibani Santurkar and colleagues, "How Does Batch Normalization Help Optimization?", arXiv:1805.11604 (2018), recalled from memory and not re-read for this lesson: it disputes the original explanation: [arXiv:1805.11604](https://arxiv.org/abs/1805.11604)
+- Shibani Santurkar and colleagues, "How Does Batch Normalization Help Optimization?", arXiv:1805.11604 (2018), abstract read 2026-11-03: it disputes the original explanation: [arXiv:1805.11604](https://arxiv.org/abs/1805.11604)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

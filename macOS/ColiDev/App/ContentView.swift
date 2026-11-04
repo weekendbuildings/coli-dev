@@ -66,57 +66,32 @@ struct ContentView: View {
 
     var body: some View {
         NavigationSplitView {
-            List(selection: $selection) {
-                Section {
-                    Label { Text(L10n.text("nav.today", store.language)) } icon: { Image(systemName: "sparkles") }
-                        .tag(AppSection.today)
-                    Label { Text(L10n.text("nav.aiPath", store.language)) } icon: { Image(systemName: "brain.head.profile") }
-                        .tag(AppSection.aiPath)
-                        .accessibilityIdentifier("sidebar.ai-path")
-                    Label { Text(L10n.text("nav.subjects", store.language)) } icon: { Image(systemName: "square.grid.2x2") }
-                        .tag(AppSection.subjects)
-                } header: {
-                    Text(L10n.text("nav.yourLearning", store.language))
-                }
-
-                Section {
-                    ForEach(Subject.allCases) { subject in
-                        Label { Text(subject.title(in: store.language)) } icon: {
-                            Image(systemName: subject.symbol)
-                                .foregroundStyle(Color.accentColor)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    SidebarSection(title: L10n.text("nav.yourLearning", store.language)) {
+                        sidebarRow(.today, L10n.text("nav.today", store.language), symbol: "sparkles")
+                        sidebarRow(.aiPath, L10n.text("nav.aiPath", store.language), symbol: "brain.head.profile", identifier: "sidebar.ai-path")
+                        sidebarRow(.subjects, L10n.text("nav.subjects", store.language), symbol: "square.grid.2x2")
+                    }
+                    SidebarSection(title: L10n.text("nav.subjects", store.language)) {
+                        ForEach(Subject.allCases) { subject in
+                            sidebarRow(.subject(subject), subject.title(in: store.language), symbol: subject.symbol, tint: AppPalette.accent.color)
                         }
-                            .tag(AppSection.subject(subject))
-                    }
-                    ForEach(store.customCurriculum.subjects) { subject in
-                        Label {
-                            Text(subject.name.value(in: store.language.rawValue))
-                        } icon: {
-                            Image(systemName: "books.vertical.fill")
+                        ForEach(store.customCurriculum.subjects) { subject in
+                            sidebarRow(.customSubject(subject.id), subject.name.value(in: store.language.rawValue), symbol: "books.vertical.fill")
                         }
-                        .tag(AppSection.customSubject(subject.id))
                     }
-                } header: {
-                    Text(L10n.text("nav.subjects", store.language))
+                    SidebarSection(title: nil) {
+                        sidebarRow(.management, L10n.text("nav.management", store.language), symbol: "wrench.and.screwdriver", identifier: "sidebar.management")
+                        sidebarRow(.localModels, L10n.text("management.models", store.language), symbol: "cpu", identifier: "sidebar.local-models")
+                        sidebarRow(.settings, L10n.text("nav.settings", store.language), symbol: "gearshape", identifier: "sidebar.settings")
+                    }
                 }
-
-                Section {
-                    Label { Text(L10n.text("nav.management", store.language)) } icon: {
-                        Image(systemName: "wrench.and.screwdriver")
-                    }
-                    .tag(AppSection.management)
-                    .accessibilityIdentifier("sidebar.management")
-                    Label { Text(L10n.text("management.models", store.language)) } icon: {
-                        Image(systemName: "cpu")
-                    }
-                    .tag(AppSection.localModels)
-                    .accessibilityIdentifier("sidebar.local-models")
-                    Label { Text(L10n.text("nav.settings", store.language)) } icon: { Image(systemName: "gearshape") }
-                        .tag(AppSection.settings)
-                        .accessibilityIdentifier("sidebar.settings")
-                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 12)
             }
-            .listStyle(.sidebar)
-            .navigationTitle("ColiDev")
+            .background(AppPalette.sidebar.color.ignoresSafeArea())
+            .navigationTitle(L10n.appName)
             // The default column cut “Программирование”, “Локальные модели” and “Направления” on every CI runner.
             .navigationSplitViewColumnWidth(min: 210, ideal: 230)
         } detail: {
@@ -295,6 +270,12 @@ struct ContentView: View {
 
     /// The AI path is open by design, so this skips the prerequisite check of the course screen.
     /// Путь ИИ открыт намеренно, поэтому здесь нет проверки предыдущих уроков, как на экране курса.
+    private func sidebarRow(_ section: AppSection, _ title: String, symbol: String, tint: Color? = nil, identifier: String? = nil) -> some View {
+        SidebarRow(title: title, symbol: symbol, tint: tint, identifier: identifier, isSelected: (selection ?? .today) == section) {
+            selection = section
+        }
+    }
+
     private func openPathLesson(_ lesson: AIPathLesson) {
         practiceFocusRoute = nil
         store.rememberCourseLesson(subject: lesson.subject, resource: lesson.resource)
@@ -482,12 +463,12 @@ private struct CauseAndCorseJourneyCard: View {
             HStack(alignment: .top, spacing: 12) {
                 Image(systemName: "map.fill")
                     .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppPalette.accent.color)
                     .frame(width: 42, height: 42)
-                    .background(Color.accentColor.opacity(0.14), in: RoundedRectangle(cornerRadius: 13))
+                    .background(AppPalette.accent.color.opacity(0.14), in: RoundedRectangle(cornerRadius: 13))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(language == .ru ? "Cause & Corse · путь к своим технологиям" : "Cause & Corse · a path to building new technology")
+                    Text(language == .ru ? "Cause & Course · путь к своим технологиям" : "Cause & Course · a path to building new technology")
                         .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("journey.title")
@@ -527,7 +508,7 @@ private struct CauseAndCorseJourneyCard: View {
                     value: Double(completedJourneyProjectCount),
                     total: Double(CauseAndCorseLearningJourney.steps.count)
                 )
-                .tint(Color.accentColor)
+                .tint(AppPalette.accent.color)
                 .accessibilityLabel(
                     Text(language == .ru ? "Прогресс мини-проектов" : "Mini-project progress")
                 )
@@ -574,7 +555,7 @@ private struct CauseAndCorseJourneyCard: View {
         }
         .padding(20)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .coliContentCard(tint: Color.accentColor, cornerRadius: 18)
+        .coliContentCard(tint: AppPalette.accent.color, cornerRadius: 18)
     }
 
     @ViewBuilder
@@ -588,9 +569,9 @@ private struct CauseAndCorseJourneyCard: View {
         HStack(alignment: .top, spacing: 12) {
             Text("\(index + 1)")
                 .font(.callout.weight(.semibold).monospacedDigit())
-                .foregroundStyle(Color.accentColor)
+                .foregroundStyle(AppPalette.accent.color)
                 .frame(width: 30, height: 30)
-                .background(Color.accentColor.opacity(0.12), in: Circle())
+                .background(AppPalette.accent.color.opacity(0.12), in: Circle())
                 .accessibilityLabel(Text("\(index + 1)"))
                 .accessibilityIdentifier("journey.step.\(step.id).number")
 
@@ -605,7 +586,7 @@ private struct CauseAndCorseJourneyCard: View {
 
                 Text(language == .ru ? "Мини-проект · маленький проверяемый результат" : "Mini-project · a small verifiable result")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.accentColor)
+                    .foregroundStyle(AppPalette.accent.color)
                 Text(step.projectOutput.value(in: language))
                     .font(.caption)
                     .foregroundStyle(.secondary)
@@ -616,7 +597,7 @@ private struct CauseAndCorseJourneyCard: View {
                     text: journeyProjectBinding(for: step),
                     axis: .vertical
                 )
-                .textFieldStyle(.roundedBorder)
+                .coliTextField()
                 .lineLimit(1...3)
                 .accessibilityIdentifier("journey.step.\(step.id).project-result")
 
@@ -664,7 +645,7 @@ private struct CauseAndCorseJourneyCard: View {
                                         .multilineTextAlignment(.leading)
                                         .padding(.horizontal, 9)
                                         .padding(.vertical, 6)
-                                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 9))
+                                        .background(AppPalette.inset.color, in: RoundedRectangle(cornerRadius: 9))
                                 }
                                 .buttonStyle(.plain)
                                 .accessibilityIdentifier("journey.source.\(source.id)")
@@ -917,7 +898,7 @@ private struct TodayView: View {
     }
 
     private func studyAccent(for route: StudyLessonRoute?) -> Color {
-        guard let route else { return Color.accentColor }
+        guard let route else { return AppPalette.accent.color }
         return ColiDevVisualSystem.studyAccentToken(subjectID: route.subjectID, resource: route.resource).color
     }
 
@@ -987,7 +968,7 @@ private struct TodayView: View {
             .frame(maxWidth: 1000, alignment: .leading)
             .frame(maxWidth: .infinity, alignment: .center)
         }
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(AppPalette.canvas.color)
         .sheet(isPresented: $showingGoalPicker) {
             StudyGoalPickerView(
                 options: studyGoalOptions,
@@ -1370,7 +1351,7 @@ private struct StudyGoalPickerView: View {
                                         ? "scope"
                                         : "circle")
                                         .foregroundStyle(option.id == currentGoal?.target.lessonID
-                                            ? Color.accentColor
+                                            ? AppPalette.accent.color
                                             : Color.secondary)
                                         .frame(width: 18)
                                     VStack(alignment: .leading, spacing: 3) {
@@ -1414,7 +1395,7 @@ private struct StudyGoalPickerView: View {
                     .buttonStyle(.bordered)
                     .padding()
                     .frame(maxWidth: .infinity, alignment: .trailing)
-                    .background(.ultraThinMaterial)
+                    .background(AppPalette.raised.color)
                 }
             }
         }
@@ -1462,6 +1443,73 @@ private struct SubjectCatalogView: View {
         .sheet(isPresented: $showingSubjectEditor) {
             CustomSubjectEditor { openCustom($0) }
                 .environmentObject(store)
+        }
+    }
+}
+
+/// A sidebar group with a quiet caption. / Группа боковой панели с тихой подписью.
+private struct SidebarSection<Content: View>: View {
+    let title: String?
+    @ViewBuilder let content: Content
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 2) {
+            if let title {
+                Text(title)
+                    .font(.system(size: 11, weight: .semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 9)
+                    .padding(.bottom, 4)
+            }
+            content
+        }
+    }
+}
+
+/// A sidebar row with its own soft selection: the system one is a hard accent block that goes grey
+/// when the window loses focus. The identifier stays on the text, where the UI tests look for it.
+/// Строка панели с собственным мягким выбором: системный выбор это резкий блок, который сереет при
+/// потере фокуса окна. Идентификатор остаётся на тексте, там его ищут UI-тесты.
+private struct SidebarRow: View {
+    let title: String
+    let symbol: String
+    let tint: Color?
+    let identifier: String?
+    let isSelected: Bool
+    let action: () -> Void
+    @State private var isHovered = false
+
+    var body: some View {
+        HStack(spacing: 9) {
+            Image(systemName: symbol)
+                .font(.system(size: 13, weight: .medium))
+                .foregroundStyle(isSelected ? AppPalette.accent.color : (tint ?? Color.secondary))
+                .frame(width: 18)
+            label
+                .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
+                .foregroundStyle(Color.primary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
+            Spacer(minLength: 0)
+        }
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
+        .background(
+            isSelected ? AppPalette.selection.color : (isHovered ? Color.primary.opacity(0.05) : Color.clear),
+            in: RoundedRectangle(cornerRadius: 8)
+        )
+        .contentShape(RoundedRectangle(cornerRadius: 8))
+        .onTapGesture(perform: action)
+        .onHover { isHovered = $0 }
+    }
+
+    @ViewBuilder
+    private var label: some View {
+        if let identifier {
+            Text(title).accessibilityIdentifier(identifier)
+        } else {
+            Text(title)
         }
     }
 }
@@ -1790,6 +1838,7 @@ private struct SettingsView: View {
             await store.refreshAIStatus()
         }
         .formStyle(.grouped)
+        .scrollContentBackground(.hidden)
         .padding(24)
         .frame(maxWidth: 720, alignment: .leading)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -2071,7 +2120,7 @@ private struct ProviderKeyEntryView: View {
             Text(title).font(.headline)
             HStack(spacing: 8) {
                 SecureField(L10n.text("settings.keyPlaceholder", store.language), text: $apiKey)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .disabled(isSaving || !backendSupervisor.isReady)
                 Button {
                     Task { await saveKey() }
@@ -2416,7 +2465,7 @@ private struct ManagementView: View {
             isPresented: $isExportingBackup,
             document: progressBackupDocument,
             contentType: .json,
-            defaultFilename: "ColiDev-Learning-Progress"
+            defaultFilename: "Cause-and-Course-Learning-Progress"
         ) { result in
             switch result {
             case .success(let url):
@@ -2437,7 +2486,7 @@ private struct ManagementView: View {
             isPresented: $isExportingDiagnostics,
             document: diagnosticsDocument,
             contentType: .json,
-            defaultFilename: "ColiDev-Diagnostics"
+            defaultFilename: "Cause-and-Course-Diagnostics"
         ) { result in
             switch result {
             case .success(let url):
@@ -2824,7 +2873,7 @@ private struct ManagementView: View {
                             title: L10n.text("management.courseFiles", store.language),
                             value: String(totalLessons),
                             symbol: "books.vertical",
-                            tint: .accentColor
+                            tint: AppPalette.accent.color
                         )
                         metric(
                             title: L10n.text("management.courseBilingual", store.language),
@@ -2970,7 +3019,7 @@ private struct ManagementView: View {
 
             HStack(spacing: 10) {
                 TextField(L10n.text("management.ragQuery", store.language), text: $ragQuery)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .onSubmit { Task { await searchRAG() } }
 
                 Button {
@@ -3011,7 +3060,7 @@ private struct ManagementView: View {
                             HStack(alignment: .firstTextBaseline, spacing: 8) {
                                 Text(source.id)
                                     .font(.caption.weight(.bold).monospaced())
-                                    .foregroundStyle(Color.accentColor)
+                                    .foregroundStyle(AppPalette.accent.color)
                                 Text(source.title)
                                     .font(.headline)
                                     .textSelection(.enabled)
@@ -3098,6 +3147,7 @@ private struct ManagementView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                     }
                     .listStyle(.inset)
+                    .scrollContentBackground(.hidden)
                     .frame(minHeight: 320)
                 }
             } else {
@@ -3160,7 +3210,7 @@ private struct ManagementView: View {
 
             HStack(spacing: 10) {
                 TextField(L10n.text("management.sourceSearch", store.language), text: $sourceSearchText)
-                    .textFieldStyle(.roundedBorder)
+                    .coliTextField()
                     .frame(maxWidth: 320)
 
                 Picker(selection: $sourceFilter) {
@@ -3270,6 +3320,7 @@ private struct ManagementView: View {
                         }
                     }
                     .listStyle(.inset)
+                    .scrollContentBackground(.hidden)
                     .frame(minHeight: 320)
                 }
                 if sourceInventory.unsupportedCount > 0 || sourceInventory.omittedCount > 0 {
@@ -3368,7 +3419,7 @@ private struct ManagementView: View {
                     L10n.text("management.ragEmbeddingModelPlaceholder", store.language),
                     text: $ollamaEmbeddingModelDraft
                 )
-                .textFieldStyle(.roundedBorder)
+                .coliTextField()
                 .disabled(isSavingOllamaEmbeddingSettings)
                 .accessibilityIdentifier("control-center.rag.embedding-model")
 
@@ -3630,12 +3681,12 @@ private struct ManagementView: View {
                                 L10n.text("management.compatibleBaseURL", store.language),
                                 text: $compatibleBaseURL
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .coliTextField()
                             TextField(
                                 L10n.text("management.compatibleModel", store.language),
                                 text: $compatibleModel
                             )
-                            .textFieldStyle(.roundedBorder)
+                            .coliTextField()
                             HStack {
                                 Button {
                                     Task { await saveCompatibleSettings() }
@@ -3777,7 +3828,7 @@ private struct ManagementView: View {
 
                         if finalSynthesisProvider != "auto" {
                             TextField(L10n.text("management.routeModel", store.language), text: $finalSynthesisModel)
-                                .textFieldStyle(.roundedBorder)
+                                .coliTextField()
                                 .frame(maxWidth: 520)
                         }
                         if routeMaySendContextToCloud(
@@ -3858,7 +3909,7 @@ private struct ManagementView: View {
 
                         if routeProvider != "auto" {
                             TextField(L10n.text("management.routeModel", store.language), text: $routeModel)
-                                .textFieldStyle(.roundedBorder)
+                                .coliTextField()
                                 .frame(maxWidth: 520)
                             Text(L10n.text("management.routeModelHelp", store.language))
                                 .font(.caption)
@@ -3946,7 +3997,7 @@ private struct ManagementView: View {
 
                         if autoAgentProvider != "auto" {
                             TextField(L10n.text("management.routeModel", store.language), text: $autoAgentModel)
-                                .textFieldStyle(.roundedBorder)
+                                .coliTextField()
                                 .frame(maxWidth: 520)
                         }
                         if autoAgentProvider == "ollama" {

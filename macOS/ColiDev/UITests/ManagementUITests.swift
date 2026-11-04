@@ -1574,7 +1574,7 @@ final class ManagementUITests: XCTestCase {
     }
 
     @MainActor
-    func testNotebookLMCanReceiveTheLessonAsCopiedMarkdown() async throws {
+    func testGeminiNotebookCanReceiveTheLessonAsCopiedMarkdown() async throws {
         let app = XCUIApplication()
         defer { if app.state != .notRunning { app.terminate() } }
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"
@@ -1625,8 +1625,8 @@ final class ManagementUITests: XCTestCase {
         response.typeKey("v", modifierFlags: .command)
         XCTAssertTrue(
             (response.value as? String)?.hasPrefix("# ") == true
-                && (response.value as? String)?.contains("ColiDev") == true,
-            "The clipboard must contain the lesson Markdown, ready to paste into NotebookLM. / В буфере должен быть Markdown урока, готовый к вставке в NotebookLM.\n\(response.debugDescription)"
+                && (response.value as? String)?.contains("Cause & Course") == true,
+            "The clipboard must contain the lesson Markdown, ready to paste into Gemini Notebook. / В буфере должен быть Markdown урока, готовый к вставке в NotebookLM.\n\(response.debugDescription)"
         )
     }
 
