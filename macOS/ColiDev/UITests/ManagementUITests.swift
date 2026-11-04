@@ -47,6 +47,7 @@ final class ManagementUITests: XCTestCase {
         }
     }
 
+    @MainActor
     func testReleaseCatalogOffersBetaArchiveForCurrentMacArchitecture() async throws {
         let app = XCUIApplication()
         // A fixed catalog keeps the test off the rate-limited GitHub API. / Фиксированный каталог не зависит от лимитов GitHub API.
