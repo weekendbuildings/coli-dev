@@ -817,7 +817,7 @@ enum L10n {
         "tools.openclaw.rule": ("Работает в папке ~/agent-work, а не в выбранном проекте.", "Works in the ~/agent-work folder, not in a project you pick."),
         "tools.openclaw.task": ("Текст задачи", "Task text"),
         "tools.ollama.purpose": ("Запускает локальные модели. На ней работают три агента выше.", "Runs local models. The three agents above use it."),
-        "tools.ollama.ready": ("Отвечает, модель %@ есть", "Responding, model %@ is present"),
+        "tools.ollama.ready": ("Служба отвечает, модель %@ установлена. Если агент молчит больше 5 минут, перезапусти Ollama.", "The service responds and model %@ is installed. If an agent stays silent for over 5 minutes, restart Ollama."),
         "tools.ollama.noModel": ("Отвечает, но модели %@ нет", "Responding, but model %@ is missing"),
         "tools.ollama.down": ("Не отвечает: запусти приложение Ollama", "Not responding: start the Ollama app"),
         "tools.obsidian.purpose": ("Заметки на этом Mac: сюда можно сохранять копии уроков.", "Notes on this Mac: lesson copies can be saved here."),
