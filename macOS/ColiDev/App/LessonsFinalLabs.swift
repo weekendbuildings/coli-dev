@@ -912,3 +912,182 @@ struct AdditionRangeLab: View {
         }
     }
 }
+
+// MARK: - Replacing neurons / Замена нейронов
+
+struct NeuronReplacementLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var chips = 0.0
+    @State private var answer: Int?
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        let count = Int(chips)
+        let difference = ReplacementBrain.largestDifference(chips: count)
+        LessonsFinalCard {
+            LabHeader(title: text("lab.replace.title"), instruction: text("lab.replace.subtitle"))
+            HStack(alignment: .center, spacing: 20) {
+                brain(count).frame(width: 230, height: 110)
+                trace(count).frame(height: 160).accessibilityLabel(text("lab.replace.chartSpoken"))
+            }
+            HStack {
+                Text(String(format: text("lab.replace.count"), String(count))).frame(width: 170, alignment: .leading)
+                Slider(value: $chips, in: 0...10, step: 1).accessibilityIdentifier("lab.replace.count")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.replace.statChips"), value: "\(count) / 10", tint: .gray, identifier: "lab.replace.chips")
+                LabStat(label: text("lab.replace.statDifference"), value: lessonsFinalScientific(difference, store.language), tint: .green, identifier: "lab.replace.difference")
+            }
+            Text(text("lab.replace.question")).font(.headline)
+            HStack(spacing: 8) {
+                ForEach(0..<3, id: \.self) { index in
+                    Button(text("lab.replace.answer\(index)")) { answer = index }
+                        .buttonStyle(.bordered)
+                        .tint(answer == index ? AppPalette.accent.color : .secondary)
+                        .disabled(count < 10)
+                        .accessibilityIdentifier("lab.replace.answer.\(index)")
+                }
+            }
+            if let answer {
+                Text(text("lab.replace.camp\(answer)"))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(10)
+                    .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                    .accessibilityIdentifier("lab.replace.camp")
+            }
+            LabStatusBadge(kind: .info, text: text("lab.replace.limit"), identifier: "lab.replace.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.replace.challenge"), solved: count == 10 && answer != nil,
+                         solvedText: text("lab.replace.challengeDone"), identifier: "lab.replace.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.replace.howNet"), text("lab.replace.howNot")])
+        }
+    }
+
+    private func brain(_ count: Int) -> some View {
+        Canvas { context, size in
+            let cell = size.width / 5
+            for j in 0..<10 {
+                let center = CGPoint(x: cell * (CGFloat(j % 5) + 0.5), y: size.height * (j < 5 ? 0.28 : 0.72))
+                let rect = CGRect(x: center.x - 17, y: center.y - 17, width: 34, height: 34)
+                if j < count {
+                    context.fill(Path(roundedRect: rect, cornerRadius: 4), with: .color(Color.gray))
+                } else {
+                    context.fill(Path(ellipseIn: rect), with: .color(Color.pink.opacity(0.8)))
+                }
+                context.draw(Text(String(j)).font(.caption.bold()).foregroundColor(.white), at: center)
+            }
+        }
+        .accessibilityLabel(text("lab.replace.brainSpoken"))
+    }
+
+    private func trace(_ count: Int) -> some View {
+        let original = ReplacementBrain.run(chips: 0)
+        let replaced = ReplacementBrain.run(chips: count)
+        return Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 1...12, y: 0...1)
+            plot.drawAxes(in: context, xLabel: text("lab.replace.xAxis"), yLabel: text("lab.replace.yAxis"), xTicks: [1, 4, 8, 12], yTicks: [0, 0.5, 1],
+                          format: { L10n.number($0, fractionDigits: $0 == $0.rounded() ? 0 : 1, store.language) })
+            for (values, color, width) in [(original, Color.pink, CGFloat(6)), (replaced, Color.gray, CGFloat(2.5))] {
+                var line = Path()
+                for (index, value) in values.enumerated() {
+                    let point: CGPoint = plot.point(Double(index + 1), value)
+                    if index == 0 { line.move(to: point) } else { line.addLine(to: point) }
+                }
+                context.stroke(line, with: .color(color.opacity(0.85)), lineWidth: width)
+            }
+        }
+    }
+}
+
+// MARK: - Preregistration / Предрегистрация
+
+struct PreregistrationLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var cut = 0.9
+    @State private var minimum = 0.2
+    @State private var written = false
+    @State private var copies = 1
+    @State private var sawAboveZero = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let gap = Preregistration.gap(Preregistration.data, cut: cut)
+        let ci = written ? Preregistration.interval(cut: cut, copies: copies) : nil
+        let confirmed = (gap ?? 0) >= minimum && (ci?.low ?? -1) > 0
+        LessonsFinalCard {
+            LabHeader(title: text("lab.prereg.title"), instruction: text("lab.prereg.subtitle"))
+            HStack {
+                Text(String(format: text("lab.prereg.cut"), number(cut))).frame(width: 220, alignment: .leading)
+                Slider(value: $cut, in: 0.5...0.95, step: 0.05).disabled(written).accessibilityIdentifier("lab.prereg.cut")
+            }
+            HStack {
+                Text(String(format: text("lab.prereg.minimum"), number(minimum))).frame(width: 220, alignment: .leading)
+                Slider(value: $minimum, in: 0.05...0.5, step: 0.05).disabled(written).accessibilityIdentifier("lab.prereg.minimum")
+            }
+            HStack {
+                Button(text("lab.prereg.write")) { written = true }
+                    .buttonStyle(.borderedProminent)
+                    .disabled(written)
+                    .accessibilityIdentifier("lab.prereg.write")
+                Button(text("lab.prereg.again")) { written = false; copies = 1 }
+                    .disabled(!written)
+                    .accessibilityIdentifier("lab.prereg.again")
+            }
+            if written, let ci {
+                interval(gap: gap, ci: ci)
+                    .frame(height: 90)
+                    .accessibilityLabel(text("lab.prereg.chartSpoken"))
+                Picker(text("lab.prereg.copies"), selection: $copies) {
+                    ForEach([1, 2, 4, 8], id: \.self) { value in Text(String(value * 20)).tag(value) }
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("lab.prereg.copies")
+                LabStatGrid {
+                    LabStat(label: text("lab.prereg.statGap"), value: gap.map { number($0) } ?? "—", tint: .teal, identifier: "lab.prereg.gap")
+                    LabStat(label: text("lab.prereg.statInterval"), value: number(ci.low) + " … " + number(ci.high), tint: ci.low > 0 ? .green : .orange, identifier: "lab.prereg.interval")
+                }
+                LabStatusBadge(kind: confirmed ? .good : .warning,
+                               text: confirmed ? text("lab.prereg.confirmed") : text("lab.prereg.notConfirmed"), identifier: "lab.prereg.status")
+                if copies > 1 {
+                    Text(text("lab.prereg.copiesNote")).font(.caption).foregroundStyle(.secondary)
+                }
+            } else {
+                LabStatusBadge(kind: .info, text: text("lab.prereg.hidden"), identifier: "lab.prereg.status")
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.prereg.challenge"), solved: sawAboveZero,
+                         solvedText: text("lab.prereg.challengeDone"), identifier: "lab.prereg.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.prereg.howBootstrap"), text("lab.prereg.howNot")])
+        }
+        .onChange(of: copies) { value in
+            if written, Preregistration.interval(cut: cut, copies: value).low > 0 { sawAboveZero = true }
+        }
+    }
+
+    private func interval(gap: Double?, ci: (low: Double, high: Double)) -> some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: -0.4...1, y: 0...1)
+            plot.drawAxes(in: context, xLabel: text("lab.prereg.xAxis"), yLabel: "", xTicks: [-0.4, 0, 0.2, 0.5, 1], yTicks: [],
+                          format: { L10n.number($0, fractionDigits: 1, store.language) })
+            let zeroTop: CGPoint = plot.point(0, 1)
+            let zeroBottom: CGPoint = plot.point(0, 0)
+            var zero = Path()
+            zero.move(to: zeroTop)
+            zero.addLine(to: zeroBottom)
+            context.stroke(zero, with: .color(.red), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            let left: CGPoint = plot.point(max(-0.4, ci.low), 0.5)
+            let right: CGPoint = plot.point(min(1, ci.high), 0.5)
+            var bar = Path()
+            bar.move(to: left)
+            bar.addLine(to: right)
+            context.stroke(bar, with: .color(ci.low > 0 ? .green : .orange), lineWidth: 8)
+            if let gap {
+                let dot: CGPoint = plot.point(gap, 0.5)
+                context.fill(Path(ellipseIn: CGRect(x: dot.x - 7, y: dot.y - 7, width: 14, height: 14)), with: .color(AppPalette.accent.color))
+            }
+            let threshold: CGPoint = plot.point(minimum, 0.9)
+            context.draw(Text("▼").font(.caption).foregroundColor(.purple), at: threshold)
+        }
+    }
+}

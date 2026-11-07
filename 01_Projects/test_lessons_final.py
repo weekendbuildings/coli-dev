@@ -32,6 +32,8 @@ CASES = [
     ("interp_circuits", "NetworkCircuitLab", "netcircuit", ("2211.00593", "attribution-graphs/methods", "attribution-graphs/biology")),
     ("agi_planning_search", "TreeSearchLab", "tree", ("1712.01815", "1911.08265", "the-book-2nd")),
     ("agi_open_problems", "AdditionRangeLab", "ood", ("2004.07780", "2505.11831", "cs224n")),
+    ("consciousness_biology_vs_function", "NeuronReplacementLab", "replace", ("consc.net/papers/qualia", "searle80", "C9912A5BE9D806012E3C8B3AF612E39A")),
+    ("consciousness_what_you_can_do", "PreregistrationLab", "prereg", ("model_mistakes_recording.json", "2308.08708", "theassc.org", "eleosai.org")),
     ("sampling_and_generation", "SamplingLab", "sampling", ("1904.09751", "docs.ollama.com/modelfile", "live_model_recording.json")),
 ]
 

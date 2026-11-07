@@ -623,3 +623,64 @@ enum AdditionNet {
         return Trained(w1: w1, b1: b1, w2: w2, b2: b2, near: near, far: far)
     }
 }
+
+/// Ten neurons with feedback; a "chip" computes the same function by another formula, as in «Биология или функция».
+enum ReplacementBrain {
+    static let weights: [[Double]] = {
+        var rand = LFRand(state: 4)
+        return (0..<10).map { _ in (0..<10).map { _ in (rand.next() - 0.5) * 3 } }
+    }()
+
+    static func neuron(_ z: Double) -> Double { 1 / (1 + exp(-z)) }
+    static func chip(_ z: Double) -> Double { 0.5 * (1 + tanh(z / 2)) }
+
+    /// Output of neuron 9 over 12 steps when the first `chips` neurons are chips.
+    static func run(chips: Int, steps: Int = 12) -> [Double] {
+        var x = [Double](repeating: 0, count: 10)
+        var trace: [Double] = []
+        for t in 0..<steps {
+            var next = [Double](repeating: 0, count: 10)
+            for j in 0..<10 {
+                var z = 0.0
+                for i in 0..<10 { z += weights[j][i] * x[i] }
+                z += (t == 0 && j == 0) ? 2.0 : 0.0
+                next[j] = j < chips ? chip(z) : neuron(z)
+            }
+            x = next
+            trace.append(x[9])
+        }
+        return trace
+    }
+
+    static func largestDifference(chips: Int) -> Double {
+        zip(run(chips: 0), run(chips: chips)).map { abs($0 - $1) }.max() ?? 0
+    }
+}
+
+/// A preregistered hypothesis about confidence, tested by the bootstrap on the 20 recorded answers, as in «Что можешь сделать ты».
+enum Preregistration {
+    /// Confidence and correctness of the 20 answers of qwen2.5-coder:7b from «Как модель ошибается».
+    static let data: [(Double, Int)] = [(0.869, 1), (0.945, 1), (0.936, 1), (0.795, 0), (0.898, 1), (0.988, 1), (0.998, 1), (0.991, 1),
+                                        (0.344, 0), (0.631, 0), (0.36, 0), (0.559, 0), (0.602, 0), (0.737, 1), (0.771, 0), (0.877, 0),
+                                        (0.89, 0), (0.896, 1), (0.994, 0), (0.964, 0)]
+
+    static func gap(_ rows: [(Double, Int)], cut: Double) -> Double? {
+        let high = rows.filter { $0.0 >= cut }.map(\.1)
+        let low = rows.filter { $0.0 < cut }.map(\.1)
+        guard !high.isEmpty, !low.isEmpty else { return nil }
+        return Double(high.reduce(0, +)) / Double(high.count) - Double(low.reduce(0, +)) / Double(low.count)
+    }
+
+    /// 95 % interval of the difference; `copies` repeats the data to show how the interval narrows with more answers.
+    static func interval(cut: Double, copies: Int = 1, draws: Int = 2000, seed: UInt64 = 9) -> (low: Double, high: Double) {
+        let rows = Array(repeating: data, count: copies).flatMap { $0 }
+        var rand = LFRand(state: seed)
+        var gaps: [Double] = []
+        for _ in 0..<draws {
+            let sample = rows.indices.map { _ in rows[Int(rand.next() * Double(rows.count))] }
+            if let value = gap(sample, cut: cut) { gaps.append(value) }
+        }
+        gaps.sort()
+        return (gaps[Int(0.025 * Double(gaps.count))], gaps[Int(0.975 * Double(gaps.count))])
+    }
+}

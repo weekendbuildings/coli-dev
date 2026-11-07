@@ -136,7 +136,26 @@ struct VerifyLessonsFinalLabs {
         print("addition ok: ranges that solve it \(solving)")
     }
 
+    static func replacement() {
+        check(near(ReplacementBrain.neuron(0.5), 0.6225) && near(ReplacementBrain.chip(0.5), 0.6225), "neuron and chip agree at 0.5")
+        let trace = ReplacementBrain.run(chips: 0)
+        check(zip(trace.prefix(6), [0.5, 0.659, 0.729, 0.8, 0.819, 0.84]).allSatisfy { near($0, $1) }, "trace of neuron 9 differs from the lesson: \(trace.prefix(6))")
+        check((0...10).allSatisfy { ReplacementBrain.largestDifference(chips: $0) < 1e-14 }, "replacing neurons must not change behaviour beyond rounding")
+        print("replacement ok")
+    }
+
+    static func preregistration() {
+        check(near(Preregistration.gap(Preregistration.data, cut: 0.9) ?? 0, 0.41, 0.005), "difference 0.41 at the cut 0.9")
+        let ci = Preregistration.interval(cut: 0.9)
+        check(near(ci.low, -0.06, 0.005) && near(ci.high, 0.80, 0.005), "interval −0.06 … 0.80, got \(ci)")
+        let copies = [1, 2, 4, 8].first { Preregistration.interval(cut: 0.9, copies: $0).low > 0 }
+        check(copies != nil && copies != 1, "more answers should lift the interval above zero")
+        print("preregistration ok: interval above zero from \((copies ?? 0) * 20) answers")
+    }
+
     static func main() {
+        replacement()
+        preregistration()
         planning()
         addition()
         bigram()
