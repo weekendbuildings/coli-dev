@@ -13,7 +13,7 @@ source_review_interval_days: 180
 
 ### Простыми словами
 
-Это справочник, а не обычный урок. В нём 112 слов пути ИИ, у каждого одно-два простых предложения и ссылка на урок, где оно разобрано подробно. Как словарь в конце учебника: читать его подряд не нужно, в него заглядывают, когда споткнулся. Слова идут по этапам пути, в том порядке, в каком встречаются.
+Это справочник, а не обычный урок. В нём 116 слов пути ИИ, у каждого одно-два простых предложения и ссылка на урок, где оно разобрано подробно. Как словарь в конце учебника: читать его подряд не нужно, в него заглядывают, когда споткнулся. Слова идут по этапам пути, в том порядке, в каком встречаются.
 
 **Что нужно знать до.** Ничего.
 
@@ -69,6 +69,7 @@ source_review_interval_days: 180
 - **Обратное распространение.** Способ найти, сколько каждый вес виноват в ошибке, идя от ошибки назад по правилу цепочки. Подробно: «Нейросеть учится сама: обратное распространение ошибки», шаг 8.
 - **Скрытый слой.** Нейроны между входом и выходом. Строят новые признаки, с которыми задача становится простой. Подробно: «Скрытый слой: нейросеть учит XOR», шаг 8.
 - **Сигмоида.** Функция, которая сжимает любое число в промежуток от 0 до 1. Подробно: «Скрытый слой: нейросеть учит XOR», шаг 8.
+- **Якобиан.** Таблица производных каждого выхода по каждому входу. Обратный ход умножает ошибку на повёрнутый якобиан. Подробно: «Матричные производные и якобианы», шаг 8.
 - **Механизм градиентов, autograd.** Программа, которая сама считает производные: каждое число помнит, как получено. Подробно: «Свой механизм градиентов», шаг 8.
 - **Baseline.** Самое простое решение для сравнения. Модель хуже него ничему не научилась. Подробно: «Машинное обучение: baseline и отложенная проверка», шаг 9.
 - **Отложенная проверка.** Данные, спрятанные от модели при обучении. Только на них видно, научилась ли она. Подробно: «Машинное обучение: baseline и отложенная проверка», шаг 9.
@@ -103,6 +104,7 @@ source_review_interval_days: 180
 - **Q-обучение.** Агент учит оценку `Q` для каждой пары «состояние и действие» только по своему опыту. Подробно: «Q-обучение: агент учится сам», шаг 13.
 - **REINFORCE.** Метод, который делает вероятнее действия с хорошей наградой и менее вероятными с плохой. Подробно: «Градиент политики: REINFORCE», шаг 13.
 - **Базовая линия.** Средняя награда, которую вычитают, чтобы «хорошо» значило «лучше обычного». Подробно: «Градиент политики: REINFORCE», шаг 13.
+- **SVD и ранг.** Разложение матрицы на слои «вход, выход, сила»; ранг это число таких слоёв. Мало сильных слоёв значит, что матрицу можно сжать. Подробно: «SVD и малоранговые матрицы», шаг 14.
 - **Дообучение.** Продолжить обучение готовой модели на своих примерах вместо обучения с нуля. Подробно: «Дообучение и LoRA», шаг 14.
 - **LoRA.** Дообучение маленькой добавки рядом с замороженными весами. Её можно снять. Подробно: «Дообучение и LoRA», шаг 14.
 - **RLHF.** Обучение с подкреплением на сравнениях ответов, которые сделали люди. Подробно: «RLHF: обучение на предпочтениях людей», шаг 14.
@@ -146,6 +148,8 @@ source_review_interval_days: 180
 - **IIT и Φ.** Теория интегрированной информации и её мера неделимости системы. Спорная теория. Подробно: «Интегрированная информация», шаг 24.
 - **Метапознание.** Знание о своём знании, например умение понять, что ты, скорее всего, ошибся. Подробно: «Мысль о мысли и предсказание», шаг 24.
 - **Предсказательная обработка.** Взгляд, что мозг всё время предсказывает вход и исправляет ошибки предсказания. Подробно: «Мысль о мысли и предсказание», шаг 24.
+- **Потенциал действия.** Спайк: быстрый скачок напряжения мембраны нейрона, почти одинаковый по высоте. Описан моделью Ходжкина — Хаксли. Подробно: «Как мерят мозг и модель нейрона Ходжкина — Хаксли», шаг 25.
+- **ЭЭГ и фМРТ.** Два способа мерить мозг снаружи: ЭЭГ быстрая, но размытая по месту, фМРТ чёткая по месту, но запаздывает на секунды. Подробно: «Как мерят мозг и модель нейрона Ходжкина — Хаксли», шаг 25.
 - **Маскировка.** Опыт: стимул показывают на миг и сразу закрывают узором, и его замечают не всегда. Подробно: «Опыты о сознании», шаг 25.
 - **d′.** Мера чувствительности, отделённая от смелости говорить «вижу». Подробно: «Опыты о сознании», шаг 25.
 - **Индикаторы сознания.** Признаки устройства системы, важные для нескольких теорий. Их сумма не вероятность. Подробно: «Индикаторы: проверка настоящей системы», шаг 25.
@@ -184,7 +188,7 @@ source_review_interval_days: 180
 
 ### In plain words
 
-This is a reference, not an ordinary lesson. It has 112 words of the AI path, each with one or two plain sentences and a link to the lesson that covers it in detail. Like the glossary at the back of a textbook: you do not read it straight through, you look in when you stumble. Words go by path stage, in the order they appear.
+This is a reference, not an ordinary lesson. It has 116 words of the AI path, each with one or two plain sentences and a link to the lesson that covers it in detail. Like the glossary at the back of a textbook: you do not read it straight through, you look in when you stumble. Words go by path stage, in the order they appear.
 
 **What to know first.** Nothing.
 
@@ -240,6 +244,7 @@ The explanations here are short and so they simplify. The exact meaning is alway
 - **Backpropagation.** A way to find how much each weight is to blame for the error, going back from the error by the chain rule. In detail: «A Neural Network Learns: Backpropagation», step 8.
 - **Hidden layer.** Neurons between input and output. They build new features that make the task simple. In detail: «The Hidden Layer: A Network Learns XOR», step 8.
 - **Sigmoid.** A function that squeezes any number into the range from 0 to 1. In detail: «The Hidden Layer: A Network Learns XOR», step 8.
+- **Jacobian.** The table of derivatives of every output with respect to every input. The backward pass multiplies the error by the transposed Jacobian. In detail: «Matrix derivatives and Jacobians», step 8.
 - **Gradient engine, autograd.** A program that computes derivatives itself: each number remembers how it was made. In detail: «Your own gradient engine», step 8.
 - **Baseline.** The simplest solution to compare against. A model worse than it has learned nothing. In detail: «Machine Learning: Baselines and Held-out Evaluation», step 9.
 - **Held-out evaluation.** Data hidden from the model during training. Only on it can you see whether it learned. In detail: «Machine Learning: Baselines and Held-out Evaluation», step 9.
@@ -274,6 +279,7 @@ The explanations here are short and so they simplify. The exact meaning is alway
 - **Q-learning.** The agent learns an estimate `Q` for each "state and action" pair from its own experience only. In detail: «Q-learning: an agent learns on its own», step 13.
 - **REINFORCE.** A method that makes actions with good reward more likely and those with bad reward less likely. In detail: «The policy gradient: REINFORCE», step 13.
 - **Baseline (in RL).** The average reward subtracted so that "good" means "better than usual". In detail: «The policy gradient: REINFORCE», step 13.
+- **SVD and rank.** Splitting a matrix into «input, output, strength» layers; the rank is the number of such layers. Few strong layers mean the matrix can be compressed. In detail: «SVD and low-rank matrices», step 14.
 - **Fine-tuning.** Continuing to train a ready model on your own examples instead of training from scratch. In detail: «Fine-tuning and LoRA», step 14.
 - **LoRA.** Fine-tuning a small add-on beside frozen weights. It can be removed. In detail: «Fine-tuning and LoRA», step 14.
 - **RLHF.** Reinforcement learning on comparisons of answers made by people. In detail: «RLHF: learning from human preferences», step 14.
@@ -317,6 +323,8 @@ The explanations here are short and so they simplify. The exact meaning is alway
 - **IIT and Φ.** Integrated information theory and its measure of how indivisible a system is. A disputed theory. In detail: «Integrated information», step 24.
 - **Metacognition.** Knowledge about one's own knowledge, for example sensing that you are probably wrong. In detail: «Thoughts about thoughts and prediction», step 24.
 - **Predictive processing.** The view that the brain constantly predicts its input and corrects prediction errors. In detail: «Thoughts about thoughts and prediction», step 24.
+- **Action potential.** A spike: a fast jump of a neuron's membrane voltage, of nearly the same height each time. Described by the Hodgkin–Huxley model. In detail: «How the brain is measured, and the Hodgkin–Huxley neuron», step 25.
+- **EEG and fMRI.** Two ways to measure the brain from outside: EEG is fast but blurry in place, fMRI is sharp in place but lags by seconds. In detail: «How the brain is measured, and the Hodgkin–Huxley neuron», step 25.
 - **Masking.** An experiment: a stimulus is flashed and at once covered by a pattern, so it is not always noticed. In detail: «Experiments on consciousness», step 25.
 - **d′.** A measure of sensitivity separated from boldness in saying "I see it". In detail: «Experiments on consciousness», step 25.
 - **Consciousness indicators.** Features of a system's design that matter to several theories. Their sum is not a probability. In detail: «Indicators: checking a real system», step 25.

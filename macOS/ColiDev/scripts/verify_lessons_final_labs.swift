@@ -153,7 +153,26 @@ struct VerifyLessonsFinalLabs {
         print("preregistration ok: interval above zero from \((copies ?? 0) * 20) answers")
     }
 
+    static func reading() {
+        let rotation = SVD2.decompose(0.8, -0.6, 0.6, 0.8)
+        check(near(rotation.s1, 1) && near(rotation.s2, 1), "a rotation has both singular values 1, so the start does not solve the task")
+        let rankOne = SVD2.decompose(1, 2, 2, 4)
+        check(near(rankOne.s1, 5) && rankOne.s2 < 1e-6, "[[1, 2], [2, 4]] has singular values 5 and 0")
+        let diagonal = SVD2.decompose(3, 0, 0, 1)
+        check(near(diagonal.s1, 3) && near(diagonal.s2, 1) && near(abs(diagonal.v1.0), 1), "diagonal matrix")
+        check(near(JacobianMap.determinant((1, 1)), 3) && near(JacobianMap.determinant((1, -2)), 0), "det J is 3 at (1, 1) and 0 at (1, −2)")
+        let j = JacobianMap.layerJacobian([0.4, -0.2])
+        check(near(j[0][0], 0.4278, 0.00006) && near(j[1][0], 1.2084, 0.00006) && near(j[2][1], 0.6631, 0.00006), "layer Jacobian as in the lesson")
+        let counts = [2.0, 5, 7, 10, 20].map { HodgkinHuxley.simulate(current: $0).spikes }
+        check(counts == [0, 1, 3, 3, 4], "spikes at 2, 5, 7, 10, 20: got \(counts)")
+        check(near(HodgkinHuxley.simulate(current: 10).trace.max() ?? 0, 40.5, 0.06), "peak at 10 should be 40.5 mV")
+        let threshold = stride(from: 0.5, through: 20, by: 0.5).first { HodgkinHuxley.simulate(current: $0).spikes >= 3 }
+        check(threshold != nil && threshold! > 2, "a current above the starting 2 gives three spikes")
+        print("reading ok: three spikes from \(threshold ?? 0)")
+    }
+
     static func main() {
+        reading()
         replacement()
         preregistration()
         planning()

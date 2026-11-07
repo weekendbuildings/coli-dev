@@ -1091,3 +1091,252 @@ struct PreregistrationLab: View {
         }
     }
 }
+
+// MARK: - SVD of a 2 × 2 matrix / SVD матрицы 2 × 2
+
+struct SVDEllipseLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var a = 0.8
+    @State private var b = -0.6
+    @State private var c = 0.6
+    @State private var d = 0.8
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let svd = SVD2.decompose(a, b, c, d)
+        let share = svd.s1 > 0 ? svd.s2 / svd.s1 : 1
+        let solved = svd.s1 > 0.5 && share < 0.05
+        LessonsFinalCard {
+            LabHeader(title: text("lab.svd.title"), instruction: text("lab.svd.subtitle"))
+            plane(svd).frame(height: 280).accessibilityLabel(text("lab.svd.chartSpoken"))
+            ForEach(Array(zip(["a", "b", "c", "d"], [$a, $b, $c, $d])), id: \.0) { name, value in
+                HStack {
+                    Text("\(name) = " + number(value.wrappedValue, 1)).font(.callout.monospacedDigit()).frame(width: 80, alignment: .leading)
+                    Slider(value: value, in: -2...2, step: 0.1).accessibilityIdentifier("lab.svd.\(name)")
+                }
+            }
+            LabStatGrid {
+                LabStat(label: "σ₁", value: number(svd.s1), tint: .blue, identifier: "lab.svd.s1")
+                LabStat(label: "σ₂", value: number(svd.s2), tint: .orange, identifier: "lab.svd.s2")
+                LabStat(label: text("lab.svd.statShare"), value: number(share * 100, 1) + " %", tint: solved ? .green : .gray, identifier: "lab.svd.share")
+            }
+            LabStatusBadge(kind: solved ? .good : .info, text: solved ? text("lab.svd.rankOne") : text("lab.svd.fullRank"), identifier: "lab.svd.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.svd.challenge"), solved: solved,
+                         solvedText: text("lab.svd.challengeDone"), identifier: "lab.svd.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.svd.howSVD"), text("lab.svd.howLoRA")])
+        }
+    }
+
+    private func plane(_ svd: (s1: Double, s2: Double, v1: (Double, Double), v2: (Double, Double))) -> some View {
+        Canvas { context, size in
+            let side = min(size.width, size.height)
+            let plot = LabPlotGeometry(size: CGSize(width: side, height: side), x: -4...4, y: -4...4)
+            plot.drawAxes(in: context, xLabel: "x₁", yLabel: "x₂", xTicks: [-4, -2, 0, 2, 4], yTicks: [-4, -2, 0, 2, 4],
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            var circle = Path()
+            var ellipse = Path()
+            for step in 0...72 {
+                let t = Double(step) / 72 * 2 * Double.pi
+                let p = (cos(t), sin(t))
+                let q = (a * p.0 + b * p.1, c * p.0 + d * p.1)
+                let pc: CGPoint = plot.point(p.0, p.1)
+                let qc: CGPoint = plot.point(q.0, q.1)
+                if step == 0 { circle.move(to: pc); ellipse.move(to: qc) } else { circle.addLine(to: pc); ellipse.addLine(to: qc) }
+            }
+            context.stroke(circle, with: .color(.gray), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+            context.stroke(ellipse, with: .color(.teal), lineWidth: 3)
+            let origin: CGPoint = plot.point(0, 0)
+            for (vector, color) in [(svd.v1, Color.blue), (svd.v2, Color.orange)] {
+                let image = (a * vector.0 + b * vector.1, c * vector.0 + d * vector.1)
+                var arrow = Path()
+                arrow.move(to: origin)
+                arrow.addLine(to: plot.point(image.0, image.1))
+                context.stroke(arrow, with: .color(color), lineWidth: 4)
+            }
+        }
+    }
+}
+
+// MARK: - Jacobian of a map / Якобиан отображения
+
+struct JacobianLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var point = (1.0, 1.0)
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let det = JacobianMap.determinant(point)
+        let j = JacobianMap.jacobian(point)
+        let solved = abs(det) < 0.05
+        LessonsFinalCard {
+            LabHeader(title: text("lab.jacobian.title"), instruction: text("lab.jacobian.subtitle"))
+            HStack(spacing: 14) {
+                inputPlane.frame(height: 250).accessibilityLabel(text("lab.jacobian.inputSpoken"))
+                outputPlane.frame(height: 250).accessibilityLabel(text("lab.jacobian.outputSpoken"))
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.jacobian.statPoint"), value: "(" + number(point.0) + "; " + number(point.1) + ")", identifier: "lab.jacobian.point")
+                LabStat(label: "J", value: "[[" + number(j[0][0]) + ", " + number(j[0][1]) + "], [" + number(j[1][0]) + ", " + number(j[1][1]) + "]]", tint: .blue, identifier: "lab.jacobian.matrix")
+                LabStat(label: text("lab.jacobian.statDet"), value: number(det), tint: solved ? .green : .orange, identifier: "lab.jacobian.det")
+            }
+            LabStatusBadge(kind: solved ? .good : .info, text: solved ? text("lab.jacobian.flat") : text("lab.jacobian.area"), identifier: "lab.jacobian.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.jacobian.challenge"), solved: solved,
+                         solvedText: text("lab.jacobian.challengeDone"), identifier: "lab.jacobian.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.jacobian.howJ"), text("lab.jacobian.howBack")])
+        }
+    }
+
+    private var inputPlane: some View {
+        GeometryReader { proxy in
+            let plot = LabPlotGeometry(size: proxy.size, x: -2...2, y: -3...2)
+            Canvas { context, _ in
+                plot.drawAxes(in: context, xLabel: "x₁", yLabel: "x₂", xTicks: [-2, -1, 0, 1, 2], yTicks: [-3, -2, -1, 0, 1, 2],
+                              format: { L10n.number($0, fractionDigits: 0, store.language) })
+                var curve = Path()
+                for step in 0...80 {
+                    let x = -2.0 + Double(step) * 0.05
+                    let p: CGPoint = plot.point(x, -2 * x * x)
+                    if step == 0 { curve.move(to: p) } else { curve.addLine(to: p) }
+                }
+                context.stroke(curve, with: .color(.red.opacity(0.4)), style: StrokeStyle(lineWidth: 1.5, dash: [4, 3]))
+                let s = 0.15
+                let corner: CGPoint = plot.point(point.0 - s, point.1 + s)
+                let far: CGPoint = plot.point(point.0 + s, point.1 - s)
+                context.stroke(Path(CGRect(x: corner.x, y: corner.y, width: far.x - corner.x, height: far.y - corner.y)), with: .color(.teal), lineWidth: 2)
+                let center: CGPoint = plot.point(point.0, point.1)
+                context.fill(Path(ellipseIn: CGRect(x: center.x - 7, y: center.y - 7, width: 14, height: 14)), with: .color(AppPalette.accent.color))
+            }
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                let v = plot.value(at: value.location)
+                point = (min(2, max(-2, (v.x * 20).rounded() / 20)), min(2, max(-3, (v.y * 20).rounded() / 20)))
+            })
+        }
+    }
+
+    /// The image of the small square under f (teal, curved) and under the Jacobian (blue parallelogram).
+    private var outputPlane: some View {
+        Canvas { context, size in
+            let center = JacobianMap.f(point)
+            let plot = LabPlotGeometry(size: size, x: (center.0 - 1)...(center.0 + 1), y: (center.1 - 1)...(center.1 + 1))
+            plot.drawAxes(in: context, xLabel: "y₁", yLabel: "y₂", xTicks: [], yTicks: [], format: { L10n.number($0, fractionDigits: 1, store.language) })
+            let s = 0.15
+            let corners = [(-s, s), (s, s), (s, -s), (-s, -s), (-s, s)]
+            var curved = Path()
+            for (index, offset) in corners.dropLast().enumerated() {
+                let next = corners[index + 1]
+                for k in 0...10 {
+                    let t = Double(k) / 10
+                    let x = (point.0 + offset.0 + (next.0 - offset.0) * t, point.1 + offset.1 + (next.1 - offset.1) * t)
+                    let y = JacobianMap.f(x)
+                    let p: CGPoint = plot.point(y.0, y.1)
+                    if index == 0 && k == 0 { curved.move(to: p) } else { curved.addLine(to: p) }
+                }
+            }
+            context.stroke(curved, with: .color(.teal), lineWidth: 2.5)
+            let j = JacobianMap.jacobian(point)
+            var linear = Path()
+            for (index, offset) in corners.enumerated() {
+                let y = (center.0 + j[0][0] * offset.0 + j[0][1] * offset.1, center.1 + j[1][0] * offset.0 + j[1][1] * offset.1)
+                let p: CGPoint = plot.point(y.0, y.1)
+                if index == 0 { linear.move(to: p) } else { linear.addLine(to: p) }
+            }
+            context.stroke(linear, with: .color(.blue), style: StrokeStyle(lineWidth: 2, dash: [5, 3]))
+        }
+    }
+}
+
+// MARK: - Hodgkin–Huxley neuron / Нейрон Ходжкина — Хаксли
+
+struct HodgkinHuxleyLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var current = 2.0
+    @State private var method: Int?
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 1) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let result = HodgkinHuxley.simulate(current: current)
+        let previous = HodgkinHuxley.simulate(current: max(0, current - 0.5)).spikes
+        let solved = result.spikes >= 3 && previous < 3
+        LessonsFinalCard {
+            LabHeader(title: text("lab.hh.title"), instruction: text("lab.hh.subtitle"))
+            voltage(result.trace).frame(height: 220).accessibilityLabel(text("lab.hh.chartSpoken"))
+            HStack {
+                Text(String(format: text("lab.hh.current"), number(current))).frame(width: 190, alignment: .leading)
+                Slider(value: $current, in: 0...20, step: 0.5).accessibilityIdentifier("lab.hh.current")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.hh.statSpikes"), value: String(result.spikes), tint: result.spikes >= 3 ? .green : .orange, identifier: "lab.hh.spikes")
+                LabStat(label: text("lab.hh.statPeak"), value: number(result.trace.max() ?? 0) + " mV", tint: .red, identifier: "lab.hh.peak")
+            }
+            LabStatusBadge(kind: solved ? .good : .info,
+                           text: result.spikes == 0 ? text("lab.hh.silent") : (result.spikes < 3 ? text("lab.hh.once") : text("lab.hh.firing")),
+                           identifier: "lab.hh.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.hh.challenge"), solved: solved,
+                         solvedText: text("lab.hh.challengeDone"), identifier: "lab.hh.challenge")
+            Text(text("lab.hh.mapTitle")).font(.headline)
+            methodMap.frame(height: 200).accessibilityLabel(text("lab.hh.mapSpoken"))
+            if let method {
+                Text(text("lab.hh.method." + HodgkinHuxley.methods[method].key))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(10)
+                    .background(Color.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 10))
+                    .accessibilityIdentifier("lab.hh.methodText")
+            }
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.hh.howModel"), text("lab.hh.howNot")])
+        }
+    }
+
+    private func voltage(_ trace: [Double]) -> some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...50, y: -90...60)
+            plot.drawAxes(in: context, xLabel: text("lab.hh.xAxis"), yLabel: text("lab.hh.yAxis"), xTicks: [0, 10, 20, 30, 40, 50], yTicks: [-80, -40, 0, 40],
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            var line = Path()
+            for index in stride(from: 0, to: trace.count, by: 10) {
+                let p: CGPoint = plot.point(Double(index) * 0.01, min(60, max(-90, trace[index])))
+                if index == 0 { line.move(to: p) } else { line.addLine(to: p) }
+            }
+            context.stroke(line, with: .color(AppPalette.accent.color), lineWidth: 2)
+            let on: CGPoint = plot.point(5, 60)
+            let onBottom: CGPoint = plot.point(5, -90)
+            var mark = Path()
+            mark.move(to: on)
+            mark.addLine(to: onBottom)
+            context.stroke(mark, with: .color(.gray), style: StrokeStyle(lineWidth: 1, dash: [3, 3]))
+        }
+    }
+
+    /// Time resolution against space resolution, both on a log scale; click a method to read about it.
+    private var methodMap: some View {
+        GeometryReader { proxy in
+            let plot = LabPlotGeometry(size: proxy.size, x: -4.5...1, y: -5.5...(-1.5))
+            ZStack(alignment: .topLeading) {
+                Canvas { context, _ in
+                    plot.drawAxes(in: context, xLabel: text("lab.hh.mapX"), yLabel: text("lab.hh.mapY"), xTicks: [-4, -3, -2, -1, 0, 1], yTicks: [-5, -4, -3, -2],
+                                  format: { "10" + ($0 < 0 ? "⁻" : "") + String(Int(abs($0))).map { ["0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵"][$0] ?? $0 }.reduce("") { $0 + String($1) } })
+                }
+                ForEach(HodgkinHuxley.methods.indices, id: \.self) { index in
+                    let m = HodgkinHuxley.methods[index]
+                    let p: CGPoint = plot.point(log10(m.time), log10(m.space))
+                    Button { method = index } label: {
+                        Text(text("lab.hh.short." + m.key))
+                            .font(.caption.bold())
+                            .padding(.horizontal, 6).padding(.vertical, 3)
+                            .background((method == index ? AppPalette.accent.color : Color.teal).opacity(0.85), in: Capsule())
+                            .foregroundStyle(.white)
+                    }
+                    .buttonStyle(.plain)
+                    .position(x: p.x, y: p.y)
+                    .accessibilityIdentifier("lab.hh.map." + m.key)
+                }
+            }
+        }
+    }
+}

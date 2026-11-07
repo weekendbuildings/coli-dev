@@ -2108,6 +2108,12 @@ private struct PracticeLab: View {
             NeuronReplacementLab()
         } else if subject == .programming, moduleResource == "consciousness_what_you_can_do" {
             PreregistrationLab()
+        } else if subject == .programming, moduleResource == "svd_and_low_rank" {
+            SVDEllipseLab()
+        } else if subject == .programming, moduleResource == "matrix_calculus_jacobians" {
+            JacobianLab()
+        } else if subject == .programming, moduleResource == "brain_measurement_and_hodgkin_huxley" {
+            HodgkinHuxleyLab()
         } else if subject == .programming, moduleResource == "ai_path_glossary" {
             AIGlossaryLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {

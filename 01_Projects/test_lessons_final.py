@@ -34,6 +34,9 @@ CASES = [
     ("agi_open_problems", "AdditionRangeLab", "ood", ("2004.07780", "2505.11831", "cs224n")),
     ("consciousness_biology_vs_function", "NeuronReplacementLab", "replace", ("consc.net/papers/qualia", "searle80", "C9912A5BE9D806012E3C8B3AF612E39A")),
     ("consciousness_what_you_can_do", "PreregistrationLab", "prereg", ("model_mistakes_recording.json", "2308.08708", "theassc.org", "eleosai.org")),
+    ("svd_and_low_rank", "SVDEllipseLab", "svd", ("2106.09685", "BF02288367")),
+    ("matrix_calculus_jacobians", "JacobianLab", "jacobian", ("1802.01528", "zero-to-hero")),
+    ("brain_measurement_and_hodgkin_huxley", "HodgkinHuxleyLab", "hh", ("PMC1392413", "29120427", "nature06976", "pnas.87.24.9868")),
     ("sampling_and_generation", "SamplingLab", "sampling", ("1904.09751", "docs.ollama.com/modelfile", "live_model_recording.json")),
 ]
 

@@ -684,3 +684,77 @@ enum Preregistration {
         return (gaps[Int(0.025 * Double(gaps.count))], gaps[Int(0.975 * Double(gaps.count))])
     }
 }
+
+/// SVD of a 2 × 2 matrix in closed form, for «SVD и малоранговые матрицы».
+enum SVD2 {
+    /// Singular values (largest first) and the right singular vectors for [[a, b], [c, d]].
+    static func decompose(_ a: Double, _ b: Double, _ c: Double, _ d: Double) -> (s1: Double, s2: Double, v1: (Double, Double), v2: (Double, Double)) {
+        let p = a * a + c * c
+        let q = a * b + c * d
+        let r = b * b + d * d
+        let mean = (p + r) / 2
+        let spread = ((p - r) * (p - r) / 4 + q * q).squareRoot()
+        let l1 = mean + spread
+        let l2 = max(0, mean - spread)
+        let angle = 0.5 * atan2(2 * q, p - r)
+        let v1 = (cos(angle), sin(angle))
+        let v2 = (-sin(angle), cos(angle))
+        return (l1.squareRoot(), l2.squareRoot(), v1, v2)
+    }
+}
+
+/// The map f(x₁, x₂) = (x₁² − x₂, x₁ · x₂) and its Jacobian, for «Матричные производные и якобианы».
+enum JacobianMap {
+    static func f(_ x: (Double, Double)) -> (Double, Double) { (x.0 * x.0 - x.1, x.0 * x.1) }
+    static func jacobian(_ x: (Double, Double)) -> [[Double]] { [[2 * x.0, -1], [x.1, x.0]] }
+    static func determinant(_ x: (Double, Double)) -> Double { 2 * x.0 * x.0 + x.1 }
+
+    /// The layer of the lesson's program: y = tanh(W x) with its Jacobian diag(1 − y²) · W.
+    static let w: [[Double]] = [[0.5, -1.0], [2.0, 0.3], [-0.7, 0.8]]
+    static func layerJacobian(_ x: [Double]) -> [[Double]] {
+        w.map { row in
+            let z = row[0] * x[0] + row[1] * x[1]
+            let t = tanh(z)
+            return row.map { (1 - t * t) * $0 }
+        }
+    }
+}
+
+/// The Hodgkin–Huxley squid-axon model with rest near −65 mV, integrated as in the lesson's program.
+enum HodgkinHuxley {
+    static func rates(_ v: Double) -> (an: Double, bn: Double, am: Double, bm: Double, ah: Double, bh: Double) {
+        (0.01 * (v + 55) / (1 - exp(-(v + 55) / 10)), 0.125 * exp(-(v + 65) / 80),
+         0.1 * (v + 40) / (1 - exp(-(v + 40) / 10)), 4.0 * exp(-(v + 65) / 18),
+         0.07 * exp(-(v + 65) / 20), 1 / (1 + exp(-(v + 35) / 10)))
+    }
+
+    /// Voltage every 0.01 ms over 50 ms, with a constant current from 5 ms on, and the number of spikes.
+    static func simulate(current: Double, ms: Double = 50, dt: Double = 0.01) -> (trace: [Double], spikes: Int) {
+        var v = -65.0
+        var r = rates(v)
+        var n = r.an / (r.an + r.bn), m = r.am / (r.am + r.bm), h = r.ah / (r.ah + r.bh)
+        var trace: [Double] = []
+        var spikes = 0
+        var above = false
+        for step in 0..<Int(ms / dt) {
+            r = rates(v)
+            let iNa = 120.0 * m * m * m * h * (v - 50.0)
+            let iK = 36.0 * n * n * n * n * (v + 77.0)
+            let iL = 0.3 * (v + 54.387)
+            let drive = Double(step) * dt >= 5 ? current : 0.0
+            v += dt * (drive - iNa - iK - iL) / 1.0
+            n += dt * (r.an * (1 - n) - r.bn * n)
+            m += dt * (r.am * (1 - m) - r.bm * m)
+            h += dt * (r.ah * (1 - h) - r.bh * h)
+            if v > 0 && !above { spikes += 1 }
+            above = v > 0
+            trace.append(v)
+        }
+        return (trace, spikes)
+    }
+
+    /// Four ways to measure the brain: time and space resolution as orders of magnitude, in seconds and metres.
+    static let methods: [(key: String, time: Double, space: Double)] = [
+        ("eeg", 0.001, 0.01), ("fmri", 2, 0.002), ("patch", 0.0001, 0.00001), ("neuropixels", 0.0001, 0.00002),
+    ]
+}
