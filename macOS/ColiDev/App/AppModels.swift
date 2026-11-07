@@ -1010,7 +1010,7 @@ final class LocalBackendSupervisor: ObservableObject {
         }
         process = child
 
-        if await waitUntilReady(portFileURL: portFileURL, timeout: 15) {
+        if await waitUntilReady(portFileURL: portFileURL) {
             appendBackendDiagnostic(
                 "Compatible local backend (\(lastBackendIdentity ?? "identity unavailable")) responded on " +
                     "127.0.0.1:\(BackendEndpointRegistry.port).",
@@ -1050,9 +1050,12 @@ final class LocalBackendSupervisor: ObservableObject {
         return false
     }
 
-    private func waitUntilReady(portFileURL: URL, timeout: TimeInterval) async -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
+    private func waitUntilReady(portFileURL: URL) async -> Bool {
+        let startedAt = Date()
+        while BackendStartupPolicy.shouldKeepWaiting(
+            elapsed: Date().timeIntervalSince(startedAt),
+            processIsRunning: process?.isRunning ?? false
+        ) {
             if let portData = try? Data(contentsOf: portFileURL),
                let portText = String(data: portData, encoding: .ascii)?.trimmingCharacters(in: .whitespacesAndNewlines),
                let port = Int(portText),
@@ -1062,7 +1065,6 @@ final class LocalBackendSupervisor: ObservableObject {
                 BackendEndpointRegistry.updatePort(port)
                 return true
             }
-            if let process, !process.isRunning { return false }
             try? await Task.sleep(nanoseconds: 250_000_000)
         }
         return false

@@ -81,3 +81,18 @@ enum BackendCompatibility {
         return .compatible(apiVersion: status.apiVersion, buildID: buildID)
     }
 }
+
+/// Сколько ждать встроенный backend при запуске. / How long to wait for the bundled backend to start.
+///
+/// После обновления backend пересобирает индекс курса и только потом отвечает; на M1 это заняло больше 80 секунд.
+/// Раньше приложение ждало 15 секунд, останавливало живой процесс и запускало новый, и «Сегодня» оставалось с нулями.
+/// After an update the backend rebuilds the course index before it answers; on an M1 this took over 80 seconds.
+/// The app used to wait 15 seconds, stop the live process and start another, so Today stayed at zero.
+enum BackendStartupPolicy {
+    static let readinessTimeout: TimeInterval = 240
+
+    /// Ждём, пока процесс жив и время не вышло. / Keep waiting while the process is alive and time remains.
+    static func shouldKeepWaiting(elapsed: TimeInterval, processIsRunning: Bool) -> Bool {
+        processIsRunning && elapsed < readinessTimeout
+    }
+}
