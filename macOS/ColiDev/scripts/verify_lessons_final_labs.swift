@@ -87,11 +87,36 @@ struct VerifyLessonsFinalLabs {
         print("dedup ok")
     }
 
+    static func sparse() {
+        check(SparseAutoencoder.data.filter { $0.0 == 0 && $0.1 == 0 }.count == 1176, "1176 empty points")
+        let expected: [(Double, Double, Int, Int)] = [(0.0000, 4.00, 4, 0), (0.0002, 0.92, 3, 0), (0.0164, 0.48, 5, 0), (0.0768, 0.25, 5, 0), (0.1570, 0.00, 0, 5)]
+        for (index, lambda) in SparseAutoencoder.penalties.enumerated() {
+            let r = SparseAutoencoder.train(lambda: lambda)
+            let e = expected[index]
+            check(near(r.error, e.0, 0.00006) && near(r.activePerPoint, e.1, 0.006) && r.found == e.2 && r.dead == e.3,
+                  "λ = \(lambda): got error \(r.error), active \(r.activePerPoint), found \(r.found), dead \(r.dead)")
+        }
+        let start = SparseAutoencoder.train(lambda: SparseAutoencoder.penalties[0])
+        check(!(start.found == 5 && abs(start.activePerPoint - 0.5) < 0.1), "the starting λ must not solve the task")
+        print("sparse ok")
+    }
+
+    static func circuit() {
+        let all = Set(0..<6)
+        check(TinyCircuit.accuracy(keep: all) == 8, "all six neurons answer 8 of 8")
+        check((0..<6).map { TinyCircuit.accuracy(keep: all.subtracting([$0])) } == [8, 8, 7, 8, 8, 8], "single ablations as in the lesson")
+        check(TinyCircuit.accuracy(keep: [2, 3]) == 8 && (0..<6).allSatisfy { TinyCircuit.accuracy(keep: [$0]) < 8 }, "the smallest circuit has two neurons, [2, 3]")
+        check(near(TinyCircuit.patched(2), 0.993, 0.0006) && near(TinyCircuit.patched(5), 0.080, 0.0006), "patching neuron 2 gives 0.993, neuron 5 gives 0.080")
+        print("circuit ok")
+    }
+
     static func main() {
         bigram()
         sampling()
         dpo()
         scaling()
         dedup()
+        sparse()
+        circuit()
     }
 }

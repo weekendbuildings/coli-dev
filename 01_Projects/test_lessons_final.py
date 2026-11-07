@@ -28,6 +28,8 @@ CASES = [
     ("constitutional_ai_and_dpo", "DPOLab", "dpo", ("2212.08073", "2305.18290", "2310.12036")),
     ("scaling_laws_and_resources", "ComputeBudgetLab", "scaling", ("2203.15556", "2001.08361", "apple-unleashes-m1")),
     ("data_for_language_models", "DedupLab", "dedup", ("2107.06499", "2406.17557", "2104.08758")),
+    ("interp_sparse_features", "SparseFeatureLab", "sparse", ("monosemantic-features", "scaling-monosemanticity", "2309.08600")),
+    ("interp_circuits", "NetworkCircuitLab", "netcircuit", ("2211.00593", "attribution-graphs/methods", "attribution-graphs/biology")),
     ("sampling_and_generation", "SamplingLab", "sampling", ("1904.09751", "docs.ollama.com/modelfile", "live_model_recording.json")),
 ]
 
@@ -80,3 +82,20 @@ def test_real_top20_in_the_lab_equals_the_recording() -> None:
     pairs = re.findall(r'\("((?:[^"\\]|\\.)*)", (-?\d+\.\d+)\)', body)
     swift = [(token.encode().decode("unicode_escape"), float(logprob)) for token, logprob in pairs]
     assert swift == [(item["token"], item["logprob"]) for item in record["top20"]]
+
+
+def test_circuit_weights_in_the_lab_equal_the_lesson_program() -> None:
+    import contextlib
+    import io
+
+    from lesson_program_replay import python_blocks
+
+    namespace: dict = {"__name__": "__lesson__"}
+    with contextlib.redirect_stdout(io.StringIO()):
+        for block in python_blocks(sections(lesson("interp_circuits"))["ru"]):
+            exec(block, namespace)
+    models = (APP / "LessonsFinalModels.swift").read_text(encoding="utf-8")
+    body = models.split("enum TinyCircuit {", 1)[1].split("static let inputs", 1)[0]
+    numbers = [float(v) for v in re.findall(r"-?\d+\.\d+|-?\d+(?=[,\]])", body)]
+    python = [w for row in namespace["W1"] for w in row] + namespace["B1"] + namespace["W2"] + [namespace["B2"]]
+    assert numbers == python

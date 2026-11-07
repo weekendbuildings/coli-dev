@@ -2096,6 +2096,10 @@ private struct PracticeLab: View {
             ComputeBudgetLab()
         } else if subject == .programming, moduleResource == "data_for_language_models" {
             DedupLab()
+        } else if subject == .programming, moduleResource == "interp_sparse_features" {
+            SparseFeatureLab()
+        } else if subject == .programming, moduleResource == "interp_circuits" {
+            NetworkCircuitLab()
         } else if subject == .programming, moduleResource == "ai_path_glossary" {
             AIGlossaryLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {

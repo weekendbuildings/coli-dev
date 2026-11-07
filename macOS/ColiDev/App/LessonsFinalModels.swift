@@ -328,3 +328,144 @@ enum DedupToy {
         return removed
     }
 }
+
+/// A sparse autoencoder with five features on five sparse concepts in two dimensions, trained exactly as in «Разреженные признаки».
+enum SparseAutoencoder {
+    static let features: [(Double, Double)] = (0..<5).map { k in (cos(2.0 * Double.pi * Double(k) / 5.0), sin(2.0 * Double.pi * Double(k) / 5.0)) }
+    static let penalties: [Double] = [0, 0.03, 0.3, 1, 3]
+
+    static let data: [(Double, Double)] = {
+        var rand = LFRand(state: 3)
+        var points: [(Double, Double)] = []
+        for _ in 0..<2000 {
+            var x = (0.0, 0.0)
+            for direction in features where rand.next() < 0.1 {
+                let value = rand.next()
+                x.0 += value * direction.0
+                x.1 += value * direction.1
+            }
+            points.append(x)
+        }
+        return points
+    }()
+
+    struct Result {
+        let decoder: [(Double, Double)]
+        let alive: [Bool]
+        let error: Double
+        let activePerPoint: Double
+        let found: Int
+        var dead: Int { alive.filter { !$0 }.count }
+    }
+
+    static func train(lambda: Double, epochs: Int = 20, rate: Double = 0.05, seed: UInt64 = 11) -> Result {
+        let units = 5
+        var r = LFRand(state: seed)
+        var enc: [[Double]] = (0..<units).map { _ in
+            let a = r.next() - 0.5
+            let b = r.next() - 0.5
+            return [a, b]
+        }
+        var bias = [Double](repeating: 0, count: units)
+        var dec = enc
+        for _ in 0..<epochs {
+            for x in data {
+                let xs = [x.0, x.1]
+                var f = [Double](repeating: 0, count: units)
+                for j in 0..<units { f[j] = max(0.0, enc[j][0] * xs[0] + enc[j][1] * xs[1] + bias[j]) }
+                var out = [0.0, 0.0]
+                for i in 0..<2 {
+                    var s = 0.0
+                    for j in 0..<units { s += f[j] * dec[j][i] }
+                    out[i] = s
+                }
+                let err = [out[0] - xs[0], out[1] - xs[1]]
+                for j in 0..<units {
+                    let g = (0.0 + 2 * err[0] * dec[j][0]) + 2 * err[1] * dec[j][1] + lambda
+                    for i in 0..<2 { dec[j][i] -= rate * 2 * err[i] * f[j] }
+                    if f[j] > 0 {
+                        for i in 0..<2 { enc[j][i] -= rate * g * xs[i] }
+                        bias[j] -= rate * g
+                    }
+                }
+                for j in 0..<units {
+                    var norm = hypot(dec[j][0], dec[j][1])
+                    if norm == 0 { norm = 1 }
+                    dec[j] = [dec[j][0] / norm, dec[j][1] / norm]
+                }
+            }
+        }
+        var counts = [Int](repeating: 0, count: units)
+        var active = 0
+        var error = 0.0
+        for x in data {
+            var f = [Double](repeating: 0, count: units)
+            for j in 0..<units { f[j] = max(0.0, enc[j][0] * x.0 + enc[j][1] * x.1 + bias[j]) }
+            var out = [0.0, 0.0]
+            for i in 0..<2 {
+                var s = 0.0
+                for j in 0..<units { s += f[j] * dec[j][i] }
+                out[i] = s
+            }
+            let e0 = out[0] - x.0, e1 = out[1] - x.1
+            error += e0 * e0 + e1 * e1
+            for j in 0..<units where f[j] > 0 {
+                active += 1
+                counts[j] += 1
+            }
+        }
+        let alive = counts.map { $0 > 0 }
+        let found = features.filter { t in
+            let best = dec.indices.filter { alive[$0] }.map { abs(dec[$0][0] * t.0 + dec[$0][1] * t.1) }.max() ?? 0
+            return best > 0.95
+        }.count
+        return Result(decoder: dec.map { ($0[0], $0[1]) }, alive: alive, error: error / Double(data.count),
+                      activePerPoint: Double(active) / Double(data.count), found: found)
+    }
+}
+
+/// The trained 3-6-1 network of «Цепи», weights rounded to two decimals exactly as in the lesson's program.
+enum TinyCircuit {
+    static let w1: [[Double]] = [[-0.41, -2.2, -0.43], [1.82, 0.12, -4.26], [7.17, 5.53, -6.76], [-5.11, -6.79, 0.97], [-3.08, -5.17, -1.24], [4.92, -5.38, -0.43]]
+    static let b1: [Double] = [-0.27, 1.56, -3.05, 1.45, 2.75, -2.7]
+    static let w2: [Double] = [-1.49, -4.86, -13.85, -9.6, -6.43, 5.87]
+    static let b2 = 7.26
+    static let inputs: [[Double]] = [0, 1].flatMap { a in [0, 1].flatMap { b in [0, 1].map { c in [Double(a), Double(b), Double(c)] } } }
+
+    static func target(_ x: [Double]) -> Bool { (x[0] != x[1]) && x[2] == 1 }
+    static func sig(_ z: Double) -> Double { 1 / (1 + exp(-z)) }
+
+    static func hidden(_ x: [Double]) -> [Double] {
+        (0..<6).map { j in
+            var s = 0.0
+            for i in 0..<3 { s += w1[j][i] * x[i] }
+            return sig(s + b1[j])
+        }
+    }
+
+    static func output(_ h: [Double]) -> Double {
+        var s = 0.0
+        for j in 0..<6 { s += w2[j] * h[j] }
+        return sig(s + b2)
+    }
+
+    static let mean: [Double] = (0..<6).map { j in inputs.map { hidden($0)[j] }.reduce(0, +) / 8 }
+
+    /// Output for an input when only the neurons in `keep` stay on; the others give their mean.
+    static func output(_ x: [Double], keep: Set<Int>) -> Double {
+        let h = hidden(x).enumerated().map { keep.contains($0.offset) ? $0.element : mean[$0.offset] }
+        return output(h)
+    }
+
+    static func accuracy(keep: Set<Int>) -> Int { inputs.filter { (output($0, keep: keep) > 0.5) == target($0) }.count }
+
+    static let clean: [Double] = [1, 0, 1]
+    static let corrupt: [Double] = [1, 1, 1]
+
+    /// Output on the corrupted input with one neuron's activation taken from the clean run.
+    static func patched(_ neuron: Int) -> Double {
+        var h = hidden(corrupt)
+        h[neuron] = hidden(clean)[neuron]
+        return output(h)
+    }
+}

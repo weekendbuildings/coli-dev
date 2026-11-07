@@ -530,3 +530,207 @@ struct DedupLab: View {
         }
     }
 }
+
+// MARK: - Sparse features / Разреженные признаки
+
+struct SparseFeatureLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var penaltyIndex = 0
+    @State private var results: [Int: SparseAutoencoder.Result] = [:]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 2) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+    private static let colors: [Color] = [.blue, .orange, .green, .purple, .pink]
+
+    var body: some View {
+        let result = results[penaltyIndex]
+        let solved = result.map { $0.found == 5 && abs($0.activePerPoint - 0.5) < 0.1 } ?? false
+        LessonsFinalCard {
+            LabHeader(title: text("lab.sparse.title"), instruction: text("lab.sparse.subtitle"))
+            plane(result)
+                .frame(height: 320)
+                .accessibilityLabel(text("lab.sparse.chartSpoken"))
+            Picker(text("lab.sparse.penalty"), selection: $penaltyIndex) {
+                ForEach(SparseAutoencoder.penalties.indices, id: \.self) { index in
+                    Text("λ = " + L10n.number(SparseAutoencoder.penalties[index], fractionDigits: SparseAutoencoder.penalties[index] < 0.1 && SparseAutoencoder.penalties[index] > 0 ? 2 : 1, store.language)).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.sparse.penalty")
+            if let result {
+                LabStatGrid {
+                    LabStat(label: text("lab.sparse.statFound"), value: "\(result.found) / 5", tint: result.found == 5 ? .green : .orange, identifier: "lab.sparse.found")
+                    LabStat(label: text("lab.sparse.statActive"), value: number(result.activePerPoint), tint: .teal, identifier: "lab.sparse.active")
+                    LabStat(label: text("lab.sparse.statError"), value: number(result.error, 4), tint: .blue, identifier: "lab.sparse.error")
+                    LabStat(label: text("lab.sparse.statDead"), value: String(result.dead), tint: result.dead > 0 ? .red : .gray, identifier: "lab.sparse.dead")
+                }
+                LabStatusBadge(kind: solved ? .good : .info, text: verdict(result), identifier: "lab.sparse.status")
+            } else {
+                ProgressView()
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.sparse.challenge"), solved: solved,
+                         solvedText: text("lab.sparse.challengeDone"), identifier: "lab.sparse.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.sparse.howModel"), text("lab.sparse.howNot")])
+        }
+        .task(id: penaltyIndex) {
+            if results[penaltyIndex] == nil {
+                let lambda = SparseAutoencoder.penalties[penaltyIndex]
+                results[penaltyIndex] = SparseAutoencoder.train(lambda: lambda)
+            }
+        }
+    }
+
+    private func verdict(_ result: SparseAutoencoder.Result) -> String {
+        if result.dead == 5 { return text("lab.sparse.allDead") }
+        if result.activePerPoint > 1 { return text("lab.sparse.dense") }
+        if result.found < 5 { return text("lab.sparse.missing") }
+        if result.activePerPoint < 0.4 { return text("lab.sparse.shrunk") }
+        return text("lab.sparse.right")
+    }
+
+    private func plane(_ result: SparseAutoencoder.Result?) -> some View {
+        Canvas { context, size in
+            let side = min(size.width, size.height)
+            let frame = CGSize(width: side, height: side)
+            let plot = LabPlotGeometry(size: frame, x: -1.3...1.3, y: -1.3...1.3)
+            plot.drawAxes(in: context, xLabel: "x₁", yLabel: "x₂", xTicks: [-1, 0, 1], yTicks: [-1, 0, 1],
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            for point in SparseAutoencoder.data.prefix(900) where point.0 != 0 || point.1 != 0 {
+                let p: CGPoint = plot.point(point.0, point.1)
+                context.fill(Path(ellipseIn: CGRect(x: p.x - 1.5, y: p.y - 1.5, width: 3, height: 3)), with: .color(Color.secondary.opacity(0.5)))
+            }
+            let origin: CGPoint = plot.point(0, 0)
+            for direction in SparseAutoencoder.features {
+                var line = Path()
+                line.move(to: origin)
+                line.addLine(to: plot.point(direction.0 * 1.25, direction.1 * 1.25))
+                context.stroke(line, with: .color(.gray), style: StrokeStyle(lineWidth: 1.5, dash: [5, 4]))
+            }
+            guard let result else { return }
+            for (index, d) in result.decoder.enumerated() {
+                let tip: CGPoint = plot.point(d.0 * 1.1, d.1 * 1.1)
+                var arrow = Path()
+                arrow.move(to: origin)
+                arrow.addLine(to: tip)
+                let color: Color = result.alive[index] ? Self.colors[index] : Color.gray.opacity(0.4)
+                context.stroke(arrow, with: .color(color), style: StrokeStyle(lineWidth: result.alive[index] ? 3.5 : 2, dash: result.alive[index] ? [] : [3, 3]))
+                context.fill(Path(ellipseIn: CGRect(x: tip.x - 5, y: tip.y - 5, width: 10, height: 10)), with: .color(color))
+            }
+        }
+    }
+}
+
+// MARK: - Circuits / Цепи
+
+struct NetworkCircuitLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var on: Set<Int> = Set(0..<6)
+    @State private var patchedNeuron: Int?
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let correct = TinyCircuit.accuracy(keep: on)
+        let solved = on.count == 2 && correct == 8
+        LessonsFinalCard {
+            LabHeader(title: text("lab.netcircuit.title"), instruction: text("lab.netcircuit.subtitle"))
+            HStack(alignment: .top, spacing: 16) {
+                diagram
+                    .frame(width: 340, height: 280)
+                    .accessibilityLabel(text("lab.netcircuit.chartSpoken"))
+                answers
+            }
+            HStack(spacing: 8) {
+                ForEach(0..<6, id: \.self) { j in
+                    Button(String(format: text("lab.netcircuit.neuron"), String(j))) {
+                        if on.contains(j) { on.remove(j) } else { on.insert(j) }
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(on.contains(j) ? AppPalette.accent.color : .gray)
+                    .accessibilityIdentifier("lab.netcircuit.toggle.\(j)")
+                }
+                Button(text("lab.netcircuit.allOn")) { on = Set(0..<6) }
+                    .accessibilityIdentifier("lab.netcircuit.allOn")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.netcircuit.statOn"), value: String(on.count), tint: .teal, identifier: "lab.netcircuit.on")
+                LabStat(label: text("lab.netcircuit.statRight"), value: "\(correct) / 8", tint: correct == 8 ? .green : .red, identifier: "lab.netcircuit.right")
+            }
+            VStack(alignment: .leading, spacing: 6) {
+                Text(text("lab.netcircuit.patchTitle")).font(.headline)
+                HStack(spacing: 6) {
+                    ForEach(0..<6, id: \.self) { j in
+                        Button(String(j)) { patchedNeuron = j }
+                            .buttonStyle(.bordered)
+                            .tint(patchedNeuron == j ? .orange : .secondary)
+                            .accessibilityIdentifier("lab.netcircuit.patch.\(j)")
+                    }
+                }
+                if let patchedNeuron {
+                    Text(String(format: text("lab.netcircuit.patchResult"), String(patchedNeuron), number(TinyCircuit.patched(patchedNeuron))))
+                        .font(.callout)
+                        .accessibilityIdentifier("lab.netcircuit.patchResult")
+                }
+            }
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.netcircuit.challenge"), solved: solved,
+                         solvedText: text("lab.netcircuit.challengeDone"), identifier: "lab.netcircuit.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.netcircuit.howOff"), text("lab.netcircuit.howPatch")])
+        }
+    }
+
+    private var answers: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(text("lab.netcircuit.answers")).font(.caption.bold())
+            ForEach(TinyCircuit.inputs.indices, id: \.self) { index in
+                let x = TinyCircuit.inputs[index]
+                let y = TinyCircuit.output(x, keep: on)
+                let right = (y > 0.5) == TinyCircuit.target(x)
+                HStack(spacing: 6) {
+                    Text("\(Int(x[0])) \(Int(x[1])) \(Int(x[2]))").font(.caption.monospaced())
+                    Text("→ " + number(y, 2)).font(.caption.monospacedDigit())
+                    Text(right ? "✓" : "✗").font(.caption.bold()).foregroundStyle(right ? Color.green : Color.red)
+                }
+            }
+        }
+    }
+
+    /// Inputs, six hidden neurons and the output; line width shows a weight's size, colour its sign.
+    private var diagram: some View {
+        Canvas { context, size in
+            let inputY: [CGFloat] = [0.25, 0.5, 0.75].map { size.height * $0 }
+            let hiddenY: [CGFloat] = (0..<6).map { size.height * (CGFloat($0) + 0.5) / 6 }
+            let left = CGFloat(30), middle = size.width / 2, right = size.width - 30
+            for j in 0..<6 {
+                let active = on.contains(j)
+                for i in 0..<3 {
+                    var edge = Path()
+                    edge.move(to: CGPoint(x: left, y: inputY[i]))
+                    edge.addLine(to: CGPoint(x: middle, y: hiddenY[j]))
+                    let w = TinyCircuit.w1[j][i]
+                    let width: CGFloat = CGFloat(min(6.0, abs(w) * 0.6))
+                    context.stroke(edge, with: .color((w > 0 ? Color.blue : Color.red).opacity(active ? 0.7 : 0.12)), lineWidth: width)
+                }
+                var out = Path()
+                out.move(to: CGPoint(x: middle, y: hiddenY[j]))
+                out.addLine(to: CGPoint(x: right, y: size.height / 2))
+                let w = TinyCircuit.w2[j]
+                let width: CGFloat = CGFloat(min(7.0, abs(w) * 0.45))
+                context.stroke(out, with: .color((w > 0 ? Color.blue : Color.red).opacity(active ? 0.7 : 0.12)), lineWidth: width)
+            }
+            for (i, label) in ["a", "b", "c"].enumerated() {
+                let rect = CGRect(x: left - 14, y: inputY[i] - 14, width: 28, height: 28)
+                context.fill(Path(ellipseIn: rect), with: .color(.teal))
+                context.draw(Text(label).font(.headline).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.midY))
+            }
+            for j in 0..<6 {
+                let rect = CGRect(x: middle - 16, y: hiddenY[j] - 16, width: 32, height: 32)
+                context.fill(Path(ellipseIn: rect), with: .color(on.contains(j) ? AppPalette.accent.color : Color.gray.opacity(0.4)))
+                context.draw(Text(String(j)).font(.headline).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.midY))
+            }
+            let rect = CGRect(x: right - 16, y: size.height / 2 - 16, width: 32, height: 32)
+            context.fill(Path(ellipseIn: rect), with: .color(.green))
+            context.draw(Text("y").font(.headline).foregroundColor(.white), at: CGPoint(x: rect.midX, y: rect.midY))
+        }
+    }
+}

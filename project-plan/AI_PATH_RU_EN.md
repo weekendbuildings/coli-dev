@@ -104,8 +104,8 @@
 | Масштаб | `data_for_language_models` | Фильтры качества, точные копии по хешу, почти-копии по Жаккару и MinHash | CS336, лекции 13–14; Lee и др. 2021; FineWeb 2024 | C | есть |
 | Внутри | `interp_probes` | Линейный зонд на активациях своей модели | CS224N, лекция Been Kim | A | есть |
 | Внутри | `interp_superposition` | Игрушечная модель: 5 признаков в 2 и 3 измерениях, объёмная фигура из векторов (3D: форма и есть результат) | Elhage и др. 2022 | A | есть |
-| Внутри | `interp_sparse_features` | Разреженный автокодировщик на своей маленькой модели | Towards Monosemanticity, Scaling Monosemanticity | B | новый |
-| Внутри | `interp_circuits` | Отключаешь части своей модели и ищешь цепь; чтение настоящих графов | Circuit Tracing; On the Biology of a Large Language Model | B | новый |
+| Внутри | `interp_sparse_features` | Разреженный автокодировщик на игрушке из «Суперпозиции»: штраф λ решает, что найдено | Towards Monosemanticity, Scaling Monosemanticity; Cunningham и др. 2023 | B | есть |
+| Внутри | `interp_circuits` | Отключение нейронов, наименьшая цепь, избыточность и подмена активаций на маленькой сети; как устроены настоящие графы | Circuit Tracing; On the Biology of a Large Language Model; Wang и др. 2022 | B | есть |
 | Безопасность | `safety_what_goes_wrong` | Обман награды в своём RL, поддакивание и подмена инструкций на локальной модели. Спор: что из этого опасно на практике | CS224N, лекция о рисках; Greenblatt и др. 2024 | A | есть |
 
 ### Этап 4. Путь к AGI / Stage 4. The road to AGI
