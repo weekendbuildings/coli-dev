@@ -10,6 +10,17 @@ test -s "$resources/02_Areas/Mathematics/curriculum.md"
 smoke_root="$(mktemp -d "${TMPDIR:-/tmp}/colidev-backend-smoke.XXXXXX")"
 mkdir -p "$smoke_root/data" "$smoke_root/logs"
 port_file="$smoke_root/backend.port"
+# На Mac владельца в Связке ключей есть записи службы ColiDev. Новая подпись backend вызывает окно
+# доступа, и проверка ждёт ответа человека. COLIDEV_SMOKE_DENY_KEYCHAIN=1 закрывает тестовому
+# backend доступ к Связке ключей: он читает только переменные окружения, как в чистом CI.
+# Системные настройки и сама Связка ключей не меняются.
+# On the owner's Mac the Keychain holds ColiDev items, and a new backend signature opens an access
+# prompt that blocks the check. COLIDEV_SMOKE_DENY_KEYCHAIN=1 denies the test backend Keychain
+# access, so it reads only environment values, as in clean CI. Nothing in the system changes.
+launcher=()
+if [[ "${COLIDEV_SMOKE_DENY_KEYCHAIN:-0}" == "1" ]]; then
+    launcher=(/usr/bin/sandbox-exec -p '(version 1)(allow default)(deny mach-lookup (global-name "com.apple.SecurityServer") (global-name "com.apple.securityd") (global-name "com.apple.security.agent") (global-name "com.apple.securityd.xpc"))')
+fi
 COLIDEV_PROJECT_ROOT="$resources" \
 COLIDEV_DATA_DIR="$smoke_root/data" \
 COLIDEV_LOG_DIR="$smoke_root/logs" \
@@ -20,7 +31,7 @@ COLIDEV_PORT_FILE="$port_file" \
 COLIDEV_BUILD_ID="runtime-smoke" \
 DEV_MODE=false \
 NET_CHECK_TIMEOUT=0.5 \
-"$executable" >"$smoke_root/backend.log" 2>&1 &
+${launcher[@]+"${launcher[@]}"} "$executable" >"$smoke_root/backend.log" 2>&1 &
 backend_pid=$!
 
 cleanup() {

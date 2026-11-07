@@ -55,8 +55,8 @@ struct NotebookLessonExport {
             let beforeLabel = isRussian ? "Перед просмотром" : "Before watching"
             let afterLabel = isRussian ? "После просмотра" : "After watching"
             let transcriptNote = isRussian
-                ? "Текст субтитров не включён в этот файл. NotebookLM может импортировать расшифровку из публичного видео YouTube, если для него доступны поддерживаемые субтитры."
-                : "Caption text is not included in this file. NotebookLM may import a transcript from a public YouTube video when supported captions are available."
+                ? "Текст субтитров не включён в этот файл. Gemini Notebook может импортировать расшифровку из публичного видео YouTube, если для него доступны поддерживаемые субтитры."
+                : "Caption text is not included in this file. Gemini Notebook may import a transcript from a public YouTube video when supported captions are available."
             var videoSection = "## \(videoHeading)\n\n**\(videoActivity.title)**\n\n[\(lessonLinkLabel)](\(videoActivity.lessonURL.absoluteString))"
             if let youtubeURL = videoActivity.youtubeURL {
                 videoSection += "\n\n[\(youtubeLinkLabel)](\(youtubeURL.absoluteString))"
