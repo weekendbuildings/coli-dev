@@ -2086,6 +2086,12 @@ private struct PracticeLab: View {
             SelfReportLab()
         } else if subject == .programming, moduleResource == "consciousness_moral_status" {
             TwoErrorsLab()
+        } else if subject == .programming, moduleResource == "bigram_language_model" {
+            BigramLab()
+        } else if subject == .programming, moduleResource == "sampling_and_generation" {
+            SamplingLab()
+        } else if subject == .programming, moduleResource == "constitutional_ai_and_dpo" {
+            DPOLab()
         } else if subject == .programming, moduleResource == "ai_path_glossary" {
             AIGlossaryLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {

@@ -559,6 +559,12 @@ jobs:
             -parse-as-library -o "$RUNNER_TEMP/verify-ai-glossary"
           "$RUNNER_TEMP/verify-ai-glossary"
 
+      - name: Verify lessons-final labs / Проверка тренажёров уроков B и C
+        run: |
+          swiftc macOS/ColiDev/App/LessonsFinalModels.swift macOS/ColiDev/scripts/verify_lessons_final_labs.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-lessons-final"
+          "$RUNNER_TEMP/verify-lessons-final"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \
