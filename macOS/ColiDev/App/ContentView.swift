@@ -2367,13 +2367,9 @@ private struct ManagementView: View {
                     .accessibilityLabel(L10n.text("management.reload", store.language))
                 }
 
+                // Заголовок уже стоит выше, поэтому здесь только вкладки: повтор обрезался до «Cause & Co…».
+                // The title is already above, so only the tabs are here: the repeat was cut to "Cause & Co…".
                 HStack(spacing: 3) {
-                    Text(L10n.text("management.title", store.language))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .padding(.horizontal, 8)
-
                     ForEach(ManagementPane.allCases) { section in
                         Button {
                             pane = section
@@ -3683,7 +3679,7 @@ private struct ManagementView: View {
                                 && store.providerSecretStatuses["obsidian"]?.configured == true
                         )
                         integrationRow(
-                            title: "NotebookLM",
+                            title: "Gemini Notebook",
                             symbol: "doc.on.doc",
                             detail: L10n.text("management.notebookManual", store.language),
                             ready: nil

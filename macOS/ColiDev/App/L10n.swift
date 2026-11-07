@@ -759,7 +759,7 @@ enum L10n {
         "lab.errors.howFormula": ("Защищать дешевле, когда (1 − p) · A < p · B. Отсюда порог p* = A / (A + B). Здесь A это цена ложной тревоги, B это цена пропуска.", "Protecting is cheaper when (1 − p) · A < p · B. Hence the threshold p* = A / (A + B). Here A is the cost of a false alarm, and B the cost of a miss."),
         "lab.errors.howNot": ("Формула не говорит, какие числа верны, и не решает вопрос этики. Настоящие решения сложнее: есть степени, разные системы и много участников.", "The formula does not say which numbers are right, and does not settle the ethical question. Real decisions are more complex: there are degrees, various systems and many parties."),
         "path.step1.title": ("Настоящая модель руками", "A real model, by hand"),
-        "path.step1.why": ("Сначала настоящая модель на твоём Mac: так всё, что дальше, будет не абстракцией, а объяснением того, что ты уже видел.", "First a real model on your Mac, so everything after it explains what you have already seen rather than an abstraction."),
+        "path.step1.why": ("Четыре урока с локальной моделью: как она выбирает слова, держит разговор, ошибается и как её просить.", "Four lessons with a local model: how it picks words, keeps a conversation, makes mistakes and how to ask it."),
         "path.step2.title": ("Python", "Python"),
         "path.step2.why": ("На нём ты напишешь всё: от первого нейрона до своей модели.", "You will write everything in it, from the first neuron to your own model."),
         "path.step3.title": ("Линейная алгебра", "Linear algebra"),
