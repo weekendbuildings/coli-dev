@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Считать производные руками для каждой новой сети долго и легко ошибиться. Механизм градиентов делает это сам. Каждое число запоминает, из каких чисел и какой операцией оно получено. Потом от ответа назад каждая операция применяет своё маленькое правило, и все производные складываются. Похоже на чек, где у каждой строки написано, из чего она сложилась: пройдя чек снизу вверх, видишь вклад каждой покупки. Так же работает PyTorch, только на больших массивах.
+
+**Что нужно знать до.** Урок «Нейросеть учится сама» (шаг 8): правило цепочки. Урок «Классы в Python» (шаг 2): объекты и методы.
+
+**Если непонятно.** Если неясно, зачем `+=`, найди в уроке шаг 4: там число используется дважды, и его вклады складываются. Если неясны классы, вернись к уроку «Классы в Python». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Написать примерно за 70 строк на чистом Python механизм, который сам считает градиенты для любой формулы, проверить его численно и обучить им настоящую маленькую сеть. Внутри PyTorch работает та же идея, только на больших массивах чисел. Нужно около часа.
@@ -225,6 +233,14 @@ print([round(predict(p, q).data, 2) for p, q, _ in data])
 Наш механизм работает с отдельными числами, поэтому он очень медленный: на каждое умножение создаётся объект Python. Настоящие библиотеки считают целыми массивами и на видеокарте, поэтому им хватает времени на миллиарды весов. Операций у нас мало, и обход в `backward` рекурсивный, поэтому на очень длинных формулах упрётся в предел глубины Python. Сеть на XOR при других начальных весах может застрять: это обычное свойство обучения, а не ошибка механизма.
 
 ## English
+
+### In plain words
+
+Computing derivatives by hand for every new network is slow and error-prone. A gradient engine does it itself. Each number remembers which numbers it came from and by which operation. Then, going back from the answer, each operation applies its own small rule, and all the derivatives add up. It is like a receipt where each line says what it was made of: reading it from bottom to top, you see each purchase's share. PyTorch works the same way, only on large arrays.
+
+**What to know first.** «A Neural Network Learns» (step 8): the chain rule. «Python Classes» (step 2): objects and methods.
+
+**If something is unclear.** If it is unclear why `+=` is used, find step 4 in the lesson: a number is used twice there, and its contributions add up. If classes are unclear, go back to «Python Classes». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Случайная величина это число, которое выпадает случайно, как очки на кубике. Математическое ожидание это средний итог, если повторять очень много раз, а дисперсия показывает, насколько сильно итоги разбросаны вокруг среднего. Чем больше бросков, тем ближе среднее к ожиданию, но точность растёт медленно: вдвое точнее стоит вчетверо больше бросков. Языковая модель пишет текст тем же способом: бросает «кубик» с неравными гранями, где каждая грань это токен.
+
+**Что нужно знать до.** Урок «Вероятность и формула Байеса» (шаг 5).
+
+**Если непонятно.** Если неясна дисперсия, посчитай её для кубика руками: отклонение каждой грани от 3,5, в квадрате, и среднее. Если неясна сама вероятность, вернись к уроку «Вероятность и формула Байеса». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Считать математическое ожидание и дисперсию, объяснять, почему большие выборки точнее и откуда берётся колокол, и получать случайный символ из вероятностей, управляя температурой. Так языковая модель пишет текст.
@@ -157,6 +165,14 @@ t adh lcnhsao th o ead osaeddn d dsohmmche th
 Формула `σ / √n` требует независимых примеров, а куски одного текста часто связаны между собой, поэтому настоящий шум бывает больше. Генератор в программе простой и учебный: он хорош для урока и не годится там, где важна настоящая случайность, например в криптографии. Нормальное приближение на доске хуже всего работает при `p` рядом с 0 или 1 и при малом числе рядов. Текст счётчика пар кажется похожим на английский лишь потому, что выборка из короткой фразы: он повторяет её куски и ничего не понимает.
 
 ## English
+
+### In plain words
+
+A random variable is a number that comes out by chance, like the points on a die. The expected value is the average outcome if you repeat very many times, and the variance shows how widely the outcomes scatter around that average. The more throws, the closer the average gets to the expectation, but precision grows slowly: twice as precise costs four times as many throws. A language model writes text the same way: it throws a "die" with unequal faces, where each face is a token.
+
+**What to know first.** The lesson «Probability and Bayes' Rule» (step 5).
+
+**If something is unclear.** If variance is unclear, compute it for a die by hand: each face's distance from 3.5, squared, then averaged. If probability itself is unclear, go back to «Probability and Bayes' Rule». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

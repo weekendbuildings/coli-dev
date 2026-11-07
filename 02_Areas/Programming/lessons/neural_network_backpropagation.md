@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Искусственный нейрон умножает вход на вес, прибавляет сдвиг и выдаёт ответ. Если ответ неверный, нужно понять, как сильно в этом виноват каждый вес. Правило цепочки делает это шаг за шагом от ошибки назад: как ошибка зависит от ответа, а ответ от веса. Похоже на поиск, где в цепочке поставок задержался груз: идёшь от магазина назад к складу и смотришь, сколько добавил каждый участок. Потом каждый вес чуть сдвигают в сторону меньшей ошибки.
+
+**Что нужно знать до.** Уроки «Производная как мгновенная скорость изменения» и «Градиентный спуск и шаг обучения» (шаг 4).
+
+**Если непонятно.** Если неясно правило цепочки, посчитай пример урока на бумаге по одной строке. Если неясна производная, вернись к уроку «Производная как мгновенная скорость изменения». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Написать на Python искусственный нейрон, который учится сам: посчитать ошибку, найти по правилу цепочки, как она зависит от каждого веса, и сдвинуть веса против градиента.
@@ -65,6 +73,14 @@ for step in range(3):
 Один нейрон без нелинейности умеет только прямые зависимости; настоящие сети добавляют нелинейную функцию после каждого слоя, а градиент через все слои считает автоматическое дифференцирование. Обратное распространение через настоящий скрытый слой разобрано в следующем уроке — «Скрытый слой: нейросеть учит XOR». Обучение на одном примере — учебный случай: настоящие сети учатся на больших наборах данных и проверяются на отложенной выборке, как в уроке о базовой модели.
 
 ## English
+
+### In plain words
+
+An artificial neuron multiplies the input by a weight, adds a bias and gives an answer. If the answer is wrong, you need to know how much each weight is to blame. The chain rule does this step by step backwards from the error: how the error depends on the answer, and the answer on the weight. It is like tracing a delayed delivery: you walk back from the shop to the warehouse and see how much each leg added. Then each weight is moved a little toward a smaller error.
+
+**What to know first.** The lessons «The Derivative as an Instantaneous Rate of Change» and «Gradient Descent and the Learning Rate» (step 4).
+
+**If something is unclear.** If the chain rule is unclear, work the lesson's example on paper one line at a time. If the derivative is unclear, go back to «The Derivative as an Instantaneous Rate of Change». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

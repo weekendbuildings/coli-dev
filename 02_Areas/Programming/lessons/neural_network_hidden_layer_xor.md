@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+XOR это правило «одно из двух, но не оба». Один нейрон его выучить не может: он умеет делить точки только одной прямой линией, а здесь одной прямой не хватает. Если поставить между входом и выходом скрытый слой нейронов, сеть сначала сама строит новые признаки, а выход уже делит их легко. Как если бы сложную задачу разбили на две простые и раздали двум помощникам. Ошибку при этом разносят назад через оба слоя.
+
+**Что нужно знать до.** Урок «Нейросеть учится сама: обратное распространение ошибки» (шаг 8) и урок «Векторы и матрицы» (шаг 3).
+
+**Если непонятно.** Если неясно, почему одной прямой мало, нарисуй четыре точки XOR на клетчатой бумаге и попробуй разделить их одной линией. Если неясно обратное распространение, вернись к предыдущему уроку шага 8. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Доказать, что один нейрон не может выучить XOR, построить сеть со скрытым слоем и провести обратное распространение через два слоя: от ошибки на выходе к весам скрытых нейронов.
@@ -139,9 +147,17 @@ for x, t in data:
 
 ### Границы модели
 
-Четыре примера без шума — учебная задача: она проверяет, может ли сеть их выучить, а работу на новых данных не измеряет. Сигмоида и квадратичная ошибка взяты ради простых формул; современные сети чаще используют ReLU и другие функции ошибки. При многих слоях сигнал ошибки по дороге назад может затухать, как в разобранном примере, или, наоборот, взрываться. Плато не значит, что лучших весов нет: они есть, но градиент там почти нулевой. Это модель машинного обучения, а не мозга: как меняются настоящие синапсы, показывает урок о пластичности.
+Четыре примера без шума — учебная задача: она проверяет, может ли сеть их выучить, а работу на новых данных не измеряет. Сигмоида и квадратичная ошибка взяты ради простых формул; современные сети чаще используют функцию активации ReLU, которая оставляет положительное число и заменяет отрицательное нулём, и другие функции ошибки. При многих слоях сигнал ошибки по дороге назад может затухать, как в разобранном примере, или, наоборот, взрываться. Плато не значит, что лучших весов нет: они есть, но градиент там почти нулевой. Это модель машинного обучения, а не мозга: как меняются настоящие синапсы, показывает урок о пластичности.
 
 ## English
+
+### In plain words
+
+XOR is the rule "one of the two, but not both". A single neuron cannot learn it: it can split points only with one straight line, and one line is not enough here. If you put a hidden layer of neurons between input and output, the network first builds new features itself, and the output then splits them easily. As if a hard task were split into two easy ones and handed to two helpers. The error is then carried back through both layers.
+
+**What to know first.** The lesson «A Neural Network Learns: Backpropagation» (step 8) and «Vectors and Matrices» (step 3).
+
+**If something is unclear.** If it is unclear why one line is not enough, draw the four XOR points on grid paper and try to split them with one line. If backpropagation is unclear, go back to the previous lesson of step 8. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -271,7 +287,7 @@ The conditions for XOR contradict each other: the sum `w₁ + w₂ + 2b` would h
 
 ### Limits
 
-Four examples without noise are a teaching task: it tests whether the network can learn them and does not measure how it works on new data. The sigmoid and squared error were chosen for their simple formulas; modern networks more often use ReLU and other error functions. With many layers the error signal can fade on its way back, as in the worked example, or instead explode. A plateau does not mean better weights are missing: they exist, but the gradient there is nearly zero. This is a machine learning model, not a model of the brain: the lesson on plasticity shows how real synapses change.
+Four examples without noise are a teaching task: it tests whether the network can learn them and does not measure how it works on new data. The sigmoid and squared error were chosen for their simple formulas; modern networks more often use the ReLU activation, which keeps a positive number and replaces a negative one with zero, and other error functions. With many layers the error signal can fade on its way back, as in the worked example, or instead explode. A plateau does not mean better weights are missing: they exist, but the gradient there is nearly zero. This is a machine learning model, not a model of the brain: the lesson on plasticity shows how real synapses change.
 
 ## Sources
 

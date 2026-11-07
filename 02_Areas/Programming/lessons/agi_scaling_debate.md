@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Несколько лет ошибка языковых моделей падала очень ровно, когда росли размер модели, данные и вычисления. На графике в логарифмах это почти прямая линия, её называют степенным законом. Главный спор: продолжится ли эта линия до AGI. Представь кривую роста ребёнка: за первые годы она гладкая, но если продолжить её до тридцати лет, выйдет великан. Хорошее совпадение на измеренных точках ещё не говорит, что будет дальше. В уроке ты сам подгонишь такой закон и увидишь, как он обманывает на продолжении.
+
+**Что нужно знать до.** Урок «Своя языковая модель» (шаг 12): ошибка на тексте, которого модель не видела. Логарифм встречается в уроке «Информация, энтропия и кросс-энтропия» (шаг 6).
+
+**Если непонятно.** Если неясно, почему степень на графике в логарифмах становится прямой, перечитай пример руками в шаге 1: там всё посчитано на двух точках. Если неясен логарифм, вернись к уроку «Информация, энтропия и кросс-энтропия». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Разобрать главный спор пути к AGI: хватит ли просто больше данных и вычислений. Подогнать степенной закон своими руками, увидеть, как он обманывает на продолжении, и научиться отделять измерения от прогнозов и мнений. Нужно около 40 минут.
@@ -122,7 +130,7 @@ law from the last 3 sizes: exponent -0.031
 
 Почему? В этом тексте есть **нижний предел**. Следующее слово выбрано случайно из 17, поэтому `ln 17 = 2,83` единицы неопределённости на слово, а средняя длина слова с пробелом `4,88` символа. Получаем предел `2,83 / 4,88 = 0,58`. Ниже никакая модель не опустится. **Прямая идёт, пока не упрётся, и заранее по ней этого не увидишь.** Есть ли такой предел у настоящих задач и где он, неизвестно: это и есть спор. Здесь предел задан моим текстом, а в настоящих данных он может лежать намного ниже.
 
-**Шаг 4. Ещё продолжение.** METR измерил в 2025 году, что длина задач, которые агенты решают в половине случаев, удваивается примерно за 7 месяцев. Это измерение прошлого. Посчитаем продолжение, начиная для примера с одного часа. Допиши и запусти.
+**Шаг 4. Ещё продолжение.** METR, независимая исследовательская группа, которая оценивает возможности ИИ, измерила в 2025 году, что длина задач, которые агенты решают в половине случаев, удваивается примерно за 7 месяцев. Это измерение прошлого. Посчитаем продолжение, начиная для примера с одного часа. Допиши и запусти.
 
 ```python
 print("METR: months from now, hours of work an agent can do at 50 % if the trend of doubling every 7 months holds, starting from 1 hour")
@@ -188,6 +196,14 @@ METR: months from now, hours of work an agent can do at 50 % if the trend of dou
 Счётчик символов это не языковая модель, и предел в моём тексте задан мной. У настоящих задач такого простого предела может не быть. Таблица это моё сжатое пересказывание чужих работ, поэтому сверяй с первоисточниками. Мнение людей со временем меняется, и даты здесь важны.
 
 ## English
+
+### In plain words
+
+For several years the error of language models fell very smoothly as model size, data and compute grew. On a log graph this is almost a straight line, called a power law. The main dispute: will this line continue all the way to AGI. Picture a child's growth curve: it is smooth for the first years, but if you extend it to age thirty you get a giant. A good fit on measured points does not yet say what comes next. In the lesson you fit such a law yourself and see how it misleads when extended.
+
+**What to know first.** The lesson «Your Own Language Model» (step 12): error on text the model has not seen. The logarithm appears in «Information, Entropy, and Cross-Entropy» (step 6).
+
+**If something is unclear.** If it is unclear why a power becomes a straight line on a log graph, reread the worked example in step 1: everything is computed from two points. If the logarithm is unclear, go back to «Information, Entropy, and Cross-Entropy». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -300,7 +316,7 @@ On the first points the law agrees very closely: `1.088` and `1.08`. An excellen
 
 Why? This text has a **lower limit**. The next word is picked at random from 17, so there are `ln 17 = 2.83` units of uncertainty per word, and the mean length of a word with its space is `4.88` characters. That gives a limit of `2.83 / 4.88 = 0.58`. No model goes lower. **The line runs until it hits something, and you cannot see that in advance from it.** Whether real tasks have such a limit, and where, is unknown: that is the dispute. Here my text sets the limit, while in real data it may lie far lower.
 
-**Step 4. Another extension.** METR measured in 2025 that the length of tasks agents solve half the time doubles about every 7 months. That measures the past. We compute the extension, starting for the sake of example from one hour. Add this and run it.
+**Step 4. Another extension.** METR, an independent research group that evaluates AI capabilities, measured in 2025 that the length of tasks agents solve half the time doubles about every 7 months. That measures the past. We compute the extension, starting for the sake of example from one hour. Add this and run it.
 
 ```python
 print("METR: months from now, hours of work an agent can do at 50 % if the trend of doubling every 7 months holds, starting from 1 hour")

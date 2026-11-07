@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Агент это модель в цикле: она пишет, какое действие хочет сделать, программа его выполняет и возвращает результат, и так до ответа. Действие это вызов инструмента: калькулятора, поиска, чтения файла. Сама модель ничего не делает, она только пишет текст, а исполняет программа. Как начальник, который пишет поручения, и помощник, который их выполняет и приносит отчёт. Модель часто ошибается в форме поручения, поэтому разбор и проверки пишут сами.
+
+**Что нужно знать до.** Уроки «Чат это текст» и «Как просить: инструкции, примеры, JSON» (шаг 1). Урок «RAG с нуля» (шаг 15).
+
+**Если непонятно.** Если неясно, зачем останавливать модель на конце строки, найди в уроке запуск без остановки: модель сама выдумывает «НАБЛЮДЕНИЕ», то есть результат инструмента. Если неясен JSON, вернись к уроку «Как просить». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Написать цикл агента без библиотек, решить настоящую проблему вызова инструментов на этом Mac и честно измерить, сколько задач агент решает. Нужно около 45 минут.
@@ -219,6 +227,14 @@ no stop at the line end, first reply: ДЕЙСТВИЕ: find(порт серве
 Шесть задач и одна маленькая модель: `3 из 6` описывает только этот опыт. Настройка правил сильно меняет результат. Первая моя версия решила 2 из 6, и я подправил её, а значит, числа не совсем чистые. Более сильные модели работают с инструментами заметно лучше. Защита от подмены инструкций в этом опыте не проверена, потому что модель не открыла заметку.
 
 ## English
+
+### In plain words
+
+An agent is a model in a loop: it writes which action it wants to take, the program carries it out and returns the result, and so on until the answer. An action is a tool call: a calculator, a search, reading a file. The model itself does nothing; it only writes text, and the program does the work. Like a boss who writes instructions and an assistant who carries them out and brings back a report. The model often gets the form of the instruction wrong, so we write the parsing and checks ourselves.
+
+**What to know first.** «A chat is text» and «How to ask: instructions, examples, JSON» (step 1). «RAG from scratch» (step 15).
+
+**If something is unclear.** If it is unclear why the model is stopped at the end of a line, find the run without the stop in the lesson: the model invents the "OBSERVATION", the tool's result, by itself. If JSON is unclear, go back to «How to ask». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

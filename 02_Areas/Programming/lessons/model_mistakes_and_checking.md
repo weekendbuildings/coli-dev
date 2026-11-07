@@ -11,6 +11,14 @@ source_review_interval_days: 180
 
 ## Русский
 
+### Простыми словами
+
+Модель пишет правдоподобный текст, а не проверенный факт. Поэтому она может ошибаться тем же уверенным тоном, каким говорит правду. Похоже на бойкого ученика на экзамене: отвечает гладко даже тогда, когда не знает. Чтобы понять, насколько модели верить, ей задают вопросы с заранее известными ответами и считают долю верных. Ещё помогает спросить несколько раз: если ответы расходятся, верить нельзя.
+
+**Что нужно знать до.** Урок «Живая модель на твоём Mac» (шаг 1): вероятность токена и температура.
+
+**Если непонятно.** Если неясно, откуда у ответа «уверенность», вернись к шагу 4 урока «Живая модель на твоём Mac». Доля, проценты и вероятность подробнее в уроке «Вероятность и формула Байеса» (шаг 5). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Проверить настоящую модель своими вопросами, честно посчитать, как часто она права, и увидеть главное: уверенный тон и высокая вероятность не значат, что ответ верный. Ты узнаешь четыре вида ошибок и два простых способа их ловить. Нужно около 40 минут, из них минут пять работает сама программа.
@@ -262,6 +270,14 @@ print(f"Верно: {score} из {len(QUESTIONS)}")
 Двадцать вопросов это очень мало: один вопрос меняет итог на 5 %. Я подобрал вопросы так, чтобы показать виды ошибок, поэтому 45 % и 70 % не значат, что эти модели вообще верны так часто. Образцы проверки грубые: плюс получили и ответ про Машу с неверным объяснением, и странное «Оба тяжелее». У больших моделей ошибок обычно меньше, но выдумки не исчезли полностью. Как те же модели отвечают на английском, я не измерял. Ответы о годе и президенте проверены на дату 2026-11-02 и со временем станут другими.
 
 ## English
+
+### In plain words
+
+A model writes plausible text, not a checked fact. So it can be wrong in the same confident tone it uses for the truth. It is like a glib student in an exam: the answer sounds smooth even when they do not know. To see how far to trust a model, you ask it questions whose answers you already know and count the share it gets right. It also helps to ask several times: if the answers differ, you cannot trust them.
+
+**What to know first.** The lesson «A live model on your Mac» (step 1): token probability and temperature.
+
+**If something is unclear.** If it is unclear where an answer's "confidence" comes from, go back to step 4 of «A live model on your Mac». Shares, percentages and probability are covered in «Probability and Bayes' Rule» (step 5). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

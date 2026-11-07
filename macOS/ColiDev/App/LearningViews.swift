@@ -203,6 +203,7 @@ struct SubjectOverviewView: View {
 
 private struct CurriculumLessonDocument {
     let title: String
+    let plainWords: String
     let sourceCheckedOn: String?
     let objective: String
     let theory: String
@@ -240,6 +241,7 @@ private struct CurriculumLessonDocument {
             .prefix(while: { !$0.trimmingCharacters(in: .whitespaces).hasPrefix("## ") })
         let section = languageLines.joined(separator: "\n").trimmingCharacters(in: .whitespacesAndNewlines)
         let objective = extract(section, headings: language == .ru ? ["Цель"] : ["Goal"])
+        let plainWords = extract(section, headings: language == .ru ? ["Простыми словами"] : ["In plain words"])
         let theory = extract(section, headings: language == .ru ? ["Идея и механизм"] : ["Idea and mechanism"])
         var practice = extract(section, headings: language == .ru
             ? ["Исследуй и потренируйся"]
@@ -260,6 +262,7 @@ private struct CurriculumLessonDocument {
         )
         return CurriculumLessonDocument(
             title: title,
+            plainWords: plainWords,
             sourceCheckedOn: sourceCheckedOn,
             objective: objective,
             theory: theory,
@@ -277,7 +280,7 @@ private struct CurriculumLessonDocument {
     var tutorContext: LessonContent {
         LessonContent(
             title: title,
-            objective: objective,
+            objective: plainWords.isEmpty ? objective : plainWords + "\n\n" + objective,
             explanation: theory,
             mechanism: practice,
             example: answer,
@@ -729,6 +732,10 @@ struct CurriculumModuleView: View {
                     }
                     .buttonStyle(.borderedProminent)
 
+                    if !document.plainWords.isEmpty {
+                        ModuleTextCard(title: L10n.text("session.plainWords", store.language), text: document.plainWords, tint: subject.tint)
+                            .accessibilityIdentifier("lesson.plainWords")
+                    }
                     ModuleTextCard(title: L10n.text("session.goal", store.language), text: document.objective, tint: subject.tint)
                     ModuleTextCard(title: L10n.text("session.theory", store.language), text: document.theory, tint: subject.tint)
                         .accessibilityIdentifier("lesson.theory")
@@ -2079,6 +2086,8 @@ private struct PracticeLab: View {
             SelfReportLab()
         } else if subject == .programming, moduleResource == "consciousness_moral_status" {
             TwoErrorsLab()
+        } else if subject == .programming, moduleResource == "ai_path_glossary" {
+            AIGlossaryLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {
             ConsciousnessIndicatorLab()
         } else if subject == .programming, moduleResource == "build_your_language_model" {

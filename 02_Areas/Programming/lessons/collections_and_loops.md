@@ -11,6 +11,14 @@ source_review_interval_days: 90
 
 ## Русский
 
+### Простыми словами
+
+Список это ряд значений по порядку, у каждого свой номер, индекс. Счёт номеров в Python начинается с нуля. Похоже на ряд почтовых ящиков: первый ящик номер 0, второй номер 1. Цикл `for` проходит ящики по очереди, а `while` повторяет шаги, пока условие верно. В нейросетях всё хранится в таких рядах чисел.
+
+**Что нужно знать до.** Урок «Условия, циклы и функции» (шаг 2).
+
+**Если непонятно.** Если путаешься в номерах, выпиши список на бумаге и подпиши под каждым элементом его индекс, начиная с 0. Если неясен сам цикл, вернись к уроку «Условия, циклы и функции». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Объяснять порядок и индексы элементов списка, изменять список добавлением, выбирать между обходом значений и пар «индекс — значение», а также трассировать цикл `while` с изменяющимся условием.
@@ -78,6 +86,14 @@ for index, item in enumerate(items):
 Тренажёр показывает только ограниченную учебную модель списка и цикла: он не запускает код ученика и не измеряет время выполнения. Индекс — это позиция в конкретной последовательности, а не постоянный идентификатор объекта. Индекс вне допустимого диапазона вызовет `IndexError`; удаление отсутствующего значения и изменение коллекции во время обхода требуют отдельной обработки.
 
 ## English
+
+### In plain words
+
+A list is a row of values in order, and each has its own number, an index. Counting in Python starts at zero. It is like a row of mailboxes: the first box is number 0, the second number 1. A `for` loop visits the boxes in turn, and `while` repeats steps while a condition is true. In neural networks everything is stored in such rows of numbers.
+
+**What to know first.** The lesson «Conditions, Loops, and Functions» (step 2).
+
+**If something is unclear.** If you mix up the numbers, write the list on paper and put each element's index under it, starting from 0. If the loop itself is unclear, go back to «Conditions, Loops, and Functions». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

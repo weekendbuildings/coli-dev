@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+ARC это набор головоломок на клетчатой сетке. Даны несколько примеров «было и стало», нужно самому угадать правило и применить его к новой сетке. Похоже на задание «продолжи ряд» на олимпиаде по смекалке, только задачи всякий раз новые, и заранее их не выучить. Поэтому ARC проверяет умение быстро осваивать новое, а не запас знаний. В уроке ты решишь такие задачи сам, дашь их перебору программ и локальным моделям и поймёшь, почему одно число результата значит меньше, чем кажется.
+
+**Что нужно знать до.** Урок «Что такое интеллект: три определения» (шаг 19), особенно определение Шолле. Урок «Оценка, которая что-то значит» (шаг 15): почему одно число из теста может обманывать.
+
+**Если непонятно.** Если неясно, как программа вызывает локальную модель, вернись к шагу 3 урока «Живая модель на твоём Mac» (шаг 1). Если неясно, почему маленький набор задач даёт шаткий результат, перечитай шаг 2 урока «Оценка, которая что-то значит». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Самому решить задачи в духе ARC, дать их перебору программ и локальным моделям, посчитать результат и честно понять, что эти числа значат, а чего нет. Нужно около 40 минут.
@@ -213,6 +221,14 @@ solved 4 of 10
 Мои 10 задач много проще настоящего ARC и не проверены на людях. Модели работали с нулевой температурой, без рассуждения, и с другими настройками результат будет другим. Числа об o3 взяты из отчёта организаторов, и я их не проверял сам. Что это значит для AGI, открытый вопрос.
 
 ## English
+
+### In plain words
+
+ARC is a set of puzzles on a grid of coloured cells. You get a few "before and after" examples, must guess the rule yourself and apply it to a new grid. It is like a "continue the pattern" task in a wits contest, only the puzzles are new each time, so they cannot be learned in advance. That is why ARC tests how fast you learn something new rather than how much you know. In the lesson you solve such puzzles yourself, give them to a program search and to local models, and see why one score means less than it seems.
+
+**What to know first.** The lesson «What is intelligence: three definitions» (step 19), especially Chollet's definition. The lesson «Evaluation that means something» (step 15): why one number from a test can mislead.
+
+**If something is unclear.** If it is unclear how a program calls a local model, go back to step 3 of «A live model on your Mac» (step 1). If it is unclear why a small set of puzzles gives a shaky result, reread step 2 of «Evaluation that means something». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

@@ -11,6 +11,14 @@ source_review_interval_days: 90
 
 ## Русский
 
+### Простыми словами
+
+Условие выбирает, что делать: «если идёт дождь, взять зонт». Цикл повторяет шаги: «пока в списке есть числа, бери следующее». Функция это рецепт с именем: ей дают продукты, она возвращает блюдо, и рецепт можно использовать много раз. Из этих трёх деталей собраны все программы этого пути, включая твою языковую модель.
+
+**Что нужно знать до.** Урок «Переменные и типы данных» (шаг 2).
+
+**Если непонятно.** Если путаешься в значениях, вернись к уроку «Переменные и типы данных» и проследи по строкам, что лежит в каждой переменной. Помогает записать это на бумаге. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Превратить задачу из нескольких повторяющихся шагов в функцию, которая принимает данные, выбирает ветку и возвращает проверяемый результат.
@@ -59,6 +67,14 @@ def count_even(numbers):
 Для списка из `n` целых чисел фиксированного размера цикл делает `n` итераций и проверок; при обычном учебном предположении, что арифметические операции и сравнения стоят `O(1)`, время работы равно `O(n)`. У целых чисел произвольной длины стоимость `%` может зависеть от размера числа. Пример ожидает целые числа и не проверяет тип входных элементов; реальные функции должны явно документировать поддерживаемые типы или проверять вход. Код урока анализируй или запускай только в изолированной среде: произвольный код из чата нельзя исполнять без ограничений.
 
 ## English
+
+### In plain words
+
+A condition chooses what to do: "if it rains, take an umbrella". A loop repeats steps: "while the list still has numbers, take the next one". A function is a recipe with a name: you give it ingredients, it returns a dish, and you can use the recipe many times. All programs on this path, including your language model, are built from these three parts.
+
+**What to know first.** The lesson «Variables and Data Types» (step 2).
+
+**If something is unclear.** If you lose track of values, go back to «Variables and Data Types» and follow, line by line, what each variable holds. Writing it on paper helps. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

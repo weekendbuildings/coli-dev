@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.optimizers_momentum_adam
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Оптимизаторы: импульс и Adam / Optimizers: momentum and Adam
 
 ## Русский
+
+### Простыми словами
+
+Оптимизатор это правило, по которому делают шаг обучения. Обычный спуск в длинной узкой долине мечется от стенки к стенке и еле ползёт вперёд. Импульс добавляет инерцию, как у тяжёлого шара: колебания гасятся, а скорость вдоль долины копится. Adam ещё и подбирает свой размер шага для каждого числа отдельно. Почти все большие модели сейчас учат Adam или его родственниками.
+
+**Что нужно знать до.** Урок «Градиентный спуск и шаг обучения» (шаг 4): почему большой шаг опасен. Урок «Частные производные и градиент» (шаг 4).
+
+**Если непонятно.** Если неясно, почему шаг нельзя просто увеличить, посчитай пример в шаге 1 урока. Если неясно среднее с затуханием, представь, что каждое новое значение берётся на 10 %, а прошлое среднее на 90 %. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -167,6 +175,14 @@ print([(round(x, 2), round(y, 2)) for x, y in adam(0.5)[:4]])
 
 ## English
 
+### In plain words
+
+An optimizer is the rule for taking a training step. Plain descent in a long narrow valley bounces from wall to wall and crawls forward. Momentum adds inertia, like a heavy ball: the swings die down while speed along the valley builds up. Adam also picks its own step size for each number separately. Almost all large models are trained today with Adam or its relatives.
+
+**What to know first.** «Gradient Descent and the Learning Rate» (step 4): why a big step is dangerous. «Partial Derivatives and the Gradient» (step 4).
+
+**If something is unclear.** If it is unclear why the step cannot simply be increased, work the example in step 1 of the lesson. If the decaying average is unclear, imagine each new value taken at 10 % and the previous average at 90 %. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Understand why plain gradient descent crawls along a long valley while momentum and Adam go faster. Compute one step of each rule by hand, compare them in a real experiment, and see the paths on a 3D model. It takes about 40 minutes.
@@ -323,7 +339,7 @@ This is a two-dimensional toy with a smooth relief and no noise, so step counts 
 
 ## Sources
 
-- Diederik P. Kingma, Jimmy Ba, "Adam: A Method for Stochastic Optimization", arXiv:1412.6980 (2014), title read 2026-11-02; the rule and its default values are recalled from the paper's algorithm: [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
+- Diederik P. Kingma, Jimmy Ba, "Adam: A Method for Stochastic Optimization", arXiv:1412.6980 (2014), title read 2026-11-02; Algorithm 1 and the default values α = 0.001, β1 = 0.9, β2 = 0.999, ε = 10⁻⁸ read in the paper on 2026-11-07: [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
 - Sebastian Ruder, "An overview of gradient descent optimization algorithms", arXiv:1609.04747 (2016), title read 2026-11-02: [arXiv:1609.04747](https://arxiv.org/abs/1609.04747)
 - Andrej Karpathy, "Let's build GPT", in Neural Networks: Zero to Hero (consulted 2026-11-02): [Zero to Hero](https://karpathy.ai/zero-to-hero.html)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

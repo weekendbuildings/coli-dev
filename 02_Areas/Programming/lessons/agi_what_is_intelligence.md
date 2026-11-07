@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+AGI, общий искусственный интеллект, это слово, у которого нет одного принятого определения. Поэтому спор «есть ли уже AGI» часто идёт ни о чём. В уроке три серьёзных определения: сколько целей система достигает в самых разных средах; как быстро она осваивает новое; на каком она уровне по качеству и широте умений. Похоже на вопрос «кто лучший спортсмен»: ответ зависит от того, считаешь ли ты медали в одном виде спорта, во многих или то, как быстро человек осваивает новый вид. В опыте ты увидишь, что победитель меняется вместе с определением.
+
+**Что нужно знать до.** Что такое агент, среда и награда: урок «Автоматы: пробовать новое или брать лучшее» (шаг 13). Своя языковая модель из урока «Своя языковая модель» (шаг 12): её мы тоже оцениваем.
+
+**Если непонятно.** Если неясна запись `2^(−K)` и длина описания в битах, вернись к уроку «Информация, энтропия и кросс-энтропия» (шаг 6). Если неясно, что такое награда, загляни в шаг 1 урока «Автоматы». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Разобрать три настоящих определения интеллекта, применить их к своим системам и увидеть в опыте, что победитель меняется вместе с определением. Здесь много спорного, поэтому показано отдельно, что измерено, а что чьё мнение. Нужно около 40 минут.
@@ -214,6 +222,14 @@ steps of experience, learner's and specialist's plain mean over all worlds
 Среды это простые автоматы, и никакой мерой интеллекта этот опыт не является. Биты описания я задал вручную. Настоящие длины описания невычислимы, а оценка Legg и Hutter теоретическая. Таблицу с оценками систем я заполнил по своему суждению, это мнение. Определений интеллекта намного больше трёх.
 
 ## English
+
+### In plain words
+
+AGI, artificial general intelligence, is a word with no single accepted definition. So the argument "is AGI already here" is often about nothing. The lesson gives three serious definitions: how many goals a system reaches across very different environments; how fast it learns something new; what level it reaches in quality and breadth of skills. It is like asking "who is the best athlete": the answer depends on whether you count medals in one sport, in many, or how fast a person learns a new sport. In the experiment you will see the winner change along with the definition.
+
+**What to know first.** What an agent, an environment and a reward are: the lesson «Slot machines: explore or exploit» (step 13). Your own language model from «Your Own Language Model» (step 12): we rate it too.
+
+**If something is unclear.** If the notation `2^(−K)` and description length in bits are unclear, go back to «Information, Entropy, and Cross-Entropy» (step 6). If reward is unclear, see step 1 of «Slot machines». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Вероятность это доля случаев, в которых что-то происходит. Условная вероятность это доля внутри части случаев: среди дождливых дней, сколько было с грозой. Формула Байеса позволяет перевернуть вопрос: из «как часто тест положителен у больных» получить «как часто болен тот, у кого тест положителен». Главная ловушка: если болезнь редкая, большинство положительных тестов окажутся ложными тревогами.
+
+**Что нужно знать до.** Дроби и проценты. Отдельных уроков пути не нужно.
+
+**Если непонятно.** Если запутался, представь 10 000 человек и посчитай их по группам: сколько больны, сколько из них с положительным тестом, сколько здоровых с положительным тестом. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Считать условную вероятность, проверять независимость событий и пользоваться формулой Байеса, чтобы переворачивать вероятности и не попадаться на ошибку базовой частоты.
@@ -113,6 +121,14 @@ fewer false alarms 0.5
 В примере все числа заданы точно, а в жизни и заболеваемость, и точность теста сами оцениваются с ошибкой, а люди идут на тест не случайно. Второй тест считается независимым только при условии, что ошибки двух тестов не связаны между собой, а у одинаковых тестов это часто не так. Это учебный пример и не медицинский совет. Счётчик букв в уроке считает частоты в одной фразе, поэтому его вероятности верны только для неё. В тренажёре дробные люди округляются до целых кубиков.
 
 ## English
+
+### In plain words
+
+Probability is the share of cases in which something happens. Conditional probability is a share within part of the cases: among rainy days, how many had a thunderstorm. Bayes' rule lets you turn the question around: from "how often is the test positive in sick people" to "how often is a person with a positive test sick". The main trap: if the disease is rare, most positive tests turn out to be false alarms.
+
+**What to know first.** Fractions and percentages. No other path lessons are needed.
+
+**If something is unclear.** If you get confused, imagine 10,000 people and count them by group: how many are sick, how many of them test positive, how many healthy people test positive. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

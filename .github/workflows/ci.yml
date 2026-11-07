@@ -553,6 +553,12 @@ jobs:
             macOS/ColiDev/scripts/verify_stage5_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage5-labs"
           "$RUNNER_TEMP/verify-stage5-labs"
 
+      - name: Verify AI path glossary / Проверка словаря пути ИИ
+        run: |
+          swiftc macOS/ColiDev/App/AIGlossaryModel.swift macOS/ColiDev/scripts/verify_ai_glossary.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-ai-glossary"
+          "$RUNNER_TEMP/verify-ai-glossary"
+
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |
           swiftc macOS/ColiDev/App/GradientStack.swift macOS/ColiDev/scripts/verify_gradient_stack.swift \

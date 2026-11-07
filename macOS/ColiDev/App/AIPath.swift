@@ -39,7 +39,7 @@ enum AIPathCatalog {
     static let stages: [AIPathStage] = [
         AIPathStage(number: 1, steps: [
             AIPathStep(number: 1, lessons: [
-                code("live_model_tokens_temperature"), code("chat_roles_and_context"),
+                code("ai_path_glossary"), code("live_model_tokens_temperature"), code("chat_roles_and_context"),
                 code("model_mistakes_and_checking"), code("asking_well_and_structured_output")
             ])
         ]),

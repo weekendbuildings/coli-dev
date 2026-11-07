@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Градиентный спуск это способ уменьшать ошибку маленькими шагами: смотришь, куда ошибка растёт, и шагаешь в обратную сторону. Шаг обучения решает, насколько далеко шагать. Как спуск с горы в темноте: слишком мелкие шаги, и ты идёшь до утра; слишком большие, и ты перепрыгиваешь долину и взлетаешь на другой склон. Так учится почти каждая нейросеть, включая твою.
+
+**Что нужно знать до.** Уроки «Производная как мгновенная скорость изменения» и «Частные производные и градиент» (шаг 4).
+
+**Если непонятно.** Если неясно, почему ошибка растёт при большом шаге, нарисуй параболу и сделай на ней два шага руками: маленький и большой. Если неясен градиент, вернись к уроку «Частные производные и градиент». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Объяснить, как градиентный спуск уменьшает ошибку модели, и предсказать, что произойдёт при слишком маленьком и слишком большом шаге обучения.
@@ -74,6 +82,14 @@ for rate in (0.01, 0.05, 0.12, 0.15):
 Одна переменная, четыре придуманные точки и модель без свободного члена: у такой задачи один минимум, и его можно найти формулой. Настоящие модели обучают тысячи или миллионы параметров, форма ошибки бывает сложной, а шаг подбирают по ошибке на валидационных данных. Точные числа верны только для этих данных и начального `w = 0`.
 
 ## English
+
+### In plain words
+
+Gradient descent is a way to lower the error in small steps: you see which way the error grows and step the opposite way. The learning rate decides how far to step. Like walking down a mountain in the dark: steps too small and you walk till morning; steps too big and you jump over the valley and up the other side. Almost every neural network learns this way, yours included.
+
+**What to know first.** The lessons «The Derivative as an Instantaneous Rate of Change» and «Partial Derivatives and the Gradient» (step 4).
+
+**If something is unclear.** If it is unclear why the error grows with a big step, draw a parabola and take two steps on it by hand: a small one and a big one. If the gradient is unclear, go back to «Partial Derivatives and the Gradient». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

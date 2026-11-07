@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.rag_from_scratch
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # RAG с нуля: поиск и ответ / RAG from scratch: search and answer
 
 ## Русский
+
+### Простыми словами
+
+RAG значит «найди, потом отвечай». Модель не знает твоих заметок, поэтому сначала программа ищет в них подходящие куски и вставляет их в подсказку, а модель отвечает по ним. Искать помогают эмбеддинги: похожие по смыслу тексты получают близкие векторы. Как студент на открытом экзамене: сначала находит нужную страницу в конспекте, потом пишет ответ. Качество всего ответа зависит от того, нашлась ли нужная страница, поэтому поиск мерят отдельно.
+
+**Что нужно знать до.** Урок «Эмбеддинги и сходство» (шаг 10): косинусное сходство. Урок «Чат это текст» (шаг 1): подсказка. Урок «Оценка, которая что-то значит» помогает, но идёт сразу после.
+
+**Если непонятно.** Если неясна близость векторов, посчитай шаг 2 урока руками для двух коротких векторов. Если неясно, как подсказка попадает к модели, вернись к уроку «Чат это текст». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -207,6 +215,14 @@ Q: Как зовут собаку владельца курса?
 Всего 10 заметок и 9 вопросов, и я написал их сам, поэтому числа нужны только для понимания метода. В настоящих базах кусков тысячи, и нужен быстрый приближённый поиск. Здесь нет переранжирования и обработки таблиц. Ответ зависит от модели и зерна. Округление векторов в записи немного меняет близости, это не меняет выводов.
 
 ## English
+
+### In plain words
+
+RAG means "find, then answer". The model does not know your notes, so the program first searches them for suitable pieces and puts those into the prompt, and the model answers from them. Embeddings help with the search: texts with similar meaning get nearby vectors. Like a student in an open-book exam: first find the right page in the notes, then write the answer. The quality of the whole answer depends on whether the right page was found, so search is measured separately.
+
+**What to know first.** «Embeddings and Similarity» (step 10): cosine similarity. «A chat is text» (step 1): the prompt. «Evaluation that means something» helps but comes right after.
+
+**If something is unclear.** If vector closeness is unclear, work step 2 of the lesson by hand for two short vectors. If it is unclear how the prompt reaches the model, go back to «A chat is text». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -406,7 +422,7 @@ Just 10 notes and 9 questions, which I wrote myself, so the numbers serve only t
 ## Sources
 
 - Patrick Lewis et al., "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks", arXiv:2005.11401 (2020): [arXiv:2005.11401](https://arxiv.org/abs/2005.11401)
-- Gordon V. Cormack, Charles L. A. Clarke, Stefan Büttcher, "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods", SIGIR (2009), paper confirmed in OpenAlex on 2026-11-03; the mixing formula with the constant 60 recalled.
+- Gordon V. Cormack, Charles L. A. Clarke, Stefan Büttcher, "Reciprocal Rank Fusion Outperforms Condorcet and Individual Rank Learning Methods", SIGIR (2009), paper confirmed in OpenAlex on 2026-11-03; the formula RRFscore(d) = Σ 1 / (k + r(d)) with k = 60 read in the paper on 2026-11-07: [PDF](https://plg.uwaterloo.ca/~gvcormac/cormacksigir09-rrf.pdf)
 - Stanford CS224N, title read 2026-11-03: [course](https://web.stanford.edu/class/cs224n/)
 - Ollama, embeddings API: [docs](https://docs.ollama.com/api/embed)
 - The notes, questions, program and numbers were written and computed for this lesson with bge-m3 and qwen2.5-coder:7b on the owner's Mac. The lesson paraphrases these sources and does not copy their text.

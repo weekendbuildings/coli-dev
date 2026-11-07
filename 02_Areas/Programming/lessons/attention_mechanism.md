@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Чтобы понять слово, нужно знать, к чему оно относится в предложении. Внимание позволяет каждому токену самому решить, на какие прошлые токены смотреть. У каждого токена есть запрос («что я ищу»), ключ («что я предлагаю») и значение («что я передам»). Похоже на поиск в библиотеке: запрос сравнивают с надписями на корешках, и книги с подходящими надписями берут с большим весом. Маска будущего не даёт подглядывать в ещё не написанный текст.
+
+**Что нужно знать до.** Уроки «Эмбеддинги и сходство» (шаг 10), «Классификация и softmax» (шаг 7) и «Векторы и матрицы» (шаг 3).
+
+**Если непонятно.** Если неясны запрос и ключ, посчитай внимание для двух токенов руками по примеру урока. Если неясен softmax в формуле, вернись к уроку «Классификация и softmax». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Считать внимание по формуле с запросами, ключами и значениями, понять, зачем нужны деление на `√d`, маска будущего и номера мест, и написать на чистом Python модель, которая сама находит, куда в тексте смотреть.
@@ -187,6 +195,14 @@ t=5 [0.45, 0.02, 0.02, 0.36, 0.07, 0.08]
 Узор с точным периодом — учебная задача: в настоящем тексте полезные места зависят от смысла, а не от постоянного сдвига. Наша модель содержит одну голову внимания и не имеет скрытых слоёв, а настоящие модели собирают много голов и слоёв, и это следующий урок. Внимание сравнивает каждое место с каждым, поэтому число операций растёт как квадрат длины текста. Веса внимания удобно рисовать, но они не обязательно объясняют решение модели: в исследованиях они часто расходились с другими мерами важности, поэтому к таким картинкам нужна осторожность.
 
 ## English
+
+### In plain words
+
+To understand a word, you need to know what it refers to in the sentence. Attention lets each token decide for itself which earlier tokens to look at. Each token has a query ("what I am looking for"), a key ("what I offer") and a value ("what I will pass on"). It is like searching a library: the query is compared with the labels on the spines, and books with matching labels are taken with more weight. The future mask stops peeking at text not yet written.
+
+**What to know first.** «Embeddings and Similarity» (step 10), «Classification and Softmax» (step 7) and «Vectors and Matrices» (step 3).
+
+**If something is unclear.** If query and key are unclear, compute attention for two tokens by hand following the lesson's example. If the softmax in the formula is unclear, go back to «Classification and Softmax». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
