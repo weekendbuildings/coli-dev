@@ -235,3 +235,96 @@ enum DPOToy {
     /// KL(π ‖ uniform start) for one question.
     static func kl(_ pi: [Double]) -> Double { pi.reduce(0) { $0 + ($1 > 0 ? $1 * log($1 / 0.25) : 0) } }
 }
+
+/// The Chinchilla fit (Hoffmann et al. 2022, equation 10) and the cost of training on this Mac.
+enum ScalingLaw {
+    static func loss(n: Double, d: Double) -> Double { 1.69 + 406.4 / pow(n, 0.34) + 410.7 / pow(d, 0.28) }
+
+    /// The best model size for a compute budget C = 6ND, found on the same grid as the lesson's program.
+    static func best(compute: Double) -> (n: Double, d: Double, loss: Double) {
+        var result = (n: 0.0, d: 0.0, loss: Double.infinity)
+        for step in 0...1200 {
+            let n = pow(10.0, 6.0 + Double(step) / 100.0)
+            let d = compute / (6.0 * n)
+            let value = loss(n: n, d: d)
+            if value < result.loss { result = (n, d, value) }
+        }
+        return result
+    }
+
+    /// Operations per second of the lesson «Своя языковая модель»: 6 · 26 624 weights · 1 536 000 characters in 47.2 minutes.
+    static let mySpeed = 6.0 * 26_624.0 * 1_536_000.0 / (47.2 * 60.0)
+    /// Apple's peak figure for the eight-core M1 GPU.
+    static let gpuPeak = 2.6e12
+    static func years(compute: Double, speed: Double) -> Double { compute / speed / (365.0 * 24.0 * 3600.0) }
+}
+
+/// Quality filters, exact copies and near-copies on twelve short texts, as in «Данные для языковой модели».
+enum DedupToy {
+    static let docs: [String] = [
+        "Кот спал на тёплом окне и смотрел, как падает снег.",
+        "Градиентный спуск уменьшает ошибку маленькими шагами против градиента.",
+        "Главная | Новости | Контакты | Войти | Корзина",
+        "Кот спал на тёплом окне и смотрел, как падает снег.",
+        "Купить дёшево! Купить дёшево! Купить дёшево! Купить дёшево!",
+        "Градиентный спуск уменьшает ошибку небольшими шагами против градиента.",
+        "Ок",
+        "Модель внимания сама выбирает, на какие прошлые токены смотреть.",
+        "Пёс гулял во дворе и искал свой мяч под старой скамейкой.",
+        "Кот спал на тёплом окне и смотрел, как падал снег.",
+        "Токенизатор BPE склеивает самую частую пару кусочков текста.",
+        "Пёс гулял по двору и искал мяч под скамейкой у подъезда.",
+    ]
+
+    enum Reason: String { case tooShort = "too short", noFullStop = "no full stop at the end", repeats = "repeats itself" }
+
+    static func words(_ doc: String) -> [String] { doc.split(whereSeparator: { $0.isWhitespace }).map(String.init) }
+
+    static func quality(_ doc: String) -> Reason? {
+        let w = words(doc)
+        if w.count < 5 { return .tooShort }
+        if let last = doc.last, !".!?".contains(last) { return .noFullStop }
+        if Double(Set(w).count) / Double(w.count) < 0.5 { return .repeats }
+        return nil
+    }
+
+    static func normalized(_ doc: String) -> String { words(doc.lowercased()).joined(separator: " ") }
+
+    static var afterFilters: [Int] { docs.indices.filter { quality(docs[$0]) == nil } }
+
+    /// Index of the earlier exact copy for texts removed in step 2.
+    static var exactCopies: [Int: Int] {
+        var first: [String: Int] = [:]
+        var copies: [Int: Int] = [:]
+        for index in afterFilters {
+            let key = normalized(docs[index])
+            if let earlier = first[key] { copies[index] = earlier } else { first[key] = index }
+        }
+        return copies
+    }
+
+    static var unique: [Int] { afterFilters.filter { exactCopies[$0] == nil } }
+
+    static func shingles(_ doc: String, size: Int = 5) -> Set<String> {
+        let chars = Array(normalized(doc))
+        guard chars.count >= size else { return [] }
+        return Set((0...(chars.count - size)).map { String(chars[$0..<($0 + size)]) })
+    }
+
+    static func jaccard(_ a: Int, _ b: Int) -> Double {
+        let x = shingles(docs[a]), y = shingles(docs[b])
+        return Double(x.intersection(y).count) / Double(x.union(y).count)
+    }
+
+    /// Texts dropped as near-copies at a threshold: later text → the earlier text it copies.
+    static func nearCopies(threshold: Double) -> [Int: Int] {
+        var removed: [Int: Int] = [:]
+        let list = unique
+        for (i, a) in list.enumerated() where removed[a] == nil {
+            for b in list[(i + 1)...] where removed[b] == nil && jaccard(a, b) >= threshold {
+                removed[b] = a
+            }
+        }
+        return removed
+    }
+}

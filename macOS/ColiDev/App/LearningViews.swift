@@ -2092,6 +2092,10 @@ private struct PracticeLab: View {
             SamplingLab()
         } else if subject == .programming, moduleResource == "constitutional_ai_and_dpo" {
             DPOLab()
+        } else if subject == .programming, moduleResource == "scaling_laws_and_resources" {
+            ComputeBudgetLab()
+        } else if subject == .programming, moduleResource == "data_for_language_models" {
+            DedupLab()
         } else if subject == .programming, moduleResource == "ai_path_glossary" {
             AIGlossaryLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {

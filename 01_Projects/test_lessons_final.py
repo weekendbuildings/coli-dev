@@ -26,6 +26,8 @@ RESOURCES = ROOT / "02_Areas" / "Programming" / "resources"
 CASES = [
     ("bigram_language_model", "BigramLab", "bigram", ("PaCmpygFfXo", "zero-to-hero")),
     ("constitutional_ai_and_dpo", "DPOLab", "dpo", ("2212.08073", "2305.18290", "2310.12036")),
+    ("scaling_laws_and_resources", "ComputeBudgetLab", "scaling", ("2203.15556", "2001.08361", "apple-unleashes-m1")),
+    ("data_for_language_models", "DedupLab", "dedup", ("2107.06499", "2406.17557", "2104.08758")),
     ("sampling_and_generation", "SamplingLab", "sampling", ("1904.09751", "docs.ollama.com/modelfile", "live_model_recording.json")),
 ]
 

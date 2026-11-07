@@ -346,3 +346,187 @@ struct DPOLab: View {
         .accessibilityIdentifier("lab.dpo.bar.\(prompt).\(answer)")
     }
 }
+
+/// A number like 3,2 · 10¹⁰ for very large and very small values.
+func lessonsFinalScientific(_ value: Double, _ language: AppLanguage) -> String {
+    guard value > 0, value.isFinite else { return "—" }
+    let exponent = Int(floor(log10(value)))
+    let mantissa = value / pow(10.0, Double(exponent))
+    let superscripts: [Character: Character] = ["0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹", "-": "⁻"]
+    let power = String(String(exponent).map { superscripts[$0] ?? $0 })
+    return L10n.number(mantissa, fractionDigits: 1, language) + " · 10" + power
+}
+
+// MARK: - Scaling laws / Законы масштабирования
+
+struct ComputeBudgetLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var logCompute = 21.0
+    @State private var logSize = 12.0
+    @State private var solvedBudgets: Set<Double> = []
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func sci(_ value: Double) -> String { lessonsFinalScientific(value, store.language) }
+
+    var body: some View {
+        let compute = pow(10.0, logCompute)
+        let n = pow(10.0, logSize)
+        let d = compute / (6.0 * n)
+        let best = ScalingLaw.best(compute: compute)
+        let close = abs(logSize - log10(best.n)) <= 0.1
+        LessonsFinalCard {
+            LabHeader(title: text("lab.scaling.title"), instruction: text("lab.scaling.subtitle"))
+            chart(compute: compute, best: best)
+                .frame(height: 240)
+                .accessibilityLabel(text("lab.scaling.chartSpoken"))
+            HStack {
+                Text(String(format: text("lab.scaling.compute"), sci(compute))).frame(width: 200, alignment: .leading)
+                Slider(value: $logCompute, in: 18...26, step: 0.5).accessibilityIdentifier("lab.scaling.compute")
+            }
+            HStack {
+                Text(String(format: text("lab.scaling.size"), sci(n))).frame(width: 200, alignment: .leading)
+                Slider(value: $logSize, in: 6...13, step: 0.05).accessibilityIdentifier("lab.scaling.size")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.scaling.statError"), value: L10n.number(ScalingLaw.loss(n: n, d: d), fractionDigits: 3, store.language), tint: close ? .green : .orange, identifier: "lab.scaling.error")
+                LabStat(label: text("lab.scaling.statTokens"), value: sci(d), identifier: "lab.scaling.tokens")
+                LabStat(label: text("lab.scaling.statRatio"), value: L10n.number(d / n, fractionDigits: d / n < 10 ? 2 : 0, store.language), tint: .teal, identifier: "lab.scaling.ratio")
+                LabStat(label: text("lab.scaling.statPython"), value: sci(ScalingLaw.years(compute: compute, speed: ScalingLaw.mySpeed)), tint: .red, identifier: "lab.scaling.python")
+                LabStat(label: text("lab.scaling.statGPU"), value: sci(ScalingLaw.years(compute: compute, speed: ScalingLaw.gpuPeak)), tint: .purple, identifier: "lab.scaling.gpu")
+            }
+            LabStatusBadge(kind: close ? .good : .info,
+                           text: close ? text("lab.scaling.atBottom") : String(format: text("lab.scaling.notBottom"), sci(best.n)),
+                           identifier: "lab.scaling.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.scaling.challenge"), solved: solvedBudgets.count >= 2,
+                         solvedText: text("lab.scaling.challengeDone"), identifier: "lab.scaling.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.scaling.howFormula"), text("lab.scaling.howNot")])
+        }
+        .onChange(of: logSize) { _ in note() }
+        .onChange(of: logCompute) { _ in note() }
+    }
+
+    private func note() {
+        let best = ScalingLaw.best(compute: pow(10.0, logCompute))
+        if abs(logSize - log10(best.n)) <= 0.1 { solvedBudgets.insert(logCompute) }
+    }
+
+    /// Error against model size at a fixed budget; drag across the chart to move the model size.
+    private func chart(compute: Double, best: (n: Double, d: Double, loss: Double)) -> some View {
+        GeometryReader { proxy in
+            let plot = LabPlotGeometry(size: proxy.size, x: 6...13, y: 1.5...6)
+            Canvas { context, _ in
+                plot.drawAxes(in: context, xLabel: text("lab.scaling.xAxis"), yLabel: text("lab.scaling.yAxis"),
+                              xTicks: [6, 7, 8, 9, 10, 11, 12, 13], yTicks: [2, 3, 4, 5, 6],
+                              format: { L10n.number($0, fractionDigits: 0, store.language) })
+                var curve = Path()
+                for step in 0...140 {
+                    let logN = 6.0 + Double(step) * 0.05
+                    let size = pow(10.0, logN)
+                    let value = min(6.0, ScalingLaw.loss(n: size, d: compute / (6.0 * size)))
+                    let point: CGPoint = plot.point(logN, value)
+                    if step == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+                }
+                context.stroke(curve, with: .color(.teal), lineWidth: 2.5)
+                let bottom: CGPoint = plot.point(log10(best.n), min(6.0, best.loss))
+                context.fill(Path(ellipseIn: CGRect(x: bottom.x - 5, y: bottom.y - 5, width: 10, height: 10)), with: .color(.green))
+                let size = pow(10.0, logSize)
+                let current: CGPoint = plot.point(logSize, min(6.0, ScalingLaw.loss(n: size, d: compute / (6.0 * size))))
+                context.fill(Path(ellipseIn: CGRect(x: current.x - 9, y: current.y - 9, width: 18, height: 18)), with: .color(AppPalette.accent.color))
+            }
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                let logN = plot.value(at: value.location).x
+                logSize = min(13, max(6, (logN * 20).rounded() / 20))
+            })
+        }
+    }
+}
+
+// MARK: - Cleaning data / Очистка данных
+
+struct DedupLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var threshold = 0.95
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    var body: some View {
+        let removed = DedupToy.nearCopies(threshold: threshold)
+        let solved = removed == [9: 0, 5: 1]
+        LessonsFinalCard {
+            LabHeader(title: text("lab.dedup.title"), instruction: text("lab.dedup.subtitle"))
+            heatmap
+                .frame(height: 300)
+                .accessibilityLabel(text("lab.dedup.chartSpoken"))
+            HStack {
+                Text(String(format: text("lab.dedup.threshold"), L10n.number(threshold, fractionDigits: 2, store.language))).frame(width: 150, alignment: .leading)
+                Slider(value: $threshold, in: 0.1...0.95, step: 0.05).accessibilityIdentifier("lab.dedup.threshold")
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                ForEach(DedupToy.docs.indices, id: \.self) { index in
+                    HStack(alignment: .top, spacing: 8) {
+                        Text("[\(index)]").font(.caption.monospacedDigit()).frame(width: 30, alignment: .leading)
+                        Text(DedupToy.docs[index]).font(.caption).lineLimit(1).frame(maxWidth: .infinity, alignment: .leading)
+                        Text(status(index, removed: removed)).font(.caption.bold()).foregroundStyle(color(index, removed: removed))
+                    }
+                }
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.dedup.statKept"), value: String(DedupToy.unique.count - removed.count), tint: .green, identifier: "lab.dedup.kept")
+                LabStat(label: text("lab.dedup.statNear"), value: String(removed.count), tint: .orange, identifier: "lab.dedup.near")
+            }
+            LabStatusBadge(kind: solved ? .good : (removed[11] != nil ? .bad : .info),
+                           text: solved ? text("lab.dedup.right") : (removed[11] != nil ? text("lab.dedup.tooLow") : text("lab.dedup.tooHigh")),
+                           identifier: "lab.dedup.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.dedup.challenge"), solved: solved,
+                         solvedText: text("lab.dedup.challengeDone"), identifier: "lab.dedup.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.dedup.howSteps"), text("lab.dedup.howJaccard")])
+        }
+    }
+
+    private func status(_ index: Int, removed: [Int: Int]) -> String {
+        if let reason = DedupToy.quality(DedupToy.docs[index]) {
+            switch reason {
+            case .tooShort: return text("lab.dedup.short")
+            case .noFullStop: return text("lab.dedup.noStop")
+            case .repeats: return text("lab.dedup.repeats")
+            }
+        }
+        if let original = DedupToy.exactCopies[index] { return String(format: text("lab.dedup.exact"), String(original)) }
+        if let original = removed[index] { return String(format: text("lab.dedup.nearOf"), String(original)) }
+        return text("lab.dedup.kept")
+    }
+
+    private func color(_ index: Int, removed: [Int: Int]) -> Color {
+        if DedupToy.quality(DedupToy.docs[index]) != nil || DedupToy.exactCopies[index] != nil { return .secondary }
+        return removed[index] != nil ? .orange : .green
+    }
+
+    /// Jaccard similarity of every pair of texts left after steps 1 and 2; cells at or above the threshold are outlined.
+    private var heatmap: some View {
+        let list = DedupToy.unique
+        return Canvas { context, size in
+            let margin: CGFloat = 34
+            let side: CGFloat = min(size.width, size.height) - margin
+            let cell: CGFloat = side / CGFloat(list.count)
+            for (row, a) in list.enumerated() {
+                let rowLabel = CGPoint(x: margin / 2, y: margin + cell * (CGFloat(row) + 0.5))
+                context.draw(Text("[\(a)]").font(.caption2).foregroundColor(.secondary), at: rowLabel)
+                let columnLabel = CGPoint(x: margin + cell * (CGFloat(row) + 0.5), y: margin / 2)
+                context.draw(Text("[\(a)]").font(.caption2).foregroundColor(.secondary), at: columnLabel)
+                for (column, b) in list.enumerated() {
+                    let value = a == b ? 1.0 : DedupToy.jaccard(a, b)
+                    let rect = CGRect(x: margin + cell * CGFloat(column), y: margin + cell * CGFloat(row), width: cell - 2, height: cell - 2)
+                    context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(a == b ? Color.gray.opacity(0.25) : LabHeatScale.color(value)))
+                    if a != b {
+                        context.draw(Text(L10n.number(value, fractionDigits: 2, store.language)).font(.caption2).foregroundColor(.primary),
+                                     at: CGPoint(x: rect.midX, y: rect.midY))
+                        if value >= threshold {
+                            context.stroke(Path(roundedRect: rect, cornerRadius: 3), with: .color(.orange), lineWidth: 3)
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

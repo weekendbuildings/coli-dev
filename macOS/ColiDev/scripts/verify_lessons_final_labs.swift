@@ -64,9 +64,34 @@ struct VerifyLessonsFinalLabs {
         print("dpo ok: truth rule gives \(truth[0].map { (($0 * 100).rounded()) / 100 })")
     }
 
+    static func scaling() {
+        check(near(ScalingLaw.loss(n: 70e9, d: 1.4e12), 1.937) && near(ScalingLaw.loss(n: 280e9, d: 300e9), 1.993), "Chinchilla 1.937, Gopher 1.993")
+        let chinchilla = ScalingLaw.best(compute: 5.88e23)
+        check(abs(chinchilla.n / 3.2e10 - 1) < 0.03 && (chinchilla.d / chinchilla.n).rounded() == 94, "best size at Chinchilla's budget: 3.2e10 and 94 tokens per weight")
+        check((ScalingLaw.best(compute: 1e18).d / ScalingLaw.best(compute: 1e18).n).rounded() == 25, "25 tokens per weight at 1e18")
+        check(abs(ScalingLaw.mySpeed / 8.7e7 - 1) < 0.01, "own speed about 8.7e7 operations per second")
+        let big = 6.0 * 7e9 * 140e9
+        check(abs(ScalingLaw.years(compute: big, speed: ScalingLaw.mySpeed) / 2.2e6 - 1) < 0.03, "about 2.2 million years in pure Python")
+        check(ScalingLaw.years(compute: big, speed: ScalingLaw.gpuPeak).rounded() == 72, "72 years at the M1 GPU peak")
+        print("scaling ok")
+    }
+
+    static func dedup() {
+        check(DedupToy.quality(DedupToy.docs[2]) == .noFullStop && DedupToy.quality(DedupToy.docs[4]) == .repeats && DedupToy.quality(DedupToy.docs[6]) == .tooShort, "filter reasons")
+        check(DedupToy.afterFilters == [0, 1, 3, 5, 7, 8, 9, 10, 11], "kept after filters")
+        check(DedupToy.exactCopies == [3: 0] && DedupToy.unique == [0, 1, 5, 7, 8, 9, 10, 11], "exact copy [3]")
+        check(near(DedupToy.jaccard(0, 9), 0.79, 0.005) && near(DedupToy.jaccard(1, 5), 0.70, 0.005) && near(DedupToy.jaccard(8, 11), 0.31, 0.005), "Jaccard 0.79, 0.70, 0.31")
+        check(DedupToy.nearCopies(threshold: 0.95).isEmpty, "the starting threshold removes nothing, so the task is not solved at the start")
+        check(DedupToy.nearCopies(threshold: 0.6) == [9: 0, 5: 1], "at 0.6 both near-copies go and the retelling stays")
+        check(DedupToy.nearCopies(threshold: 0.3)[11] == 8, "at 0.3 the retelling goes too")
+        print("dedup ok")
+    }
+
     static func main() {
         bigram()
         sampling()
         dpo()
+        scaling()
+        dedup()
     }
 }
