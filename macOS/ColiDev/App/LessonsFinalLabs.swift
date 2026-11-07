@@ -552,7 +552,7 @@ struct SparseFeatureLab: View {
                 .accessibilityLabel(text("lab.sparse.chartSpoken"))
             Picker(text("lab.sparse.penalty"), selection: $penaltyIndex) {
                 ForEach(SparseAutoencoder.penalties.indices, id: \.self) { index in
-                    Text("λ = " + L10n.number(SparseAutoencoder.penalties[index], fractionDigits: SparseAutoencoder.penalties[index] < 0.1 && SparseAutoencoder.penalties[index] > 0 ? 2 : 1, store.language)).tag(index)
+                    Text(penaltyLabel(index)).tag(index)
                 }
             }
             .pickerStyle(.segmented)
@@ -578,6 +578,12 @@ struct SparseFeatureLab: View {
                 results[penaltyIndex] = SparseAutoencoder.train(lambda: lambda)
             }
         }
+    }
+
+    private func penaltyLabel(_ index: Int) -> String {
+        let value: Double = SparseAutoencoder.penalties[index]
+        let digits: Int = (value > 0 && value < 0.1) ? 2 : 1
+        return "λ = \(L10n.number(value, fractionDigits: digits, store.language))"
     }
 
     private func verdict(_ result: SparseAutoencoder.Result) -> String {
@@ -1179,8 +1185,8 @@ struct JacobianLab: View {
                 outputPlane.frame(height: 250).accessibilityLabel(text("lab.jacobian.outputSpoken"))
             }
             LabStatGrid {
-                LabStat(label: text("lab.jacobian.statPoint"), value: "(" + number(point.0) + "; " + number(point.1) + ")", identifier: "lab.jacobian.point")
-                LabStat(label: "J", value: "[[" + number(j[0][0]) + ", " + number(j[0][1]) + "], [" + number(j[1][0]) + ", " + number(j[1][1]) + "]]", tint: .blue, identifier: "lab.jacobian.matrix")
+                LabStat(label: text("lab.jacobian.statPoint"), value: "(\(number(point.0)); \(number(point.1)))", identifier: "lab.jacobian.point")
+                LabStat(label: "J", value: matrixText(j), tint: .blue, identifier: "lab.jacobian.matrix")
                 LabStat(label: text("lab.jacobian.statDet"), value: number(det), tint: solved ? .green : .orange, identifier: "lab.jacobian.det")
             }
             LabStatusBadge(kind: solved ? .good : .info, text: solved ? text("lab.jacobian.flat") : text("lab.jacobian.area"), identifier: "lab.jacobian.status")
@@ -1188,6 +1194,12 @@ struct JacobianLab: View {
                          solvedText: text("lab.jacobian.challengeDone"), identifier: "lab.jacobian.challenge")
             LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.jacobian.howJ"), text("lab.jacobian.howBack")])
         }
+    }
+
+    private func matrixText(_ j: [[Double]]) -> String {
+        let top: String = "[\(number(j[0][0])), \(number(j[0][1]))]"
+        let bottom: String = "[\(number(j[1][0])), \(number(j[1][1]))]"
+        return "[\(top), \(bottom)]"
     }
 
     private var inputPlane: some View {
@@ -1313,6 +1325,17 @@ struct HodgkinHuxleyLab: View {
         }
     }
 
+    /// «10⁻³» for −3: written step by step, because the CI compiler times out on one long expression.
+    private static func powerOfTen(_ exponent: Double) -> String {
+        let digits: [Character: String] = ["0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵", "6": "⁶", "7": "⁷", "8": "⁸", "9": "⁹"]
+        let whole: Int = Int(abs(exponent).rounded())
+        var result: String = exponent < 0 ? "10⁻" : "10"
+        for character in String(whole) {
+            result += digits[character] ?? String(character)
+        }
+        return result
+    }
+
     /// Time resolution against space resolution, both on a log scale; click a method to read about it.
     private var methodMap: some View {
         GeometryReader { proxy in
@@ -1320,7 +1343,7 @@ struct HodgkinHuxleyLab: View {
             ZStack(alignment: .topLeading) {
                 Canvas { context, _ in
                     plot.drawAxes(in: context, xLabel: text("lab.hh.mapX"), yLabel: text("lab.hh.mapY"), xTicks: [-4, -3, -2, -1, 0, 1], yTicks: [-5, -4, -3, -2],
-                                  format: { "10" + ($0 < 0 ? "⁻" : "") + String(Int(abs($0))).map { ["0": "⁰", "1": "¹", "2": "²", "3": "³", "4": "⁴", "5": "⁵"][$0] ?? $0 }.reduce("") { $0 + String($1) } })
+                                  format: { Self.powerOfTen($0) })
                 }
                 ForEach(HodgkinHuxley.methods.indices, id: \.self) { index in
                     let m = HodgkinHuxley.methods[index]

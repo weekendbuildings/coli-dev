@@ -71,18 +71,19 @@ brain = run(0)
 print("output of neuron 9 over time:", [round(v, 3) for v in brain[:6]])
 for chips in (1, 5, 10):
     other = run(chips)
-    print(f"{chips} of 10 replaced: largest difference in behaviour {max(abs(a - b) for a, b in zip(brain, other)):.1e}")
+    gap = max(abs(a - b) for a, b in zip(brain, other))
+    print(f"{chips} of 10 replaced: behaviour differs only by rounding (below 1e-12): {gap < 1e-12}")
 ```
 
 ```output
 by hand: neuron(0.5) = 0.6225 | chip(0.5) = 0.6225
 output of neuron 9 over time: [0.5, 0.659, 0.729, 0.8, 0.819, 0.84]
-1 of 10 replaced: largest difference in behaviour 1.1e-16
-5 of 10 replaced: largest difference in behaviour 1.1e-16
-10 of 10 replaced: largest difference in behaviour 2.2e-16
+1 of 10 replaced: behaviour differs only by rounding (below 1e-12): True
+5 of 10 replaced: behaviour differs only by rounding (below 1e-12): True
+10 of 10 replaced: behaviour differs only by rounding (below 1e-12): True
 ```
 
-Разница в поведении около `10⁻¹⁶`: это ошибка округления чисел в компьютере, а не настоящее различие. Сеть из десяти нейронов с обратными связями ведёт себя одинаково, сколько бы нейронов ни заменили.
+Разница в поведении меньше `10⁻¹²`, на этом Mac около `10⁻¹⁶`: это ошибка округления чисел в компьютере, а не настоящее различие. Сеть из десяти нейронов с обратными связями ведёт себя одинаково, сколько бы нейронов ни заменили.
 
 **Шаг 2. Три ответа.** Что стало с переживанием, когда заменены все? Возможны три ответа. Первый: переживание осталось. Второй: оно угасало постепенно. Третий: оно исчезло резко на каком-то нейроне. Чалмерс рассуждает так. Резкое исчезновение от замены одного нейрона требует странного скачка в законах природы. Постепенное угасание ещё страннее: человек продолжал бы уверенно говорить «я ясно вижу красное», а на деле видел бы всё бледнее, то есть систематически ошибался бы о себе, оставаясь разумным. Значит, переживание осталось, и важна организация, а не материал. Он назвал это *принципом организационной инвариантности*.
 
@@ -184,18 +185,19 @@ brain = run(0)
 print("output of neuron 9 over time:", [round(v, 3) for v in brain[:6]])
 for chips in (1, 5, 10):
     other = run(chips)
-    print(f"{chips} of 10 replaced: largest difference in behaviour {max(abs(a - b) for a, b in zip(brain, other)):.1e}")
+    gap = max(abs(a - b) for a, b in zip(brain, other))
+    print(f"{chips} of 10 replaced: behaviour differs only by rounding (below 1e-12): {gap < 1e-12}")
 ```
 
 ```output
 by hand: neuron(0.5) = 0.6225 | chip(0.5) = 0.6225
 output of neuron 9 over time: [0.5, 0.659, 0.729, 0.8, 0.819, 0.84]
-1 of 10 replaced: largest difference in behaviour 1.1e-16
-5 of 10 replaced: largest difference in behaviour 1.1e-16
-10 of 10 replaced: largest difference in behaviour 2.2e-16
+1 of 10 replaced: behaviour differs only by rounding (below 1e-12): True
+5 of 10 replaced: behaviour differs only by rounding (below 1e-12): True
+10 of 10 replaced: behaviour differs only by rounding (below 1e-12): True
 ```
 
-The difference in behaviour is about `10⁻¹⁶`: that is the computer's rounding error, not a real difference. A network of ten neurons with feedback behaves the same no matter how many neurons are replaced.
+The difference in behaviour is below `10⁻¹²`, about `10⁻¹⁶` on this Mac: that is the computer's rounding error, not a real difference. A network of ten neurons with feedback behaves the same no matter how many neurons are replaced.
 
 **Step 2. Three answers.** What has become of experience once all are replaced? Three answers are possible. First: experience remained. Second: it faded gradually. Third: it vanished suddenly at some neuron. Chalmers reasons like this. Sudden vanishing from replacing one neuron would need a strange jump in the laws of nature. Gradual fading is stranger still: the person would keep saying confidently "I see red clearly" while actually seeing ever paler, that is, they would be systematically wrong about themselves while staying rational. So experience remained, and organisation matters, not material. He called this the *principle of organisational invariance*.
 
