@@ -66,6 +66,7 @@ def test_tests_and_creator_labs_do_not_change_the_backend_fingerprint() -> None:
         "01_Projects/test_ai_path.py",
         "01_Projects/conftest.py",
         "01_Projects/creator_labs/attention_blank.py",
+        "01_Projects/tiny_language_model.py",
         "01_Projects/__pycache__/orchestrator.cpython-312.pyc",
     ):
         assert excluded.search(path), path
@@ -87,3 +88,11 @@ def test_smoke_test_can_run_without_the_real_keychain_and_ci_is_unchanged() -> N
     assert '${launcher[@]+"${launcher[@]}"} "$executable"' in smoke
     ci = (SCRIPT.parents[3] / ".github" / "workflows" / "ci.yml").read_text(encoding="utf-8")
     assert "COLIDEV_SMOKE_DENY_KEYCHAIN" not in ci
+
+
+def test_excluded_lesson_program_is_really_not_imported_by_the_backend() -> None:
+    projects = SCRIPT.parents[3] / "01_Projects"
+    for path in list(projects.glob("*.py")) + list(projects.glob("fastapi_app/*.py")):
+        if path.name.startswith("test_") or path.name == "tiny_language_model.py":
+            continue
+        assert "tiny_language_model" not in path.read_text(encoding="utf-8"), path.name

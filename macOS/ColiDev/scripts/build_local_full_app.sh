@@ -87,10 +87,12 @@ find_python() {
 }
 python_bin="$(find_python)"
 
-# Файлы, из которых PyInstaller собирает backend. Тесты и creator_labs в backend не входят.
-# Files PyInstaller builds the backend from. Tests and creator_labs are not part of it.
+# Файлы, из которых PyInstaller собирает backend. Тесты, creator_labs и программа урока
+# tiny_language_model.py (её не импортирует ни один модуль backend) в него не входят.
+# Files PyInstaller builds the backend from. Tests, creator_labs and the lesson program
+# tiny_language_model.py (no backend module imports it) are not part of it.
 keep_backend_input() {
-    grep -Ev '(^|/)test_[^/]*\.py$|(^|/)conftest\.py$|^01_Projects/creator_labs/|(^|/)__pycache__/|\.pyc$|(^|/)\.pytest_cache/' || true
+    grep -Ev '(^|/)test_[^/]*\.py$|(^|/)conftest\.py$|^01_Projects/creator_labs/|^01_Projects/tiny_language_model\.py$|(^|/)__pycache__/|\.pyc$|(^|/)\.pytest_cache/' || true
 }
 
 # Отпечаток рабочей папки / Fingerprint of the working tree.
