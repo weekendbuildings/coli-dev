@@ -123,6 +123,15 @@ majority [1.311, 1.311, 1.311] 1.311
 
 В программе добавь четвёртый узел и поменяй разрезы. Сколько теперь разрезов? Посчитай руками, как быстро они растут.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: все разрезы на две части для любого числа узлов и потерю при разрезе: шаг дальше урока, где узлов три. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_consciousness_integrated_information.py
+```
+
+Сначала все строки будут с ✗. Открой `phi_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Что показывает равенство потерь у цепочки копирования и кольца XOR?
@@ -258,6 +267,15 @@ A conclusion for yourself: look at what a theory predicts and how that can be te
 In the lab, choose what each of three nodes computes, and see what each cut loses. Find a network of connected nodes whose weakest cut equals zero. Then compare the copying chain with the XOR ring.
 
 In the program, add a fourth node and change the cuts. How many cuts are there now? Compute by hand how fast they grow.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: every cut into two parts for any number of nodes and the loss of a cut: a step beyond the three-node lesson. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_consciousness_integrated_information.py
+```
+
+At first every line shows ✗. Open `phi_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

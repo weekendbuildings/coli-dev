@@ -270,6 +270,15 @@ third_word direction removed 0.449
 
 В программе увеличь `third_word` до вопроса «сейчас идёт второе слово». Сможет ли зонд ответить? Посмотри, сколько букв видит сеть на входе.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: логистическую ошибку зонда и её градиент; проверка включает контроль на случайных метках. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_interp_probes.py
+```
+
+Сначала все строки будут с ✗. Открой `probe_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Зонд отвечает с точностью 98 %. Что это доказывает?
@@ -552,6 +561,15 @@ The normal error is `0.44`. A random direction gives `0.467`, our measure of noi
 The lab has the real activations of your network along two main directions. Drag the ends of the line and separate the points yourself. Change the question. Then switch to the untrained network and compare what comes out.
 
 In the program, change `third_word` to the question "is this the second word". Can the probe answer? See how many letters the network sees at its input.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the probe's logistic loss and its gradient; the check includes a random-label control. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_interp_probes.py
+```
+
+At first every line shows ✗. Open `probe_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

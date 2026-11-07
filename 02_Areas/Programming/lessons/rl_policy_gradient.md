@@ -176,6 +176,15 @@ plain 2^-9, one run: [0.1, 1.0, 1.0, 1.0]
 
 В программе начни с `p = 0,9`, то есть `theta = [math.log(9.0), 0.0]`. Сходится ли туда же?
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: градиент log π и шаг REINFORCE с базовой линией; проверка докажет, что базовая линия не меняет средний шаг. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_rl_policy_gradient.py
+```
+
+Сначала все строки будут с ✗. Открой `policy_gradient_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Зачем из отдачи вычитают базовую линию?
@@ -364,6 +373,15 @@ The last row shows something else: step `2⁻⁹` without a baseline drives `p` 
 In the lab, first find the best policy yourself: drag the point along the real value curve. Then run REINFORCE and watch the white point crawl to the top. Then set a larger step without a baseline and see training break.
 
 In the program, start from `p = 0.9`, that is `theta = [math.log(9.0), 0.0]`. Does it converge to the same place?
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the gradient of log π and the REINFORCE step with a baseline; the check proves the baseline keeps the expected step. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_rl_policy_gradient.py
+```
+
+At first every line shows ✗. Open `policy_gradient_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

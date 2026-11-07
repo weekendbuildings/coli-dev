@@ -210,6 +210,15 @@ print([round(predict(p, q).data, 2) for p, q, _ in data])
 
 В программе: добавь в класс вычитание `__sub__` и деление на число. Проверь их численно, как на шаге 3. Затем поменяй в сети шаг 0,2 на 2 и посмотри на ошибку.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: передачу градиента в умножении и в tanh и обратный проход в верном порядке. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_autograd_engine.py
+```
+
+Сначала все строки будут с ✗. Открой `autograd_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 В `__mul__` градиент для `self` умножается на `other.data`. Почему?
@@ -432,6 +441,15 @@ The error fell almost to zero, and the answers are close to `−1, 1, 1, −1`. 
 In the lab the formula is `L = (a · b + c) · f`. Press "Step back" and watch the gradient go from the end to the start. Use the plus and minus buttons to push inputs by 0.5, and compare the gradient's prediction with the real change.
 
 In the program: add subtraction `__sub__` and division by a number to the class. Check them numerically, as in step 3. Then change the network's step from 0.2 to 2 and look at the error.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the gradient push for multiplication and tanh and the backward pass in the right order. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_autograd_engine.py
+```
+
+At first every line shows ✗. Open `autograd_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

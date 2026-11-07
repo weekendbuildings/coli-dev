@@ -172,6 +172,15 @@ t=5 [0.45, 0.02, 0.02, 0.36, 0.07, 0.08]
 
 Затем проверь свойство формулы в программе: выведи веса для `unseen[0]` при `positions = False`, а потом переставь в этом узоре два символа. Как изменились веса?
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: softmax без переполнения, маску будущего и обратный проход через softmax. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_attention_mechanism.py
+```
+
+Сначала все строки будут с ✗. Открой `attention_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Модель без номеров мест читает `A B C`, а затем те же буквы в другом порядке: `C A B`. Что произойдёт с весами внимания, если запрос взять от одной и той же буквы?
@@ -356,6 +365,15 @@ Set `positions = False`. Queries and keys now depend only on the symbol, not the
 In the lab, the true attention weights stand on a board as towers. A row is the current place, a column is the place the model looks at, and the height of a tower is the weight. Future places are closed by the mask. At first the model has no place numbers: press Play and see it get stuck. Then switch on place numbers, train again, and watch a stripe grow on the board. Click a tower to select its row: gold arcs run from its tall towers to the answer. Change the period: where did the stripe go?
 
 Then check the formula's property in the program: print the weights for `unseen[0]` with `positions = False`, then swap two symbols in that pattern. How did the weights change?
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: softmax without overflow, the future mask and the backward pass through softmax. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_attention_mechanism.py
+```
+
+At first every line shows ✗. Open `attention_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

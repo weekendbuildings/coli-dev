@@ -145,6 +145,15 @@ for sample in ("Модель читает токены", "The model reads", "К�
 
 В программе поменяй число слияний с 40 на 100. Как изменились новые русские слова? Что будет, если обучить токенизатор только на английском и подать русскую фразу?
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: подсчёт пар, слияние без перекрытий и кодирование в порядке выученных слияний. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_tokenizer_bpe.py
+```
+
+Сначала все строки будут с ✗. Открой `tokenizer_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Почему первыми слияниями в нашем тексте стали отдельные русские буквы?
@@ -302,6 +311,15 @@ That is the second reason `Привет` takes 3 tokens in `qwen2.5-coder:7b`. I
 In the lab the text is cut into tiles. At first you see bytes: halves of Russian letters show as hexadecimal numbers, such as `D0`. Yellow marks the pair that merges next. Press "Merge the pair" and watch bytes gather into letters, letters into syllables, syllables into words. Try your own text and compare Russian with English.
 
 In the program, change the number of merges from 40 to 100. How did the new Russian words change? What happens if you train the tokenizer on English only and give it a Russian phrase?
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: pair counting, merging without overlaps and encoding in the learned merge order. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_tokenizer_bpe.py
+```
+
+At first every line shows ✗. Open `tokenizer_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 
