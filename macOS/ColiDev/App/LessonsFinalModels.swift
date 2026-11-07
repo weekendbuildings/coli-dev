@@ -469,3 +469,157 @@ enum TinyCircuit {
         return output(h)
     }
 }
+
+/// «21 палочка»: take 1, 2 or 3, whoever takes the last one wins. Exact answer and MCTS as in «Планирование».
+enum StickGame {
+    static let win: [Bool] = {
+        var table = [false]
+        for n in 1...21 { table.append([1, 2, 3].contains { $0 <= n && !table[n - $0] }) }
+        return table
+    }()
+
+    static func perfectMoves(_ n: Int) -> [Int] { [1, 2, 3].filter { $0 <= n && !win[n - $0] } }
+    static var winningPiles: [Int] { (5...21).filter { win[$0] } }
+
+    static func rollout(_ start: Int, _ rand: inout LFRand) -> Bool {
+        var n = start
+        var mover = true
+        while true {
+            let take = 1 + Int(rand.next() * Double(min(3, n)))
+            n -= take
+            if n == 0 { return mover }
+            mover.toggle()
+        }
+    }
+
+    /// Returns the chosen move and how often each move's pile was visited.
+    static func mcts(_ n: Int, simulations: Int, seed: UInt64, c: Double = 1.4) -> (move: Int, visits: [Int: Int]) {
+        var rand = LFRand(state: seed)
+        var visits: [Int: Int] = [:]
+        var wins: [Int: Double] = [:]
+        for _ in 0..<simulations {
+            var path: [Int] = []
+            var node = n
+            while node > 0, let total = visits[node] {
+                var best = -1
+                var bestKey = (-Double.infinity, Int.min)
+                for take in 1...3 where take <= node {
+                    let child = node - take
+                    let score: Double
+                    if child == 0 || visits[child] == nil {
+                        score = .infinity
+                    } else {
+                        let v = Double(visits[child] ?? 0)
+                        score = (1 - (wins[child] ?? 0) / v) + c * (log(Double(total)) / v).squareRoot()
+                    }
+                    let key = (score, -child)
+                    if best == -1 || key > bestKey { best = child; bestKey = key }
+                }
+                path.append(node)
+                node = best
+            }
+            var moverWon: Bool
+            if node == 0 {
+                moverWon = false
+            } else {
+                visits[node] = 0
+                wins[node] = 0
+                moverWon = rollout(node, &rand)
+            }
+            path.append(node)
+            for state in path.reversed() {
+                if state == 0 { moverWon.toggle(); continue }
+                visits[state, default: 0] += 1
+                wins[state, default: 0] += moverWon ? 1 : 0
+                moverWon.toggle()
+            }
+        }
+        var counts: [Int: Int] = [:]
+        var chosen = 1
+        var chosenKey = (false, -1)
+        for take in 1...3 where take <= n {
+            let child = n - take
+            counts[take] = visits[child] ?? 0
+            let key = (child == 0, visits[child] ?? 0)
+            if chosenKey.1 == -1 || (key.0 && !chosenKey.0) || (key.0 == chosenKey.0 && key.1 > chosenKey.1) { chosen = take; chosenKey = key }
+        }
+        return (chosen, counts)
+    }
+
+    /// For each pile from 5 to 21: did MCTS with this many simulations pick a perfect move? Losing piles are nil.
+    static func results(simulations: Int) -> [Int: Bool] {
+        var map: [Int: Bool] = [:]
+        for n in winningPiles { map[n] = perfectMoves(n).contains(mcts(n, simulations: simulations, seed: UInt64(n)).move) }
+        return map
+    }
+}
+
+/// A tanh network that learns x₁ + x₂ on a square [0, high]², as in «Открытые задачи на пути к AGI».
+enum AdditionNet {
+    struct Trained {
+        let w1: [[Double]]
+        let b1: [Double]
+        let w2: [Double]
+        let b2: Double
+        let near: [(Double, Double)]
+        let far: [(Double, Double)]
+
+        func predict(_ x: (Double, Double)) -> Double {
+            var s = 0.0
+            for j in 0..<w2.count { s += w2[j] * tanh(w1[j][0] * x.0 + w1[j][1] * x.1 + b1[j]) }
+            return s + b2
+        }
+
+        func error(_ points: [(Double, Double)]) -> Double {
+            var s = 0.0
+            for x in points {
+                let e = predict(x) - (x.0 + x.1)
+                s += e * e
+            }
+            return s / Double(points.count)
+        }
+    }
+
+    static let trainingRanges: [Double] = [1, 1.5, 2, 2.5]
+
+    static func train(high: Double) -> Trained {
+        var rand = LFRand(state: 2)
+        func make(_ low: Double, _ top: Double, _ count: Int) -> [(Double, Double)] {
+            (0..<count).map { _ in
+                let a = low + (top - low) * rand.next()
+                let b = low + (top - low) * rand.next()
+                return (a, b)
+            }
+        }
+        let data = make(0, high, 200)
+        let near = make(0, 1, 100)
+        let far = make(1, 2, 100)
+        var w1: [[Double]] = (0..<8).map { _ in
+            let a = rand.next() - 0.5
+            let b = rand.next() - 0.5
+            return [a, b]
+        }
+        var b1 = [Double](repeating: 0, count: 8)
+        var w2: [Double] = (0..<8).map { _ in rand.next() - 0.5 }
+        var b2 = 0.0
+        for _ in 0..<300 {
+            for x in data {
+                var h = [Double](repeating: 0, count: 8)
+                for j in 0..<8 { h[j] = tanh(w1[j][0] * x.0 + w1[j][1] * x.1 + b1[j]) }
+                var y = 0.0
+                for j in 0..<8 { y += w2[j] * h[j] }
+                y += b2
+                let d = y - (x.0 + x.1)
+                for j in 0..<8 {
+                    let g = d * w2[j] * (1 - h[j] * h[j])
+                    w2[j] -= 0.02 * d * h[j]
+                    w1[j][0] -= 0.02 * g * x.0
+                    w1[j][1] -= 0.02 * g * x.1
+                    b1[j] -= 0.02 * g
+                }
+                b2 -= 0.02 * d
+            }
+        }
+        return Trained(w1: w1, b1: b1, w2: w2, b2: b2, near: near, far: far)
+    }
+}

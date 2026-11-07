@@ -110,7 +110,35 @@ struct VerifyLessonsFinalLabs {
         print("circuit ok")
     }
 
+    static func planning() {
+        check((1...21).filter { !StickGame.win[$0] } == [4, 8, 12, 16, 20], "losing piles are multiples of 4")
+        check(StickGame.perfectMoves(21) == [1], "from 21 take 1")
+        let counts = [10, 50, 200, 1000].map { StickGame.results(simulations: $0).values.filter { $0 }.count }
+        check(counts == [8, 12, 13, 13], "right moves at 10, 50, 200, 1000 simulations: got \(counts)")
+        let top = StickGame.mcts(21, simulations: 1000, seed: 21)
+        check(top.move == 1 && top.visits == [1: 977, 2: 330, 3: 339], "visits from 21: got \(top.visits)")
+        check(!StickGame.results(simulations: 10).values.allSatisfy { $0 }, "the starting 10 simulations must not solve the task")
+        let options = [5, 10, 20, 50, 100, 200, 500, 1000]
+        let first = options.first { StickGame.results(simulations: $0).values.allSatisfy { $0 } }
+        check(first != nil, "some option must make every winning pile right")
+        print("planning ok: smallest option with 13 of 13 is \(first ?? 0)")
+    }
+
+    static func addition() {
+        let base = AdditionNet.train(high: 1)
+        check(near(base.error(base.near), 0.00004, 0.000006), "error inside [0, 1] should be 0.00004, got \(base.error(base.near))")
+        check(near(base.error(base.far), 0.1156, 0.0006), "error on [1, 2] should be 0.1156")
+        check(near(base.predict((2, 2)), 3.23, 0.006) && near(base.predict((1.5, 1.5)), 2.71, 0.006), "(2, 2) → 3.23 and (1.5, 1.5) → 2.71")
+        let start = base.predict((2, 2)) - 4
+        check(start * start >= 0.1, "the starting range must not solve the task")
+        let solving = AdditionNet.trainingRanges.filter { let e = AdditionNet.train(high: $0).predict((2, 2)) - 4; return e * e < 0.1 }
+        check(!solving.isEmpty, "a wider range should bring the error at (2, 2) below 0.1")
+        print("addition ok: ranges that solve it \(solving)")
+    }
+
     static func main() {
+        planning()
+        addition()
         bigram()
         sampling()
         dpo()

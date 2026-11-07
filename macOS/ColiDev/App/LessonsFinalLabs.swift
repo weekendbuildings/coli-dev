@@ -734,3 +734,181 @@ struct NetworkCircuitLab: View {
         }
     }
 }
+
+// MARK: - Tree search / Поиск по дереву
+
+struct TreeSearchLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var optionIndex = 1
+    @State private var pile = 21
+    @State private var cache: [Int: [Int: Bool]] = [:]
+
+    private static let options = [5, 10, 20, 50, 100, 200, 500, 1000]
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private var simulations: Int { Self.options[optionIndex] }
+
+    private func results(_ index: Int) -> [Int: Bool] { cache[index] ?? StickGame.results(simulations: Self.options[index]) }
+    private func allRight(_ index: Int) -> Bool { results(index).values.allSatisfy { $0 } }
+
+    var body: some View {
+        let current = results(optionIndex)
+        let right = current.values.filter { $0 }.count
+        let solved = allRight(optionIndex) && (optionIndex == 0 || !allRight(optionIndex - 1))
+        let search = StickGame.mcts(pile, simulations: simulations, seed: UInt64(pile))
+        LessonsFinalCard {
+            LabHeader(title: text("lab.tree.title"), instruction: text("lab.tree.subtitle"))
+            strip(current)
+            HStack {
+                Text(String(format: text("lab.tree.simulations"), String(simulations))).frame(width: 170, alignment: .leading)
+                Slider(value: Binding(get: { Double(optionIndex) }, set: { optionIndex = Int($0.rounded()) }),
+                       in: 0...Double(Self.options.count - 1), step: 1)
+                    .accessibilityIdentifier("lab.tree.simulations")
+            }
+            HStack(alignment: .top, spacing: 18) {
+                sticks
+                visitBars(search)
+                    .frame(width: 240, height: 160)
+                    .accessibilityLabel(text("lab.tree.barsSpoken"))
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.tree.statRight"), value: "\(right) / \(current.count)", tint: right == current.count ? .green : .orange, identifier: "lab.tree.right")
+                LabStat(label: text("lab.tree.statMove"), value: String(search.move), tint: StickGame.perfectMoves(pile).contains(search.move) ? .green : .red, identifier: "lab.tree.move")
+                LabStat(label: text("lab.tree.statPerfect"), value: StickGame.perfectMoves(pile).isEmpty ? "—" : StickGame.perfectMoves(pile).map(String.init).joined(separator: ", "), identifier: "lab.tree.perfect")
+            }
+            LabStatusBadge(kind: StickGame.win[pile] ? .info : .warning,
+                           text: StickGame.win[pile] ? text("lab.tree.winning") : text("lab.tree.losing"), identifier: "lab.tree.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.tree.challenge"), solved: solved,
+                         solvedText: text("lab.tree.challengeDone"), identifier: "lab.tree.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.tree.howSearch"), text("lab.tree.howNot")])
+        }
+        .task(id: optionIndex) {
+            if cache[optionIndex] == nil { cache[optionIndex] = StickGame.results(simulations: simulations) }
+            if optionIndex > 0, cache[optionIndex - 1] == nil { cache[optionIndex - 1] = StickGame.results(simulations: Self.options[optionIndex - 1]) }
+        }
+    }
+
+    /// Piles 5 to 21: green right move, red wrong move, grey a losing pile. Click a pile to look inside.
+    private func strip(_ current: [Int: Bool]) -> some View {
+        HStack(spacing: 4) {
+            ForEach(5...21, id: \.self) { n in
+                let color: Color = current[n].map { $0 ? Color.green : Color.red } ?? Color.gray.opacity(0.35)
+                Button { pile = n } label: {
+                    Text(String(n))
+                        .font(.caption.bold().monospacedDigit())
+                        .frame(width: 26, height: 30)
+                        .background(color.opacity(n == pile ? 1 : 0.65), in: RoundedRectangle(cornerRadius: 5))
+                        .overlay(RoundedRectangle(cornerRadius: 5).stroke(n == pile ? Color.primary : Color.clear, lineWidth: 2))
+                        .foregroundStyle(.white)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("lab.tree.pile.\(n)")
+            }
+        }
+    }
+
+    private var sticks: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(String(format: text("lab.tree.pile"), String(pile))).font(.headline)
+            LazyVGrid(columns: Array(repeating: GridItem(.fixed(8), spacing: 4), count: 11), spacing: 6) {
+                ForEach(0..<pile, id: \.self) { _ in
+                    RoundedRectangle(cornerRadius: 2).fill(Color.orange).frame(width: 6, height: 34)
+                }
+            }
+        }
+        .frame(width: 150, alignment: .leading)
+    }
+
+    private func visitBars(_ search: (move: Int, visits: [Int: Int])) -> some View {
+        let most = Double(max(1, search.visits.values.max() ?? 1))
+        return Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0.5...3.5, y: 0...most)
+            plot.drawAxes(in: context, xLabel: text("lab.tree.xAxis"), yLabel: text("lab.tree.yAxis"), xTicks: [1, 2, 3], yTicks: [0, most],
+                          format: { L10n.number($0, fractionDigits: 0, store.language) })
+            for take in 1...3 {
+                guard let count = search.visits[take] else { continue }
+                let top: CGPoint = plot.point(Double(take) - 0.3, Double(count))
+                let bottom: CGPoint = plot.point(Double(take) + 0.3, 0)
+                let rect = CGRect(x: top.x, y: top.y, width: bottom.x - top.x, height: bottom.y - top.y)
+                let perfect = StickGame.perfectMoves(pile).contains(take)
+                context.fill(Path(roundedRect: rect, cornerRadius: 3), with: .color(take == search.move ? AppPalette.accent.color : Color.teal.opacity(0.6)))
+                if perfect {
+                    context.draw(Text("★").font(.headline).foregroundColor(.green), at: CGPoint(x: rect.midX, y: rect.minY - 10))
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Beyond the training range / За пределами виденного
+
+struct AdditionRangeLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var rangeIndex = 0
+    @State private var trained: [Int: AdditionNet.Trained] = [:]
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+    private func number(_ value: Double, _ digits: Int = 3) -> String { L10n.number(value, fractionDigits: digits, store.language) }
+
+    var body: some View {
+        let high = AdditionNet.trainingRanges[rangeIndex]
+        let net = trained[rangeIndex]
+        let corner = net.map { $0.predict((2, 2)) }
+        let cornerError = corner.map { ($0 - 4) * ($0 - 4) }
+        let solved = (cornerError ?? 1) < 0.1
+        LessonsFinalCard {
+            LabHeader(title: text("lab.ood.title"), instruction: text("lab.ood.subtitle"))
+            chart(net: net, high: high)
+                .frame(height: 260)
+                .accessibilityLabel(text("lab.ood.chartSpoken"))
+            Picker(text("lab.ood.range"), selection: $rangeIndex) {
+                ForEach(AdditionNet.trainingRanges.indices, id: \.self) { index in
+                    Text("0 … " + L10n.number(AdditionNet.trainingRanges[index], fractionDigits: 1, store.language)).tag(index)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("lab.ood.range")
+            if let net, let corner, let cornerError {
+                LabStatGrid {
+                    LabStat(label: text("lab.ood.statInside"), value: number(net.error(net.near), 5), tint: .green, identifier: "lab.ood.inside")
+                    LabStat(label: text("lab.ood.statCorner"), value: number(corner, 2), tint: .orange, identifier: "lab.ood.corner")
+                    LabStat(label: text("lab.ood.statCornerError"), value: number(cornerError), tint: solved ? .green : .red, identifier: "lab.ood.cornerError")
+                }
+            } else {
+                ProgressView()
+            }
+            LabStatusBadge(kind: solved ? .good : .warning, text: solved ? text("lab.ood.covered") : text("lab.ood.beyond"), identifier: "lab.ood.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.ood.challenge"), solved: solved,
+                         solvedText: text("lab.ood.challengeDone"), identifier: "lab.ood.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.ood.howNet"), text("lab.ood.howNot")])
+        }
+        .task(id: rangeIndex) {
+            if trained[rangeIndex] == nil { trained[rangeIndex] = AdditionNet.train(high: AdditionNet.trainingRanges[rangeIndex]) }
+        }
+    }
+
+    /// Along the diagonal x₁ = x₂ = t: the right answer 2t, the network's answer, and the training range in grey.
+    private func chart(net: AdditionNet.Trained?, high: Double) -> some View {
+        Canvas { context, size in
+            let plot = LabPlotGeometry(size: size, x: 0...2.6, y: 0...5.2)
+            let left: CGPoint = plot.point(0, 5.2)
+            let right: CGPoint = plot.point(high, 0)
+            context.fill(Path(CGRect(x: left.x, y: left.y, width: right.x - left.x, height: right.y - left.y)), with: .color(Color.gray.opacity(0.15)))
+            plot.drawAxes(in: context, xLabel: text("lab.ood.xAxis"), yLabel: text("lab.ood.yAxis"), xTicks: [0, 0.5, 1, 1.5, 2, 2.5], yTicks: [0, 1, 2, 3, 4, 5],
+                          format: { L10n.number($0, fractionDigits: $0 == $0.rounded() ? 0 : 1, store.language) })
+            var truth = Path()
+            truth.move(to: plot.point(0, 0))
+            truth.addLine(to: plot.point(2.6, 5.2))
+            context.stroke(truth, with: .color(.green), style: StrokeStyle(lineWidth: 2, dash: [6, 4]))
+            guard let net else { return }
+            var curve = Path()
+            for step in 0...52 {
+                let t = Double(step) * 0.05
+                let point: CGPoint = plot.point(t, min(5.2, max(0, net.predict((t, t)))))
+                if step == 0 { curve.move(to: point) } else { curve.addLine(to: point) }
+            }
+            context.stroke(curve, with: .color(AppPalette.accent.color), lineWidth: 3)
+            let corner: CGPoint = plot.point(2, min(5.2, net.predict((2, 2))))
+            context.fill(Path(ellipseIn: CGRect(x: corner.x - 6, y: corner.y - 6, width: 12, height: 12)), with: .color(.orange))
+        }
+    }
+}

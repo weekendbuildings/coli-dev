@@ -117,10 +117,10 @@
 | `agi_what_is_intelligence` | Применяешь три определения к трём системам, включая свою модель и шахматную программу. Спор | Legg и Hutter 2007; Chollet 2019; Morris и др. 2023 | A | есть |
 | `agi_measuring_arc` | Сам решаешь задачи вроде ARC, затем даёшь их локальной модели и считаешь результат. Что значат и чего не значат числа | Chollet 2019; ARC Prize | A | есть |
 | `agi_world_models` | Агент учит модель клетчатого мира и планирует внутри неё. Обзор JEPA. Спор: LeCun против языковых моделей | Ha и Schmidhuber 2018; DreamerV3; LeCun 2022; V-JEPA 2 | A | есть |
-| `agi_planning_search` | Поиск по дереву на маленькой игре, идея MuZero | MuZero; Sutton и Barto, гл. 8 | B | новый |
+| `agi_planning_search` | Точная стратегия игры «21 палочка», MCTS и число симуляций для верного хода; что добавили AlphaZero и MuZero | MuZero; AlphaZero; Sutton и Barto, гл. 8 | B | есть |
 | `agi_continual_learning` | Своя сеть забывает первую задачу после второй, простое лечение и его цена | Kirkpatrick и др. 2016; Alberta Plan | A | есть |
 | `agi_scaling_debate` | Таблица: что измерено, что предсказано, кто спорит. Спор | Sutton, The Bitter Lesson; Kaplan 2020; Hoffmann 2022; Sutskever 2025; METR 2025 | A | есть |
-| `agi_open_problems` | Список открытых задач и один посильный опыт на своей модели | CS224N, лекция об открытых вопросах | B | новый |
+| `agi_open_problems` | Восемь открытых задач «измерено / открыто» и опыт: tanh-сеть складывает числа и ломается за пределами виденного | CS224N; Geirhos и др. 2020; ARC-AGI-2 | B | есть |
 
 ### Этап 5. Сознание / Stage 5. Consciousness
 

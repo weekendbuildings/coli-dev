@@ -2100,6 +2100,10 @@ private struct PracticeLab: View {
             SparseFeatureLab()
         } else if subject == .programming, moduleResource == "interp_circuits" {
             NetworkCircuitLab()
+        } else if subject == .programming, moduleResource == "agi_planning_search" {
+            TreeSearchLab()
+        } else if subject == .programming, moduleResource == "agi_open_problems" {
+            AdditionRangeLab()
         } else if subject == .programming, moduleResource == "ai_path_glossary" {
             AIGlossaryLab()
         } else if subject == .programming, moduleResource == "consciousness_known_and_unknown" {

@@ -30,6 +30,8 @@ CASES = [
     ("data_for_language_models", "DedupLab", "dedup", ("2107.06499", "2406.17557", "2104.08758")),
     ("interp_sparse_features", "SparseFeatureLab", "sparse", ("monosemantic-features", "scaling-monosemanticity", "2309.08600")),
     ("interp_circuits", "NetworkCircuitLab", "netcircuit", ("2211.00593", "attribution-graphs/methods", "attribution-graphs/biology")),
+    ("agi_planning_search", "TreeSearchLab", "tree", ("1712.01815", "1911.08265", "the-book-2nd")),
+    ("agi_open_problems", "AdditionRangeLab", "ood", ("2004.07780", "2505.11831", "cs224n")),
     ("sampling_and_generation", "SamplingLab", "sampling", ("1904.09751", "docs.ollama.com/modelfile", "live_model_recording.json")),
 ]
 
