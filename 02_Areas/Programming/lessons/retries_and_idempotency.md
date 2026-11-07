@@ -65,9 +65,9 @@ print(len(server.attempts) - before)
 
 ### Варианты
 
-- Две: POST не идемпотентен, и повторный запрос выполнился ещё раз.
-- Одна: сервер сам понимает, что это повтор.
-- Ни одной: потерянный ответ отменяет операцию.
+- Две: POST не идемпотентен, и повтор выполнился ещё раз.
+- Одна: сервер сам понимает, что второй запрос — это повтор.
+- Ни одной: потерянный ответ отменяет уже сделанную операцию.
 
 ### Ответ
 
@@ -137,9 +137,9 @@ A client records an answer attempt with a POST request, but the reply was lost a
 
 ### Options
 
-- Two: POST is not idempotent, and the repeated request ran again.
-- One: the server recognises the repeat by itself.
-- None: a lost reply cancels the operation.
+- Two: POST is not idempotent, and the repeat ran again.
+- One: the server recognises the second request as a repeat.
+- None: a lost reply cancels the operation already done.
 
 ### Answer
 

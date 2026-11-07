@@ -35,9 +35,9 @@ API — это набор адресов и правил, по которым о
 
 ### Варианты
 
-- Ошибка клиента: сервер не нашёл запрошенный ресурс — скорее всего, неверный адрес.
+- Ошибка клиента: сервер не нашёл ресурс, скорее всего, адрес неверный.
 - Ошибка сервера: сервер упал и не может обработать ни один запрос.
-- Успех: сервер нашёл урок и вернул его в теле ответа.
+- Успех: сервер нашёл урок и вернул его в теле ответа с кодом 404.
 
 ### Ответ
 
@@ -77,7 +77,7 @@ The app requested a lesson at an address, and the server answered with code 404.
 
 ### Options
 
-- A client error: the server could not find the requested resource, most likely a wrong address.
+- A client error: the server found no such resource, likely a wrong address.
 - A server error: the server has crashed and cannot handle any request.
 - Success: the server found the lesson and returned it in the response body.
 

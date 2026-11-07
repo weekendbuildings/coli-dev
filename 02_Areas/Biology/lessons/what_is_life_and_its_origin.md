@@ -35,9 +35,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- Нет: точная копия выходит с вероятностью 0,99³⁰⁰ ≈ 0,049, а 10 · 0,049 ≈ 0,49 меньше 1.
-- Да: 99 % букв копируются верно, этого достаточно.
-- Да: длина молекулы не влияет на точность копии.
+- Нет: точная копия выходит с вероятностью 0,99³⁰⁰ ≈ 0,049, и 10 · 0,049 < 1.
+- Да: 99 % букв верны, а преимущество 10 больше, чем 1 / 0,99 ≈ 1,01.
+- Да: длина молекулы не влияет, важна только ошибка на букву 1 %.
 
 ### Ответ
 
@@ -77,9 +77,9 @@ A molecule of 300 letters copies each letter with a 1% error rate, and the corre
 
 ### Options
 
-- No: an exact copy comes out with probability 0.99³⁰⁰ ≈ 0.049, and 10 · 0.049 ≈ 0.49 is less than 1.
-- Yes: 99% of letters are copied correctly, which is enough.
-- Yes: the length of the molecule does not affect copy accuracy.
+- No: an exact copy appears with probability 0.99³⁰⁰ ≈ 0.049, and 10 · 0.049 < 1.
+- Yes: 99% of letters are right, and the advantage 10 beats 1 / 0.99 ≈ 1.01.
+- Yes: the molecule's length does not matter, only the 1% error per letter.
 
 ### Answer
 

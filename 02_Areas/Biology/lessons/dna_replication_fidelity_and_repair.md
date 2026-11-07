@@ -34,8 +34,8 @@ source_review_interval_days: 365
 ### Варианты
 
 - Около 2,3 миллиарда букв: L ≈ ln 10 / 10⁻⁹ ≈ 2,3 · 10⁹.
-- Около 229 букв, как при ошибке 1 %.
-- Любую: при такой точности ошибок не бывает вовсе.
+- Около 229 букв: L ≈ ln 10 / 0,01, как при ошибке 1 %.
+- Любую длину: при e = 10⁻⁹ порог Эйгена перестаёт действовать.
 
 ### Ответ
 
@@ -74,8 +74,8 @@ DNA copying together with repair makes about one error per billion bases (e = 10
 ### Options
 
 - About 2.3 billion letters: L ≈ ln 10 / 10⁻⁹ ≈ 2.3 · 10⁹.
-- About 229 letters, as with a 1% error.
-- Any length: with such accuracy there are no errors at all.
+- About 229 letters: L ≈ ln 10 / 0.01, as with a 1% error.
+- Any length: at e = 10⁻⁹ Eigen's threshold stops applying.
 
 ### Answer
 

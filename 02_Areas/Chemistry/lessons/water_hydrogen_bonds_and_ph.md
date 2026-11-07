@@ -34,8 +34,8 @@ source_review_interval_days: 365
 ### Варианты
 
 - В 100 раз: разница в 2 единицы pH — это 10 · 10.
-- В 2 раза: 6 − 4 = 2.
-- В 1,5 раза: 6 : 4 = 1,5.
+- В 2 раза: разница pH равна 6 − 4 = 2, концентрация растёт так же.
+- В 1,5 раза: концентрация пропорциональна pH, 6 : 4 = 1,5.
 
 ### Ответ
 
@@ -74,8 +74,8 @@ How many times higher is the hydrogen-ion concentration in a solution with pH 4 
 ### Options
 
 - 100 times: a difference of 2 pH units is 10 · 10.
-- 2 times: 6 − 4 = 2.
-- 1.5 times: 6 ÷ 4 = 1.5.
+- 2 times: the pH difference is 6 − 4 = 2, and concentration follows it.
+- 1.5 times: concentration is proportional to pH, 6 ÷ 4 = 1.5.
 
 ### Answer
 

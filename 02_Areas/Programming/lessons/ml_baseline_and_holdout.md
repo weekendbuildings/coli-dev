@@ -139,7 +139,7 @@ At k = 1 the model answers all 13 training examples correctly but only 8 of 12 h
 
 ### Options
 
-- The model memorized the training examples together with their noise; quality has to be measured on data it has not seen.
+- It memorised the training data with its noise; measure on unseen data.
 - The model is perfect: 100% on the training data proves it will work the same way on new data.
 - Always choose the largest k, because more neighbours are always better.
 
