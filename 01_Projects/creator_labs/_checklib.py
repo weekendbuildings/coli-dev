@@ -9,10 +9,48 @@ derivatives, edge cases and invariants that must always hold.
 """
 
 import importlib.util
+import json
 import math
+import os
 import sys
+import time
 import traceback
 from pathlib import Path
+
+# Итог каждой проверки дописывается сюда, его показывает экран «Прогресс Творца».
+# Every check appends its result here; the Creator progress screen shows it.
+RESULTS_NAME = ".results.json"
+RESULTS_ENV = "CREATOR_LABS_RESULTS"  # другой путь для тестов / another path for tests
+RESULTS_LIMIT = 1000  # старые записи отбрасываются / older runs are dropped
+
+
+def results_path():
+    override = os.environ.get(RESULTS_ENV)
+    return Path(override).expanduser() if override else Path(__file__).resolve().with_name(RESULTS_NAME)
+
+
+def record_result(check, passed, total, path=None, now=None):
+    """Дописывает итог в файл результатов. Ошибка записи не ломает проверку.
+    Appends the result to the results file. A write error never breaks the check."""
+    path = Path(path) if path else results_path()
+    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now if now is not None else time.time()))
+    lesson = check[len("check_"):-len(".py")] if check.startswith("check_") and check.endswith(".py") else ""
+    run = {"check": check, "lesson": lesson, "passed": passed, "total": total, "at": stamp}
+    try:
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+            runs = data.get("runs") if isinstance(data, dict) else None
+            runs = [r for r in runs if isinstance(r, dict)] if isinstance(runs, list) else []
+        except (OSError, ValueError):
+            runs = []
+        runs = (runs + [run])[-RESULTS_LIMIT:]
+        text = json.dumps({"format": "creator-labs-results", "version": 1, "runs": runs}, ensure_ascii=False, indent=1)
+        temporary = path.with_name(path.name + ".tmp")
+        temporary.write_text(text + "\n", encoding="utf-8")
+        os.replace(str(temporary), str(path))
+    except OSError as exc:
+        print(f"(Итог не записан / Result not saved: {exc})")
+    return run
 
 
 class Checker:
@@ -55,6 +93,7 @@ class Checker:
 
     def finish(self):
         total = self.passed + self.failed
+        record_result(Path(sys.argv[0]).name, self.passed, total)
         if self.failed:
             print(f"\nПройдено {self.passed} из {total}. Исправь первую ✗ и запусти снова.")
             print(f"Passed {self.passed} of {total}. Fix the first ✗ and run again.")

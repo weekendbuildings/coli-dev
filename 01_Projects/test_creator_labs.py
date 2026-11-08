@@ -9,6 +9,9 @@ typical mistake. References replace the `raise NotImplementedError("…")` lines
 
 from __future__ import annotations
 
+import json
+import os
+import re
 import subprocess
 import sys
 import textwrap
@@ -203,13 +206,34 @@ def fill(lab: str, bodies: dict[str, str]) -> str:
     return text
 
 
-def run_check(lab: str, source: Path) -> subprocess.CompletedProcess:
+RESULTS = {"path": None}
+
+
+@pytest.fixture(autouse=True)
+def results_file(tmp_path: Path):
+    """Тесты пишут итоги во временный файл, а не рядом с проверками в репозитории.
+    Tests write results to a temporary file, never next to the checks in the repository."""
+    RESULTS["path"] = tmp_path / "results.json"
+    yield RESULTS["path"]
+    RESULTS["path"] = None
+
+
+def run_check(lab: str, source: Path, python: str = sys.executable) -> subprocess.CompletedProcess:
+    env = dict(os.environ)
+    env["CREATOR_LABS_RESULTS"] = str(RESULTS["path"])
     return subprocess.run(
-        [sys.executable, str(LABS / CHECKS[lab]), str(source)],
+        [python, str(LABS / CHECKS[lab]), str(source)],
         capture_output=True,
         text=True,
         timeout=120,
+        env=env,
     )
+
+
+def recorded_runs(path: Path) -> list[dict]:
+    data = json.loads(path.read_text(encoding="utf-8"))
+    assert data["format"] == "creator-labs-results" and data["version"] == 1
+    return data["runs"]
 
 
 def test_every_blank_has_a_check_and_a_reference() -> None:
@@ -278,3 +302,79 @@ def test_lesson_points_to_its_lab_inside_the_practice_section(lab: str) -> None:
         assert block in section, f"{lab}: the block must sit in the practice section the app shows"
         assert f"python3 {CHECKS[lab]}" in section and f"`{lab}_blank.py`" in section
         assert "cp -Rn " in section, "copying must never overwrite the learner's files"
+
+
+def test_every_run_appends_its_result_for_the_progress_screen(results_file: Path, tmp_path: Path) -> None:
+    """Итог каждой проверки дописывается в `.results.json`: его читает экран «Прогресс Творца».
+    Every check run appends its result to `.results.json`, which the Creator progress screen reads."""
+    run_check("tokenizer", LABS / "tokenizer_blank.py")
+    source = tmp_path / "tokenizer_solution.py"
+    source.write_text(fill("tokenizer", SOLUTIONS["tokenizer"]), encoding="utf-8")
+    run_check("tokenizer", source)
+    first, second = recorded_runs(results_file)
+    assert first["check"] == second["check"] == "check_tokenizer_bpe.py"
+    assert first["lesson"] == second["lesson"] == "tokenizer_bpe"
+    assert first["passed"] == 0 and first["total"] > 0
+    assert second["passed"] == second["total"] == first["total"]
+    for run in (first, second):
+        assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", run["at"]), run["at"]
+
+
+@pytest.mark.parametrize("lab", sorted(CHECKS))
+def test_each_check_names_its_lesson_in_the_results(lab: str, results_file: Path) -> None:
+    run_check(lab, LABS / f"{lab}_blank.py")
+    (run,) = recorded_runs(results_file)
+    assert run["lesson"] == LESSON_OF[lab] and run["passed"] < run["total"]
+
+
+def test_results_survive_a_broken_file_and_keep_only_the_latest_runs(tmp_path: Path) -> None:
+    sys.path.insert(0, str(LABS))
+    try:
+        import _checklib
+    finally:
+        sys.path.remove(str(LABS))
+    path = tmp_path / ".results.json"
+    path.write_text("{not json", encoding="utf-8")
+    _checklib.record_result("check_x.py", 1, 2, path=path, now=0)
+    assert recorded_runs(path) == [{"check": "check_x.py", "lesson": "x", "passed": 1, "total": 2, "at": "1970-01-01T00:00:00Z"}]
+    for index in range(_checklib.RESULTS_LIMIT + 5):
+        _checklib.record_result("check_x.py", index, index, path=path, now=index)
+    runs = recorded_runs(path)
+    assert len(runs) == _checklib.RESULTS_LIMIT and runs[-1]["passed"] == _checklib.RESULTS_LIMIT + 4
+    # A folder where the file cannot be written: the check still finishes. / Папка без записи: проверка всё равно идёт дальше.
+    assert _checklib.record_result("check_x.py", 1, 1, path=tmp_path / "missing" / "r.json")["passed"] == 1
+    # By default the file lies next to the checks: ~/ai-path/creator_labs/.results.json after copying.
+    # По умолчанию файл лежит рядом с проверками.
+    saved = os.environ.pop("CREATOR_LABS_RESULTS", None)
+    try:
+        assert _checklib.results_path() == (LABS / ".results.json").resolve()
+    finally:
+        if saved is not None:
+            os.environ["CREATOR_LABS_RESULTS"] = saved
+
+
+@pytest.mark.skipif(not Path("/usr/bin/python3").exists(), reason="system python3 of macOS")
+def test_results_are_written_by_the_macs_system_python(results_file: Path) -> None:
+    """Владелец запускает проверки системным python3 3.9. / The owner runs the checks with the system python3 3.9."""
+    result = run_check("autograd", LABS / "autograd_blank.py", python="/usr/bin/python3")
+    assert result.returncode == 1, result.stdout + result.stderr
+    (run,) = recorded_runs(results_file)
+    assert run["lesson"] == "autograd_engine"
+
+
+def test_progress_screen_knows_every_lab_and_reads_the_results_file() -> None:
+    """Экран «Прогресс Творца» знает все задания и читает файл итогов рядом с проверками.
+    The Creator progress screen knows every lab and reads the results file next to the checks."""
+    app = LABS.parent.parent / "macOS" / "ColiDev" / "App"
+    logic = (app / "CreatorProgress.swift").read_text(encoding="utf-8")
+    listed = logic.split("static let lessons: [String] = [", 1)[1].split("]", 1)[0]
+    assert sorted(re.findall(r'"([a-z0-9_]+)"', listed)) == sorted(LESSON_OF.values())
+    assert 'static let fileName = ".results.json"' in logic
+    assert '.appendingPathComponent("ai-path", isDirectory: true)' in logic
+    assert '.appendingPathComponent("creator_labs", isDirectory: true)' in logic
+    view = (app / "CreatorProgressView.swift").read_text(encoding="utf-8")
+    assert "reloadLabsIfChanged()" in view and "NSApplication.didBecomeActiveNotification" in view
+    sidebar = (app / "ContentView.swift").read_text(encoding="utf-8").split("} detail: {", 1)[0]
+    assert 'sidebarRow(.creatorProgress, L10n.text("nav.creatorProgress", store.language)' in sidebar
+    ignored = (LABS.parent.parent / ".gitignore").read_text(encoding="utf-8")
+    assert "01_Projects/creator_labs/.results.json*" in ignored

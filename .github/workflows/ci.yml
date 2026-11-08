@@ -258,6 +258,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-creator-basics"
           "$RUNNER_TEMP/verify-creator-basics"
 
+      - name: Verify Creator progress / Проверка прогресса «Творца»
+        run: |
+          swiftc -parse-as-library macOS/ColiDev/App/CreatorProgress.swift macOS/ColiDev/scripts/verify_creator_progress.swift \
+            -o "$RUNNER_TEMP/verify-creator-progress"
+          "$RUNNER_TEMP/verify-creator-progress"
+
       - name: Verify 3D surface geometry / Проверка геометрии 3D-поверхности
         run: |
           swiftc -parse-as-library macOS/ColiDev/App/SurfacePlot3D.swift macOS/ColiDev/App/ConstrainedOptimization.swift macOS/ColiDev/scripts/verify_surface_plot_3d.swift \

@@ -79,6 +79,7 @@ struct ContentView: View {
                     SidebarSection(title: L10n.text("nav.yourLearning", store.language)) {
                         sidebarRow(.today, L10n.text("nav.today", store.language), symbol: "sparkles")
                         sidebarRow(.aiPath, L10n.text("nav.aiPath", store.language), symbol: "brain.head.profile", identifier: "sidebar.ai-path")
+                        sidebarRow(.creatorProgress, L10n.text("nav.creatorProgress", store.language), symbol: "chart.bar.xaxis", identifier: "sidebar.creator-progress")
                         sidebarRow(.subjects, L10n.text("nav.subjects", store.language), symbol: "square.grid.2x2")
                     }
                     SidebarSection(title: L10n.text("nav.subjects", store.language)) {
@@ -127,6 +128,9 @@ struct ContentView: View {
                 case .aiPath:
                     AIPathView(openLesson: openPathLesson)
                         .navigationTitle(L10n.text("path.title", store.language))
+                case .creatorProgress:
+                    CreatorProgressView(openLesson: openPathLesson)
+                        .navigationTitle(L10n.text("nav.creatorProgress", store.language))
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
                 case .subject(let subject):

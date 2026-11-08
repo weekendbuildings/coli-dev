@@ -35,3 +35,6 @@ xcuserdata/
 
 # Claude Code session worktrees
 .claude/worktrees/
+
+# Results of the "build and check it yourself" labs / Итоги проверок «Собери и проверь сам»
+01_Projects/creator_labs/.results.json*

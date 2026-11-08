@@ -25,6 +25,10 @@ cd ~/ai-path/creator_labs && python3 check_autograd_engine.py
 обычный `python3` этого Mac, пакеты не нужны. Своё решение можно положить в отдельный файл и
 передать проверке: `python3 check_autograd_engine.py my_autograd.py`.
 
+**Итоги.** Каждая проверка дописывает итог (какая проверка, сколько пройдено из скольких, время) в
+`.results.json` рядом с собой, то есть в `~/ai-path/creator_labs/.results.json`. Экран «Прогресс Творца»
+читает этот файл и через несколько секунд показывает новый ✓.
+
 **Честно.** В файлах проверок есть ответы, иначе нечем сверять. Открывай их только после своей
 попытки. Эталонные решения лежат в `01_Projects/test_creator_labs.py`: там же видно, какие типичные
 ошибки ловит каждая проверка.
@@ -35,6 +39,7 @@ Seven blanks for the key AI path lessons. Each is missing the main step of its a
 write it. Each has a strict check that compares your code with numerical derivatives, edge cases
 and invariants. Copy the folder with the command above (`cp -Rn` keeps files you already wrote),
 open a blank, fill in the functions that raise `NotImplementedError`, and rerun its check until
-every line shows ✓. Plain `python3` is enough. The check files contain the answers, so open them
+every line shows ✓. Plain `python3` is enough. Every run appends its result to `.results.json` next to the checks,
+and the Creator progress screen shows a new ✓ within seconds. The check files contain the answers, so open them
 only after your own attempt; reference solutions and the mistakes each check catches are in
 `01_Projects/test_creator_labs.py`.

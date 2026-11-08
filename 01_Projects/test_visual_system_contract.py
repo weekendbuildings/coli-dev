@@ -156,7 +156,9 @@ def test_app_shows_the_new_name_but_keeps_the_identifiers_that_hold_user_data():
     assert "<key>LSHasLocalizedDisplayName</key>\n    <true/>" in plist
     assert "PRODUCT_BUNDLE_IDENTIFIER = com.colidev.learningstudio;" in project
     assert '_KEYCHAIN_SERVICE = "ColiDev"' in orchestrator
-    for language, name in (("en", "Creator"), ("ru", "Творец")):
+    # The name is not translated: Finder shows «Творец» on an English macOS too (owner's decision, 2026-11-08).
+    # Имя не переводится: Finder показывает «Творец» и на английской macOS (решение владельца 2026-11-08).
+    for language, name in (("en", "Творец"), ("ru", "Творец")):
         strings = (APP / f"{language}.lproj" / "InfoPlist.strings").read_text(encoding="utf-8")
         assert f'"CFBundleName" = "{name}";' in strings
         assert f'"CFBundleDisplayName" = "{name}";' in strings
