@@ -35,9 +35,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- Он считывает ДНК и копирует ген в РНК.
-- Он помогает модифицировать, сортировать и упаковывать часть молекул в пузырьки.
-- Он производит всю энергию клетки.
+- Он считывает ДНК в ядре и копирует нужный ген в молекулу РНК.
+- Он изменяет, сортирует и упаковывает часть молекул в пузырьки.
+- Он производит почти всю энергию клетки в виде молекул АТФ.
 
 ### Ответ
 
@@ -77,9 +77,9 @@ What role does the Golgi apparatus play in the protein route shown here?
 
 ### Options
 
-- It reads DNA and copies the gene into RNA.
-- It helps modify, sort, and package some molecules into vesicles.
-- It produces all of the cell's energy.
+- It reads DNA in the nucleus and copies the gene into RNA.
+- It modifies, sorts, and packages some molecules into vesicles.
+- It produces most of the cell's energy as ATP molecules.
 
 ### Answer
 

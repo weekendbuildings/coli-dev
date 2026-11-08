@@ -11,6 +11,14 @@ source_review_interval_days: 180
 
 ## Русский
 
+### Простыми словами
+
+Модель не помнит разговор. Каждый раз программа чата заново отправляет ей всю переписку одним длинным текстом, а пометки «кто говорит» в нём называются ролями. Представь собеседника, который помнит только последнее письмо: чтобы он понял разговор, ты каждый раз пересылаешь ему всю переписку целиком. Если письмо слишком длинное, начало обрезают. Сколько текста модель может прочитать за раз, называется окном контекста.
+
+**Что нужно знать до.** Урок «Живая модель на твоём Mac» (шаг 1): что такое токен, как вызвать модель из Python и папка `~/ai-path`.
+
+**Если непонятно.** Если неясно, как программа говорит с моделью, вернись к шагу 3 урока «Живая модель на твоём Mac». Если неясен список и словарь в Python, загляни в «Коллекции и циклы» (шаг 2). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Своими руками разобрать чат с ИИ: собрать настоящий текст, который читает модель, увидеть, что памяти между вызовами нет, подделать её прошлый ответ и заставить её молча забыть начало разговора. После этого урока ты будешь понимать, почему ИИ «забывает» и откуда у него берутся роли. Нужно около 40 минут. Понадобится папка `~/ai-path` из прошлого урока.
@@ -205,6 +213,14 @@ print(chat([secret, say("Какое секретное слово?")]))
 Шаблон, скрытое правило и обрезка сообщений относятся к этой модели и этой версии Ollama: 0.40.13. У других моделей другие метки. Опыт с секретом не надёжен в обе стороны: на другую просьбу та же модель отказала, поэтому один такой опыт ничего не доказывает, кроме того, что правило не стена. У больших сервисов есть функции памяти, но как именно они устроены, снаружи обычно не видно; я говорю здесь только о том, что измерено на этом Mac. Ollama кэширует уже прочитанный текст ради скорости, но это не память: ответ от этого не меняется. Размер окна зависит от настроек и видеопамяти, поэтому у тебя число может быть другим.
 
 ## English
+
+### In plain words
+
+The model does not remember the conversation. Each time, the chat program sends it the whole conversation again as one long text, and the "who is speaking" marks in it are called roles. Picture someone who remembers only the last letter: for them to follow the conversation, you resend the whole correspondence every time. If the letter is too long, its beginning gets cut off. How much text the model can read at once is called the context window.
+
+**What to know first.** The lesson «A live model on your Mac» (step 1): what a token is, how to call the model from Python, and the `~/ai-path` folder.
+
+**If something is unclear.** If it is unclear how the program talks to the model, go back to step 3 of «A live model on your Mac». If Python lists and dictionaries are unclear, see «Collections and Loops» (step 2). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

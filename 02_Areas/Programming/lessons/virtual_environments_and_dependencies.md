@@ -39,7 +39,7 @@ python -m pip install -r requirements.txt
 
 ### Варианты
 
-- Чтобы пакеты и их версии одного проекта не мешали другому: у каждого окружения свой изолированный набор.
+- Чтобы пакеты и версии одного проекта не мешали другому: у окружения свой набор.
 - Чтобы Python работал быстрее: в окружении код выполняется оптимизированно.
 - Без виртуального окружения Python вообще не запускает скрипты.
 
@@ -85,7 +85,7 @@ Why does each project get its own virtual environment?
 
 ### Options
 
-- So that one project's packages and versions do not interfere with another's: each environment has its own isolated set.
+- So one project's packages and versions do not clash with another's.
 - To make Python run faster: code runs optimised inside an environment.
 - Without a virtual environment Python cannot run scripts at all.
 

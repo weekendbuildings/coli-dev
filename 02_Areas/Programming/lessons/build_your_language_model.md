@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Здесь все детали собираются в одну программу: токены, эмбеддинги, блоки трансформера, механизм градиентов и Adam. Модель учится на текстах этого курса угадывать следующий символ. Как сборка велосипеда из деталей, каждую из которых ты уже делал и проверял. Финиш засчитывается только по тексту, которого модель не видела: ошибка там должна быть ниже случайного угадывания и ниже простого счётчика пар.
+
+**Что нужно знать до.** Все уроки этапа 2, особенно «Свой механизм градиентов» (шаг 8), «Блок трансформера» (шаг 11) и «Как читать обучение» (шаг 9).
+
+**Если непонятно.** Если непонятна какая-то деталь программы, найди урок, где она появилась впервые: градиенты в шаге 8, оптимизатор в шаге 9, внимание и блок в шаге 11. Если неясно, почему важен незнакомый текст, перечитай урок «Машинное обучение: baseline». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Собрать всё пройденное в одну программу на чистом Python: свой механизм градиентов, блоки трансформера и обучение на текстах курса. Обучить модель на своём Mac и честно проверить её на тексте, которого она не видела.
@@ -148,18 +156,19 @@ def normalize(a):  # нормализация слоя по каждому ме�
     for row in a.data:
         n = len(row)
         mean = sum(row) / n
-        spread = math.sqrt(sum((x - mean) ** 2 for x in row) / n) + 1e-5
+        sigma = math.sqrt(sum((x - mean) ** 2 for x in row) / n)
+        spread = sigma + 1e-5
         result = [(x - mean) / spread for x in row]
         rows.append(result)
-        infos.append((spread, result))
+        infos.append((spread, sigma, result))
 
     def back(g):
         out = []
-        for gr, (spread, res) in zip(g, infos):
+        for gr, (spread, sigma, res) in zip(g, infos):
             n = len(gr)
             gm = sum(gr) / n
             gs = sum(map(mul, gr, res)) / n
-            out.append([(v - gm - gs * r) / spread for v, r in zip(gr, res)])
+            out.append([(v - gm) / spread - (gs * r / sigma if sigma else 0.0) for v, r in zip(gr, res)])
         a.add_grad(out)
     return Tensor(rows, (a,), back)
 
@@ -431,6 +440,14 @@ T = 0.4: Нейронная сеть положить вредель при кл
 
 ## English
 
+### In plain words
+
+Here all the parts come together in one program: tokens, embeddings, transformer blocks, the gradient engine and Adam. The model learns on this course's texts to guess the next character. Like assembling a bicycle from parts you have each already made and tested. The finish counts only on text the model has not seen: the error there must be below random guessing and below a simple pair counter.
+
+**What to know first.** All lessons of stage 2, especially «Your own gradient engine» (step 8), «The Transformer Block» (step 11) and «Reading training» (step 9).
+
+**If something is unclear.** If some part of the program is unclear, find the lesson where it first appeared: gradients in step 8, the optimizer in step 9, attention and the block in step 11. If it is unclear why unseen text matters, reread «Machine Learning: Baselines». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Gather everything learned into one program in plain Python: your own gradient mechanism, transformer blocks, and training on the course texts. Train the model on your own Mac and test it honestly on text it has not seen.
@@ -568,18 +585,19 @@ def normalize(a):  # layer normalization at each place
     for row in a.data:
         n = len(row)
         mean = sum(row) / n
-        spread = math.sqrt(sum((x - mean) ** 2 for x in row) / n) + 1e-5
+        sigma = math.sqrt(sum((x - mean) ** 2 for x in row) / n)
+        spread = sigma + 1e-5
         result = [(x - mean) / spread for x in row]
         rows.append(result)
-        infos.append((spread, result))
+        infos.append((spread, sigma, result))
 
     def back(g):
         out = []
-        for gr, (spread, res) in zip(g, infos):
+        for gr, (spread, sigma, res) in zip(g, infos):
             n = len(gr)
             gm = sum(gr) / n
             gs = sum(map(mul, gr, res)) / n
-            out.append([(v - gm - gs * r) / spread for v, r in zip(gr, res)])
+            out.append([(v - gm) / spread - (gs * r / sigma if sigma else 0.0) for v, r in zip(gr, res)])
         a.add_grad(out)
     return Tensor(rows, (a,), back)
 

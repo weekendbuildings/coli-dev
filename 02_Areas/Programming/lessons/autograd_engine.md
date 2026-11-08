@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Считать производные руками для каждой новой сети долго и легко ошибиться. Механизм градиентов делает это сам. Каждое число запоминает, из каких чисел и какой операцией оно получено. Потом от ответа назад каждая операция применяет своё маленькое правило, и все производные складываются. Похоже на чек, где у каждой строки написано, из чего она сложилась: пройдя чек снизу вверх, видишь вклад каждой покупки. Так же работает PyTorch, только на больших массивах.
+
+**Что нужно знать до.** Урок «Нейросеть учится сама» (шаг 8): правило цепочки. Урок «Классы в Python» (шаг 2): объекты и методы.
+
+**Если непонятно.** Если неясно, зачем `+=`, найди в уроке шаг 4: там число используется дважды, и его вклады складываются. Если неясны классы, вернись к уроку «Классы в Python». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Написать примерно за 70 строк на чистом Python механизм, который сам считает градиенты для любой формулы, проверить его численно и обучить им настоящую маленькую сеть. Внутри PyTorch работает та же идея, только на больших массивах чисел. Нужно около часа.
@@ -202,6 +210,15 @@ print([round(predict(p, q).data, 2) for p, q, _ in data])
 
 В программе: добавь в класс вычитание `__sub__` и деление на число. Проверь их численно, как на шаге 3. Затем поменяй в сети шаг 0,2 на 2 и посмотри на ошибку.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: передачу градиента в умножении и в tanh и обратный проход в верном порядке. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_autograd_engine.py
+```
+
+Сначала все строки будут с ✗. Открой `autograd_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 В `__mul__` градиент для `self` умножается на `other.data`. Почему?
@@ -225,6 +242,14 @@ print([round(predict(p, q).data, 2) for p, q, _ in data])
 Наш механизм работает с отдельными числами, поэтому он очень медленный: на каждое умножение создаётся объект Python. Настоящие библиотеки считают целыми массивами и на видеокарте, поэтому им хватает времени на миллиарды весов. Операций у нас мало, и обход в `backward` рекурсивный, поэтому на очень длинных формулах упрётся в предел глубины Python. Сеть на XOR при других начальных весах может застрять: это обычное свойство обучения, а не ошибка механизма.
 
 ## English
+
+### In plain words
+
+Computing derivatives by hand for every new network is slow and error-prone. A gradient engine does it itself. Each number remembers which numbers it came from and by which operation. Then, going back from the answer, each operation applies its own small rule, and all the derivatives add up. It is like a receipt where each line says what it was made of: reading it from bottom to top, you see each purchase's share. PyTorch works the same way, only on large arrays.
+
+**What to know first.** «A Neural Network Learns» (step 8): the chain rule. «Python Classes» (step 2): objects and methods.
+
+**If something is unclear.** If it is unclear why `+=` is used, find step 4 in the lesson: a number is used twice there, and its contributions add up. If classes are unclear, go back to «Python Classes». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -416,6 +441,15 @@ The error fell almost to zero, and the answers are close to `−1, 1, 1, −1`. 
 In the lab the formula is `L = (a · b + c) · f`. Press "Step back" and watch the gradient go from the end to the start. Use the plus and minus buttons to push inputs by 0.5, and compare the gradient's prediction with the real change.
 
 In the program: add subtraction `__sub__` and division by a number to the class. Check them numerically, as in step 3. Then change the network's step from 0.2 to 2 and look at the error.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the gradient push for multiplication and tanh and the backward pass in the right order. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_autograd_engine.py
+```
+
+At first every line shows ✗. Open `autograd_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

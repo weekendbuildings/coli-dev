@@ -149,9 +149,9 @@ factor = нужное число порций / базовое число пор
 
 ### Варианты
 
-- Чтобы убедиться, что равенство обрабатывается определённой веткой и алгоритм всё равно возвращает допустимый максимум.
-- Потому что сравнение `a > b` превращается в истину, когда числа равны.
-- Чтобы автоматически проверить любое количество чисел.
+- Чтобы проверить, что равенство попадает в определённую ветку и ответ всё равно верен.
+- Потому что сравнение `a > b` становится истинным, когда числа равны друг другу.
+- Чтобы тот же алгоритм без изменений заработал для любого количества чисел.
 
 ### Ответ
 
@@ -307,9 +307,9 @@ Why is it useful to check the case `a = b` when the task asks you to find the gr
 
 ### Options
 
-- To make sure equality follows a defined branch and the algorithm still returns a valid maximum.
+- To make sure equality takes a defined branch and the answer is still valid.
 - Because the comparison `a > b` becomes true when the numbers are equal.
-- To automatically handle any number of inputs.
+- So the same algorithm works unchanged for any number of inputs.
 
 ### Answer
 

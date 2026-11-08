@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Модель не читает буквы и слова, она читает токены: кусочки текста из своего словаря. Токенизатор BPE строит этот словарь сам. Он находит пару кусочков, которая встречается чаще всего, склеивает её в один новый кусочек и повторяет. Похоже на стенографию: частые сочетания получают свой короткий значок. Поэтому частые слова становятся одним токеном, а редкие и русские разбиваются на много кусочков.
+
+**Что нужно знать до.** Урок «Живая модель на твоём Mac» (шаг 1): что такое токен. Урок «Строки, файлы и исключения» (шаг 2).
+
+**Если непонятно.** Если неясно, что такое байт, считай так: каждая буква хранится как одно или несколько чисел от 0 до 255, и русская буква занимает два таких числа. Если неясна программа, вернись к урокам шага 2. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Написать на чистом Python токенизатор BPE, обучить его на тексте и своими глазами увидеть, откуда берутся токены и почему русский текст у моделей занимает больше токенов. Это первая часть первого задания стэнфордского курса CS336. Нужно около 40 минут.
@@ -137,6 +145,15 @@ for sample in ("Модель читает токены", "The model reads", "К�
 
 В программе поменяй число слияний с 40 на 100. Как изменились новые русские слова? Что будет, если обучить токенизатор только на английском и подать русскую фразу?
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: подсчёт пар, слияние без перекрытий и кодирование в порядке выученных слияний. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_tokenizer_bpe.py
+```
+
+Сначала все строки будут с ✗. Открой `tokenizer_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Почему первыми слияниями в нашем тексте стали отдельные русские буквы?
@@ -160,6 +177,14 @@ for sample in ("Модель читает токены", "The model reads", "К�
 Наш текст крошечный, поэтому и словарь учебный. Настоящие токенизаторы сначала делят текст на части по шаблону, например отдельно слова и знаки, чтобы слияния не шли через границу слова, и имеют особые токены вроде `<|im_start|>` из урока о чате. Наша функция заново считает все пары на каждом слиянии, и на больших текстах это слишком медленно. Почему именно у этой модели `Привет` занимает 3 токена, я объясняю по косвенным признакам: состав её обучающих текстов я не проверял.
 
 ## English
+
+### In plain words
+
+A model does not read letters or words; it reads tokens: pieces of text from its vocabulary. The BPE tokenizer builds that vocabulary itself. It finds the pair of pieces that occurs most often, glues it into one new piece and repeats. It is like shorthand: frequent combinations get their own short sign. That is why frequent words become one token, while rare and Russian words split into many pieces.
+
+**What to know first.** «A live model on your Mac» (step 1): what a token is. «Strings, Files, and Exceptions» (step 2).
+
+**If something is unclear.** If a byte is unclear, think of it this way: each letter is stored as one or more numbers from 0 to 255, and a Russian letter takes two such numbers. If the program is unclear, go back to the lessons of step 2. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -286,6 +311,15 @@ That is the second reason `Привет` takes 3 tokens in `qwen2.5-coder:7b`. I
 In the lab the text is cut into tiles. At first you see bytes: halves of Russian letters show as hexadecimal numbers, such as `D0`. Yellow marks the pair that merges next. Press "Merge the pair" and watch bytes gather into letters, letters into syllables, syllables into words. Try your own text and compare Russian with English.
 
 In the program, change the number of merges from 40 to 100. How did the new Russian words change? What happens if you train the tokenizer on English only and give it a Russian phrase?
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: pair counting, merging without overlaps and encoding in the learned merge order. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_tokenizer_bpe.py
+```
+
+At first every line shows ✗. Open `tokenizer_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

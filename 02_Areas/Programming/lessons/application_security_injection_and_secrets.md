@@ -51,9 +51,9 @@ print(len(token))
 
 ### Варианты
 
-- Всех пользователей — 2 строки: кавычка закрыла строку SQL, и условие OR '1'='1' истинно для каждой записи.
-- Ни одной строки: пользователя с именем nobody нет.
-- Ошибку: база данных сама отклоняет подозрительный ввод.
+- Всех пользователей: кавычка закрыла строку, а условие OR '1'='1' истинно всегда.
+- Ни одной строки: пользователя с именем nobody в таблице users просто нет.
+- Ошибку: база данных сама замечает и отклоняет подозрительный ввод.
 
 ### Ответ
 
@@ -109,9 +109,9 @@ What does the unsafe query in the example return for the input "nobody' OR '1'='
 
 ### Options
 
-- All users, 2 rows: the quote closed the SQL string, and the condition OR '1'='1' is true for every record.
-- No rows: there is no user named nobody.
-- An error: the database itself rejects suspicious input.
+- All users: the quote closed the string, and OR '1'='1' is true for every row.
+- No rows: there is no user named nobody in the users table at all.
+- An error: the database itself notices and rejects suspicious input.
 
 ### Answer
 

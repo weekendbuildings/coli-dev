@@ -34,7 +34,7 @@ source_review_interval_days: 365
 ### Варианты
 
 - Нет: итог −70 + 20 − 8 = −58 мВ, это ниже порога −55 мВ.
-- Да: возбуждающих сигналов больше, чем тормозящих.
+- Да: возбуждающих больше, итог −70 + 20 = −50 мВ выше порога.
 - Да: любой возбуждающий сигнал сам запускает потенциал действия.
 
 ### Ответ
@@ -74,7 +74,7 @@ A neuron receives 5 excitatory (+4 mV) and 2 inhibitory (−4 mV) inputs at abou
 ### Options
 
 - No: the total is −70 + 20 − 8 = −58 mV, below the −55 mV threshold.
-- Yes: there are more excitatory inputs than inhibitory ones.
+- Yes: excitation wins, the total −70 + 20 = −50 mV is above threshold.
 - Yes: any excitatory input fires an action potential on its own.
 
 ### Answer

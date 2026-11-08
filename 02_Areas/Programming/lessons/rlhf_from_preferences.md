@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+RLHF значит обучение с подкреплением на предпочтениях людей. Людям легче сравнить два ответа, чем написать идеальный. Сначала по таким сравнениям учат модель награды: она ставит ответам оценки, похожие на выбор людей. Потом языковую модель сдвигают так, чтобы её ответы получали больше награды. Как повар, который учится по тому, какое из двух блюд гости выбрали. Ловушка: если сдвигать слишком долго, модель учится нравиться оценщику, а не становиться лучше, поэтому её держат на поводке рядом с исходной.
+
+**Что нужно знать до.** Урок «Градиент политики: REINFORCE» (шаг 13): именно он сдвигает модель. Урок «Дообучение и LoRA» (шаг 14). Урок «Классификация и softmax» (шаг 7).
+
+**Если непонятно.** Если неясна модель награды, посчитай шаг 3 урока руками: вероятность того, что выбран первый ответ. Если неясно, как сдвигают модель, вернись к уроку «Градиент политики: REINFORCE». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Пройти весь путь RLHF своими руками: собрать сравнения ответов, обучить модель награды и сдвинуть маленькую языковую модель. Затем увидеть главную ловушку: награда растёт, а настоящее качество падает. Нужно около 50 минут.
@@ -19,7 +27,7 @@ source_review_interval_days: 365
 
 **Шаг 1. Зачем это нужно.** Голая языковая модель продолжает текст, а не помогает. Нам нужно, чтобы она писала то, что нравится людям. Но формулу «хорошего ответа» никто написать не может, а оценить ответ числом людям трудно: один ставит 7, другой 4. Зато сравнить два ответа и сказать, какой лучше, человек может легко.
 
-RLHF поэтому состоит из трёх шагов: люди сравнивают пары ответов, **модель награды** учится предсказывать их выбор, а языковая модель сдвигается в сторону высокой награды. Здесь на втором шаге работает REINFORCE из прошлого урока.
+RLHF поэтому состоит из трёх шагов: люди сравнивают пары ответов, **модель награды** учится предсказывать их выбор, а языковая модель сдвигается в сторону высокой награды. Здесь на втором шаге работает REINFORCE из урока «Градиент политики: REINFORCE» (шаг 13).
 
 **Шаг 2. Сравнения.** Наша языковая модель очень простая: для каждого слова таблица вероятностей следующего слова. Настоящую заменять ей нельзя, зато весь путь виден и идёт за секунду. Человека в программе заменяет функция `person`: она любит слова «спасибо», «пожалуйста» и «добрый», не любит «дурак» и «плохой» и штрафует повтор слова на 2. В тренажёре выбирать будешь ты сам. Создай файл `nano ~/ai-path/rlhf.py`, вставь и запусти.
 
@@ -262,6 +270,14 @@ with a penalty for drifting
 
 ## English
 
+### In plain words
+
+RLHF means reinforcement learning from human preferences. It is easier for people to compare two answers than to write a perfect one. First, a reward model is trained on such comparisons: it scores answers in a way that matches people's choices. Then the language model is shifted so its answers earn more reward. Like a cook who learns from which of two dishes the guests chose. The trap: shift for too long and the model learns to please the judge rather than to get better, so it is kept on a leash near the original.
+
+**What to know first.** «The policy gradient: REINFORCE» (step 13): it is what shifts the model. «Fine-tuning and LoRA» (step 14). «Classification and Softmax» (step 7).
+
+**If something is unclear.** If the reward model is unclear, work step 3 of the lesson by hand: the probability that the first answer is chosen. If it is unclear how the model is shifted, go back to «The policy gradient: REINFORCE». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Walk the whole RLHF path by hand: collect comparisons of answers, train a reward model, and shift a small language model. Then see the main trap: reward rises while true quality falls. It takes about 50 minutes.
@@ -270,7 +286,7 @@ Walk the whole RLHF path by hand: collect comparisons of answers, train a reward
 
 **Step 1. Why this is needed.** A bare language model continues text rather than helps. We want it to write what people like. But nobody can write a formula for a "good answer", and scoring an answer with a number is hard for people: one gives 7, another 4. Comparing two answers and saying which is better, however, is easy.
 
-So RLHF has three steps: people compare pairs of answers, a **reward model** learns to predict their choice, and the language model shifts towards high reward. The second step here uses REINFORCE from the last lesson.
+So RLHF has three steps: people compare pairs of answers, a **reward model** learns to predict their choice, and the language model shifts towards high reward. The second step here uses REINFORCE from «The policy gradient: REINFORCE» (step 13).
 
 **Step 2. Comparisons.** Our language model is very simple: for each word, a table of probabilities for the next word. It cannot replace a real one, but the whole path is visible and takes a second. In the program a function `person` stands in for a human: it likes the words "спасибо" (thanks), "пожалуйста" (please) and "добрый" (kind), dislikes "дурак" (fool) and "плохой" (bad), and fines a repeated word by 2. In the lab you choose yourself. Create the file `nano ~/ai-path/rlhf.py`, paste and run it.
 

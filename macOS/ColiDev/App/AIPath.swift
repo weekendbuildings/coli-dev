@@ -39,7 +39,7 @@ enum AIPathCatalog {
     static let stages: [AIPathStage] = [
         AIPathStage(number: 1, steps: [
             AIPathStep(number: 1, lessons: [
-                code("live_model_tokens_temperature"), code("chat_roles_and_context"),
+                code("ai_path_glossary"), code("live_model_tokens_temperature"), code("chat_roles_and_context"),
                 code("model_mistakes_and_checking"), code("asking_well_and_structured_output")
             ])
         ]),
@@ -57,19 +57,19 @@ enum AIPathCatalog {
             ]),
             AIPathStep(number: 6, lessons: [math("information_and_cross_entropy")]),
             AIPathStep(number: 7, lessons: [code("classification_and_softmax")]),
-            AIPathStep(number: 8, lessons: [code("neural_network_backpropagation"), code("neural_network_hidden_layer_xor"), code("autograd_engine")]),
+            AIPathStep(number: 8, lessons: [code("neural_network_backpropagation"), code("neural_network_hidden_layer_xor"), code("matrix_calculus_jacobians"), code("autograd_engine")]),
             AIPathStep(number: 9, lessons: [
                 code("ml_baseline_and_holdout"), code("minibatches_and_overfitting"), code("training_recipe_and_diagnostics"),
                 code("optimizers_momentum_adam"), code("initialization_and_normalization")
             ]),
             AIPathStep(number: 10, lessons: [code("tokenizer_bpe"), code("bigram_language_model"), code("embeddings_and_similarity")]),
             AIPathStep(number: 11, lessons: [code("attention_mechanism"), code("transformer_block")]),
-            AIPathStep(number: 12, lessons: [code("build_your_language_model"), code("sampling_and_generation")])
+            AIPathStep(number: 12, lessons: [code("build_your_language_model"), code("from_loops_to_matrices"), code("sampling_and_generation")])
         ]),
         AIPathStage(number: 3, steps: [
             AIPathStep(number: 13, lessons: [code("rl_bandits"), code("rl_mdp_bellman"), code("rl_q_learning"), code("rl_policy_gradient")]),
             AIPathStep(number: 14, lessons: [
-                code("finetuning_and_lora"), code("rlhf_from_preferences"), code("reasoning_and_rlvr"), code("constitutional_ai_and_dpo")
+                code("svd_and_low_rank"), code("finetuning_and_lora"), code("rlhf_from_preferences"), code("reasoning_and_rlvr"), code("constitutional_ai_and_dpo")
             ]),
             AIPathStep(number: 15, lessons: [code("rag_from_scratch"), code("agents_and_tools"), code("evaluation_that_means_something")]),
             AIPathStep(number: 16, lessons: [code("scaling_laws_and_resources"), code("data_for_language_models")]),
@@ -87,7 +87,7 @@ enum AIPathCatalog {
             AIPathStep(number: 24, lessons: [
                 code("consciousness_global_workspace"), code("consciousness_integrated_information"), code("consciousness_higher_order_and_prediction")
             ]),
-            AIPathStep(number: 25, lessons: [code("consciousness_experiments"), code("consciousness_indicators_checklist"), code("consciousness_language_models")]),
+            AIPathStep(number: 25, lessons: [code("brain_measurement_and_hodgkin_huxley"), code("consciousness_experiments"), code("consciousness_indicators_checklist"), code("consciousness_language_models")]),
             AIPathStep(number: 26, lessons: [code("consciousness_biology_vs_function"), code("consciousness_moral_status"), code("consciousness_what_you_can_do")])
         ])
     ]

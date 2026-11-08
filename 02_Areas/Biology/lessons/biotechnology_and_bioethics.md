@@ -33,9 +33,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- Разрезать ДНК в выбранном месте: Cas9 направляется короткой РНК, которую можно запрограммировать.
-- Создать живую клетку полностью из неживых молекул.
-- Навсегда отключить мутации у всех организмов.
+- Разрезать ДНК в выбранном месте: Cas9 находит его по короткой направляющей РНК.
+- Создать живую клетку целиком из неживых молекул, без готовой клетки-основы.
+- Навсегда отключить мутации у всех организмов, чтобы ДНК больше не менялась.
 
 ### Ответ
 
@@ -73,9 +73,9 @@ What did the 2012 discovery about the Cas9 protein make possible?
 
 ### Options
 
-- Cutting DNA at a chosen site: Cas9 is guided by a short RNA that can be programmed.
-- Building a living cell entirely from non-living molecules.
-- Permanently switching off mutations in all organisms.
+- Cutting DNA at a chosen site: Cas9 finds it with a short guide RNA.
+- Building a living cell from non-living molecules alone, with no starting cell.
+- Permanently switching off mutations in all organisms so DNA never changes.
 
 ### Answer
 

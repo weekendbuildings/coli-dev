@@ -246,6 +246,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-lesson-markdown"
           "$RUNNER_TEMP/verify-lesson-markdown"
 
+      - name: Verify tool launch scripts / Проверка запуска инструментов
+        run: |
+          swiftc -parse-as-library macOS/ColiDev/App/ToolLaunch.swift macOS/ColiDev/scripts/verify_tool_launch.swift \
+            -o "$RUNNER_TEMP/verify-tool-launch"
+          "$RUNNER_TEMP/verify-tool-launch"
+
       - name: Verify 3D surface geometry / Проверка геометрии 3D-поверхности
         run: |
           swiftc -parse-as-library macOS/ColiDev/App/SurfacePlot3D.swift macOS/ColiDev/App/ConstrainedOptimization.swift macOS/ColiDev/scripts/verify_surface_plot_3d.swift \
@@ -546,6 +552,18 @@ jobs:
           swiftc macOS/ColiDev/App/RLLabModels.swift macOS/ColiDev/App/Stage5Models.swift macOS/ColiDev/App/Stage5Recordings.swift \
             macOS/ColiDev/scripts/verify_stage5_labs.swift -parse-as-library -o "$RUNNER_TEMP/verify-stage5-labs"
           "$RUNNER_TEMP/verify-stage5-labs"
+
+      - name: Verify AI path glossary / Проверка словаря пути ИИ
+        run: |
+          swiftc macOS/ColiDev/App/AIGlossaryModel.swift macOS/ColiDev/scripts/verify_ai_glossary.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-ai-glossary"
+          "$RUNNER_TEMP/verify-ai-glossary"
+
+      - name: Verify lessons-final labs / Проверка тренажёров уроков B и C
+        run: |
+          swiftc macOS/ColiDev/App/LessonsFinalModels.swift macOS/ColiDev/scripts/verify_lessons_final_labs.swift \
+            -parse-as-library -o "$RUNNER_TEMP/verify-lessons-final"
+          "$RUNNER_TEMP/verify-lessons-final"
 
       - name: Verify gradient stack model / Проверка модели стопки слоёв
         run: |

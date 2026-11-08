@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Обучение редко ломается громко. Чаще программа работает, а модель учится плохо, и причину надо найти по кривым ошибки. Это как врач, который ставит диагноз по температуре и пульсу. Две простые проверки ловят большинство ошибок сразу: начальная ошибка должна быть такой, как у случайного угадывания, а маленький пакет модель должна уметь заучить до нуля. В уроке ты поставишь диагноз шести настоящим запускам.
+
+**Что нужно знать до.** Уроки «Мини-батчи и переобучение» (шаг 9) и «Классификация и softmax» (шаг 7): откуда берётся начальная ошибка `ln V`.
+
+**Если непонятно.** Если неясно, почему начальная ошибка равна `ln V`, вернись к уроку «Классификация и softmax»: при равных вероятностях каждая из `V` равна `1/V`. Если неясны две кривые, перечитай урок «Мини-батчи и переобучение». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Научиться по двум кривым понимать, что сломалось в обучении. Выполнить две простые проверки, которые ловят большинство ошибок сразу. Поставить диагноз шести настоящим запускам. Нужно около 40 минут.
@@ -164,6 +172,14 @@ too_little_data (0.62, 0.692) (0.021, 2.043) (0.004, 2.528)
 Все шесть поломок здесь в чистом виде и по одной. В настоящей работе их бывает несколько сразу. Сеть и данные у нас игрушечные, поэтому числа не переносятся на большие модели, а кривые на больших данных обычно шумнее. Шесть болезней не исчерпывают всех: есть ещё утечка проверочных данных в обучение, неверная предобработка и другие.
 
 ## English
+
+### In plain words
+
+Training rarely breaks loudly. More often the program runs but the model learns badly, and you have to find the cause from the error curves. It is like a doctor diagnosing from temperature and pulse. Two simple checks catch most bugs at once: the initial error should match random guessing, and the model should be able to memorise a small batch down to zero. In the lesson you diagnose six real runs.
+
+**What to know first.** The lessons «Mini-Batches and Overfitting» (step 9) and «Classification and Softmax» (step 7): where the initial error `ln V` comes from.
+
+**If something is unclear.** If it is unclear why the initial error equals `ln V`, go back to «Classification and Softmax»: with equal probabilities each of the `V` is `1/V`. If the two curves are unclear, reread «Mini-Batches and Overfitting». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

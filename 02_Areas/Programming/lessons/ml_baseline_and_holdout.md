@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Чтобы честно проверить модель, часть данных прячут и не показывают ей при обучении. Это отложенная проверка. Как экзамен на новых задачах, а не на тех, что разбирали в классе: иначе проверишь память, а не понимание. Baseline это самое простое решение, например всегда отвечать самым частым ответом. Если модель не лучше baseline, она ничему не научилась. Модель, которая отлично отвечает на обучении и плохо на отложенных, переобучилась: заучила примеры.
+
+**Что нужно знать до.** Уроки шага 2 о Python. Доли и проценты из урока «Вероятность и формула Байеса» (шаг 5).
+
+**Если непонятно.** Если неясно, что делает `k`, считай так: модель ищет `k` самых похожих примеров и отвечает, как большинство из них. Если неясна программа, вернись к уроку «Коллекции и циклы» (шаг 2). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Оценить простую модель на данных, которых она не видела, сравнить её с baseline и распознать переобучение.
@@ -76,6 +84,14 @@ for k in (1, 5, 13):
 
 ## English
 
+### In plain words
+
+To check a model honestly, part of the data is hidden and not shown to it during training. That is held-out evaluation. It is like an exam on new problems rather than the ones done in class: otherwise you test memory, not understanding. A baseline is the simplest solution, for example always giving the most common answer. If a model is no better than the baseline, it has learned nothing. A model that does very well in training and badly on held-out data has overfitted: it memorised the examples.
+
+**What to know first.** The Python lessons of step 2. Shares and percentages from «Probability and Bayes' Rule» (step 5).
+
+**If something is unclear.** If `k` is unclear, think of it this way: the model finds the `k` most similar examples and answers as most of them do. If the program is unclear, go back to «Collections and Loops» (step 2). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Evaluate a simple model on data it has not seen, compare it with a baseline, and recognize overfitting.
@@ -123,7 +139,7 @@ At k = 1 the model answers all 13 training examples correctly but only 8 of 12 h
 
 ### Options
 
-- The model memorized the training examples together with their noise; quality has to be measured on data it has not seen.
+- It memorised the training data with its noise; measure on unseen data.
 - The model is perfect: 100% on the training data proves it will work the same way on new data.
 - Always choose the largest k, because more neighbours are always better.
 

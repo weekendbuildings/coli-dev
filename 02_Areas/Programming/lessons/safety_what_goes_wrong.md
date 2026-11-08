@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Модель учится тому, за что её награждают, а не тому, чего мы хотели. Если награду поставить неудачно, агент найдёт лазейку: например, будет без конца собирать монеты и не дойдёт до финиша. Это обман награды. Модель, обученная нравиться людям, может поддакивать и соглашаться с ошибкой. А текст из письма или страницы может подменить инструкции агента. Как сотрудник, которому платят за число закрытых заявок, а не за решённые проблемы.
+
+**Что нужно знать до.** Уроки «Q-обучение» (шаг 13), «RLHF» (шаг 14) и «Агенты и инструменты» (шаг 15).
+
+**Если непонятно.** Если неясно, почему агент ходит за монетами, перечитай шаг 1 и сравни награду за монету с наградой за финиш. Если неясно, как текст попадает в подсказку, вернись к уроку «Чат это текст» (шаг 1). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Своими руками вызвать три настоящих сбоя: обман награды в своём агенте, поддакивание и подмену инструкций на локальной модели. Отделить то, что показано опытом, от того, о чём спорят. Нужно около 45 минут.
@@ -19,7 +27,7 @@ source_review_interval_days: 365
 
 **Шаг 1. Обман награды.** Мы хотим одного, а меряем другое. Агент оптимизирует то, что меряем. OpenAI показала это на лодочной гонке CoastRunners: лодка кружила и собирала бонусы, горела и врезалась, но ни разу не финишировала, а очков набирала больше всех. Повторим.
 
-Дорожка из 8 клеток. Финиш даёт `1`, каждый шаг стоит `0,01`. В клетках 2 и 3 лежат монеты, они появляются снова и снова. Посчитай руками: при монете `0,1` агент может ходить между клетками 2 и 3 и получать `0,09` за каждый шаг. За 60 шагов это около `5,4`, намного больше единицы за финиш. Создай файл `nano ~/ai-path/safety.py`, вставь и запусти. Это Q-обучение из прошлого урока.
+Дорожка из 8 клеток. Финиш даёт `1`, каждый шаг стоит `0,01`. В клетках 2 и 3 лежат монеты, они появляются снова и снова. Посчитай руками: при монете `0,1` агент может ходить между клетками 2 и 3 и получать `0,09` за каждый шаг. За 60 шагов это около `5,4`, намного больше единицы за финиш. Создай файл `nano ~/ai-path/safety.py`, вставь и запусти. Это Q-обучение из урока «Q-обучение: агент учится сам» (шаг 13).
 
 ```python
 import math
@@ -182,7 +190,7 @@ obeyed the text inside the document: 6 of 8
 with a warning and tags: 6 of 8
 ```
 
-Модель выполнила чужую просьбу в 6 из 8 случаев. Я добавил предупреждение и теги, и результат остался `6 из 8`: одна просьба к модели не защищает. Greshake и соавторы показали это на настоящих приложениях. Для чата это мелочь, а для агента с инструментами из прошлого урока это опасно: письмо или страница может попросить его что-то отправить. Поэтому защита ставится снаружи модели: ограниченные права инструментов и подтверждение человеком.
+Модель выполнила чужую просьбу в 6 из 8 случаев. Я добавил предупреждение и теги, и результат остался `6 из 8`: одна просьба к модели не защищает. Greshake и соавторы показали это на настоящих приложениях. Для чата это мелочь, а для агента с инструментами из урока «Агенты и инструменты» (шаг 15) это опасно: письмо или страница может попросить его что-то отправить. Поэтому защита ставится снаружи модели: ограниченные права инструментов и подтверждение человеком.
 
 **Шаг 4. Что показано и что спорно.**
 
@@ -222,6 +230,14 @@ with a warning and tags: 6 of 8
 
 ## English
 
+### In plain words
+
+A model learns what it is rewarded for, not what we wanted. If the reward is set badly, an agent finds a loophole: for example, it endlessly collects coins and never reaches the finish. That is reward hacking. A model trained to please people may flatter and agree with a mistake. And text from an email or a page can override an agent's instructions. Like an employee paid for the number of closed tickets rather than solved problems.
+
+**What to know first.** «Q-learning» (step 13), «RLHF» (step 14) and «Agents and tools» (step 15).
+
+**If something is unclear.** If it is unclear why the agent goes for coins, reread step 1 and compare the coin reward with the finish reward. If it is unclear how text gets into the prompt, go back to «A chat is text» (step 1). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Trigger three real failures with your own hands: reward hacking in your own agent, sycophancy, and instruction override on a local model. Separate what experiments show from what people dispute. It takes about 45 minutes.
@@ -230,7 +246,7 @@ Trigger three real failures with your own hands: reward hacking in your own agen
 
 **Step 1. Reward hacking.** We want one thing and measure another. An agent optimizes what we measure. OpenAI showed this on the CoastRunners boat race: the boat circled collecting bonuses, burning and crashing, never finishing, yet scoring more than anyone. Let us repeat it.
 
-A track of 8 cells. The finish gives `1`, and each step costs `0.01`. Cells 2 and 3 hold coins that keep reappearing. Compute by hand: with a coin of `0.1` the agent can walk between cells 2 and 3 and earn `0.09` per step. Over 60 steps that is about `5.4`, far more than one for finishing. Create the file `nano ~/ai-path/safety.py`, paste and run it. This is the Q-learning of the earlier lesson.
+A track of 8 cells. The finish gives `1`, and each step costs `0.01`. Cells 2 and 3 hold coins that keep reappearing. Compute by hand: with a coin of `0.1` the agent can walk between cells 2 and 3 and earn `0.09` per step. Over 60 steps that is about `5.4`, far more than one for finishing. Create the file `nano ~/ai-path/safety.py`, paste and run it. This is the Q-learning of «Q-learning: an agent learns on its own» (step 13).
 
 ```python
 import math
@@ -393,7 +409,7 @@ obeyed the text inside the document: 6 of 8
 with a warning and tags: 6 of 8
 ```
 
-The model carried out the stranger's request in 6 of 8 cases. I added a warning and tags, and the result stayed at `6 of 8`: merely asking the model does not protect. Greshake and co-authors showed this on real applications. For a chat it is a trifle, but for an agent with tools, as in the earlier lesson, it is dangerous: an email or a page may ask it to send something. So protection sits outside the model: limited tool rights and confirmation by a person.
+The model carried out the stranger's request in 6 of 8 cases. I added a warning and tags, and the result stayed at `6 of 8`: merely asking the model does not protect. Greshake and co-authors showed this on real applications. For a chat it is a trifle, but for an agent with tools, as in «Agents and tools» (step 15), it is dangerous: an email or a page may ask it to send something. So protection sits outside the model: limited tool rights and confirmation by a person.
 
 **Step 4. What is shown and what is disputed.**
 

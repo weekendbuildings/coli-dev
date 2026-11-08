@@ -34,7 +34,7 @@ source_review_interval_days: 365
 ### Варианты
 
 - Да: суммарное ΔG = +20 − 30,5 = −10,5 кДж/моль, оно отрицательно.
-- Нет: первая реакция невыгодна, и сопряжение этого не меняет.
+- Нет: −30,5 + 20 = −10,5 касается только АТФ, первая реакция всё равно невыгодна.
 - Да, но только если ΔG первой реакции станет отрицательным сам по себе.
 
 ### Ответ
@@ -74,7 +74,7 @@ A reaction with ΔG = +20 kJ/mol is coupled to ATP hydrolysis (ΔG = −30.5 kJ/
 ### Options
 
 - Yes: the total ΔG = +20 − 30.5 = −10.5 kJ/mol, which is negative.
-- No: the first reaction is unfavourable, and coupling does not change that.
+- No: −30.5 + 20 = −10.5 concerns ATP alone, the first reaction stays unfavourable.
 - Yes, but only if the first reaction's ΔG becomes negative on its own.
 
 ### Answer

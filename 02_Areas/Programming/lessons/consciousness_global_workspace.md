@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+По этой теории в мозге много отдельных частей, модулей, работают одновременно и незаметно для нас. Но есть узкое общее место, рабочее пространство. То, что туда попало, рассылается сразу всем модулям: речи, памяти, планированию. Это похоже на театр: на освещённой сцене одна сцена, а смотрят её все зрители. Сознательно, по теории, то, что разослано. Слабый сигнал гаснет, а достаточно сильный вызывает резкую вспышку по принципу «всё или ничего». Ты построишь такую программу, но она показывает механизм, а не переживание.
+
+**Что нужно знать до.** Уроки «Сознание: что известно и что нет» и «Трудная проблема сознания» (шаг 23). Функция `S`, которая сжимает число в промежуток от 0 до 1, это сигмоида из урока «Скрытый слой: нейросеть учит XOR» (шаг 8).
+
+**Если непонятно.** Если неясно, откуда «вспышка», посчитай пример руками в шаге 2 ещё раз и подвигай толчок в тренажёре. Если неясна функция `S`, вернись к уроку «Скрытый слой». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Понять одну из главных научных теорий сознания: построить на Python маленькое рабочее пространство, увидеть вспышку «всё или ничего» и борьбу стимулов, а потом честно сказать, чего такая программа не доказывает. Нужно около 40 минут.
@@ -166,6 +174,14 @@ two stimuli at once, who holds the workspace after 12 steps, out of 200
 Это не модель мозга: одно число вместо миллиардов нейронов, а модули в тренажёре только показывают значение. Числа подобраны мной, чтобы был виден порог. Сама теория широко обсуждается, и у неё есть сильные соперники. Работа 2026 года здесь пересказана только по её описанию, поэтому читай сам.
 
 ## English
+
+### In plain words
+
+In this theory the brain has many separate parts, modules, working at once and unnoticed by us. But there is a narrow shared place, the workspace. Whatever gets there is sent at once to all modules: speech, memory, planning. It is like a theatre: one scene is on the lit stage, and the whole audience watches it. What is broadcast is conscious, according to the theory. A weak signal fades, while a strong enough one sets off a sharp all-or-nothing ignition. You will build such a program, but it shows a mechanism, not experience.
+
+**What to know first.** The lessons «Consciousness: What Is Known and What Is Not» and «The hard problem of consciousness» (step 23). The function `S`, which squeezes a number into the range from 0 to 1, is the sigmoid from «The Hidden Layer: A Network Learns XOR» (step 8).
+
+**If something is unclear.** If it is unclear where the "ignition" comes from, work the example in step 2 again and move the push in the lab. If the function `S` is unclear, go back to «The Hidden Layer». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

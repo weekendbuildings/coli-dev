@@ -39,8 +39,8 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- У системы нет решений.
-- У системы одна точка пересечения.
+- У системы нет решений: уравнения противоречат друг другу.
+- У системы одна точка пересечения, и её даёт равенство 0 = 0.
 - Уравнения задают одну прямую, поэтому решений бесконечно много.
 
 ### Ответ
@@ -85,9 +85,9 @@ What does `0 = 0` after adding multiples of the equations tell you?
 
 ### Options
 
-- The system has no solution.
-- The system has one intersection.
-- Both equations describe the same line, so there are infinitely many solutions.
+- The system has no solution: the two equations contradict each other.
+- The system has one intersection, and 0 = 0 gives that point.
+- Both equations give the same line, so there are infinitely many solutions.
 
 ### Answer
 

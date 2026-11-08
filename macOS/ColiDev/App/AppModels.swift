@@ -197,6 +197,7 @@ final class LearningStore: ObservableObject {
     @Published private(set) var aiHealth: OrchestratorHealth?
     @Published private(set) var isCheckingAI = false
     @Published private(set) var providerSecretStatuses: [String: ProviderSecretStatus] = [:]
+    @Published private(set) var didLoadStudyProgress = false
     @Published private(set) var openAICompatibleSettings: OpenAICompatibleSettings?
     @Published private(set) var subjectModelRoutes: [String: SubjectModelRoute] = [:]
     @Published private(set) var autoAgentModelRoutes: [String: AutoAgentModelRoute] = [:]
@@ -651,6 +652,7 @@ final class LearningStore: ObservableObject {
 
         do {
             let snapshot = try await OrchestratorClient.studyProgress()
+            didLoadStudyProgress = true
             studyProgress = Dictionary(uniqueKeysWithValues: snapshot.records.map { ($0.lessonID, $0) })
             studyAssessmentEvidence = Dictionary(
                 uniqueKeysWithValues: (snapshot.assessmentEvidence ?? []).map { ($0.lessonID, $0) }
@@ -1008,7 +1010,7 @@ final class LocalBackendSupervisor: ObservableObject {
         }
         process = child
 
-        if await waitUntilReady(portFileURL: portFileURL, timeout: 15) {
+        if await waitUntilReady(portFileURL: portFileURL) {
             appendBackendDiagnostic(
                 "Compatible local backend (\(lastBackendIdentity ?? "identity unavailable")) responded on " +
                     "127.0.0.1:\(BackendEndpointRegistry.port).",
@@ -1048,9 +1050,12 @@ final class LocalBackendSupervisor: ObservableObject {
         return false
     }
 
-    private func waitUntilReady(portFileURL: URL, timeout: TimeInterval) async -> Bool {
-        let deadline = Date().addingTimeInterval(timeout)
-        while Date() < deadline {
+    private func waitUntilReady(portFileURL: URL) async -> Bool {
+        let startedAt = Date()
+        while BackendStartupPolicy.shouldKeepWaiting(
+            elapsed: Date().timeIntervalSince(startedAt),
+            processIsRunning: process?.isRunning ?? false
+        ) {
             if let portData = try? Data(contentsOf: portFileURL),
                let portText = String(data: portData, encoding: .ascii)?.trimmingCharacters(in: .whitespacesAndNewlines),
                let port = Int(portText),
@@ -1060,7 +1065,6 @@ final class LocalBackendSupervisor: ObservableObject {
                 BackendEndpointRegistry.updatePort(port)
                 return true
             }
-            if let process, !process.isRunning { return false }
             try? await Task.sleep(nanoseconds: 250_000_000)
         }
         return false
@@ -2766,5 +2770,7 @@ enum AppSection: Hashable {
     case builtInCustomTopic(Subject, UUID)
     case management
     case localModels
+    case tools
+    case serviceKeys
     case settings
 }

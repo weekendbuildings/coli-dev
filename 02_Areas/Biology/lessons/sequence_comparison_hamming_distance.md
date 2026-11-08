@@ -47,8 +47,8 @@ print(distance, identity)
 ### Варианты
 
 - 2 и 75 %: отличаются позиции 4 (C/A) и 8 (A/T), (8 − 2) / 8 = 75 %.
-- 6 и 25 %: расстояние — это число совпадающих позиций.
-- 1 и 87,5 %: две замены считаются одной, потому что это одна пара строк.
+- 6 и 25 %: расстояние — число совпадений, (8 − 6) / 8 = 25 %.
+- 1 и 87,5 %: две замены считаются одной, (8 − 1) / 8 = 87,5 %.
 
 ### Ответ
 
@@ -100,8 +100,8 @@ The sequences "ATGCCGTA" and "ATGACGTT" are aligned and have the same length. Wh
 ### Options
 
 - 2 and 75%: positions 4 (C/A) and 8 (A/T) differ, (8 − 2) / 8 = 75%.
-- 6 and 25%: the distance is the number of matching positions.
-- 1 and 87.5%: two substitutions count as one, because it is one pair of strings.
+- 6 and 25%: the distance counts matching positions, (8 − 6) / 8 = 25%.
+- 1 and 87.5%: two substitutions count as one, (8 − 1) / 8 = 87.5%.
 
 ### Answer
 

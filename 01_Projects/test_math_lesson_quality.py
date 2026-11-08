@@ -20,12 +20,12 @@ DISPLAYED_HEADINGS = {
     "Русский": {
         "Цель", "Идея и механизм", "Исследуй и потренируйся", "Вопрос", "Варианты", "Ответ",
         "Разбор", "Границы модели", "Границы правила", "Границы вывода",
-        "Границы и безопасный запуск", "Видео и наблюдение",
+        "Границы и безопасный запуск", "Видео и наблюдение", "Простыми словами",
     },
     "English": {
         "Goal", "Idea and mechanism", "Explore and practise", "Explore and practice", "Question",
         "Options", "Answer", "Explanation", "Limits", "Limits of the inference",
-        "Limits and safe execution", "Video and observation",
+        "Limits and safe execution", "Video and observation", "In plain words",
     },
 }
 

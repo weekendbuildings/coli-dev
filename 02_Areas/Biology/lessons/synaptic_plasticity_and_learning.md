@@ -33,9 +33,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- В постсинаптическую мембрану встраиваются дополнительные рецепторы AMPA, и тот же сигнал вызывает больший ответ.
-- Синапс исчезает, и нейроны перестают быть связанными.
-- Нейрон выделяет меньше глутамата, поэтому сигнал слабеет.
+- В мембрану встраиваются новые рецепторы AMPA, и тот же сигнал даёт больший ответ.
+- Синапс исчезает, и нейроны после этого перестают быть связаны друг с другом.
+- Нейрон выделяет меньше глутамата, поэтому тот же сигнал становится слабее.
 
 ### Ответ
 
@@ -73,9 +73,9 @@ What changes in a synapse during long-term potentiation by the NMDA and AMPA rec
 
 ### Options
 
-- Extra AMPA receptors are inserted into the postsynaptic membrane, and the same signal causes a larger response.
-- The synapse disappears and the neurons stop being connected.
-- The neuron releases less glutamate, so the signal weakens.
+- More AMPA receptors enter the membrane, so the same signal gives a larger response.
+- The synapse disappears, and after that the two neurons are no longer connected.
+- The neuron releases less glutamate, so the same signal becomes weaker over time.
 
 ### Answer
 

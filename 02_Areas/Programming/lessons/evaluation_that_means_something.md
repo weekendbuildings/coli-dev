@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.evaluation_that_means_something
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Оценка, которая что-то значит / Evaluation that means something
 
 ## Русский
+
+### Простыми словами
+
+Одно число из теста часто обманывает. Если сравнить сто одинаковых моделей, лучшая из них случайно покажет результат выше среднего: это проклятие победителя. Доверительный интервал показывает, насколько число может гулять от случая. А закон Гудхарта говорит: если число становится целью, его начинают подгонять, и оно перестаёт мерить то, что нужно. Как школа, которая учит сдавать тест, а не понимать предмет.
+
+**Что нужно знать до.** Уроки «Как модель ошибается» (шаг 1), «Случайные величины и выборка» (шаг 5) и «Машинное обучение: baseline» (шаг 9).
+
+**Если непонятно.** Если неясен интервал, посчитай шаг 2 урока руками: 80 % верных из 100 вопросов. Если неясно, почему маленькая выборка шумит, вернись к закону больших чисел в уроке «Случайные величины и выборка». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -178,6 +186,14 @@ stuffs keywords keyword metric 1.0 useful answers 0.0
 Модели здесь это монетки с независимыми ответами. У настоящих моделей ошибки связаны, вопросы разной сложности, и интервал поэтому только примерный. Ответы в шаге 3 написаны мной так, чтобы эффект был виден. Сравнение моделей на одном и том же наборе точнее считать по парам вопросов, здесь я этого не делаю.
 
 ## English
+
+### In plain words
+
+One number from a test often misleads. If you compare a hundred identical models, the best of them will by chance score above average: that is the winner's curse. A confidence interval shows how far the number can drift by chance. And Goodhart's law says: when a number becomes a target, people start tuning to it, and it stops measuring what it should. Like a school that teaches to pass the test rather than to understand the subject.
+
+**What to know first.** «How a model errs» (step 1), «Random Variables and Sampling» (step 5) and «Machine Learning: Baselines» (step 9).
+
+**If something is unclear.** If the interval is unclear, work step 2 of the lesson by hand: 80 % correct out of 100 questions. If it is unclear why a small sample is noisy, go back to the law of large numbers in «Random Variables and Sampling». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -350,6 +366,6 @@ Models here are coins with independent answers. Real models have linked errors a
 - David Manheim, Scott Garrabrant, "Categorizing Variants of Goodhart's Law", arXiv:1803.04585 (2018), title read 2026-11-03: [arXiv:1803.04585](https://arxiv.org/abs/1803.04585)
 - Benjamin Recht et al., "Do ImageNet Classifiers Generalize to ImageNet?", arXiv:1902.10811 (2019), abstract with the figures read 2026-11-03: [arXiv:1902.10811](https://arxiv.org/abs/1902.10811)
 - Shivalika Singh et al., "The Leaderboard Illusion", arXiv:2504.20879 (2025), title read 2026-11-03: [arXiv:2504.20879](https://arxiv.org/abs/2504.20879)
-- Edwin B. Wilson, "Probable Inference, the Law of Succession, and Statistical Inference", Journal of the American Statistical Association 22 (1927), title and journal checked 2026-11-03; the interval formula is the standard one, recalled.
+- Edwin B. Wilson, "Probable Inference, the Law of Succession, and Statistical Inference", Journal of the American Statistical Association 22 (158), 209–212 (1927), title and journal checked 2026-11-03, the paper itself not read. The interval in the program was checked on 2026-11-07 in two ways: derived from Wilson's condition (p̂ − p)² = z² · p(1 − p) / n, which gives the centre (p̂ + z²/2n) / (1 + z²/n) and the half-width z · √(p̂(1 − p̂)/n + z²/4n²) / (1 + z²/n) used in the code, and matched against the statement of the Wilson score interval in [Wikipedia: Binomial proportion confidence interval](https://en.wikipedia.org/wiki/Binomial_proportion_confidence_interval).
 - Stanford CS224N and CS336, titles read 2026-11-03: [CS224N](https://web.stanford.edu/class/cs224n/), [CS336](https://stanford-cs336.github.io/spring2025/)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

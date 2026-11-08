@@ -3,7 +3,7 @@ subject: programming
 lesson_id: programming.rl_policy_gradient
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
@@ -11,9 +11,17 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Вместо таблицы оценок можно сразу учить саму политику: вероятности действий. После каждой попытки действия, которые привели к хорошей награде, делают чуть вероятнее, а к плохой чуть менее вероятными. Это метод REINFORCE. Как тренер, который хвалит удачные движения и мягко отучает от неудачных. Базовая линия, средняя награда, помогает понять, что «хорошо» значит «лучше обычного». Именно этот метод лежит под RLHF.
+
+**Что нужно знать до.** Уроки «Q-обучение» и «Автоматы» (шаг 13). Урок «Классификация и softmax» (шаг 7): вероятности из оценок.
+
+**Если непонятно.** Если неясно, как меняются вероятности, посчитай шаг 2 урока для двух действий. Если неясен softmax, вернись к уроку «Классификация и softmax». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
-Научиться менять саму политику, а не таблицу ценностей. Посчитать шаг REINFORCE руками, написать его на чистом Python, увидеть, зачем нужна базовая линия и как большой шаг ломает обучение. Этот метод лежит под RLHF, следующими уроками. Нужно около 50 минут.
+Научиться менять саму политику, а не таблицу ценностей. Посчитать шаг REINFORCE руками, написать его на чистом Python, увидеть, зачем нужна базовая линия и как большой шаг ломает обучение. Этот метод лежит под RLHF, обучением на предпочтениях людей (шаг 14), и следующими уроками. Нужно около 50 минут.
 
 ### Идея и механизм
 
@@ -156,7 +164,7 @@ plain 2^-9, one run: [0.1, 1.0, 1.0, 1.0]
 
 Смотри. Без базовой линии при шаге `2⁻¹³` за 600 партий `p` поднимается лишь до 0,4, а отдача до −13. При шаге `2⁻¹²` быстрее, но всё равно медленно. С базовой линией при шаге `2⁻¹⁰` уже после 200 партий отдача около −12, а `p` у верхнего значения 0,59. **Почему?** Здесь все отдачи отрицательные, около −40. Без базовой линии каждое действие наказывается, причём сильно, а полезная разница тонет в большом общем сдвиге. После вычитания среднего шум намного меньше, и можно брать шаг в 8 раз больше.
 
-Последняя строка показывает другое: шаг `2⁻⁹` без базовой линии за 5 партий загоняет `p` в 1,0. Там производная `1 − p` почти ноль, и обучение **замирает навсегда**, причём именно там, где агент ходит по кругу. Большой шаг опасен не только скачками: он может выбить политику туда, откуда нет дороги назад. Поэтому метод PPO ограничивает, насколько можно менять политику за раз.
+Последняя строка показывает другое: шаг `2⁻⁹` без базовой линии за 5 партий загоняет `p` в 1,0. Там производная `1 − p` почти ноль, и обучение **замирает навсегда**, причём именно там, где агент ходит по кругу. Большой шаг опасен не только скачками: он может выбить политику туда, откуда нет дороги назад. Поэтому метод PPO (proximal policy optimization, «оптимизация политики малыми шагами») ограничивает, насколько можно менять политику за раз.
 
 **Шаг 5. Причём здесь языковая модель.** Замени слова. Действие это следующий токен, политика это её softmax, а `G` это оценка ответа человеком или моделью награды. Формула та же: `оценка · ∇ ln p(токена)`. Работа InstructGPT (Ouyang и др., 2022) использовала PPO, потомка этого метода. Это будет в уроке о RLHF. Базовая линия там тоже есть, только обучаемая: это критик, и пара «политика и критик» называется actor–critic.
 
@@ -167,6 +175,15 @@ plain 2^-9, one run: [0.1, 1.0, 1.0, 1.0]
 В тренажёре сначала сам найди лучшую политику: тащи точку по настоящей кривой ценности. Затем запусти REINFORCE и смотри, как белая точка ползёт к вершине. Затем поставь шаг побольше без базовой линии и посмотри, как обучение ломается.
 
 В программе начни с `p = 0,9`, то есть `theta = [math.log(9.0), 0.0]`. Сходится ли туда же?
+
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: градиент log π и шаг REINFORCE с базовой линией; проверка докажет, что базовая линия не меняет средний шаг. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_rl_policy_gradient.py
+```
+
+Сначала все строки будут с ✗. Открой `policy_gradient_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
 
 ### Вопрос
 
@@ -192,9 +209,17 @@ plain 2^-9, one run: [0.1, 1.0, 1.0, 1.0]
 
 ## English
 
+### In plain words
+
+Instead of a table of estimates, you can learn the policy itself: the probabilities of actions. After each attempt, actions that led to a good reward are made a little more likely, and those that led to a bad one a little less likely. This is the REINFORCE method. Like a coach who praises good moves and gently trains away bad ones. A baseline, the average reward, helps make "good" mean "better than usual". This very method underlies RLHF.
+
+**What to know first.** «Q-learning» and «Slot machines» (step 13). «Classification and Softmax» (step 7): probabilities from scores.
+
+**If something is unclear.** If it is unclear how the probabilities change, work step 2 of the lesson for two actions. If softmax is unclear, go back to «Classification and Softmax». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
-Learn to change the policy itself, not a table of values. Compute a REINFORCE step by hand, write it in plain Python, and see why a baseline is needed and how a large step breaks training. This method underlies RLHF in the next lessons. It takes about 50 minutes.
+Learn to change the policy itself, not a table of values. Compute a REINFORCE step by hand, write it in plain Python, and see why a baseline is needed and how a large step breaks training. This method underlies RLHF, learning from human preferences (step 14), in the next lessons. It takes about 50 minutes.
 
 ### Idea and mechanism
 
@@ -337,7 +362,7 @@ plain 2^-9, one run: [0.1, 1.0, 1.0, 1.0]
 
 Look. Without a baseline, at step `2⁻¹³`, over 600 games `p` rises only to 0.4 and the return to −13. At step `2⁻¹²` it is quicker, yet still slow. With a baseline at step `2⁻¹⁰`, after only 200 games the return is about −12 and `p` is near the top value of 0.59. **Why?** All returns here are negative, around −40. Without a baseline each action is punished, and heavily, while the useful difference drowns in a large common shift. After subtracting the mean the noise is much smaller, and the step can be 8 times larger.
 
-The last row shows something else: step `2⁻⁹` without a baseline drives `p` to 1.0 within 5 games. There the derivative `1 − p` is nearly zero, and training **freezes for good**, exactly where the agent walks in circles. A large step is dangerous not only for its jumps: it can knock the policy to a place with no way back. That is why the PPO method limits how much the policy may change at once.
+The last row shows something else: step `2⁻⁹` without a baseline drives `p` to 1.0 within 5 games. There the derivative `1 − p` is nearly zero, and training **freezes for good**, exactly where the agent walks in circles. A large step is dangerous not only for its jumps: it can knock the policy to a place with no way back. That is why the PPO method (proximal policy optimization) limits how much the policy may change at once.
 
 **Step 5. What this has to do with a language model.** Replace the words. The action is the next token, the policy is its softmax, and `G` is the score a person or a reward model gives the answer. The same formula: `score · ∇ ln p(token)`. The InstructGPT work (Ouyang et al., 2022) used PPO, a descendant of this method. That is coming in the RLHF lesson. The baseline is there too, only learned: it is the critic, and the pair of policy and critic is called actor–critic.
 
@@ -348,6 +373,15 @@ The last row shows something else: step `2⁻⁹` without a baseline drives `p` 
 In the lab, first find the best policy yourself: drag the point along the real value curve. Then run REINFORCE and watch the white point crawl to the top. Then set a larger step without a baseline and see training break.
 
 In the program, start from `p = 0.9`, that is `theta = [math.log(9.0), 0.0]`. Does it converge to the same place?
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the gradient of log π and the REINFORCE step with a baseline; the check proves the baseline keeps the expected step. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_rl_policy_gradient.py
+```
+
+At first every line shows ✗. Open `policy_gradient_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 
@@ -373,7 +407,7 @@ There is only one number in this policy and one return, and real models are far 
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 13 and Example 13.1, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read; the value formula and its maximum are derived and checked by simulation in the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 13, Example 13.1 "Short corridor with switched actions" read in the authors' free PDF on 2026-11-07: the best probability of right is about 0.59 with a value of about −11.6; the value formula and its maximum are derived and checked by simulation in the program: [book page](http://incompleteideas.net/book/the-book-2nd.html), [PDF](http://incompleteideas.net/book/RLbook2020.pdf)
 - Ronald J. Williams, "Simple statistical gradient-following algorithms for connectionist reinforcement learning", Machine Learning 8 (1992), title read 2026-11-03: [Springer](https://link.springer.com/article/10.1007/BF00992696)
 - John Schulman et al., "Proximal Policy Optimization Algorithms", arXiv:1707.06347 (2017): [arXiv:1707.06347](https://arxiv.org/abs/1707.06347)
 - Long Ouyang et al., "Training language models to follow instructions with human feedback", arXiv:2203.02155 (2022): [arXiv:2203.02155](https://arxiv.org/abs/2203.02155)

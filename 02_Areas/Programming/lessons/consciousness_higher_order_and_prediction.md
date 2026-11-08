@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Здесь две теории. Первая: восприятие становится сознательным, когда система как-то отмечает для себя, что она это воспринимает, то есть думает о своём состоянии. Близкое умение называют метапознанием: знать, когда ты, скорее всего, ошибаешься. Это как ученик, который не только отвечает, но и честно говорит: «Здесь я не уверен». Вторая теория: мозг всё время предсказывает, что увидит, и исправляет ошибки предсказания. В уроке ты проверишь, знает ли маленькая модель, когда ошибается, и как это чинится. Это опыт об уверенности, а не о переживании.
+
+**Что нужно знать до.** Урок «Классификация и softmax» (шаг 7): вероятности классов. Урок «Как модель ошибается» (шаг 1): уверенность против точности. Температура из урока «Живая модель на твоём Mac» (шаг 1).
+
+**Если непонятно.** Если неясно, почему модель бывает слишком уверенной, вернись к уроку «Мини-батчи и переобучение» (шаг 9): там видно, как модель заучивает шум. Если неясна температура, перечитай пример с тремя кандидатами в уроке «Живая модель на твоём Mac». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Разобрать две теории: сознание как состояние о своём состоянии и сознание как предсказание. Измерить метапознание на маленькой модели: понимает ли она, когда ошибается, и как это чинится. Затем честно сказать, чем это не является. Нужно около 40 минут.
@@ -190,6 +198,14 @@ type 2 score: how often a right answer is more confident than a wrong one 0.726
 Модель это логистическая регрессия на игрушечных данных. Я подобрал данные так, чтобы самоуверенность была заметна. Калибровка не имеет прямого отношения к сознанию, и связь здесь лишь в том, что теории высшего порядка говорят о метапознании. Отображение спора короткое, и обе теории намного богаче.
 
 ## English
+
+### In plain words
+
+There are two theories here. The first: a perception becomes conscious when the system somehow notes for itself that it is perceiving it, that is, thinks about its own state. A close skill is called metacognition: knowing when you are probably wrong. It is like a student who not only answers but honestly says: "I am not sure here." The second theory: the brain constantly predicts what it will see and corrects its prediction errors. In the lesson you check whether a small model knows when it is wrong and how this is fixed. It is an experiment about confidence, not about experience.
+
+**What to know first.** The lesson «Classification and Softmax» (step 7): class probabilities. The lesson «How a model errs» (step 1): confidence versus accuracy. Temperature from «A live model on your Mac» (step 1).
+
+**If something is unclear.** If it is unclear why a model can be too confident, go back to «Mini-Batches and Overfitting» (step 9): there you see a model memorise noise. If temperature is unclear, reread the three-candidate example in «A live model on your Mac». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

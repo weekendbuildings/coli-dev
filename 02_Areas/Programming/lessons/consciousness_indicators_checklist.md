@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Ни одна теория сознания не доказана. Поэтому группа учёных в 2023 году взяла то, что важно сразу для нескольких теорий, и составила список признаков устройства системы, индикаторов. Например: есть ли обратные связи, общее рабочее пространство, слежение за своей уверенностью. В уроке ты пройдёшь этот список для своей маленькой модели и для большой локальной и обоснуешь каждую строку. Похоже на список симптомов в справочнике, где врачи спорят о самой болезни: число совпавших симптомов ещё не вероятность диагноза. Так и здесь: «5 из 14» ничего не говорит о вероятности сознания.
+
+**Что нужно знать до.** Уроки шага 24 о теориях сознания. Урок «Блок трансформера» (шаг 11): чтобы судить, есть ли у модели обратные связи. Урок «Автоматы» (шаг 13): что такое агент.
+
+**Если непонятно.** Если неясно, откуда взят индикатор, вернись к уроку его теории в шаге 24. Если неясно, как устроена большая модель внутри, перечитай урок «Блок трансформера». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Применить 14 индикаторов из отчёта Butlin и соавторов к своей маленькой модели и к большой локальной, обосновать каждую строку и увидеть, почему итоговое число почти ничего не доказывает. Урок не утверждает, что какая-то система сознательна. Нужно около 35 минут.
@@ -105,6 +113,14 @@ if every 'partly' counts as no 0
 Оценки в таблице мои, и я мог ошибиться: устройство большой модели известно мне только по общим сведениям. `qwen3.5` как конкретная модель описана в общих чертах. Индикаторы взяты из отчёта по памяти, поэтому их точные формулировки сверяй с ним. Обновление 2025 года я пересказываю без подробностей.
 
 ## English
+
+### In plain words
+
+No theory of consciousness is proven. So in 2023 a group of researchers took what matters to several theories at once and made a list of features of a system's design, indicators. For example: are there feedback loops, a shared workspace, monitoring of its own confidence. In the lesson you go through this list for your small model and for a large local one and justify each line. It is like a list of symptoms in a handbook where doctors argue about the disease itself: the number of matching symptoms is not yet the probability of a diagnosis. So here too, "5 of 14" says nothing about the probability of consciousness.
+
+**What to know first.** The lessons of step 24 on theories of consciousness. «The Transformer Block» (step 11): to judge whether a model has feedback loops. «Slot machines» (step 13): what an agent is.
+
+**If something is unclear.** If it is unclear where an indicator comes from, go back to its theory's lesson in step 24. If it is unclear how a large model is built inside, reread «The Transformer Block». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

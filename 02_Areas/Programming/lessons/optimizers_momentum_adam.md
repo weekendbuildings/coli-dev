@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.optimizers_momentum_adam
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Оптимизаторы: импульс и Adam / Optimizers: momentum and Adam
 
 ## Русский
+
+### Простыми словами
+
+Оптимизатор это правило, по которому делают шаг обучения. Обычный спуск в длинной узкой долине мечется от стенки к стенке и еле ползёт вперёд. Импульс добавляет инерцию, как у тяжёлого шара: колебания гасятся, а скорость вдоль долины копится. Adam ещё и подбирает свой размер шага для каждого числа отдельно. Почти все большие модели сейчас учат Adam или его родственниками.
+
+**Что нужно знать до.** Урок «Градиентный спуск и шаг обучения» (шаг 4): почему большой шаг опасен. Урок «Частные производные и градиент» (шаг 4).
+
+**Если непонятно.** Если неясно, почему шаг нельзя просто увеличить, посчитай пример в шаге 1 урока. Если неясно среднее с затуханием, представь, что каждое новое значение берётся на 10 %, а прошлое среднее на 90 %. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -149,7 +157,7 @@ print([(round(x, 2), round(y, 2)) for x, y in adam(0.5)[:4]])
 
 ### Варианты
 
-- По крутой оси каждый шаг умножает `y` на `1 − 2 · шаг`, и при шаге больше 1 он растёт.
+- По крутой оси шаг больше 1 перескакивает дно всё дальше, и `y` растёт с каждым шагом.
 - По пологой оси ошибка почти плоская, и при большом шаге градиент там совсем пропадает.
 - Формула спуска определена только для шага до единицы, и больший шаг в ней не имеет смысла.
 
@@ -166,6 +174,14 @@ print([(round(x, 2), round(y, 2)) for x, y in adam(0.5)[:4]])
 Это двумерная игрушка с плавным рельефом и без шума, поэтому числа шагов нельзя переносить на настоящие сети. Я подбирал шаги вручную по небольшой сетке. Цель в 0,01 тоже выбрана мной: при другой цели разрыв изменится. В настоящем обучении важны ещё расписание шага и ослабление весов, и обычно берут вариант AdamW.
 
 ## English
+
+### In plain words
+
+An optimizer is the rule for taking a training step. Plain descent in a long narrow valley bounces from wall to wall and crawls forward. Momentum adds inertia, like a heavy ball: the swings die down while speed along the valley builds up. Adam also picks its own step size for each number separately. Almost all large models are trained today with Adam or its relatives.
+
+**What to know first.** «Gradient Descent and the Learning Rate» (step 4): why a big step is dangerous. «Partial Derivatives and the Gradient» (step 4).
+
+**If something is unclear.** If it is unclear why the step cannot simply be increased, work the example in step 1 of the lesson. If the decaying average is unclear, imagine each new value taken at 10 % and the previous average at 90 %. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -305,7 +321,7 @@ Why can plain descent not take a step above 1 on this valley?
 
 ### Options
 
-- On the steep axis each step multiplies `y` by `1 − 2 · step`, and above 1 it grows.
+- On the steep axis a step above 1 overshoots the floor further each time, so `y` grows.
 - On the gentle axis the error is nearly flat, and at a large step the gradient vanishes.
 - The descent formula is defined only for steps up to one, and a larger one means nothing.
 
@@ -323,7 +339,7 @@ This is a two-dimensional toy with a smooth relief and no noise, so step counts 
 
 ## Sources
 
-- Diederik P. Kingma, Jimmy Ba, "Adam: A Method for Stochastic Optimization", arXiv:1412.6980 (2014), title read 2026-11-02; the rule and its default values are recalled from the paper's algorithm: [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
+- Diederik P. Kingma, Jimmy Ba, "Adam: A Method for Stochastic Optimization", arXiv:1412.6980 (2014), title read 2026-11-02; Algorithm 1 and the default values α = 0.001, β1 = 0.9, β2 = 0.999, ε = 10⁻⁸ read in the paper on 2026-11-07: [arXiv:1412.6980](https://arxiv.org/abs/1412.6980)
 - Sebastian Ruder, "An overview of gradient descent optimization algorithms", arXiv:1609.04747 (2016), title read 2026-11-02: [arXiv:1609.04747](https://arxiv.org/abs/1609.04747)
 - Andrej Karpathy, "Let's build GPT", in Neural Networks: Zero to Hero (consulted 2026-11-02): [Zero to Hero](https://karpathy.ai/zero-to-hero.html)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

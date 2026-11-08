@@ -33,7 +33,7 @@ source_review_interval_days: 180
 
 ### Варианты
 
-- Количество часов света
+- Количество часов света в сутки
 - Изменение высоты за 14 дней
 - Вид семян
 
@@ -73,7 +73,7 @@ An investigation compares identical plants given 4 or 8 hours of light per day. 
 
 ### Options
 
-- Number of light hours
+- Number of light hours per day
 - Height change over 14 days
 - Seed type
 

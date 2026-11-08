@@ -118,18 +118,23 @@ def normalize(a):  # нормализация слоя по каждому ме�
     for row in a.data:
         n = len(row)
         mean = sum(row) / n
-        spread = math.sqrt(sum((x - mean) ** 2 for x in row) / n) + 1e-5
+        sigma = math.sqrt(sum((x - mean) ** 2 for x in row) / n)
+        spread = sigma + 1e-5
         result = [(x - mean) / spread for x in row]
         rows.append(result)
-        infos.append((spread, result))
+        infos.append((spread, sigma, result))
 
     def back(g):
         out = []
-        for gr, (spread, res) in zip(g, infos):
+        for gr, (spread, sigma, res) in zip(g, infos):
             n = len(gr)
             gm = sum(gr) / n
             gs = sum(map(mul, gr, res)) / n
-            out.append([(v - gm - gs * r) / spread for v, r in zip(gr, res)])
+            # Разброс входит дважды: значение делится на σ + ε, а изменение σ считается от самого σ.
+            # До 2026-11-07 здесь было «/ spread» для обоих слагаемых: относительная ошибка ε/σ, около 10⁻⁶.
+            # Журнал обучения в resources получен с той версией. / The spread enters twice: the value is
+            # divided by σ + ε, while σ's own change uses σ. The training log was made before this fix.
+            out.append([(v - gm) / spread - (gs * r / sigma if sigma else 0.0) for v, r in zip(gr, res)])
         a.add_grad(out)
     return Tensor(rows, (a,), back)
 

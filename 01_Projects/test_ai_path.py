@@ -15,7 +15,7 @@ LESSONS = re.findall(r'\b(math|code)\("([a-z0-9_]+)"\)', PATH_SOURCE)
 
 
 def test_every_lesson_is_written_or_announced() -> None:
-    assert len(LESSONS) == 69 and len({name for _, name in LESSONS}) == 69
+    assert len(LESSONS) == 74 and len({name for _, name in LESSONS}) == 74
     for kind, name in LESSONS:
         folder = ROOT / "02_Areas" / FOLDERS[kind]
         written = f"lesson:{name}" in (folder / "curriculum.md").read_text(encoding="utf-8")

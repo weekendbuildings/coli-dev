@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Внутри сети на каждом слое лежат числа, активации. Зонд это маленькая простая модель, которая по этим числам пытается угадать какое-то свойство входа. Если угадывает, значит, сведения там есть. Похоже на детектор металла: он пищит, значит, металл в земле есть, но это ещё не значит, что его кто-то использует. Поэтому найденное направление ещё и убирают и смотрят, станет ли сеть работать хуже.
+
+**Что нужно знать до.** Уроки «Классификация и softmax» (шаг 7) и «Скрытый слой» (шаг 8). Урок «Машинное обучение: baseline» (шаг 9): отложенная проверка.
+
+**Если непонятно.** Если неясно, что такое направление, вспомни векторы из урока «Векторы и матрицы»: это стрелка в пространстве активаций. Если неясен контрольный опыт, перечитай шаг 2 урока. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Заглянуть внутрь своей сети. Обучить линейный зонд на её активациях, проверить его контрольными опытами и убрать найденное направление, чтобы понять, пользуется ли им сеть. Главный вывод: высокая точность зонда ещё не значит, что сеть это использует. Нужно около 45 минут.
@@ -262,6 +270,15 @@ third_word direction removed 0.449
 
 В программе увеличь `third_word` до вопроса «сейчас идёт второе слово». Сможет ли зонд ответить? Посмотри, сколько букв видит сеть на входе.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: логистическую ошибку зонда и её градиент; проверка включает контроль на случайных метках. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_interp_probes.py
+```
+
+Сначала все строки будут с ✗. Открой `probe_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Зонд отвечает с точностью 98 %. Что это доказывает?
@@ -285,6 +302,14 @@ third_word direction removed 0.449
 Сеть здесь крошечная, и её вход всего 3 символа, поэтому почти всё можно понять и без зонда. На настоящих моделях сведения разбросаны сложнее. Метка «третье слово» опирается на разбор текста мной. Удаление одного направления это простейшая проверка: есть и более строгие, но и они спорны.
 
 ## English
+
+### In plain words
+
+Inside a network, each layer holds numbers, activations. A probe is a small simple model that tries to guess some property of the input from those numbers. If it guesses well, the information is there. It is like a metal detector: it beeps, so there is metal in the ground, but that does not mean anyone is using it. So the found direction is also removed, to see whether the network starts working worse.
+
+**What to know first.** «Classification and Softmax» (step 7) and «The Hidden Layer» (step 8). «Machine Learning: Baselines» (step 9): held-out evaluation.
+
+**If something is unclear.** If a direction is unclear, recall vectors from «Vectors and Matrices»: it is an arrow in the space of activations. If the control experiment is unclear, reread step 2 of the lesson. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -536,6 +561,15 @@ The normal error is `0.44`. A random direction gives `0.467`, our measure of noi
 The lab has the real activations of your network along two main directions. Drag the ends of the line and separate the points yourself. Change the question. Then switch to the untrained network and compare what comes out.
 
 In the program, change `third_word` to the question "is this the second word". Can the probe answer? See how many letters the network sees at its input.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the probe's logistic loss and its gradient; the check includes a random-label control. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_interp_probes.py
+```
+
+At first every line shows ✗. Open `probe_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

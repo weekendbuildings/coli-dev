@@ -1,0 +1,17 @@
+characters 720706 alphabet 159
+random 5.069 pairs 2.652
+weights 27584
+start 5.173
+500 train 2.775 held 2.761 seconds 1.8
+1000 train 2.553 held 2.637 seconds 3.7
+1500 train 2.358 held 2.529 seconds 5.6
+2000 train 2.31 held 2.46 seconds 7.4
+2500 train 2.444 held 2.429 seconds 9.2
+3000 train 2.218 held 2.408 seconds 11.1
+3500 train 2.146 held 2.384 seconds 12.9
+4000 train 2.156 held 2.356 seconds 14.7
+4500 train 2.181 held 2.333 seconds 16.5
+5000 train 1.988 held 2.277 seconds 18.3
+5500 train 2.044 held 2.26 seconds 20.2
+6000 train 1.737 held 2.247 seconds 22.0
+best 2.247 at step 6000

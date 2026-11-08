@@ -23,3 +23,4 @@
 - Сборка: `xcodebuild -project macOS/ColiDev/ColiDev.xcodeproj -scheme ColiDev -configuration Debug -derivedDataPath <tmp> CODE_SIGNING_ALLOWED=NO build`
 - Python-тесты: `cd 01_Projects && <venv>/bin/python -m pytest -q`. В системном python3 нет pytest. Тест `test_orchestrator.py::TestStreamingChat::test_local_stream_emits_provider_chunks_and_final_validated_answer` падает и на main — это из-за окружения, а не из-за нашего кода.
 - Swift-проверки: шаги `swiftc …` из `ci.yml`. Команды `python` на Mac нет, только `python3`.
+- Полная сборка с backend на этом Mac, без CI: `macOS/ColiDev/scripts/build_local_full_app.sh` (параметры в начале файла). Собирает, встраивает backend из кэша, если `01_Projects` без тестов не менялся, проверяет и ставит в `/Applications` с копией в `~/ColiDev-backups`. Если кэша нет: `--seed-backend-from /Applications/ColiDev.app` берёт backend из сборки CI с теми же файлами. Новый backend собирает только PyInstaller, его ставит владелец.

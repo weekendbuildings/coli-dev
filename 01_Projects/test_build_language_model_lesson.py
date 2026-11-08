@@ -76,6 +76,8 @@ def test_automatic_gradient_matches_numerical_slopes() -> None:
             p.data[r][c] = keep - 1e-5
             down = program["cross_entropy"](program["forward"](x), y)[0]
             p.data[r][c] = keep
+            # Строгий допуск: при h = 1e-5 центральная разность ошибается меньше чем на 1e-7, а прежнее расхождение ~1e-6 было
+            # настоящей ошибкой градиента нормализации. / Strict on purpose: the earlier ~1e-6 gap was a real bug.
             assert math.isclose((up - down) / 2e-5, p.grad[r][c], abs_tol=1e-6)
             checked += 1
     assert checked > 30
@@ -156,3 +158,28 @@ def test_lab_is_wired_in_and_its_texts_exist() -> None:
     for link in ("1706.03762", "1412.6980", "optimization/adam", "preliminaries/autograd"):
         assert link in SOURCES
     assert "tiny_language_model.py" in RUSSIAN and "tiny_language_model.py" in ENGLISH
+
+
+def test_layer_normalization_gradient_is_exact_even_for_a_small_spread() -> None:
+    """Разброс σ входит дважды: значение делится на σ + ε, а изменение σ считается от σ.
+    При малом σ старая формула ошибалась на ε/σ (здесь около 1 %), независимо от текстов курса.
+    The spread enters twice; with a small σ the old formula was off by ε/σ, whatever the course text."""
+    program = _loaded()
+    Tensor, normalize = program["Tensor"], program["normalize"]
+    rows = [[0.3, 0.3011, 0.2992, 0.3004], [1.0, -2.0, 0.5, 3.0]]
+    upstream = [[0.7, -1.1, 0.4, 0.25], [-0.3, 0.9, 1.2, -0.6]]
+
+    def loss(data):
+        out = normalize(Tensor([row[:] for row in data])).data
+        return sum(u * v for ur, vr in zip(upstream, out) for u, v in zip(ur, vr))
+
+    source = Tensor([row[:] for row in rows])
+    normalize(source).back(upstream)
+    for r, row in enumerate(rows):
+        for c in range(len(row)):
+            up = [line[:] for line in rows]
+            down = [line[:] for line in rows]
+            up[r][c] += 1e-7
+            down[r][c] -= 1e-7
+            numeric = (loss(up) - loss(down)) / 2e-7
+            assert math.isclose(source.grad[r][c], numeric, rel_tol=1e-5, abs_tol=1e-4), (r, c, source.grad[r][c], numeric)

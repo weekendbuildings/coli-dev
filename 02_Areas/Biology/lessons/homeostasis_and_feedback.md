@@ -33,9 +33,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- Отрицательная обратная связь: ответ уменьшает отклонение и возвращает показатель к точке настройки.
+- Отрицательная обратная связь: ответ уменьшает отклонение от нормы.
 - Положительная обратная связь: ответ усиливает исходное изменение.
-- Это не регуляция: температура просто случайно снизилась сама.
+- Не регуляция: температура снизилась сама, без ответа организма.
 
 ### Ответ
 
@@ -73,9 +73,9 @@ A person's body temperature rose, they began to sweat, evaporation cooled the sk
 
 ### Options
 
-- Negative feedback: the response reduces the deviation and returns the variable to the set point.
+- Negative feedback: the response reduces the deviation from the set point.
 - Positive feedback: the response amplifies the original change.
-- It is not regulation: the temperature simply dropped by chance.
+- Not regulation: the temperature dropped by itself, without a response.
 
 ### Answer
 

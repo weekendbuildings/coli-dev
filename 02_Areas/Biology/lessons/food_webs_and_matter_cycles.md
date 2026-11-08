@@ -74,7 +74,7 @@ Which way does the “snails → fish” arrow point?
 ### Options
 
 - From fish to snails, because the fish moves first.
-- From snails to fish, showing food and matter moving to a consumer.
+- From snails to fish: food and matter go to the consumer.
 - Both ways: an arrow always means mutual symbiosis.
 
 ### Answer

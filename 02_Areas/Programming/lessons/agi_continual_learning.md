@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Обычная сеть, выучив вторую задачу, часто забывает первую. Причина простая: обучение подгоняет веса только под те примеры, что видит сейчас, и стирает то, что было нужно раньше. Похоже на школьную доску: пишешь новую задачу мелом поверх старой, и старая пропадает. Простое лечение это повторять старые примеры вперемешку с новыми, но за это платят памятью и временем. Как учиться всю жизнь и не забывать, остаётся открытым вопросом.
+
+**Что нужно знать до.** Уроки «Градиентный спуск и шаг обучения» (шаг 4) и «Скрытый слой: нейросеть учит XOR» (шаг 8): как обучение меняет веса. Урок «Мини-батчи и переобучение» (шаг 9): ошибка на проверочных данных.
+
+**Если непонятно.** Если неясно, почему шаг спуска «не помнит» прошлое, вернись к уроку «Градиентный спуск и шаг обучения». Если неясны веса скрытого слоя, перечитай пример в уроке «Скрытый слой». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Своими руками заставить сеть забыть первую задачу после второй, полечить это повторением примеров и посчитать цену. Попробовать и упругие веса, увидеть, что простая версия у меня не сработала, и понять почему. Нужно около 40 минут.
@@ -136,7 +144,7 @@ replay: stored examples of A, share of steps, A, B
 
 Пять примеров при доле `0,2` дают `0,517`, уже не катастрофа. Двадцать примеров дают `0,8`, а при доле `0,5` дают `0,853`. Все 200 примеров дают `0,973`. **Цена ясна:** нужно хранить старые данные и тратить на них шаги. Для одного повторения шагов становится больше, а на всю жизнь данных накопится очень много. Иногда старые данные и вовсе хранить нельзя, например личные.
 
-**Шаг 4. Упругие веса.** Kirkpatrick и соавторы предложили метод EWC. Важные для старой задачи веса привязываем пружиной к старым значениям. Штраф: `λ / 2 · Σ F · (w − w_старое)²`, где `F` показывает важность веса: это средний квадрат градиента на старых данных. Посчитай руками: при `F = 0,5`, `λ = 10`, `w − w_старое = 0,2` штраф `10 / 2 · 0,5 · 0,04 = 0,1`. Допиши и запусти.
+**Шаг 4. Упругие веса.** Kirkpatrick и соавторы предложили метод EWC (elastic weight consolidation, «упругое закрепление весов»). Важные для старой задачи веса привязываем пружиной к старым значениям. Штраф: `λ / 2 · Σ F · (w − w_старое)²`, где `F` показывает важность веса: это средний квадрат градиента на старых данных. Посчитай руками: при `F = 0,5`, `λ = 10`, `w − w_старое = 0,2` штраф `10 / 2 · 0,5 · 0,04 = 0,1`. Допиши и запусти.
 
 ```python
 def importance(net, data):
@@ -208,6 +216,14 @@ elastic weights: strength, A, B
 Сеть и задачи игрушечные и подобраны так, чтобы забывание было полным. Настоящие задачи обычно частично совпадают, и забывание слабее. Версия EWC здесь самая простая, без подбора важности, поэтому её неудача говорит только об этом опыте. Числа зависят от зерна случайности и шага.
 
 ## English
+
+### In plain words
+
+An ordinary network that learns a second task often forgets the first. The reason is simple: training fits the weights only to the examples it sees now and wipes what was needed before. It is like a school blackboard: you chalk a new problem over the old one, and the old one is gone. The simple cure is to replay old examples mixed with new ones, but you pay for it in memory and time. How to learn for a lifetime without forgetting is still an open question.
+
+**What to know first.** The lessons «Gradient Descent and the Learning Rate» (step 4) and «The Hidden Layer: A Network Learns XOR» (step 8): how training changes weights. The lesson «Mini-Batches and Overfitting» (step 9): error on held-out data.
+
+**If something is unclear.** If it is unclear why a descent step "does not remember" the past, go back to «Gradient Descent and the Learning Rate». If the hidden-layer weights are unclear, reread the example in «The Hidden Layer». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -334,7 +350,7 @@ replay: stored examples of A, share of steps, A, B
 
 Five examples at share `0.2` give `0.517`, no longer a catastrophe. Twenty examples give `0.8`, and at share `0.5` give `0.853`. All 200 examples give `0.973`. **The price is clear:** you must store old data and spend steps on it. For one replay there are more steps, and over a lifetime a great deal of data piles up. Sometimes old data cannot be kept at all, such as personal data.
 
-**Step 4. Elastic weights.** Kirkpatrick and co-authors proposed the EWC method. Weights important to the old task are tied by a spring to their old values. The fine: `λ / 2 · Σ F · (w − w_old)²`, where `F` shows a weight's importance: the mean squared gradient on old data. Compute by hand: at `F = 0.5`, `λ = 10`, `w − w_old = 0.2` the fine is `10 / 2 · 0.5 · 0.04 = 0.1`. Add this and run it.
+**Step 4. Elastic weights.** Kirkpatrick and co-authors proposed the EWC method (elastic weight consolidation). Weights important to the old task are tied by a spring to their old values. The fine: `λ / 2 · Σ F · (w − w_old)²`, where `F` shows a weight's importance: the mean squared gradient on old data. Compute by hand: at `F = 0.5`, `λ = 10`, `w − w_old = 0.2` the fine is `10 / 2 · 0.5 · 0.04 = 0.1`. Add this and run it.
 
 ```python
 def importance(net, data):

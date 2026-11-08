@@ -11,6 +11,14 @@ source_review_interval_days: 180
 
 ## Русский
 
+### Простыми словами
+
+Производная говорит, как быстро что-то меняется прямо сейчас. Спидометр показывает именно её: не средняя скорость за поездку, а скорость в этот миг. Чтобы найти её, берут два всё более близких момента и делят изменение на время между ними. Для обучения нейросети производная главное: она говорит, в какую сторону и насколько менять число, чтобы ошибка уменьшилась.
+
+**Что нужно знать до.** Деление и понятие графика функции. Отдельных уроков пути не нужно.
+
+**Если непонятно.** Если неясна идея «всё ближе», посчитай наклон для точек `x = 2` и `x = 2,1`, потом `x = 2,01`, и посмотри, к чему он стремится. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Объяснить производную в точке через предел наклонов секущих, вычислить её для `f(x)=x²` и связать наклон графика с единицами измерения скорости изменения.
@@ -68,6 +76,14 @@ source_review_interval_days: 180
 Производная существует не во всех точках. В точке разрыва производной нет никогда: дифференцируемая функция обязана быть непрерывной. Производной нет и в непрерывных точках с изломом (острым углом, как у `|x|` в нуле) или с вертикальной касательной (как у кубического корня в нуле). Производная в точке описывает локальное изменение и не гарантирует поведение функции далеко от этой точки. Для вычисленного наклона указывай единицы и область, где функция определена.
 
 ## English
+
+### In plain words
+
+A derivative tells how fast something is changing right now. A speedometer shows exactly that: not the average speed over the trip, but the speed at this moment. To find it, you take two moments ever closer together and divide the change by the time between them. For training a neural network the derivative is key: it tells which way and how much to change a number so the error goes down.
+
+**What to know first.** Division and the idea of a function's graph. No other path lessons are needed.
+
+**If something is unclear.** If the idea of "ever closer" is unclear, compute the slope for the points `x = 2` and `x = 2.1`, then `x = 2.01`, and see what it approaches. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

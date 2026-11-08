@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Глубокая сеть может сломаться ещё до обучения, если начальные веса выбраны плохо. Сигнал проходит много слоёв подряд и на каждом умножается: чуть меньше нужного, и он гаснет; чуть больше, и он раздувается. Как шёпот в длинной цепочке людей: если каждый говорит чуть тише, до конца не доходит ничего. Правильный начальный масштаб весов и нормализация держат сигнал на нужном уровне.
+
+**Что нужно знать до.** Уроки «Векторы и матрицы» (шаг 3), «Скрытый слой» (шаг 8) и «Случайные величины и выборка» (шаг 5): разброс.
+
+**Если непонятно.** Если неясно, почему вес делят на корень из ширины, посчитай пример шага 1: `0,25` в восьмой степени, а потом `1,5` в восьмой степени, и увидишь, как сигнал гаснет и раздувается. Если неясен разброс, вернись к дисперсии в уроке «Случайные величины и выборка». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Увидеть, почему глубокая сеть может сломаться ещё до первого шага обучения: сигнал гаснет или застревает, а градиент исчезает или раздувается. Подобрать начальный масштаб весов и проверить, что меняет нормализация. Нужно около 40 минут.
@@ -182,6 +190,14 @@ norm, scale 4.0
 Мы смотрели только на начальное состояние, до обучения. Хорошая картина здесь не гарантирует успеха, она лишь убирает одну причину провала. У функции ReLU другая поправка, правило Хе и соавторов. Сеть у нас маленькая и прямая; обходные пути, о которых шла речь в уроке о блоке трансформера, тоже спасают сигнал ошибки. Причину, почему нормализация помогает, исследователи до конца не объяснили, и первоначальное объяснение из работы 2015 года оспаривается.
 
 ## English
+
+### In plain words
+
+A deep network can break before training even starts if the initial weights are chosen badly. The signal passes many layers in a row and is multiplied on each: a little too small and it fades; a little too big and it blows up. Like a whisper down a long line of people: if each says it a bit more quietly, nothing reaches the end. The right initial weight scale and normalization keep the signal at the right level.
+
+**What to know first.** The lessons «Vectors and Matrices» (step 3), «The Hidden Layer» (step 8) and «Random Variables and Sampling» (step 5): spread.
+
+**If something is unclear.** If it is unclear why a weight is divided by the square root of the width, work the example in step 1: `0.25` to the eighth power, then `1.5` to the eighth power, and you will see the signal fade and blow up. If spread is unclear, go back to variance in «Random Variables and Sampling». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Словом «сознание» называют две разные вещи. Первая, доступ: сведения можно использовать, чтобы рассуждать, говорить и действовать. Вторая, переживание: каково это, видеть красное или чувствовать боль. Со вторым трудно, потому что его не видно снаружи. Ты видишь, что друг называет помидор красным, но не можешь заглянуть, каким красный выглядит для него. Наука предлагает теории, но общепризнанного теста нет. Поэтому ничто из построенного на этом пути не доказывает ни наличия, ни невозможности сознания у машины.
+
+**Что нужно знать до.** Хотя бы урок «Своя языковая модель» (шаг 12), чтобы было что обсуждать. Полезен урок «Чат это текст» (шаг 1): откуда у модели берутся слова о себе.
+
+**Если непонятно.** Если неясно различие доступа и переживания, сразу иди в урок «Трудная проблема сознания» (шаг 23): там оно разобрано на примере. Остальные уроки этапа подробно раскрывают каждую теорию. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Честно отделить то, что ты построил на этом пути, от того, что наука о сознании пока не знает: различать два значения слова «сознание», называть основные теории, понимать, почему нет общепризнанного теста, и применить индикаторы из исследований к своей модели.
@@ -112,6 +120,14 @@ numbers in the table 14
 Этот урок излагает открытый спор, а не окончательные ответы, и краткие описания теорий многое упрощают. Отчёт 2023 года опирается на рабочую гипотезу, с которой согласны не все, и его вывод относится к системам того времени. Разбор индикаторов для нашей модели написан для этого курса и не является оценкой экспертов. Индикаторы в лучшем случае показывают, насколько система похожа на то, что описывают теории: это не прибор, измеряющий сознание. Вопрос о том, как относиться к возможным сознательным системам, серьёзен, но этот урок не даёт на него ответа.
 
 ## English
+
+### In plain words
+
+The word "consciousness" names two different things. The first is access: information can be used to reason, speak and act. The second is experience: what it is like to see red or feel pain. The second is hard because it cannot be seen from outside. You see a friend call a tomato red, but you cannot look into how red looks to them. Science offers theories, but there is no accepted test. So nothing built on this path proves either that a machine is conscious or that it cannot be.
+
+**What to know first.** At least «Your Own Language Model» (step 12), so there is something to discuss. «A chat is text» (step 1) helps too: where a model's words about itself come from.
+
+**If something is unclear.** If the difference between access and experience is unclear, go straight to «The hard problem of consciousness» (step 23): it works through an example. The other lessons of the stage cover each theory in detail. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

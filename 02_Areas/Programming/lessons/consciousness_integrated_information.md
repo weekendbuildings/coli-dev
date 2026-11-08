@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Теория интегрированной информации, коротко IIT, спрашивает: насколько система едина, а не собрана из независимых частей? Её мера называется Φ (фи), и по теории чем больше Φ, тем больше сознания. Представь команду, где каждый зависит от всех: раздели её, и работа рушится. А очередь в кассу можно разделить на две, и ничего не потеряется. В уроке ты разрежешь сеть из трёх узлов и посчитаешь, сколько теряется в предсказании её следующего шага. Важно: это упрощённая идея меры, а не настоящее Φ. Сама теория спорная, и урок показывает обе стороны.
+
+**Что нужно знать до.** Урок «Информация, энтропия и кросс-энтропия» (шаг 6): что такое бит. Урок «Сознание: что известно и что нет» (шаг 23). Логика «и», «или», «исключающее или» встречалась в уроке «Скрытый слой: нейросеть учит XOR» (шаг 8).
+
+**Если непонятно.** Если неясно, что значит «потеря в битах», вернись к уроку «Информация, энтропия и кросс-энтропия». Если неясен XOR, перечитай начало урока «Скрытый слой». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Понять, что утверждает теория интегрированной информации, посчитать упрощённую меру интеграции на сети из трёх узлов и честно разобрать спор вокруг теории. Важно с самого начала: **то, что мы считаем, это не настоящее Φ**, а только его идея в простейшем виде. Нужно около 40 минут.
@@ -115,6 +123,15 @@ majority [1.311, 1.311, 1.311] 1.311
 
 В программе добавь четвёртый узел и поменяй разрезы. Сколько теперь разрезов? Посчитай руками, как быстро они растут.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: все разрезы на две части для любого числа узлов и потерю при разрезе: шаг дальше урока, где узлов три. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_consciousness_integrated_information.py
+```
+
+Сначала все строки будут с ✗. Открой `phi_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Что показывает равенство потерь у цепочки копирования и кольца XOR?
@@ -138,6 +155,14 @@ majority [1.311, 1.311, 1.311] 1.311
 Моя мера **не Φ**: нет возмущений по всем подмножествам, нет причин и следствий отдельно, нет выбора состояния. На настоящем Φ цифры будут другими, а выводы о нём отсюда не следуют. Сеть из трёх узлов это игрушка. Письмо 2023 года и ответы на него я пересказал кратко, сверяй сам. Теория быстро меняется, IIT 4.0 не последняя её форма.
 
 ## English
+
+### In plain words
+
+Integrated information theory, IIT for short, asks: how unified is a system rather than built of independent parts? Its measure is called Φ (phi), and according to the theory the more Φ, the more consciousness. Picture a team where everyone depends on everyone: split it and the work collapses. A checkout queue, though, can be split in two and nothing is lost. In the lesson you cut a three-node network and count how much is lost in predicting its next step. Important: this is a simplified idea of the measure, not the real Φ. The theory itself is disputed, and the lesson shows both sides.
+
+**What to know first.** The lesson «Information, Entropy, and Cross-Entropy» (step 6): what a bit is. The lesson «Consciousness: What Is Known and What Is Not» (step 23). The logic of AND, OR and exclusive OR appeared in «The Hidden Layer: A Network Learns XOR» (step 8).
+
+**If something is unclear.** If "loss in bits" is unclear, go back to «Information, Entropy, and Cross-Entropy». If XOR is unclear, reread the start of «The Hidden Layer». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -242,6 +267,15 @@ A conclusion for yourself: look at what a theory predicts and how that can be te
 In the lab, choose what each of three nodes computes, and see what each cut loses. Find a network of connected nodes whose weakest cut equals zero. Then compare the copying chain with the XOR ring.
 
 In the program, add a fourth node and change the cuts. How many cuts are there now? Compute by hand how fast they grow.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: every cut into two parts for any number of nodes and the loss of a cut: a step beyond the three-node lesson. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_consciousness_integrated_information.py
+```
+
+At first every line shows ✗. Open `phi_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

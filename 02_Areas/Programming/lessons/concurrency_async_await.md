@@ -49,9 +49,9 @@ asyncio.run(main())
 
 ### Варианты
 
-- Около 0,2 с: пока одна задача ждёт, работают остальные, и ожидания идут одновременно.
-- Около 0,6 с: задачи всё равно выполняются по очереди.
-- Мгновенно: асинхронный код не ждёт вовсе.
+- Около 0,2 с: ожидания трёх задач идут одновременно, а не одно за другим.
+- Около 0,6 с: задачи всё равно выполняются по очереди, 3 · 0,2 = 0,6.
+- Мгновенно: асинхронный код вообще не ждёт, sleep в нём пропускается.
 
 ### Ответ
 
@@ -105,9 +105,9 @@ Three coroutines each wait 0.2 seconds with await asyncio.sleep and are started 
 
 ### Options
 
-- About 0.2 s: while one task waits, the others run, and the waits happen at the same time.
-- About 0.6 s: the tasks still run one after another.
-- Instantly: asynchronous code does not wait at all.
+- About 0.2 s: the three waits happen at the same time, not one after another.
+- About 0.6 s: the tasks still run one after another, 3 · 0.2 = 0.6.
+- Instantly: asynchronous code never waits, and sleep is skipped in it.
 
 ### Answer
 

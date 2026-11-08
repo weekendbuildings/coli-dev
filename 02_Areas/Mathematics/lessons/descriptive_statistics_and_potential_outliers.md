@@ -12,6 +12,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Чтобы описать много чисел коротко, называют их центр и разброс. Среднее это сумма, делённая на количество, а медиана это число посередине, если всё выстроить по порядку. Если в зарплатах отдела появится один миллионер, среднее взлетит, а медиана почти не сдвинется. Выброс это значение, которое стоит проверить: ошибка ли это записи или редкий настоящий случай.
+
+**Что нужно знать до.** Сложение, деление и порядок чисел. Отдельных уроков пути не нужно.
+
+**Если непонятно.** Если неясны квартили, выстрой числа по порядку и раздели ряд пополам, а потом каждую половину ещё пополам. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Научиться сравнивать среднее и медиану, находить межквартильный размах и решать, требует ли крайнее значение дополнительной проверки.
@@ -56,6 +64,14 @@ source_review_interval_days: 365
 Метка по `1,5 × IQR` — удобное правило поиска необычных значений, а не универсальный тест ошибки, редкости или опасности. Квартильные соглашения в учебниках и программах различаются; в тренажёре для наборов нечётного размера медиана общей середины исключается из обеих половин. Не удаляй наблюдение только из-за этой метки: проверяй источник, единицы, сбор данных и предметный контекст. Маленький набор также не позволяет уверенно описать всю популяцию.
 
 ## English
+
+### In plain words
+
+To describe many numbers briefly, you give their centre and spread. The mean is the sum divided by the count, and the median is the number in the middle when everything is lined up in order. If one millionaire joins a department's salaries, the mean shoots up while the median barely moves. An outlier is a value worth checking: is it a recording error or a rare real case.
+
+**What to know first.** Addition, division and ordering numbers. No other path lessons are needed.
+
+**If something is unclear.** If quartiles are unclear, line the numbers up in order and split the row in half, then split each half again. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

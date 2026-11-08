@@ -33,9 +33,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- 12,5 с: γ = 1 / √(1 − 0,36) = 1 / 0,8 = 1,25, и Δt = 1,25 · 10 с.
+- 12,5 с: γ = 1 / √(1 − 0,36) = 1,25, и Δt = 1,25 · 10 с.
 - 8 с: время на Земле течёт медленнее, Δt = 0,8 · 10 с.
-- 10 с: время одинаково для всех наблюдателей.
+- 10 с: время одинаково для всех наблюдателей, γ = 1.
 
 ### Ответ
 
@@ -73,9 +73,9 @@ A spaceship travels at 0.6c. By the ship's clock 10 s have passed. How much time
 
 ### Options
 
-- 12.5 s: γ = 1 / √(1 − 0.36) = 1 / 0.8 = 1.25, and Δt = 1.25 · 10 s.
-- 8 s: time runs slower on Earth, Δt = 0.8 · 10 s.
-- 10 s: time is the same for all observers.
+- 12.5 s: γ = 1 / √(1 − 0.36) = 1.25, and Δt = 1.25 · 10 s.
+- 8 s: time runs slower on Earth, so there Δt = 0.8 · 10 s.
+- 10 s: time is the same for all observers, γ = 1.
 
 ### Answer
 

@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.finetuning_and_lora
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Дообучение и LoRA / Fine-tuning and LoRA
 
 ## Русский
+
+### Простыми словами
+
+Обучить большую модель с нуля очень дорого. Дешевле взять готовую и дообучить на своих примерах: модель уже знает язык, ей нужно лишь освоить новый стиль. LoRA идёт ещё дальше: основные веса не трогают, а рядом ставят маленькую добавку и учат только её. Как съёмная насадка на инструмент: снял её, и инструмент в точности прежний. Учить приходится гораздо меньше чисел, а у больших моделей в тысячи раз меньше.
+
+**Что нужно знать до.** Урок «Своя языковая модель» (шаг 12). Урок «Векторы и матрицы» (шаг 3): размер матрицы. Урок «Мини-батчи и переобучение» (шаг 9).
+
+**Если непонятно.** Если неясно, почему LoRA экономит, сравни число весов, которое ты посчитал в шаге 2, с числом весов адаптера в шаге 3. Если неясно умножение матриц, вернись к уроку «Векторы и матрицы». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -265,7 +273,7 @@ adapter off 3.451 same as base 3.451
 adapter on 1.549
 ```
 
-С нуля выходит почти каша, при всех весах уже есть «мама видит», а LoRA ранга 2 узнаёт обёртку, но слова ломает. Последние строки показывают главное удобство: при выключенном адаптере ошибка снова ровно `3,451`. **Исходные веса не менялись.** Поэтому один большой файл модели и десяток маленьких адаптеров можно хранить рядом и переключать. На настоящих моделях так и делают: Ollama загружает адаптер строкой `ADAPTER` в файле `Modelfile`.
+С нуля выходит почти каша, при всех весах уже есть «мама видит», а LoRA ранга 2 узнаёт обёртку, но слова ломает. Последние строки показывают главное удобство: при выключенном адаптере ошибка снова ровно `3,451`. **Исходные веса не менялись.** Поэтому один большой файл модели и десяток маленьких адаптеров можно хранить рядом и переключать. Так работают и с большими моделями: адаптеры хранят отдельно и подключают, когда нужно. Но в Ollama на этом Mac так уже нельзя. Раньше она подключала адаптер строкой `ADAPTER` в файле `Modelfile`, а с версии 0.34.1 (сентябрь 2026) отвечает на неё ошибкой «LoRA adapters are no longer supported». Для Ollama адаптер пришлось бы заранее влить в веса: `W + A · B` это обычная матрица того же размера.
 
 **Учись у тех, кто это создаёт.** Статья [LoRA](https://arxiv.org/abs/2106.09685) читается легко, начни с первых двух разделов. Лаборатория 3 курса [MIT 6.S191](http://introtodeeplearning.com/) дообучает настоящую модель. Курс [Stanford CS336](https://stanford-cs336.github.io/spring2025/) объясняет, чем дообучение отличается от предобучения.
 
@@ -274,6 +282,15 @@ adapter on 1.549
 В тренажёре настоящие кривые этой программы. Двигай бюджет весов, включай способы и сравнивай, смотри на текст, а затем выключи адаптер.
 
 В программе поставь адаптер ещё и на внутренний слой. Настоящая LoRA ставит добавки на много слоёв, а не на один.
+
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: выход с адаптером, градиенты по A и B и слияние адаптера в одну матрицу. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_finetuning_and_lora.py
+```
+
+Сначала все строки будут с ✗. Открой `lora_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
 
 ### Вопрос
 
@@ -298,6 +315,14 @@ adapter on 1.549
 Это игрушка на 1355 весов с искусственным стилем, и выводы о размерах нельзя переносить на большие модели. Адаптер здесь стоит только на последнем слое, поэтому ему трудно менять само чтение слов. Шаг обучения и число шагов я подобрал вручную. Обучение с нуля проигрывает ещё и потому, что я дал всем поровну 900 шагов, а с большим числом шагов оно бы догоняло.
 
 ## English
+
+### In plain words
+
+Training a large model from scratch is very expensive. It is cheaper to take a ready one and fine-tune it on your examples: the model already knows the language and only needs to learn a new style. LoRA goes further: the main weights stay untouched, and a small add-on is placed beside them and only it is trained. Like a detachable attachment on a tool: take it off and the tool is exactly as before. Far fewer numbers have to be trained, and for large models thousands of times fewer.
+
+**What to know first.** «Your Own Language Model» (step 12). «Vectors and Matrices» (step 3): matrix size. «Mini-Batches and Overfitting» (step 9).
+
+**If something is unclear.** If it is unclear why LoRA saves so much, compare the weight count you made in step 2 with the adapter's weight count in step 3. If matrix multiplication is unclear, go back to «Vectors and Matrices». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -553,7 +578,7 @@ adapter off 3.451 same as base 3.451
 adapter on 1.549
 ```
 
-From scratch it is nearly mush, with all weights "мама видит" ("mum sees") already appears, and LoRA at rank 2 knows the wrapping but breaks the words. The last rows show the chief convenience: with the adapter off, the error is again exactly `3.451`. **The original weights never changed.** So one big model file and a dozen small adapters can sit side by side and be switched. Real models do this: Ollama loads an adapter with the `ADAPTER` line in a `Modelfile`.
+From scratch it is nearly mush, with all weights "мама видит" ("mum sees") already appears, and LoRA at rank 2 knows the wrapping but breaks the words. The last rows show the chief convenience: with the adapter off, the error is again exactly `3.451`. **The original weights never changed.** So one big model file and a dozen small adapters can sit side by side and be switched. Large models are handled the same way: adapters are stored separately and attached when needed. But Ollama on this Mac can no longer do it. It used to attach an adapter with the `ADAPTER` line in a `Modelfile`, and since version 0.34.1 (September 2026) it answers that line with the error "LoRA adapters are no longer supported". For Ollama the adapter would have to be merged into the weights first: `W + A · B` is an ordinary matrix of the same size.
 
 **Learn from the people who build this.** The [LoRA paper](https://arxiv.org/abs/2106.09685) reads easily; start with the first two sections. Lab 3 of [MIT 6.S191](http://introtodeeplearning.com/) fine-tunes a real model. [Stanford CS336](https://stanford-cs336.github.io/spring2025/) explains how fine-tuning differs from pretraining.
 
@@ -562,6 +587,15 @@ From scratch it is nearly mush, with all weights "мама видит" ("mum see
 The lab has the real curves of this program. Move the weight budget, switch methods on and compare, read the text, and then switch the adapter off.
 
 In the program, put an adapter on the inner layer too. Real LoRA places additions on many layers, not one.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the output with the adapter, the gradients for A and B and merging the adapter into one matrix. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_finetuning_and_lora.py
+```
+
+At first every line shows ✗. Open `lora_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 
@@ -590,5 +624,5 @@ This is a toy with 1355 weights and an artificial style, and conclusions on size
 - Edward J. Hu et al., "LoRA: Low-Rank Adaptation of Large Language Models", arXiv:2106.09685 (2021), abstract with frozen weights and the low-rank addition read 2026-11-03: [arXiv:2106.09685](https://arxiv.org/abs/2106.09685)
 - MIT 6.S191, "Introduction to Deep Learning", title read 2026-11-03: [course](http://introtodeeplearning.com/)
 - Stanford CS336, "Language Modeling from Scratch" (2025), title read 2026-11-03: [course](https://stanford-cs336.github.io/spring2025/)
-- Ollama, Modelfile reference, the `ADAPTER` instruction, recalled: the documentation could not be read as text on 2026-11-03: [docs](https://docs.ollama.com/modelfile)
+- Ollama source code, `server/create.go`, read on GitHub on 2026-11-07: tag v0.34.0 has no adapter error, tags v0.34.1 and v0.40.13 (the version on this Mac) return "LoRA adapters are no longer supported" for a model with adapters; the Modelfile reference read the same day no longer lists `ADAPTER`: [create.go](https://github.com/ollama/ollama/blob/main/server/create.go), [Modelfile reference](https://docs.ollama.com/modelfile)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

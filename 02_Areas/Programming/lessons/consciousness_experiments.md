@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.consciousness_experiments
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Опыты о сознании / Experiments on consciousness
 
 ## Русский
+
+### Простыми словами
+
+Как изучать сознание опытом? Берут один и тот же сигнал, который человек иногда замечает, а иногда нет, и сравнивают эти случаи. Например, цифру показывают на долю секунды и сразу закрывают узором. Есть ловушка: ответ «вижу» зависит не только от зрения, но и от смелости. Как два сторожа в тумане: один кричит «вижу!» на каждую тень, другой молчит до последнего, а глаза у них одинаковые. Мера `d′` отделяет зрение от смелости. В конце разобран большой опыт Cogitate, где две теории проверили их же сторонники.
+
+**Что нужно знать до.** Урок «Вероятность и формула Байеса» (шаг 5): доля попаданий и ложных тревог. Уроки «Глобальное рабочее пространство» и «Интегрированная информация» (шаг 24): именно их проверял Cogitate.
+
+**Если непонятно.** Если неясна `d′`, посчитай пример в шаге 3 по шагам и сравни два ряда ответов. Если неясны сами теории, вернись к шагу 24 пути. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -156,6 +164,14 @@ fitted threshold and slope (51, 12)
 В тренажёре время на экране не точнее одного кадра, поэтому это опыт для понимания, а не для измерения. Наблюдатель в программе смоделирован. Я кратко пересказал Cogitate по памяти и по названию статьи, поэтому сверяй подробности с ней. Сторонники обеих теорий истолковывают итоги иначе, чем я мог бы передать в двух абзацах.
 
 ## English
+
+### In plain words
+
+How do you study consciousness by experiment? You take one and the same signal that a person sometimes notices and sometimes not, and compare those cases. For example, a digit is shown for a fraction of a second and then covered by a pattern. There is a trap: the answer "I see it" depends not only on sight but also on boldness. Like two guards in fog: one shouts "I see it!" at every shadow, the other stays silent until the last moment, yet their eyes are the same. The measure `d′` separates sight from boldness. At the end comes the large Cogitate experiment, where two theories were tested by their own supporters.
+
+**What to know first.** The lesson «Probability and Bayes' Rule» (step 5): the share of hits and false alarms. The lessons «The global workspace» and «Integrated information» (step 24): these are what Cogitate tested.
+
+**If something is unclear.** If `d′` is unclear, work the example in step 3 step by step and compare the two rows of answers. If the theories themselves are unclear, go back to step 24 of the path. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -304,8 +320,8 @@ In the lab, screen timing is no more accurate than one frame, so this is an expe
 ## Sources
 
 - Cogitate Consortium, "Adversarial testing of global neuronal workspace and integrated information theories of consciousness", Nature 642 (2025), abstract read 2026-11-03: [article](https://www.nature.com/articles/s41586-025-08888-1)
-- Stanislas Dehaene, Jean-Pierre Changeux, Lionel Naccache et al., "Conscious, preconscious, and subliminal processing: a testable taxonomy", Trends in Cognitive Sciences 10 (2006), title and journal checked 2026-11-03; the paper itself not re-read; "Consciousness and the Brain" (2014), recalled.
+- Stanislas Dehaene, Jean-Pierre Changeux, Lionel Naccache et al., "Conscious, preconscious, and subliminal processing: a testable taxonomy", Trends in Cognitive Sciences 10 (2006), title and journal checked 2026-11-03; the paper itself not re-read. Stanislas Dehaene, "Consciousness and the Brain: Deciphering How the Brain Codes Our Thoughts", Viking Penguin (2014): the book itself not read; that it describes masking (the same stimulus is visible before a blank screen and not before a mask) confirmed on 2026-11-07 in James W. Kalat's review, Journal of Undergraduate Neuroscience Education (2014): [review](https://pmc.ncbi.nlm.nih.gov/articles/PMC3971003)
 - Naotsugu Tsuchiya et al., "No-Report Paradigms: Extracting the True Neural Correlates of Consciousness", Trends in Cognitive Sciences 19 (2015), title and journal checked 2026-11-03; the paper itself not re-read.
-- Neil A. Macmillan, C. Douglas Creelman, "Detection Theory: A User's Guide" (third edition with Hautus, 2021, found 2026-11-03), for d′ and c, recalled; the numbers are computed in the lesson.
+- Neil A. Macmillan, C. Douglas Creelman, "Detection Theory: A User's Guide" (third edition with Hautus, 2021, found 2026-11-03), the book itself not read. The formulas d′ = z(H) − z(F) and c = −(z(H) + z(F)) / 2, and the meaning of a negative c as a bias toward "yes", read on 2026-11-07 in Harold Stanislaw, Natasha Todorov, "Calculation of signal detection theory measures", Behavior Research Methods, Instruments, & Computers 31 (1), 137–149 (1999), p. 140 and Tables 1 and 3: [paper](https://link.springer.com/article/10.3758/BF03207704)
 - Stanford Encyclopedia of Philosophy, "Consciousness": [entry](https://plato.stanford.edu/entries/consciousness/)
 - The programs and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

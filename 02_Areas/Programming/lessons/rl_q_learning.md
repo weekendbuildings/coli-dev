@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.rl_q_learning
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Q-обучение: агент учится сам / Q-learning: an agent learns on its own
 
 ## Русский
+
+### Простыми словами
+
+В прошлом уроке агент знал устройство мира заранее. Теперь не знает: он ходит, получает награды и сам запоминает, что выгодно. Для каждой пары «клетка и действие» он хранит оценку `Q` и после каждого шага чуть сдвигает её к тому, что увидел. Похоже на изучение нового района пешком: сначала плутаешь, но каждая прогулка уточняет карту в голове. SARSA, осторожный родственник, учитывает собственные случайные шаги и поэтому держится подальше от обрыва.
+
+**Что нужно знать до.** Урок «Клетчатый мир и уравнение Беллмана» (шаг 13): состояние, ценность, скидка. Урок «Автоматы» (шаг 13): исследование.
+
+**Если непонятно.** Если неясна формула обновления, посчитай шаг 2 урока руками с теми же числами. Если неясна скидка, вернись к уроку «Клетчатый мир». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -200,9 +208,17 @@ Q-обучение выучило самый короткий путь по кр
 
 ### Границы модели
 
-Мир маленький и без шума, поэтому Q-обучение тут сходится быстро. Теорема о сходимости (Watkins и Dayan, 1992) требует, чтобы каждое действие пробовалось бесконечно часто, а шаг уменьшался; у меня шаг постоянный, поэтому сходимость тут опытный факт, а не доказанный. С нейросетями вместо таблицы гарантий мало, и обучение бывает неустойчивым. Числа сравнения зависят от `ε`, `α` и размера ямы, а 30 запусков дают заметный разброс.
+Мир маленький и без шума, поэтому Q-обучение тут сходится быстро. Теорема о сходимости (Watkins и Dayan, 1992) требует, чтобы каждое действие пробовалось бесконечно часто, а шаги уменьшались так, чтобы их сумма была бесконечной, а сумма их квадратов конечной; у меня шаг постоянный, поэтому сходимость тут опытный факт, а не доказанный. С нейросетями вместо таблицы гарантий мало, и обучение бывает неустойчивым. Числа сравнения зависят от `ε`, `α` и размера ямы, а 30 запусков дают заметный разброс.
 
 ## English
+
+### In plain words
+
+In «A grid world» the agent knew how the world worked in advance. Now it does not: it walks, gets rewards and remembers by itself what pays. For each "cell and action" pair it keeps an estimate `Q` and after each step nudges it toward what it saw. It is like exploring a new neighbourhood on foot: at first you get lost, but each walk refines the map in your head. SARSA, a cautious relative, takes its own random steps into account and so keeps away from the cliff.
+
+**What to know first.** «A grid world and the Bellman equation» (step 13): state, value, discount. «Slot machines» (step 13): exploration.
+
+**If something is unclear.** If the update formula is unclear, work step 2 of the lesson by hand with the same numbers. If the discount is unclear, go back to «A grid world». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -393,12 +409,12 @@ Neither has a world model: both learn from experience. Both update the estimate 
 
 ### Limits
 
-The world is small and noiseless, so Q-learning converges quickly here. The convergence theorem (Watkins and Dayan, 1992) requires every action to be tried infinitely often and the step to shrink; my step is constant, so convergence here is an observed fact, not a proven one. With neural networks in place of a table there are few guarantees, and training can be unstable. The comparison numbers depend on `ε`, `α` and the pit's size, and 30 runs leave noticeable spread.
+The world is small and noiseless, so Q-learning converges quickly here. The convergence theorem (Watkins and Dayan, 1992) requires every action to be tried infinitely often and the steps to shrink so that their sum is infinite while the sum of their squares is finite; my step is constant, so convergence here is an observed fact, not a proven one. With neural networks in place of a table there are few guarantees, and training can be unstable. The comparison numbers depend on `ε`, `α` and the pit's size, and 30 runs leave noticeable spread.
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 6 and the cliff walking example, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read, and the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
-- Christopher J. C. H. Watkins, Peter Dayan, "Q-learning", Machine Learning 8 (1992), abstract with the repeated sampling condition read 2026-11-03; the step condition recalled from the paper: [Springer](https://link.springer.com/article/10.1007/BF00992698)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 6, Example 6.6 "Cliff Walking" read in the authors' free PDF on 2026-11-07 (Q-learning learns the path along the edge and sometimes falls off under ε-greedy with ε = 0.1, Sarsa learns the longer safer path); the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html), [PDF](http://incompleteideas.net/book/RLbook2020.pdf)
+- Christopher J. C. H. Watkins, Peter Dayan, "Q-learning", Machine Learning 8 (1992), abstract with the repeated sampling condition read 2026-11-03; the theorem and the conditions on the sums and sums of squares of the learning rates read in the scanned paper on 2026-11-07: [Springer](https://link.springer.com/article/10.1007/BF00992698), [PDF](https://www.gatsby.ucl.ac.uk/~dayan/papers/cjch.pdf)
 - Volodymyr Mnih et al., "Playing Atari with Deep Reinforcement Learning", arXiv:1312.5602 (2013): [arXiv:1312.5602](https://arxiv.org/abs/1312.5602)
 - David Silver, "Lectures on Reinforcement Learning", lectures 4 and 5 (the site refused the automated check on 2026-11-03): [course page](https://www.davidsilver.uk/teaching/)
 - Hugging Face, Deep RL Course (page read 2026-11-03): [course](https://huggingface.co/learn/deep-rl-course/unit1/introduction)
