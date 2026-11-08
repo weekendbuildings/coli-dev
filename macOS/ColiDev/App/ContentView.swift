@@ -117,12 +117,16 @@ struct ContentView: View {
                         },
                         openDueReview: openDueReview
                     )
+                    // Without this the window shows CFBundleName in the system language, not the app language.
+                    // Без этого окно показывает CFBundleName на языке системы, а не на языке приложения.
+                    .navigationTitle(L10n.text("app.name", store.language))
                     .onAppear(perform: openCell3DUITestRouteIfNeeded)
                     .task {
                         if backendSupervisor.isReady { await store.syncStudyProgress() }
                     }
                 case .aiPath:
                     AIPathView(openLesson: openPathLesson)
+                        .navigationTitle(L10n.text("path.title", store.language))
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
                 case .subject(let subject):

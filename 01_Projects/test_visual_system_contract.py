@@ -163,7 +163,7 @@ def test_app_shows_the_new_name_but_keeps_the_identifiers_that_hold_user_data():
     assert '"app.name": ("Творец", "Creator")' in strings_source
     assert "Cause & Course" not in strings_source
     view = (APP / "ContentView.swift").read_text(encoding="utf-8")
-    assert '.navigationTitle(L10n.text("app.name", store.language))' in view
+    assert view.count('.navigationTitle(L10n.text("app.name", store.language))') == 2
 
 
 def test_extra_subjects_hide_by_default_and_tools_never_hide():
