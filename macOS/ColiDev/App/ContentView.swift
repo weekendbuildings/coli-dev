@@ -84,6 +84,7 @@ struct ContentView: View {
                     SidebarSection(title: nil) {
                         sidebarRow(.management, L10n.text("nav.management", store.language), symbol: "wrench.and.screwdriver", identifier: "sidebar.management")
                         sidebarRow(.localModels, L10n.text("management.models", store.language), symbol: "cpu", identifier: "sidebar.local-models")
+                        sidebarRow(.tools, L10n.text("nav.tools", store.language), symbol: "terminal", identifier: "sidebar.tools")
                         sidebarRow(.settings, L10n.text("nav.settings", store.language), symbol: "gearshape", identifier: "sidebar.settings")
                     }
                 }
@@ -107,6 +108,9 @@ struct ContentView: View {
                         openDueReview: openDueReview
                     )
                     .onAppear(perform: openCell3DUITestRouteIfNeeded)
+                    .task {
+                        if backendSupervisor.isReady { await store.syncStudyProgress() }
+                    }
                 case .aiPath:
                     AIPathView(openLesson: openPathLesson)
                 case .subjects:
@@ -169,6 +173,11 @@ struct ContentView: View {
                 case .localModels:
                     ManagementView(openSettings: { selection = .settings }, initialPane: .models)
                         .id(AppSection.localModels)
+                case .tools:
+                    ToolsView(openServiceKeys: { selection = .serviceKeys })
+                case .serviceKeys:
+                    ManagementView(openSettings: { selection = .settings }, initialPane: .integrations)
+                        .id(AppSection.serviceKeys)
                 case .settings:
                     SettingsView()
                 }
@@ -194,9 +203,22 @@ struct ContentView: View {
             }
         }
         .task {
-            guard await backendSupervisor.ensureRunning() else { return }
+            // Первый запуск backend может сорваться: без повтора «Сегодня» остаётся с нулями.
+            // The first backend start can fail: without a retry Today stays at zero.
+            var failedStarts = 0
+            while !(await backendSupervisor.ensureRunning()) {
+                failedStarts += 1
+                guard failedStarts < 3 else { return }
+                try? await Task.sleep(nanoseconds: 3_000_000_000)
+                if Task.isCancelled { return }
+            }
             await store.refreshAutoCostPolicy()
             await store.syncStudyProgress()
+        }
+        // Backend может подняться позже и с другого экрана. / The backend may come up later, from another screen.
+        .onChange(of: backendSupervisor.isReady) { isReady in
+            guard isReady else { return }
+            Task { await store.syncStudyProgress() }
         }
     }
 
@@ -1184,6 +1206,11 @@ private struct TodayView: View {
                 } else {
                     Text(L10n.text("home.roadmapUnavailable", store.language))
                         .font(.headline)
+                }
+                if !store.didLoadStudyProgress {
+                    Text(L10n.text("home.progressLoading", store.language))
+                        .font(.caption.weight(.medium))
+                        .accessibilityIdentifier("home.progress-loading")
                 }
                 if knowledgeEvidenceCoverage.totalTopicCount > 0 {
                     Text(String(
@@ -2340,13 +2367,9 @@ private struct ManagementView: View {
                     .accessibilityLabel(L10n.text("management.reload", store.language))
                 }
 
+                // Заголовок уже стоит выше, поэтому здесь только вкладки: повтор обрезался до «Cause & Co…».
+                // The title is already above, so only the tabs are here: the repeat was cut to "Cause & Co…".
                 HStack(spacing: 3) {
-                    Text(L10n.text("management.title", store.language))
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .padding(.horizontal, 8)
-
                     ForEach(ManagementPane.allCases) { section in
                         Button {
                             pane = section
@@ -3656,7 +3679,7 @@ private struct ManagementView: View {
                                 && store.providerSecretStatuses["obsidian"]?.configured == true
                         )
                         integrationRow(
-                            title: "NotebookLM",
+                            title: "Gemini Notebook",
                             symbol: "doc.on.doc",
                             detail: L10n.text("management.notebookManual", store.language),
                             ready: nil

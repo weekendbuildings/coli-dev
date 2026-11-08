@@ -40,6 +40,18 @@ struct VerifyBackendCompatibility {
         }
 
         precondition(BackendEndpointRegistry.defaultPort == 8000)
+
+        // A live backend that is rebuilding its index after an update must not be stopped early (it took over 80 s).
+        // Живой backend, который после обновления пересобирает индекс, нельзя останавливать раньше времени.
+        precondition(BackendStartupPolicy.shouldKeepWaiting(elapsed: 15, processIsRunning: true),
+                     "a starting backend must not be given up after 15 seconds")
+        precondition(BackendStartupPolicy.shouldKeepWaiting(elapsed: 90, processIsRunning: true),
+                     "a cold start of about 80 seconds must fit in the wait")
+        precondition(!BackendStartupPolicy.shouldKeepWaiting(elapsed: 1, processIsRunning: false),
+                     "a backend that exited must not be waited for")
+        precondition(!BackendStartupPolicy.shouldKeepWaiting(
+            elapsed: BackendStartupPolicy.readinessTimeout, processIsRunning: true
+        ), "the wait must end")
         print("Backend compatibility contract verified.")
     }
 }
