@@ -205,6 +205,7 @@ private struct CurriculumLessonDocument {
     let title: String
     let plainWords: String
     let sourceCheckedOn: String?
+    let sourceReviewIntervalDays: Int?
     let objective: String
     let theory: String
     let practice: String
@@ -223,6 +224,11 @@ private struct CurriculumLessonDocument {
             .split(separator: ":", maxSplits: 1)
             .last
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines).trimmingCharacters(in: CharacterSet(charactersIn: "\"'")) }
+        let sourceReviewIntervalDays = raw.components(separatedBy: .newlines)
+            .first(where: { $0.trimmingCharacters(in: .whitespaces).hasPrefix("source_review_interval_days:") })?
+            .split(separator: ":", maxSplits: 1)
+            .last
+            .flatMap { Int($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
         var lines = raw.components(separatedBy: .newlines)
         if lines.first?.trimmingCharacters(in: .whitespaces) == "---",
            let end = lines.dropFirst().firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) {
@@ -264,6 +270,7 @@ private struct CurriculumLessonDocument {
             title: title,
             plainWords: plainWords,
             sourceCheckedOn: sourceCheckedOn,
+            sourceReviewIntervalDays: sourceReviewIntervalDays,
             objective: objective,
             theory: theory,
             practice: practice,
@@ -620,8 +627,9 @@ struct CurriculumModuleView: View {
     @State private var isLoadingSourceInventory = false
     @State private var isExportingNotebookSource = false
     @State private var notebookExportDocument: NotebookLMSourceFile?
-    @State private var notebookExportFilename = "Cause-and-Course-lesson.md"
+    @State private var notebookExportFilename = "Creator-lesson.md"
     @State private var notebookExportStatus: String?
+    @State private var askClaudeStatus: String?
     @State private var isSavingObsidianNote = false
     @State private var obsidianSaveStatus: String?
 
@@ -714,6 +722,14 @@ struct CurriculumModuleView: View {
                         Text(subject.title(in: store.language) + " · " + L10n.text("roadmap.fullModule", store.language))
                             .font(.headline)
                             .foregroundStyle(.secondary)
+                        LessonFreshnessBadge(
+                            freshness: LessonFreshness.make(
+                                checkedOn: document.sourceCheckedOn,
+                                intervalDays: document.sourceReviewIntervalDays,
+                                today: Date()
+                            ),
+                            language: store.language
+                        )
                     }
                     .padding(.top, 24)
 
@@ -727,10 +743,25 @@ struct CurriculumModuleView: View {
                         onRetry: { Task { await loadSourceInventory() } }
                     )
 
-                    Button { showingTutor = true } label: {
-                        Label(L10n.text("tutor.title", store.language), systemImage: "sparkles")
+                    HStack(spacing: 12) {
+                        Button { showingTutor = true } label: {
+                            Label(L10n.text("tutor.title", store.language), systemImage: "sparkles")
+                        }
+                        .buttonStyle(.borderedProminent)
+
+                        Button { askClaude(about: document) } label: {
+                            Label(L10n.text("lesson.askClaude", store.language), systemImage: "bubble.left.and.bubble.right")
+                        }
+                        .buttonStyle(.bordered)
+                        .help(L10n.text("lesson.askClaude.help", store.language))
+                        .accessibilityIdentifier("lesson.askClaude")
                     }
-                    .buttonStyle(.borderedProminent)
+                    if let askClaudeStatus {
+                        Text(askClaudeStatus)
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .accessibilityIdentifier("lesson.askClaude.status")
+                    }
 
                     if !document.plainWords.isEmpty {
                         ModuleTextCard(title: L10n.text("session.plainWords", store.language), text: document.plainWords, tint: subject.tint)
@@ -930,7 +961,7 @@ struct CurriculumModuleView: View {
                                 notebookExportDocument = NotebookLMSourceFile(
                                     text: document.notebookSource(subject: subject, language: store.language)
                                 )
-                                notebookExportFilename = "Cause-and-Course-\(subject.rawValue)-\(resource)-\(store.language.rawValue).md"
+                                notebookExportFilename = "Creator-\(subject.rawValue)-\(resource)-\(store.language.rawValue).md"
                                 notebookExportStatus = nil
                                 isExportingNotebookSource = true
                             } label: {
@@ -1163,6 +1194,26 @@ struct CurriculumModuleView: View {
         }
     }
 
+    /// Copies a prompt about this lesson and opens a new chat on claude.ai. No API call: the learner pastes it themselves.
+    /// Копирует подсказку об этом уроке и открывает новый чат claude.ai. Без API: ученик вставляет подсказку сам.
+    private func askClaude(about document: CurriculumLessonDocument) {
+        let prompt = AskClaudePrompt.make(
+            template: L10n.text("lesson.askClaude.prompt", store.language),
+            title: document.title,
+            subject: subject.title(in: store.language),
+            goal: document.objective
+        )
+        NSPasteboard.general.clearContents()
+        guard NSPasteboard.general.setString(prompt, forType: .string) else {
+            askClaudeStatus = L10n.text("lesson.askClaude.failed", store.language)
+            return
+        }
+        askClaudeStatus = L10n.text(
+            NSWorkspace.shared.open(AskClaudePrompt.newChatURL) ? "lesson.askClaude.copied" : "lesson.askClaude.openFailed",
+            store.language
+        )
+    }
+
     private func copyNotebookQuestion(_ question: String) {
         NSPasteboard.general.clearContents()
         notebookExportStatus = L10n.text(
@@ -1235,6 +1286,32 @@ struct CurriculumModuleView: View {
             } catch {
                 obsidianSaveStatus = L10n.text("module.obsidianSaveFailed", store.language)
             }
+        }
+    }
+}
+
+/// "Sources checked N days ago" under the lesson title; orange once the review interval has passed.
+/// «Источники сверены N дней назад» под названием урока; оранжевая, когда срок перепроверки прошёл.
+private struct LessonFreshnessBadge: View {
+    let freshness: LessonFreshness?
+    let language: AppLanguage
+
+    var body: some View {
+        if let freshness {
+            HStack(spacing: 10) {
+                Label(
+                    String(format: L10n.text(freshness.labelKey(russian: language == .ru), language), String(freshness.daysAgo)),
+                    systemImage: "checkmark.seal"
+                )
+                .foregroundStyle(.secondary)
+                .accessibilityIdentifier("lesson.freshness")
+                if freshness.isOverdue {
+                    Label(L10n.text("lesson.freshness.overdue", language), systemImage: "exclamationmark.triangle.fill")
+                        .foregroundStyle(.orange)
+                        .accessibilityIdentifier("lesson.freshness.overdue")
+                }
+            }
+            .font(.callout.weight(.medium))
         }
     }
 }

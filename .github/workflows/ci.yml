@@ -252,6 +252,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-tool-launch"
           "$RUNNER_TEMP/verify-tool-launch"
 
+      - name: Verify Creator basics / Проверка основы «Творца»
+        run: |
+          swiftc -parse-as-library macOS/ColiDev/App/CreatorBasics.swift macOS/ColiDev/scripts/verify_creator_basics.swift \
+            -o "$RUNNER_TEMP/verify-creator-basics"
+          "$RUNNER_TEMP/verify-creator-basics"
+
       - name: Verify 3D surface geometry / Проверка геометрии 3D-поверхности
         run: |
           swiftc -parse-as-library macOS/ColiDev/App/SurfacePlot3D.swift macOS/ColiDev/App/ConstrainedOptimization.swift macOS/ColiDev/scripts/verify_surface_plot_3d.swift \

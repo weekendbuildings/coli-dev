@@ -33,7 +33,7 @@ struct NotebookLessonExport {
         let limitsHeading = isRussian ? "Ограничения" : "Limitations"
         let sourcesHeading = isRussian ? "Источники" : "Sources"
         let videoHeading = isRussian ? "Видео и наблюдение" : "Video and observation"
-        let origin = isRussian ? "Экспортировано из Cause & Course" : "Exported from Cause & Course"
+        let origin = isRussian ? "Экспортировано из «Творца»" : "Exported from Creator"
 
         var sections = [
             "# \(title)",

@@ -1642,7 +1642,7 @@ final class ManagementUITests: XCTestCase {
         response.typeKey("v", modifierFlags: .command)
         XCTAssertTrue(
             (response.value as? String)?.hasPrefix("# ") == true
-                && (response.value as? String)?.contains("Cause & Course") == true,
+                && ((response.value as? String)?.contains("«Творца»") == true || (response.value as? String)?.contains("Exported from Creator") == true),
             "The clipboard must contain the lesson Markdown, ready to paste into Gemini Notebook. / В буфере должен быть Markdown урока, готовый к вставке в NotebookLM.\n\(response.debugDescription)"
         )
     }

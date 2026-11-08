@@ -66,7 +66,7 @@ def test_control_center_exposes_a_visible_and_accessible_overview():
 
 def test_sidebar_uses_the_palette_accent_color():
     source = (APP / "ContentView.swift").read_text(encoding="utf-8")
-    sidebar_subjects = source.split("ForEach(Subject.allCases) { subject in", 1)[1].split(
+    sidebar_subjects = source.split("ForEach(Subject.visible(showAll: showAllSubjects)) { subject in", 1)[1].split(
         "ForEach(store.customCurriculum.subjects)", 1
     )[0]
 
@@ -147,10 +147,55 @@ def test_app_shows_the_new_name_but_keeps_the_identifiers_that_hold_user_data():
     plist = (APP / "Info.plist").read_text(encoding="utf-8")
     project = (ROOT / "macOS" / "ColiDev" / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
     orchestrator = (ROOT / "01_Projects" / "orchestrator.py").read_text(encoding="utf-8")
+    strings_source = (APP / "L10n.swift").read_text(encoding="utf-8")
 
-    assert "Cause &amp; Course" in plist
+    # Finder shows the localized name only while CFBundleDisplayName equals the file name ColiDev.app.
+    # Finder показывает перевод имени, только пока CFBundleDisplayName совпадает с именем файла ColiDev.app.
+    assert "<key>CFBundleDisplayName</key>\n    <string>ColiDev</string>" in plist
+    assert "<key>CFBundleName</key>\n    <string>Creator</string>" in plist
+    assert "<key>LSHasLocalizedDisplayName</key>\n    <true/>" in plist
     assert "PRODUCT_BUNDLE_IDENTIFIER = com.colidev.learningstudio;" in project
     assert '_KEYCHAIN_SERVICE = "ColiDev"' in orchestrator
-    for language in ("en", "ru"):
+    for language, name in (("en", "Creator"), ("ru", "Творец")):
         strings = (APP / f"{language}.lproj" / "InfoPlist.strings").read_text(encoding="utf-8")
-        assert '"CFBundleDisplayName" = "Cause & Course";' in strings
+        assert f'"CFBundleName" = "{name}";' in strings
+        assert f'"CFBundleDisplayName" = "{name}";' in strings
+    assert '"app.name": ("Творец", "Creator")' in strings_source
+    assert "Cause & Course" not in strings_source
+    view = (APP / "ContentView.swift").read_text(encoding="utf-8")
+    assert '.navigationTitle(L10n.text("app.name", store.language))' in view
+
+
+def test_extra_subjects_hide_by_default_and_tools_never_hide():
+    basics = (APP / "CreatorBasics.swift").read_text(encoding="utf-8")
+    view = (APP / "ContentView.swift").read_text(encoding="utf-8")
+
+    assert 'static let hiddenByDefault: Set<String> = ["zoology", "chemistry", "physics", "biology"]' in basics
+    assert view.count("@AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false") == 4
+    assert view.count("ForEach(Subject.visible(showAll: showAllSubjects))") == 3
+    assert '.accessibilityIdentifier("settings.showAllSubjects")' in view
+    sidebar = view.split("NavigationSplitView {", 1)[1].split("} detail: {", 1)[0]
+    for identifier in ("sidebar.management", "sidebar.local-models", "sidebar.tools", "sidebar.settings"):
+        row = sidebar.split(f'identifier: "{identifier}"', 1)[0].rsplit("\n", 1)[1]
+        assert "if " not in row and "showAll" not in row, identifier
+    assert "ForEach(store.customCurriculum.subjects)" in sidebar
+
+
+def test_lesson_has_ask_claude_and_freshness_label():
+    views = (APP / "LearningViews.swift").read_text(encoding="utf-8")
+    strings = (APP / "L10n.swift").read_text(encoding="utf-8")
+    ask = views.split("private func askClaude(about document: CurriculumLessonDocument) {", 1)[1].split("\n    }\n", 1)[0]
+
+    assert '.accessibilityIdentifier("lesson.askClaude")' in views
+    assert "NSPasteboard.general.setString(prompt, forType: .string)" in ask
+    assert "NSWorkspace.shared.open(AskClaudePrompt.newChatURL)" in ask
+    assert "URLSession" not in ask and "api.anthropic" not in views
+    prompt = strings.split('"lesson.askClaude.prompt": ("', 1)[1].split("\n", 1)[0]
+    assert prompt.count("%@") == 6 and "простым русским языком" in prompt and "задание для практики" in prompt
+    assert 'hasPrefix("source_review_interval_days:")' in views
+    assert "LessonFreshness.make(" in views and '.accessibilityIdentifier("lesson.freshness.overdue")' in views
+    badge = views.split("private struct LessonFreshnessBadge: View {", 1)[1].split("\n}\n", 1)[0]
+    assert ".foregroundStyle(.orange)" in badge
+    for key in ("today", "days.one", "days.few", "days.many", "overdue"):
+        assert f'"lesson.freshness.{key}": ("' in strings
+    assert '"lesson.freshness.overdue": ("Пора перепроверить источники"' in strings

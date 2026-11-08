@@ -54,6 +54,13 @@ private struct IntroLessonUnavailableView: View {
     }
 }
 
+private extension Subject {
+    /// Built-in subjects the learner sees; see `SubjectVisibility`. / Встроенные предметы, которые видит ученик.
+    static func visible(showAll: Bool) -> [Subject] {
+        allCases.filter { SubjectVisibility.isVisible($0.rawValue, showAll: showAll) }
+    }
+}
+
 struct ContentView: View {
     @EnvironmentObject private var store: LearningStore
     @EnvironmentObject private var backendSupervisor: LocalBackendSupervisor
@@ -63,6 +70,7 @@ struct ContentView: View {
     @State private var didOpenCell3DUITestRoute = false
     @State private var didOpenFrictionUITestRoute = false
     @AppStorage(StudyProgressionPolicy.previewLockedLessonsDefaultsKey) private var previewLockedLessons = false
+    @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
 
     var body: some View {
         NavigationSplitView {
@@ -74,7 +82,7 @@ struct ContentView: View {
                         sidebarRow(.subjects, L10n.text("nav.subjects", store.language), symbol: "square.grid.2x2")
                     }
                     SidebarSection(title: L10n.text("nav.subjects", store.language)) {
-                        ForEach(Subject.allCases) { subject in
+                        ForEach(Subject.visible(showAll: showAllSubjects)) { subject in
                             sidebarRow(.subject(subject), subject.title(in: store.language), symbol: subject.symbol, tint: AppPalette.accent.color)
                         }
                         ForEach(store.customCurriculum.subjects) { subject in
@@ -92,7 +100,7 @@ struct ContentView: View {
                 .padding(.vertical, 12)
             }
             .background(AppPalette.sidebar.color.ignoresSafeArea())
-            .navigationTitle(L10n.appName)
+            .navigationTitle(L10n.text("app.name", store.language))
             // The default column cut “Программирование”, “Локальные модели” and “Направления” on every CI runner.
             .navigationSplitViewColumnWidth(min: 210, ideal: 230)
         } detail: {
@@ -102,6 +110,8 @@ struct ContentView: View {
                     TodayView(
                         open: open,
                         openCustom: openCustom,
+                        openPathLesson: openPathLesson,
+                        openPath: { selection = .aiPath },
                         openCourseLesson: { route, focusPractice in
                             openRecommendedLesson(route, focusPractice: focusPractice)
                         },
@@ -490,7 +500,7 @@ private struct CauseAndCorseJourneyCard: View {
                     .background(AppPalette.accent.color.opacity(0.14), in: RoundedRectangle(cornerRadius: 13))
 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(language == .ru ? "Cause & Course · путь к своим технологиям" : "Cause & Course · a path to building new technology")
+                    Text(language == .ru ? "Творец · путь к своим технологиям" : "Creator · a path to building new technology")
                         .font(.headline)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("journey.title")
@@ -714,8 +724,11 @@ private struct TodayView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let open: (Subject) -> Void
     let openCustom: (UUID) -> Void
+    let openPathLesson: (AIPathLesson) -> Void
+    let openPath: () -> Void
     let openCourseLesson: (StudyLessonRoute, Bool) -> Void
     let openDueReview: (StudyLessonRoute) -> Void
+    @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
 
     @State private var builtInStudyRoadmaps = CurriculumCatalog.studyRoadmaps()
     @State private var showingGoalPicker = false
@@ -943,6 +956,7 @@ private struct TodayView: View {
                 }
                 .padding(.top, 28)
 
+                CreatorNextStepCard(openLesson: openPathLesson, openPath: openPath)
                 progressCard
                 if let studyReturnSnapshot {
                     studyReturnCard(studyReturnSnapshot)
@@ -968,7 +982,7 @@ private struct TodayView: View {
                             .foregroundStyle(.secondary)
                     }
                     LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                        ForEach(Subject.allCases) { subject in
+                        ForEach(Subject.visible(showAll: showAllSubjects)) { subject in
                             SubjectCard(subject: subject, complete: store.isComplete(subject)) {
                                 open(subject)
                             }
@@ -1435,6 +1449,7 @@ private struct SubjectCatalogView: View {
     let open: (Subject) -> Void
     let openCustom: (UUID) -> Void
     @State private var showingSubjectEditor = false
+    @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
     private let columns = [GridItem(.adaptive(minimum: 210), spacing: 16)]
 
     var body: some View {
@@ -1449,7 +1464,7 @@ private struct SubjectCatalogView: View {
                     .buttonStyle(.borderedProminent)
                 }
                 LazyVGrid(columns: columns, alignment: .leading, spacing: 16) {
-                    ForEach(Subject.allCases) { subject in
+                    ForEach(Subject.visible(showAll: showAllSubjects)) { subject in
                         SubjectCard(subject: subject, complete: store.isComplete(subject)) { open(subject) }
                     }
                 }
@@ -1627,6 +1642,7 @@ private struct SettingsView: View {
     @EnvironmentObject private var backendSupervisor: LocalBackendSupervisor
     @AppStorage(ColiDevVisualSystem.soundPreferenceKey) private var soundEffectsEnabled = false
     @AppStorage(StudyProgressionPolicy.previewLockedLessonsDefaultsKey) private var previewLockedLessons = false
+    @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
     @State private var showingStudyFormatClearConfirmation = false
     @State private var isEffectiveAIRoutesExpanded = false
     @State private var isLoadingEffectiveAIRoutes = false
@@ -1657,6 +1673,14 @@ private struct SettingsView: View {
                 }
                 .accessibilityIdentifier("settings.previewLocked")
                 Text(L10n.text("settings.previewLockedHelp", store.language))
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Toggle(isOn: $showAllSubjects) {
+                    Text(L10n.text("settings.showAllSubjects", store.language))
+                }
+                .accessibilityIdentifier("settings.showAllSubjects")
+                Text(L10n.text("settings.showAllSubjectsHint", store.language))
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -2368,7 +2392,7 @@ private struct ManagementView: View {
                 }
 
                 // Заголовок уже стоит выше, поэтому здесь только вкладки: повтор обрезался до «Cause & Co…».
-                // The title is already above, so only the tabs are here: the repeat was cut to "Cause & Co…".
+                // The title is already above, so only the tabs are here: the repeat was cut to "Cause & Co…" (the old name).
                 HStack(spacing: 3) {
                     ForEach(ManagementPane.allCases) { section in
                         Button {
@@ -2488,7 +2512,7 @@ private struct ManagementView: View {
             isPresented: $isExportingBackup,
             document: progressBackupDocument,
             contentType: .json,
-            defaultFilename: "Cause-and-Course-Learning-Progress"
+            defaultFilename: "Creator-Learning-Progress"
         ) { result in
             switch result {
             case .success(let url):
@@ -2509,7 +2533,7 @@ private struct ManagementView: View {
             isPresented: $isExportingDiagnostics,
             document: diagnosticsDocument,
             contentType: .json,
-            defaultFilename: "Cause-and-Course-Diagnostics"
+            defaultFilename: "Creator-Diagnostics"
         ) { result in
             switch result {
             case .success(let url):

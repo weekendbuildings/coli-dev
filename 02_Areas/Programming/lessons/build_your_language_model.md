@@ -15,7 +15,7 @@ source_review_interval_days: 365
 
 Здесь все детали собираются в одну программу: токены, эмбеддинги, блоки трансформера, механизм градиентов и Adam. Модель учится на текстах этого курса угадывать следующий символ. Как сборка велосипеда из деталей, каждую из которых ты уже делал и проверял. Финиш засчитывается только по тексту, которого модель не видела: ошибка там должна быть ниже случайного угадывания и ниже простого счётчика пар.
 
-**Что нужно знать до.** Все уроки этапа 2, особенно «Свой механизм градиентов» (шаг 8), «Блок трансформера» (шаг 11) и «Как читать обучение» (шаг 9).
+**Что нужно знать до.** Все уроки модулей 1–4, особенно «Свой механизм градиентов» (шаг 8), «Блок трансформера» (шаг 11) и «Как читать обучение» (шаг 9).
 
 **Если непонятно.** Если непонятна какая-то деталь программы, найди урок, где она появилась впервые: градиенты в шаге 8, оптимизатор в шаге 9, внимание и блок в шаге 11. Если неясно, почему важен незнакомый текст, перечитай урок «Машинное обучение: baseline». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
@@ -444,7 +444,7 @@ T = 0.4: Нейронная сеть положить вредель при кл
 
 Here all the parts come together in one program: tokens, embeddings, transformer blocks, the gradient engine and Adam. The model learns on this course's texts to guess the next character. Like assembling a bicycle from parts you have each already made and tested. The finish counts only on text the model has not seen: the error there must be below random guessing and below a simple pair counter.
 
-**What to know first.** All lessons of stage 2, especially «Your own gradient engine» (step 8), «The Transformer Block» (step 11) and «Reading training» (step 9).
+**What to know first.** All lessons of modules 1–4, especially «Your own gradient engine» (step 8), «The Transformer Block» (step 11) and «Reading training» (step 9).
 
 **If something is unclear.** If some part of the program is unclear, find the lesson where it first appeared: gradients in step 8, the optimizer in step 9, attention and the block in step 11. If it is unclear why unseen text matters, reread «Machine Learning: Baselines». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 

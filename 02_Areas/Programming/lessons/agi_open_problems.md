@@ -15,7 +15,7 @@ source_review_interval_days: 180
 
 Современные модели умеют очень много, но есть задачи, которые никто пока не решил надёжно. Этот урок собирает их в один список и для каждой честно говорит, что уже измерено, а что остаётся спором. Похоже на карту с белыми пятнами: важно не только то, что нарисовано, но и то, где карта кончается. Одно белое пятно ты исследуешь сам: научишь сеть складывать числа и увидишь, как она ошибается за пределами виденного. Это самая старая и самая упрямая из открытых задач.
 
-**Что нужно знать до.** Уроки этапа 4: «Что такое интеллект» (шаг 19), «Модели мира» (шаг 20), «Непрерывное обучение» (шаг 21) и «Спор о масштабировании» (шаг 22). Урок «Скрытый слой: нейросеть учит XOR» (шаг 8) для программы.
+**Что нужно знать до.** Уроки модуля 8 «AGI»: «Что такое интеллект» (шаг 19), «Модели мира» (шаг 20), «Непрерывное обучение» (шаг 21) и «Спор о масштабировании» (шаг 22). Урок «Скрытый слой: нейросеть учит XOR» (шаг 8) для программы.
 
 **Если непонятно.** Если неясна программа, вернись к уроку «Скрытый слой»: здесь такая же сеть, только с функцией tanh. Если неясно, что значит «за пределами виденного», перечитай урок «Машинное обучение: baseline и отложенная проверка» (шаг 9). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
@@ -142,7 +142,7 @@ x = (2, 2): true 4, network 3.23
 
 Today's models can do a great deal, but some tasks nobody has yet solved reliably. This lesson gathers them into one list and for each says honestly what has been measured and what remains a dispute. It is like a map with blank areas: what matters is not only what is drawn but also where the map ends. You will explore one blank area yourself: teach a network to add numbers and see how it errs beyond what it has seen. This is the oldest and most stubborn of the open problems.
 
-**What to know first.** The stage 4 lessons: «What is intelligence» (step 19), «World models» (step 20), «Continual learning» (step 21) and «The scaling debate» (step 22). «The Hidden Layer: A Network Learns XOR» (step 8) for the program.
+**What to know first.** The lessons of module 8 «AGI»: «What is intelligence» (step 19), «World models» (step 20), «Continual learning» (step 21) and «The scaling debate» (step 22). «The Hidden Layer: A Network Learns XOR» (step 8) for the program.
 
 **If something is unclear.** If the program is unclear, go back to «The Hidden Layer»: this is the same kind of network, only with the tanh function. If "beyond what it has seen" is unclear, reread «Machine Learning: Baselines and Held-out Evaluation» (step 9). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 

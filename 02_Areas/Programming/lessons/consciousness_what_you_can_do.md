@@ -94,7 +94,7 @@ criterion met: False
 
 **Шаг 3. Что посильно одному человеку.** Вот работа, которую ты можешь делать с тем, что уже есть на этом Mac.
 
-- **Проверять утверждения.** Когда пишут «модель сознательна» или «модель точно не сознательна», спрашивай: какой индикатор, каким опытом, с каким интервалом? Уроки этапа 5 дают для этого всё.
+- **Проверять утверждения.** Когда пишут «модель сознательна» или «модель точно не сознательна», спрашивай: какой индикатор, каким опытом, с каким интервалом? Уроки модуля 9 «Сознание» дают для этого всё.
 - **Ставить маленькие опыты на моделях.** Калибровка уверенности, как в этом уроке, но на сотнях вопросов. Проверка, меняется ли «самоотчёт» от подсказки, как в уроке «Что говорят о себе языковые модели» (шаг 25). Зонды и автокодировщики на маленьких моделях, как в шаге 17.
 - **Ставить опыты на себе.** Маскировка и `d′` из урока «Опыты о сознании» (шаг 25) это настоящие методы психофизики.
 - **Записывать заранее.** Любой свой опыт начинай с записи гипотезы и правила, как здесь.
@@ -216,7 +216,7 @@ The interval from −0.06 to 0.80 includes zero. So by our own written rule the 
 
 **Step 3. What one person can do.** Here is work you can do with what is already on this Mac.
 
-- **Check claims.** When people write "the model is conscious" or "the model is certainly not conscious", ask: which indicator, by what experiment, with what interval? The stage 5 lessons give you everything for this.
+- **Check claims.** When people write "the model is conscious" or "the model is certainly not conscious", ask: which indicator, by what experiment, with what interval? The lessons of module 9 «Consciousness» give you everything for this.
 - **Run small experiments on models.** Calibration of confidence, as in this lesson, but on hundreds of questions. Checking whether a "self-report" changes with the prompt, as in «What language models say about themselves» (step 25). Probes and autoencoders on small models, as in step 17.
 - **Run experiments on yourself.** Masking and `d′` from «Experiments on consciousness» (step 25) are real methods of psychophysics.
 - **Write it down first.** Start any experiment of yours by writing down the hypothesis and the rule, as here.
