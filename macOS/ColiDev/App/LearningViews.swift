@@ -2092,6 +2092,8 @@ private struct PracticeLab: View {
             SamplingLab()
         } else if subject == .programming, moduleResource == "constitutional_ai_and_dpo" {
             DPOLab()
+        } else if subject == .programming, moduleResource == "from_loops_to_matrices" {
+            LoopsMatricesLab()
         } else if subject == .programming, moduleResource == "scaling_laws_and_resources" {
             ComputeBudgetLab()
         } else if subject == .programming, moduleResource == "data_for_language_models" {

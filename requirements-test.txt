@@ -1,3 +1,5 @@
 -r requirements-orchestrator.txt
 pytest>=8.0.0
 psutil>=5.9.0
+# Урок «От циклов к матрицам» сверяет модель на NumPy с моделью на чистом Python. / The from_loops_to_matrices lesson checks the NumPy model against plain Python.
+numpy==2.2.6

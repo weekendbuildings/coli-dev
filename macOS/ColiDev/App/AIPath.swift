@@ -64,7 +64,7 @@ enum AIPathCatalog {
             ]),
             AIPathStep(number: 10, lessons: [code("tokenizer_bpe"), code("bigram_language_model"), code("embeddings_and_similarity")]),
             AIPathStep(number: 11, lessons: [code("attention_mechanism"), code("transformer_block")]),
-            AIPathStep(number: 12, lessons: [code("build_your_language_model"), code("sampling_and_generation")])
+            AIPathStep(number: 12, lessons: [code("build_your_language_model"), code("from_loops_to_matrices"), code("sampling_and_generation")])
         ]),
         AIPathStage(number: 3, steps: [
             AIPathStep(number: 13, lessons: [code("rl_bandits"), code("rl_mdp_bellman"), code("rl_q_learning"), code("rl_policy_gradient")]),

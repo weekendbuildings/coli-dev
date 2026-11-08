@@ -171,6 +171,19 @@ struct VerifyLessonsFinalLabs {
         print("reading ok: three spikes from \(threshold ?? 0)")
     }
 
+    static func loopsMatrices() {
+        check(LoopsMatrices.measuredSizes == [16, 32, 64, 128, 256], "the lesson measured n = 16…256")
+        check(LoopsMatrices.measuredTimesFaster == [133, 620, 1912, 3005, 3348], "times faster must match the lesson's table")
+        check(LoopsMatrices.firstComputeBound == 64, "the arithmetic should outweigh the call from n = 64, got \(LoopsMatrices.firstComputeBound)")
+        check(LoopsMatrices.computeShare(16) < 0.5, "the starting size 16 must not already solve the task")
+        check(Int(LoopsMatrices.trainingTimesFaster.rounded()) == 129, "47.2 min against 22 s is about 129 times")
+        for (index, n) in LoopsMatrices.measuredSizes.enumerated() where n >= 64 {
+            let loops: Double = LoopsMatrices.loopSeconds(n) * 1000 / LoopsMatrices.loopMilliseconds[index]
+            let fast: Double = LoopsMatrices.numpySeconds(n) * 1000 / LoopsMatrices.numpyMilliseconds[index]
+            check(loops > 0.5 && loops < 2 && fast > 0.5 && fast < 2, "the rough model should stay within 2× of the measurement at n = \(n)")
+        }
+    }
+
     static func main() {
         reading()
         replacement()
@@ -184,5 +197,6 @@ struct VerifyLessonsFinalLabs {
         dedup()
         sparse()
         circuit()
+        loopsMatrices()
     }
 }

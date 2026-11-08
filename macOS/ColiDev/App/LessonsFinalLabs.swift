@@ -1363,3 +1363,113 @@ struct HodgkinHuxleyLab: View {
         }
     }
 }
+
+/// Loops against NumPy: where the time of a matrix product goes, the call or the arithmetic.
+/// Циклы против NumPy: куда уходит время произведения матриц, на вызов или на счёт.
+struct LoopsMatricesLab: View {
+    @EnvironmentObject private var store: LearningStore
+    @State private var sizeIndex = 1.0
+    @State private var solved = false
+
+    private func text(_ key: String) -> String { L10n.text(key, store.language) }
+
+    private var size: Int { LoopsMatrices.sliderSizes[Int(sizeIndex)] }
+
+    private func duration(_ seconds: Double) -> String {
+        if seconds < 1e-3 {
+            return L10n.number(seconds * 1e6, fractionDigits: seconds < 1e-5 ? 2 : 1, store.language) + " " + text("lab.loops.microseconds")
+        }
+        if seconds < 1 {
+            return L10n.number(seconds * 1e3, fractionDigits: seconds < 1e-2 ? 2 : 1, store.language) + " " + text("lab.loops.milliseconds")
+        }
+        return L10n.number(seconds, fractionDigits: 2, store.language) + " " + text("lab.loops.seconds")
+    }
+
+    var body: some View {
+        let n = size
+        let share = LoopsMatrices.computeShare(n)
+        let computeBound = share > 0.5
+        LessonsFinalCard {
+            LabHeader(title: text("lab.loops.title"), instruction: text("lab.loops.subtitle"))
+            chart()
+                .frame(height: 250)
+                .accessibilityLabel(text("lab.loops.chartSpoken"))
+            Text(text("lab.loops.legend")).font(.caption).foregroundStyle(.secondary)
+            HStack {
+                Text(String(format: text("lab.loops.size"), "\(n)")).frame(width: 150, alignment: .leading)
+                Slider(value: $sizeIndex, in: 0...Double(LoopsMatrices.sliderSizes.count - 1), step: 1)
+                    .accessibilityIdentifier("lab.loops.size")
+            }
+            LabStatGrid {
+                LabStat(label: text("lab.loops.statMultiplies"), value: lessonsFinalScientific(LoopsMatrices.multiplications(n), store.language), identifier: "lab.loops.multiplies")
+                LabStat(label: text("lab.loops.statLoops"), value: duration(LoopsMatrices.loopSeconds(n)), tint: .red, identifier: "lab.loops.loops")
+                LabStat(label: text("lab.loops.statNumpy"), value: duration(LoopsMatrices.numpySeconds(n)), tint: .teal, identifier: "lab.loops.numpy")
+                LabStat(label: text("lab.loops.statShare"), value: L10n.number(share * 100, fractionDigits: 0, store.language) + " %", tint: computeBound ? .green : .orange, identifier: "lab.loops.share")
+                LabStat(label: text("lab.loops.statFaster"), value: "×" + L10n.number(LoopsMatrices.timesFaster(n), fractionDigits: 0, store.language), identifier: "lab.loops.faster")
+                LabStat(label: text("lab.loops.statTraining"),
+                        value: String(format: text("lab.loops.trainingValue"),
+                                      L10n.number(LoopsMatrices.plainTrainingMinutes, fractionDigits: 1, store.language),
+                                      L10n.number(LoopsMatrices.numpyTrainingSeconds, fractionDigits: 0, store.language)),
+                        tint: .purple, identifier: "lab.loops.training")
+            }
+            LabStatusBadge(kind: computeBound ? .good : .info,
+                           text: computeBound ? text("lab.loops.computeBound") : text("lab.loops.callBound"),
+                           identifier: "lab.loops.status")
+            LabChallenge(caption: text("lab.kit.task"), task: text("lab.loops.challenge"), solved: solved,
+                         solvedText: text("lab.loops.challengeDone"), identifier: "lab.loops.challenge")
+            LabExplainer(title: text("lab.kit.how"), paragraphs: [text("lab.loops.howLoops"), text("lab.loops.howCall"), text("lab.loops.howBatch")])
+        }
+        .onChange(of: sizeIndex) { _ in
+            if size == LoopsMatrices.firstComputeBound { solved = true }
+        }
+    }
+
+    /// Time against size on log axes: x is log₂ n, y is log₁₀ of seconds. Drag to choose the size.
+    private func chart() -> some View {
+        GeometryReader { proxy in
+            let plot = LabPlotGeometry(size: proxy.size, x: 3...9, y: -7...0)
+            Canvas { context, _ in
+                plot.drawAxes(in: context, xLabel: text("lab.loops.xAxis"), yLabel: text("lab.loops.yAxis"),
+                              xTicks: [3, 4, 5, 6, 7, 8, 9], yTicks: [-6, -3, 0],
+                              format: { value in
+                                  if value >= 3 { return "\(Int(pow(2.0, value)))" }
+                                  if value <= -6 { return "1 " + text("lab.loops.microseconds") }
+                                  if value <= -3 { return "1 " + text("lab.loops.milliseconds") }
+                                  return "1 " + text("lab.loops.seconds")
+                              })
+                let curves: [(Color, (Int) -> Double, Bool)] = [
+                    (.red, LoopsMatrices.loopSeconds, false),
+                    (.teal, LoopsMatrices.numpySeconds, false),
+                    (.gray, LoopsMatrices.computeSeconds, true)
+                ]
+                for (color, seconds, dashed) in curves {
+                    var line = Path()
+                    for step in 0...60 {
+                        let logN: Double = 3.0 + Double(step) * 0.1
+                        let n = Int(pow(2.0, logN).rounded())
+                        let point: CGPoint = plot.point(logN, max(-7.0, log10(seconds(n))))
+                        if step == 0 { line.move(to: point) } else { line.addLine(to: point) }
+                    }
+                    context.stroke(line, with: .color(color), style: StrokeStyle(lineWidth: 2, dash: dashed ? [5, 4] : []))
+                }
+                for (index, n) in LoopsMatrices.measuredSizes.enumerated() {
+                    let x: Double = log2(Double(n))
+                    let loops: CGPoint = plot.point(x, log10(LoopsMatrices.loopMilliseconds[index] / 1000))
+                    let fast: CGPoint = plot.point(x, log10(LoopsMatrices.numpyMilliseconds[index] / 1000))
+                    context.fill(Path(ellipseIn: CGRect(x: loops.x - 4, y: loops.y - 4, width: 8, height: 8)), with: .color(.red))
+                    context.fill(Path(ellipseIn: CGRect(x: fast.x - 4, y: fast.y - 4, width: 8, height: 8)), with: .color(.teal))
+                }
+                let current: Double = log2(Double(size))
+                var marker = Path()
+                marker.move(to: plot.point(current, -7))
+                marker.addLine(to: plot.point(current, 0))
+                context.stroke(marker, with: .color(AppPalette.accent.color), lineWidth: 2)
+            }
+            .contentShape(Rectangle())
+            .gesture(DragGesture(minimumDistance: 0).onChanged { value in
+                let logN = plot.value(at: value.location).x
+                sizeIndex = Double(min(LoopsMatrices.sliderSizes.count - 1, max(0, Int((logN - 3).rounded()))))
+            })
+        }
+    }
+}

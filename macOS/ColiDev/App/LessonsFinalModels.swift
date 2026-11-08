@@ -758,3 +758,30 @@ enum HodgkinHuxley {
         ("eeg", 0.001, 0.01), ("fmri", 2, 0.002), ("patch", 0.0001, 0.00001), ("neuropixels", 0.0001, 0.00002),
     ]
 }
+
+/// From loops to matrices: measurements on this M1 on 2026-11-08 (system python3 3.9.6, NumPy 2.0.2 with Accelerate)
+/// and a rough "call plus arithmetic" model with two numbers.
+/// От циклов к матрицам: замеры на этом M1 8 ноября 2026 и грубая модель «вызов плюс счёт».
+enum LoopsMatrices {
+    static let measuredSizes: [Int] = [16, 32, 64, 128, 256]
+    static let loopMilliseconds: [Double] = [0.128, 0.801, 5.736, 42.816, 326.877]
+    static let numpyMilliseconds: [Double] = [0.001, 0.0013, 0.003, 0.0142, 0.0976]
+    static let measuredTimesFaster: [Int] = [133, 620, 1912, 3005, 3348]
+    static let sliderSizes: [Int] = [8, 16, 32, 64, 128, 256, 512]
+    static let loopSecondsPerMultiply = 19.5e-9
+    static let callSeconds = 1.0e-6
+    static let multipliesPerSecond = 1.7e11
+    static let plainTrainingMinutes = 47.2
+    static let numpyTrainingSeconds = 22.0
+
+    static func multiplications(_ n: Int) -> Double { pow(Double(n), 3) }
+    static func loopSeconds(_ n: Int) -> Double { multiplications(n) * loopSecondsPerMultiply }
+    static func computeSeconds(_ n: Int) -> Double { multiplications(n) / multipliesPerSecond }
+    static func numpySeconds(_ n: Int) -> Double { callSeconds + computeSeconds(n) }
+    static func computeShare(_ n: Int) -> Double { computeSeconds(n) / numpySeconds(n) }
+    static func timesFaster(_ n: Int) -> Double { loopSeconds(n) / numpySeconds(n) }
+
+    /// The smallest size where most of NumPy's time is arithmetic, not the call.
+    static var firstComputeBound: Int { sliderSizes.first { computeShare($0) > 0.5 } ?? 512 }
+    static var trainingTimesFaster: Double { plainTrainingMinutes * 60 / numpyTrainingSeconds }
+}
