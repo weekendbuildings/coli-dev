@@ -35,6 +35,11 @@ struct CreatorProgressView: View {
     @EnvironmentObject private var store: LearningStore
     @EnvironmentObject private var backendSupervisor: LocalBackendSupervisor
     let openLesson: (AIPathLesson) -> Void
+    /// The future "Explain" right inside the app (`claude -p` by subscription, a local model as the fallback).
+    /// While it is nil the button is hidden: the old "Ask Claude" opened a website and did not suit the owner.
+    /// Будущая кнопка «Объяснить» прямо в приложении (`claude -p` по подписке, запасной вариант — локальная модель).
+    /// Пока nil, кнопки нет: прежняя «Спросить Claude» открывала сайт и владельцу не подошла.
+    var explain: ((SkillboxItem, SkillboxCourse, SkillboxTrack) -> Void)? = nil
 
     @State private var labRuns: [CreatorLabRun] = []
     @State private var labFileDate: Date?
@@ -42,7 +47,6 @@ struct CreatorProgressView: View {
     @State private var eventsLoaded = false
     @State private var ticks: [String: Bool] = SkillboxProgress.loadTicks(.standard)
     @State private var selectedBar: String?
-    @State private var askStatus: (key: String, text: String)?
 
     private let weeks = 20
     private let labPoll = Timer.publish(every: 4, on: .main, in: .common).autoconnect()
@@ -499,13 +503,13 @@ struct CreatorProgressView: View {
                         .accessibilityLabel(text("skillbox.open"))
                 }
                 pathLessonButton(item)
-                Button { askClaude(about: item, course: course, track: track) } label: {
-                    Image(systemName: "bubble.left.and.bubble.right")
+                if let explain {
+                    Button { explain(item, course, track) } label: { Image(systemName: "text.bubble") }
+                        .buttonStyle(.borderless)
+                        .help(text("skillbox.explain.help"))
+                        .accessibilityLabel(text("skillbox.explain"))
+                        .accessibilityIdentifier("skillbox.explain.\(item.key)")
                 }
-                .buttonStyle(.borderless)
-                .help(text("skillbox.askClaude.help"))
-                .accessibilityLabel(text("lesson.askClaude"))
-                .accessibilityIdentifier("skillbox.ask.\(item.key)")
             }
             if let note = SkillboxModernNotes.notes[item.key] {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
@@ -519,9 +523,6 @@ struct CreatorProgressView: View {
                 .font(.caption)
                 .padding(.leading, 22)
                 .accessibilityIdentifier("skillbox.modern.\(item.key)")
-            }
-            if let status = askStatus, status.key == item.key {
-                Text(status.text).font(.caption).foregroundStyle(.secondary).padding(.leading, 22)
             }
         }
     }
@@ -547,21 +548,6 @@ struct CreatorProgressView: View {
                 .help(text("skillbox.pathLesson"))
                 .accessibilityLabel(text("skillbox.pathLesson"))
         }
-    }
-
-    private func askClaude(about item: SkillboxItem, course: SkillboxCourse, track: SkillboxTrack) {
-        let prompt = AskClaudePrompt.make(
-            template: text("skillbox.askClaude.prompt"),
-            title: item.title,
-            subject: course.title,
-            goal: text("skillbox.track.\(track.rawValue)")
-        )
-        NSPasteboard.general.clearContents()
-        guard NSPasteboard.general.setString(prompt, forType: .string) else {
-            askStatus = (item.key, text("lesson.askClaude.failed"))
-            return
-        }
-        askStatus = (item.key, text(NSWorkspace.shared.open(AskClaudePrompt.newChatURL) ? "lesson.askClaude.copied" : "lesson.askClaude.openFailed"))
     }
 
     // MARK: Loading
