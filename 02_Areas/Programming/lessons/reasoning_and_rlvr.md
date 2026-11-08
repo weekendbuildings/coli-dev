@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Некоторые модели перед ответом пишут рассуждение: решают задачу по шагам. Это часто повышает точность, но стоит времени: модель пишет много лишних токенов. Учат этому через награду за проверяемый ответ, RLVR: если в задаче есть точный ответ, программа сама проверяет, сошлось ли, и награждает. Как задачник с ответами в конце: решение можно проверить без учителя. Но рассуждение на экране не всегда настоящая причина ответа, и это важная граница.
+
+**Что нужно знать до.** Уроки «RLHF» (шаг 14) и «Градиент политики» (шаг 13). Урок «Как модель ошибается» (шаг 1): счёт верных ответов.
+
+**Если непонятно.** Если неясно, чем RLVR отличается от RLHF, сравни, кто ставит награду: в RLHF модель награды по мнению людей, в RLVR программа-проверка. Если неясна сама награда, вернись к уроку «Градиент политики». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Измерить на своём компьютере, что даёт и сколько стоит рассуждение модели. Понять, как обучают рассуждать через награду за проверяемый ответ, и честно увидеть пределы: рассуждение не всегда показывает настоящую причину ответа. Нужно около 40 минут, но опыт с моделью идёт больше получаса, и его можно не повторять: запись лежит в уроке.
@@ -121,7 +129,7 @@ $x = 5$
 
 Модель получила задачу по-русски, а рассуждает по-английски. Перед нами обычный текст: она сама себя подталкивает к следующему шагу. Никакого нового механизма в ней нет, те же вероятности следующего токена, только токенов намного больше. Рассуждение помогает потому, что длинная цепочка мелких шагов надёжнее одного большого прыжка.
 
-**Шаг 3. Как этому учат.** Откуда у модели такая привычка? Есть работа DeepSeek-R1: модель обучали через RL, а наградой была **проверка ответа**: верный результат задачи или прошедшие тесты кода. Это называют RLVR (RL with verifiable rewards). Вспомни уроки REINFORCE и RLHF, формула та же: `награда · ∇ ln p(токенов)`. Но есть важное отличие от RLHF: здесь нет модели награды, которую можно обмануть, а есть программа, которая проверяет ответ. Лазеек меньше, хотя они есть: например, можно научиться обходить тест.
+**Шаг 3. Как этому учат.** Откуда у модели такая привычка? Есть работа DeepSeek-R1: модель обучали через RL, обучение с подкреплением, а наградой была **проверка ответа**: верный результат задачи или прошедшие тесты кода. Это называют RLVR (RL with verifiable rewards). Вспомни уроки REINFORCE и RLHF, формула та же: `награда · ∇ ln p(токенов)`. Но есть важное отличие от RLHF: здесь нет модели награды, которую можно обмануть, а есть программа, которая проверяет ответ. Лазеек меньше, хотя они есть: например, можно научиться обходить тест.
 
 Посчитаем цену. Пусть 1000 токенов стоят `c`, а верный ответ приносит 1. Рассуждение в среднем даёт `10/12 − 1,87 · c`, а прямой ответ `5/12`. Они равны при `c = (5/12) / 1,87 = 0,22`. Значит, при цене выше 0,22 рассуждать невыгодно.
 
@@ -206,6 +214,14 @@ price of 1000 tokens, share of choosing reasoning after training
 Всего 12 задач, одна модель, одно зерно. Лимит в 3000 токенов выбран мной, а при большем лимите задачи 4 и 5 могли бы решиться. Время зависит от моего компьютера. Часть задач это известные ловушки, и модель могла видеть их при обучении, поэтому оценка ей льстит. Выбор режима в шаге 4 это учебная игрушка, настоящее обучение с рассуждением устроено гораздо сложнее.
 
 ## English
+
+### In plain words
+
+Some models write out reasoning before answering: they solve the task step by step. This often raises accuracy but costs time: the model writes many extra tokens. It is taught through a reward for a verifiable answer, RLVR: if a task has an exact answer, a program checks whether it matches and gives the reward. Like a problem book with answers at the back: a solution can be checked without a teacher. But the reasoning on screen is not always the real cause of the answer, and that is an important limit.
+
+**What to know first.** «RLHF» (step 14) and «The policy gradient» (step 13). «How a model errs» (step 1): counting correct answers.
+
+**If something is unclear.** If it is unclear how RLVR differs from RLHF, compare who gives the reward: in RLHF a reward model built from people's opinions, in RLVR a checking program. If the reward itself is unclear, go back to «The policy gradient». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -317,7 +333,7 @@ $x = 5$
 
 The model received the task in Russian and reasons in English. This is ordinary text: it nudges itself to the next step. There is no new mechanism, the same probabilities of the next token, only far more tokens. Reasoning helps because a long chain of small steps is more reliable than one big leap.
 
-**Step 3. How this is taught.** Where does a model get this habit? In the DeepSeek-R1 work a model was trained by RL, and the reward was **checking the answer**: the task's right result or passing code tests. This is called RLVR (RL with verifiable rewards). Recall the REINFORCE and RLHF lessons; the formula is the same: `reward · ∇ ln p(tokens)`. But there is an important difference from RLHF: here is no reward model to fool, only a program that checks the answer. There are fewer loopholes, though they exist: for example, a model can learn to get around a test.
+**Step 3. How this is taught.** Where does a model get this habit? In the DeepSeek-R1 work a model was trained by RL, reinforcement learning, and the reward was **checking the answer**: the task's right result or passing code tests. This is called RLVR (RL with verifiable rewards). Recall the REINFORCE and RLHF lessons; the formula is the same: `reward · ∇ ln p(tokens)`. But there is an important difference from RLHF: here is no reward model to fool, only a program that checks the answer. There are fewer loopholes, though they exist: for example, a model can learn to get around a test.
 
 Let us compute the price. Suppose 1000 tokens cost `c`, and a right answer brings 1. Reasoning gives on average `10/12 − 1.87 · c`, and the direct answer `5/12`. They are equal at `c = (5/12) / 1.87 = 0.22`. So at a price above 0.22 reasoning does not pay.
 

@@ -11,6 +11,14 @@ source_review_interval_days: 180
 
 ## Русский
 
+### Простыми словами
+
+Языковая модель это программа, которая по началу текста угадывает следующий кусочек. Похоже на подсказку слов в телефоне, только намного сильнее. Внутри модели лежат миллиарды чисел. Их подобрали при обучении, и всё её «знание» записано только в них. Кусочек текста, с которым работает модель, называется токеном, а температура решает, насколько смело модель выбирает: при низкой почти всегда берёт самый вероятный токен, при высокой чаще пробует редкие.
+
+**Что нужно знать до.** Ничего. Это первый урок пути. Нужен только Терминал, а все команды можно копировать кнопкой.
+
+**Если непонятно.** Если пугает код на Python, сначала пройди «Переменные и типы данных» (шаг 2), потом вернись. Слово «вероятность» подробно разобрано в уроке «Вероятность и формула Байеса» (шаг 5). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Запустить настоящую языковую модель на своём Mac, вызвать её из своей программы на Python и самому проверить три вещи: модель это файл с числами; читает и пишет она кусочками текста, токенами; температура меняет выбор по простой формуле. Писать код с нуля не нужно: программу ты скопируешь и будешь менять в ней по одному значению. Нужно около часа. Всё работает бесплатно и без интернета.
@@ -222,6 +230,14 @@ T = 2: Paris — 3 из 200
 Это небольшая модель для кода, а не лучшая из существующих. У больших моделей числа другие, механизм тот же. Все числа измерены на одной версии: Ollama 0.40.13, модель из таблицы выше. Другая версия может дать другие числа. Ollama показывает вероятности только 20 лучших кандидатов, поэтому хвост мы видим только по броскам. Брать номера бросков подряд нельзя: в моём опыте при номерах 0, 1, 2… частоты редких токенов заметно искажались, поэтому программа берёт случайные. Вероятность токена не значит, что утверждение истинно: как модель уверенно ошибается, мы посмотрим дальше. Температура это не «творчество», а только разброс выбора.
 
 ## English
+
+### In plain words
+
+A language model is a program that looks at the start of a text and guesses the next piece. It is like word suggestions on a phone, only far stronger. Inside the model are billions of numbers. Training chose them, and everything the model "knows" is stored only in them. The piece of text the model works with is called a token, and temperature decides how boldly the model chooses: when low it almost always takes the most likely token, when high it tries rare ones more often.
+
+**What to know first.** Nothing. This is the first lesson of the path. You only need the Terminal, and every command can be copied with a button.
+
+**If something is unclear.** If the Python code scares you, take «Variables and Data Types» (step 2) first, then come back. The word "probability" is covered in «Probability and Bayes' Rule» (step 5). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

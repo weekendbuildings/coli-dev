@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Теория интегрированной информации, коротко IIT, спрашивает: насколько система едина, а не собрана из независимых частей? Её мера называется Φ (фи), и по теории чем больше Φ, тем больше сознания. Представь команду, где каждый зависит от всех: раздели её, и работа рушится. А очередь в кассу можно разделить на две, и ничего не потеряется. В уроке ты разрежешь сеть из трёх узлов и посчитаешь, сколько теряется в предсказании её следующего шага. Важно: это упрощённая идея меры, а не настоящее Φ. Сама теория спорная, и урок показывает обе стороны.
+
+**Что нужно знать до.** Урок «Информация, энтропия и кросс-энтропия» (шаг 6): что такое бит. Урок «Сознание: что известно и что нет» (шаг 23). Логика «и», «или», «исключающее или» встречалась в уроке «Скрытый слой: нейросеть учит XOR» (шаг 8).
+
+**Если непонятно.** Если неясно, что значит «потеря в битах», вернись к уроку «Информация, энтропия и кросс-энтропия». Если неясен XOR, перечитай начало урока «Скрытый слой». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Понять, что утверждает теория интегрированной информации, посчитать упрощённую меру интеграции на сети из трёх узлов и честно разобрать спор вокруг теории. Важно с самого начала: **то, что мы считаем, это не настоящее Φ**, а только его идея в простейшем виде. Нужно около 40 минут.
@@ -138,6 +146,14 @@ majority [1.311, 1.311, 1.311] 1.311
 Моя мера **не Φ**: нет возмущений по всем подмножествам, нет причин и следствий отдельно, нет выбора состояния. На настоящем Φ цифры будут другими, а выводы о нём отсюда не следуют. Сеть из трёх узлов это игрушка. Письмо 2023 года и ответы на него я пересказал кратко, сверяй сам. Теория быстро меняется, IIT 4.0 не последняя её форма.
 
 ## English
+
+### In plain words
+
+Integrated information theory, IIT for short, asks: how unified is a system rather than built of independent parts? Its measure is called Φ (phi), and according to the theory the more Φ, the more consciousness. Picture a team where everyone depends on everyone: split it and the work collapses. A checkout queue, though, can be split in two and nothing is lost. In the lesson you cut a three-node network and count how much is lost in predicting its next step. Important: this is a simplified idea of the measure, not the real Φ. The theory itself is disputed, and the lesson shows both sides.
+
+**What to know first.** The lesson «Information, Entropy, and Cross-Entropy» (step 6): what a bit is. The lesson «Consciousness: What Is Known and What Is Not» (step 23). The logic of AND, OR and exclusive OR appeared in «The Hidden Layer: A Network Learns XOR» (step 8).
+
+**If something is unclear.** If "loss in bits" is unclear, go back to «Information, Entropy, and Cross-Entropy». If XOR is unclear, reread the start of «The Hidden Layer». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

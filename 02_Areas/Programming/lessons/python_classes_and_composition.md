@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Класс это чертёж, а объект это вещь, построенная по чертежу. По одному чертежу счётчика можно сделать много счётчиков, и каждый считает своё. Данные объекта называют атрибутами, а его действия методами. Наследование значит «новый чертёж на основе старого», композиция значит «вещь собрана из других вещей». В твоей языковой модели слой, блок и модель будут такими объектами.
+
+**Что нужно знать до.** Уроки «Условия, циклы и функции» и «Коллекции и циклы» (шаг 2).
+
+**Если непонятно.** Если неясно, что такое `self`, читай его как «этот самый объект». Если неясны функции, вернись к уроку «Условия, циклы и функции». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Создавать класс с методом `__init__` и атрибутами экземпляра, понимать, что у каждого объекта своё состояние, выбирать между наследованием и композицией и знать, что делают аннотации типов.
@@ -68,6 +76,14 @@ print(a.count)
 Урок показывает основы; в Python есть ещё атрибуты класса, свойства, `dataclass` и множественное наследование со своими правилами. Совет предпочитать композицию — практическое правило, а не закон: иногда наследование проще и понятнее. Аннотации помогают находить ошибки, только если запускать проверщик типов.
 
 ## English
+
+### In plain words
+
+A class is a blueprint, and an object is a thing built from it. From one counter blueprint you can make many counters, and each counts its own. An object's data are called attributes, and its actions methods. Inheritance means "a new blueprint based on an old one"; composition means "a thing assembled from other things". In your language model, the layer, the block and the model will be such objects.
+
+**What to know first.** The lessons «Conditions, Loops, and Functions» and «Collections and Loops» (step 2).
+
+**If something is unclear.** If `self` is unclear, read it as "this very object". If functions are unclear, go back to «Conditions, Loops, and Functions». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

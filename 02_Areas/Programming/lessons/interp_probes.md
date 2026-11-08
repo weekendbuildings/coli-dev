@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Внутри сети на каждом слое лежат числа, активации. Зонд это маленькая простая модель, которая по этим числам пытается угадать какое-то свойство входа. Если угадывает, значит, сведения там есть. Похоже на детектор металла: он пищит, значит, металл в земле есть, но это ещё не значит, что его кто-то использует. Поэтому найденное направление ещё и убирают и смотрят, станет ли сеть работать хуже.
+
+**Что нужно знать до.** Уроки «Классификация и softmax» (шаг 7) и «Скрытый слой» (шаг 8). Урок «Машинное обучение: baseline» (шаг 9): отложенная проверка.
+
+**Если непонятно.** Если неясно, что такое направление, вспомни векторы из урока «Векторы и матрицы»: это стрелка в пространстве активаций. Если неясен контрольный опыт, перечитай шаг 2 урока. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Заглянуть внутрь своей сети. Обучить линейный зонд на её активациях, проверить его контрольными опытами и убрать найденное направление, чтобы понять, пользуется ли им сеть. Главный вывод: высокая точность зонда ещё не значит, что сеть это использует. Нужно около 45 минут.
@@ -285,6 +293,14 @@ third_word direction removed 0.449
 Сеть здесь крошечная, и её вход всего 3 символа, поэтому почти всё можно понять и без зонда. На настоящих моделях сведения разбросаны сложнее. Метка «третье слово» опирается на разбор текста мной. Удаление одного направления это простейшая проверка: есть и более строгие, но и они спорны.
 
 ## English
+
+### In plain words
+
+Inside a network, each layer holds numbers, activations. A probe is a small simple model that tries to guess some property of the input from those numbers. If it guesses well, the information is there. It is like a metal detector: it beeps, so there is metal in the ground, but that does not mean anyone is using it. So the found direction is also removed, to see whether the network starts working worse.
+
+**What to know first.** «Classification and Softmax» (step 7) and «The Hidden Layer» (step 8). «Machine Learning: Baselines» (step 9): held-out evaluation.
+
+**If something is unclear.** If a direction is unclear, recall vectors from «Vectors and Matrices»: it is an arrow in the space of activations. If the control experiment is unclear, reread step 2 of the lesson. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

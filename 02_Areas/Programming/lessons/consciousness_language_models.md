@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Если спросить модель «ты что-нибудь чувствуешь?», она ответит. Но её ответ сложился из обучающих текстов и из инструкций, а не обязательно из взгляда внутрь себя. В уроке ты поменяешь системную подсказку и увидишь, что «самоотчёт» меняется вместе с ней. Это как актёр, который по сценарию говорит «мне больно»: по словам нельзя понять, что он чувствует, ведь сценарий написал другой. Поэтому ни «да», ни «нет» модели ничего не доказывают. Опыты внутри моделей нашли лишь ограниченную и ненадёжную способность сообщать о своих внутренних состояниях, и это не доказывает переживания.
+
+**Что нужно знать до.** Урок «Чат это текст» (шаг 1): роли и системная подсказка. Урок «RLHF: обучение на предпочтениях людей» (шаг 14): откуда у ассистента его манера. Урок «Трудная проблема сознания» (шаг 23).
+
+**Если непонятно.** Если неясно, как подсказка меняет ответ, вернись к шагам 2 и 6 урока «Чат это текст». Если неясно, почему слова не доказывают переживания, перечитай урок «Трудная проблема сознания». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Спросить локальную модель о её опыте, поменять системную подсказку и увидеть, как меняется её «самоотчёт». Затем разобрать, что об этом говорят настоящие работы, и почему нельзя верить ни «да», ни «нет». Урок не утверждает, что какая-то система сознательна или что её сознание невозможно. Нужно около 30 минут.
@@ -140,6 +148,14 @@ the same model, no system prompt, temperature 0.9, 8 seeds
 Шесть подсказок и один вопрос это маленький опыт, а автоматическая метка грубая и иногда неточна. Модели здесь небольшие, и у больших моделей ответы другие. Работы 2025 и 2026 годов я пересказываю кратко и не проверял их сам: читай первоисточники. Откуда именно у этих моделей отрицание, я не знаю, а только предполагаю.
 
 ## English
+
+### In plain words
+
+If you ask a model "do you feel anything?", it will answer. But its answer is built from training texts and instructions, not necessarily from a look inside itself. In the lesson you change the system prompt and see the "self-report" change with it. It is like an actor whose script says "it hurts": you cannot tell from the words what they feel, because someone else wrote the script. So neither the model's "yes" nor its "no" proves anything. Experiments inside models found only a limited and unreliable ability to report on their own inner states, and that does not prove experience.
+
+**What to know first.** The lesson «A chat is text» (step 1): roles and the system prompt. The lesson «RLHF: learning from human preferences» (step 14): where an assistant's manner comes from. «The hard problem of consciousness» (step 23).
+
+**If something is unclear.** If it is unclear how a prompt changes the answer, go back to steps 2 and 6 of «A chat is text». If it is unclear why words do not prove experience, reread «The hard problem of consciousness». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

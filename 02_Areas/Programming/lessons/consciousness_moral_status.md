@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Мы не знаем, может ли ИИ переживать. Значит, возможны две ошибки: приписать переживания тому, у кого их нет, или не заметить настоящие. У каждой ошибки своя цена. Так устроена пожарная сигнализация: ложная тревога дешёвая, пропущенный пожар страшный, поэтому её делают чувствительной. В уроке ты посчитаешь порог: при какой вероятности защищать выгоднее. И увидишь главное: ответ целиком зависит от чисел, которых пока никто не знает. Урок не говорит, что тебе думать, а выслушивает обе стороны.
+
+**Что нужно знать до.** Урок «Случайные величины и выборка» (шаг 5): математическое ожидание, то есть средний итог при многих повторах. Урок «Индикаторы: проверка настоящей системы» (шаг 25): почему вероятность сознания никто не может назвать.
+
+**Если непонятно.** Если неясна формула порога, посчитай пример в шаге 2 с числами `A = 1` и `B = 100` руками. Если неясно, что такое ожидаемая цена, вернись к разделу о математическом ожидании в уроке «Случайные величины и выборка». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Разобрать вопрос, что делать, если мы не знаем, может ли система переживать. Посчитать цену двух ошибок и увидеть, что всё решают числа, которых никто не знает. Выслушать обе стороны. Урок не утверждает, что какая-то система сознательна и не советует, что тебе думать. Нужно около 30 минут.
@@ -107,6 +115,14 @@ chance, cost if we protect, cost if we ignore, cheaper
 Формула простая и считает всего две цены, и настоящие решения намного сложнее: есть градации переживания, разные системы, многие участники. Числа в примере выдуманы для расчёта. Я кратко передал чужие взгляды, поэтому читай их самих. Это вопрос этики, и опыт его не решает.
 
 ## English
+
+### In plain words
+
+We do not know whether AI can have experiences. So two errors are possible: crediting experience to something that has none, or missing real experience. Each error has its cost. A fire alarm works this way: a false alarm is cheap, a missed fire is terrible, so alarms are made sensitive. In the lesson you compute the threshold: at what probability protecting pays off. And you see the main point: the answer depends entirely on numbers nobody knows yet. The lesson does not tell you what to think; it hears both sides.
+
+**What to know first.** The lesson «Random Variables and Sampling» (step 5): expected value, the average outcome over many repeats. The lesson «Indicators: checking a real system» (step 25): why nobody can name a probability of consciousness.
+
+**If something is unclear.** If the threshold formula is unclear, work the example in step 2 with `A = 1` and `B = 100` by hand. If expected cost is unclear, go back to the part on expected value in «Random Variables and Sampling». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

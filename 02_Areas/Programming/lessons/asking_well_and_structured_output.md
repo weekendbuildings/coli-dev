@@ -11,6 +11,14 @@ source_review_interval_days: 180
 
 ## Русский
 
+### Простыми словами
+
+Модель выполняет просьбу лучше, если сказать точно, что нужно, показать пример и задать форму ответа. Это как бланк с полями вместо письма в свободной форме: заполнить бланк проще, и проверить его тоже проще. JSON это такая строгая форма для данных: программа читает её без догадок. В уроке ты измеришь, какой из трёх приёмов помогает на самом деле, а не поверишь на слово.
+
+**Что нужно знать до.** Уроки «Живая модель на твоём Mac» и «Чат это текст» (шаг 1): как вызвать модель и что такое системная подсказка. Из урока «Как модель ошибается» берётся счёт верных ответов.
+
+**Если непонятно.** Если непонятен JSON, вернись к шагу 3 урока «Живая модель на твоём Mac». Словари Python, на которые похож JSON, разобраны в уроке «Коллекции и циклы» (шаг 2). Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Научиться просить модель так, чтобы её ответ могла прочитать программа, и честно измерить, что помогает: правило, примеры или заданная форма ответа. Это пригодится для агентов на следующих этапах. Нужно около 30 минут.
@@ -179,6 +187,14 @@ for rule, examples, shape in (
 Заказов всего 12, и они простые, поэтому «12 из 12» не значит, что так будет всегда. Результат относится к этой модели и этой подсказке: у другой модели лучшим может оказаться другое сочетание, а значки разметки она может и не ставить. Токены я считал на первом заказе. Форма не делает ответ правдой, и на сложных схемах она может замедлять работу, чего я здесь не измерял.
 
 ## English
+
+### In plain words
+
+A model follows a request better if you say exactly what you need, show an example and set the form of the answer. It is like a form with fields instead of a free-style letter: a form is easier to fill in and easier to check. JSON is such a strict form for data: a program reads it without guessing. In this lesson you measure which of three tricks really helps instead of taking it on trust.
+
+**What to know first.** The lessons «A live model on your Mac» and «A chat is text» (step 1): how to call a model and what a system prompt is. Counting correct answers comes from «How a model errs».
+
+**If something is unclear.** If JSON is unclear, go back to step 3 of «A live model on your Mac». Python dictionaries, which JSON resembles, are covered in «Collections and Loops» (step 2). Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

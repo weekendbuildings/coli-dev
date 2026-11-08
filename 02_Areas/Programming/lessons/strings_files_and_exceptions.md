@@ -11,6 +11,14 @@ source_review_interval_days: 90
 
 ## Русский
 
+### Простыми словами
+
+Строка это текст внутри программы. Из файла программа всегда читает текст, даже если там написаны числа, поэтому его нужно превращать в числа. Если в данных что-то не так, Python поднимает исключение: это сигнал «стоп, тут ошибка» с её названием. Похоже на кассу, которая не пробивает товар без штрихкода и показывает, почему. Исключение можно поймать и обработать, а не дать программе упасть.
+
+**Что нужно знать до.** Уроки «Переменные и типы данных» и «Коллекции и циклы» (шаг 2).
+
+**Если непонятно.** Если неясно, чем текст `"12"` отличается от числа `12`, вернись к уроку «Переменные и типы данных». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Преобразовать строковые данные в значения, безопасно прочитать текстовый файл и отличить ожидаемую ошибку данных от ошибки доступа к файлу.
@@ -67,6 +75,14 @@ except OSError:
 Не открывай произвольный путь из недоверенного ввода: ограничивай допустимую папку и не считай имя файла безопасным только потому, что оно выглядит обычным. Режим `"w"` обнуляет существующий файл, поэтому для учебного чтения здесь указан только `"r"`. `except Exception` без необходимости может скрыть дефекты программы; обрабатывай ожидаемые ошибки конкретно, а неожиданные передавай выше. Для больших файлов построчное чтение не требует загружать весь файл сразу, но `sum()` всё равно хранит текущую сумму и проходит данные целиком.
 
 ## English
+
+### In plain words
+
+A string is text inside a program. A program always reads text from a file, even if numbers are written there, so it has to turn the text into numbers. If something is wrong in the data, Python raises an exception: a "stop, there is an error here" signal with the error's name. It is like a till that will not ring up an item without a barcode and shows why. You can catch and handle an exception instead of letting the program crash.
+
+**What to know first.** The lessons «Variables and Data Types» and «Collections and Loops» (step 2).
+
+**If something is unclear.** If it is unclear how the text `"12"` differs from the number `12`, go back to «Variables and Data Types». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

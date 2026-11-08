@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Чем неожиданнее событие, тем больше в нём информации. Сообщение «завтра взойдёт солнце» почти ничего не говорит, а «завтра снег в июле» говорит много. Удивление меряют в битах, энтропия это среднее удивление источника. Кросс-энтропия это среднее удивление модели, которая ждала одного, а получала другое. Языковую модель учат именно делать кросс-энтропию меньше, то есть меньше удивляться настоящему тексту.
+
+**Что нужно знать до.** Уроки «Вероятность и формула Байеса» и «Случайные величины и выборка» (шаг 5).
+
+**Если непонятно.** Если неясен логарифм, запомни одно: `log₂` отвечает, сколько раз нужно делить пополам. Вероятность `1/8` даёт 3 бита, потому что 8 делится пополам три раза. Если неясно среднее по вероятностям, вернись к уроку «Случайные величины и выборка». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Считать удивление, энтропию и кросс-энтропию в битах, доказать, что кросс-энтропия не может опуститься ниже энтропии, и понять, почему именно эту величину минимизируют при обучении языковых моделей.
@@ -125,6 +133,14 @@ pairs 2.442
 Энтропия измеряет неопределённость, а не смысл: Шеннон прямо отделял передачу сообщений от их значения. Настоящие частоты языка неизвестны, поэтому энтропию текста можно только оценить. На короткой выборке оценки занижены: модель с большим числом параметров может запомнить эту выборку, поэтому ошибку честно мерить только на данных, которых модель не видела. Наши три фразовые модели учебные: они видят лишь одну предыдущую букву и не учатся смыслу. Кросс-энтропия не единственная возможная функция ошибки, но для вероятностных ответов она самая обычная.
 
 ## English
+
+### In plain words
+
+The more surprising an event, the more information it carries. The message "the sun will rise tomorrow" says almost nothing, while "snow in July tomorrow" says a lot. Surprise is measured in bits, and entropy is a source's average surprise. Cross-entropy is the average surprise of a model that expected one thing and got another. A language model is trained precisely to make cross-entropy smaller, that is, to be less surprised by real text.
+
+**What to know first.** The lessons «Probability and Bayes' Rule» and «Random Variables and Sampling» (step 5).
+
+**If something is unclear.** If the logarithm is unclear, remember one thing: `log₂` answers how many times you halve. Probability `1/8` gives 3 bits because 8 halves three times. If averaging over probabilities is unclear, go back to «Random Variables and Sampling». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

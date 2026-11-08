@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Если результат зависит от нескольких чисел сразу, можно спросить, как он меняется от каждого по отдельности. Это частные производные. Собранные вместе, они дают градиент: стрелку, которая показывает, куда результат растёт быстрее всего. Представь, что стоишь на склоне холма в тумане: градиент показывает самый крутой подъём, а шаг в обратную сторону ведёт вниз. У нейросети таких чисел миллионы, но идея та же.
+
+**Что нужно знать до.** Урок «Производная как мгновенная скорость изменения» (шаг 4).
+
+**Если непонятно.** Если неясна частная производная, закрепи все переменные, кроме одной, и посчитай обычную производную по ней. Если неясна сама производная, вернись к предыдущему уроку шага 4. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Вычислять частные производные функции нескольких переменных, собирать из них градиент, понимать, почему градиент указывает направление самого быстрого роста, и делать шаг градиентного спуска сразу по нескольким переменным.
@@ -50,6 +58,14 @@ source_review_interval_days: 365
 Градиентный спуск находит минимум надёжно только у «хороших» функций вроде этой; у сложных функций он может застрять в локальном минимуме или на плато. Выбор скорости обучения — отдельная задача: слишком маленькая замедляет обучение, слишком большая делает его неустойчивым. В настоящих нейросетях градиент считают алгоритмом обратного распространения, который урок не разбирает.
 
 ## English
+
+### In plain words
+
+If a result depends on several numbers at once, you can ask how it changes with each one separately. Those are partial derivatives. Put together, they give the gradient: an arrow that points where the result grows fastest. Picture standing on a hillside in fog: the gradient points up the steepest slope, and a step the opposite way leads down. A neural network has millions of such numbers, but the idea is the same.
+
+**What to know first.** The lesson «The Derivative as an Instantaneous Rate of Change» (step 4).
+
+**If something is unclear.** If a partial derivative is unclear, hold every variable but one fixed and take the ordinary derivative in it. If the derivative itself is unclear, go back to the previous lesson of step 4. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

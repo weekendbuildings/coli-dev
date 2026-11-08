@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Понятий в мире больше, чем нейронов в сети. Если понятия встречаются редко, сеть может хранить их больше, чем у неё измерений: каждое получает своё направление, и они чуть мешают друг другу. Это суперпозиция. Похоже на один шкаф для вещей, которые нужны в разные сезоны: лыжи и купальник могут лежать на одной полке, потому что нужны почти никогда одновременно. Поэтому отдельный нейрон редко значит что-то одно.
+
+**Что нужно знать до.** Уроки «Зонды: что знает сеть внутри» (шаг 17), «Векторы и матрицы» (шаг 3) и «Эмбеддинги и сходство» (шаг 10).
+
+**Если непонятно.** Если неясно, как 5 понятий помещаются в 2 числа, посмотри на фигуру в тренажёре: пять стрелок расходятся по кругу. Если неясно скалярное произведение, вернись к уроку «Векторы и матрицы». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Понять, почему нейрон редко значит что-то одно. Обучить игрушечную модель сжимать 5 признаков в 2 числа и увидеть, как при редких данных из весов сама собирается правильная фигура. Посчитать цену такого сжатия. Нужно около 45 минут.
@@ -160,6 +168,14 @@ for i, first in enumerate(vectors):
 Это игрушка, а не языковая модель: данные искусственные, признаки независимы и равны по важности. При плотных данных статья получает другую картину, потому что там признаки неравны; у меня живых 3 с неровными длинами. Результат зависит от случайного начала и числа шагов: иногда один вектор отстаёт. Переносить фигуры на большие модели прямо нельзя.
 
 ## English
+
+### In plain words
+
+There are more concepts in the world than neurons in a network. If concepts are rare, a network can store more of them than it has dimensions: each gets its own direction, and they interfere a little. That is superposition. It is like one wardrobe for things needed in different seasons: skis and a swimsuit can share a shelf because they are almost never needed at the same time. That is why a single neuron rarely means one thing.
+
+**What to know first.** «Probes: what a network knows inside» (step 17), «Vectors and Matrices» (step 3) and «Embeddings and Similarity» (step 10).
+
+**If something is unclear.** If it is unclear how 5 concepts fit into 2 numbers, look at the figure in the lab: five arrows spread around a circle. If the dot product is unclear, go back to «Vectors and Matrices». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

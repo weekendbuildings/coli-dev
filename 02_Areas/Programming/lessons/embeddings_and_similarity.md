@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Эмбеддинг это список чисел, которым модель обозначает слово или кусочек текста. Похожие по смыслу слова получают похожие списки, и это можно измерить: косинусное сходство показывает, насколько два списка смотрят в одну сторону. Смысл берётся из соседей в тексте: о человеке многое говорят его друзья. Модель никто не учит, что кот и пёс похожи, она это видит по тому, что их окружают одни и те же слова.
+
+**Что нужно знать до.** Урок «Векторы и матрицы» (шаг 3): скалярное произведение. Урок «Классификация и softmax» (шаг 7).
+
+**Если непонятно.** Если неясно косинусное сходство, нарисуй две стрелки на бумаге: если они смотрят в одну сторону, сходство близко к 1, под прямым углом это 0. Если неясно скалярное произведение, вернись к уроку «Векторы и матрицы». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Понять, как слово или символ становится вектором, считать косинусное сходство и написать на чистом Python модель, которая сама располагает похожие слова рядом, зная только их соседей в тексте.
@@ -159,6 +167,14 @@ print("рыбу мясо", round(cosine("рыбу", "мясо"), 2))
 Двенадцать предложений — игрушка: сходство 1,0 вышло потому, что контексты кота и пса совпадают полностью. Настоящие модели учатся на миллиардах слов и используют векторы длиной в сотни чисел, а вместо полного softmax применяют ускорения, например отрицательные примеры. Близкий контекст не всегда значит близкий смысл: антонимы вроде «горячий» и «холодный» встречаются в похожем окружении, поэтому эмбеддинги плохо их различают. Эмбеддинги перенимают и перекосы текстов: в векторах из новостей нашли гендерные стереотипы. Вектор хранит статистику употребления слова, а не понимание.
 
 ## English
+
+### In plain words
+
+An embedding is a list of numbers a model uses to stand for a word or piece of text. Words with similar meanings get similar lists, and this can be measured: cosine similarity shows how much two lists point the same way. Meaning comes from neighbours in text: a person's friends say a lot about them. Nobody teaches the model that cat and dog are similar; it sees this from the same words surrounding them.
+
+**What to know first.** «Vectors and Matrices» (step 3): the dot product. «Classification and Softmax» (step 7).
+
+**If something is unclear.** If cosine similarity is unclear, draw two arrows on paper: if they point the same way the similarity is close to 1, at a right angle it is 0. If the dot product is unclear, go back to «Vectors and Matrices». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

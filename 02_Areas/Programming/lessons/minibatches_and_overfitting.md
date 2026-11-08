@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Модель учат не на всех данных сразу, а маленькими пакетами, мини-батчами. Шаг по маленькому пакету шумнее, зато таких шагов можно сделать гораздо больше. Как пробовать суп ложкой, а не съедать всю кастрюлю перед каждой щепоткой соли. Переобучение видно по двум кривым: ошибка на обучении падает, а на отложенных данных начинает расти. Тогда останавливают обучение вовремя или не дают весам становиться слишком большими.
+
+**Что нужно знать до.** Уроки «Градиентный спуск и шаг обучения» (шаг 4) и «Машинное обучение: baseline и отложенная проверка» (шаг 9). Шум среднего из урока «Случайные величины и выборка» (шаг 5).
+
+**Если непонятно.** Если неясно, почему маленький пакет шумит, вернись к закону больших чисел в уроке «Случайные величины и выборка». Если неясна отложенная проверка, перечитай урок «Машинное обучение: baseline». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Понять, почему модели учат на маленьких пакетах данных, измерить выигрыш в числе прочитанных примеров, увидеть переобучение на двух кривых и остановить его двумя способами: ранней остановкой и ослаблением весов.
@@ -166,6 +174,14 @@ decay 0.1 (0.074, 0.338, 0.323, 41)
 В опытах урока данные маленькие и выбраны так, чтобы всё было видно. Числа зависят от случайной выборки, поэтому при других перемешиваниях будут другими. Чаша прямой выпуклая, поэтому шум там лишь мешает, а на сложных рельефах настоящих сетей шум иногда помогает выйти с плато. Отложенные данные можно использовать для выбора `λ` и момента остановки, но тогда они перестают быть полностью честными: для итоговой оценки хранят ещё одну часть данных, которую не трогают до самого конца.
 
 ## English
+
+### In plain words
+
+A model is trained not on all data at once but on small packets, mini-batches. A step on a small packet is noisier, but you can take many more such steps. Like tasting soup with a spoon instead of eating the whole pot before each pinch of salt. Overfitting shows on two curves: the training error falls while the error on held-out data starts to rise. Then you stop training in time or keep the weights from growing too large.
+
+**What to know first.** The lessons «Gradient Descent and the Learning Rate» (step 4) and «Machine Learning: Baselines and Held-out Evaluation» (step 9). The noise of an average from «Random Variables and Sampling» (step 5).
+
+**If something is unclear.** If it is unclear why a small packet is noisy, go back to the law of large numbers in «Random Variables and Sampling». If held-out evaluation is unclear, reread «Machine Learning: Baselines». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

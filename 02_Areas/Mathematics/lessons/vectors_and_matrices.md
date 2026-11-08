@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Вектор это просто ряд чисел, например `(3, 4)`. Скалярное произведение двух векторов: перемножить числа попарно и сложить. Похоже на чек в магазине: количество каждого товара умножают на его цену и складывают в итог. Матрица это таблица чисел, а умножить её на вектор значит сделать много таких «чеков» сразу. Ровно это и считает один слой нейросети.
+
+**Что нужно знать до.** Таблица умножения и сложение. Для программ полезен урок «Коллекции и циклы» (шаг 2).
+
+**Если непонятно.** Если неясно, какие числа перемножать, выпиши строку матрицы над вектором и соедини пары стрелками. Если неясны списки в коде, вернись к уроку «Коллекции и циклы». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Вычислять скалярное произведение векторов и произведение матрицы на вектор, проверять, можно ли перемножить матрицы, и видеть в этих операциях то, что считает один слой нейронной сети.
@@ -50,6 +58,14 @@ source_review_interval_days: 365
 Модель «слой = матрица весов» описывает самые простые полносвязные сети; у сверточных и других архитектур есть своя структура, хотя внутри тоже много умножений матриц. Искусственный нейрон — сильное упрощение биологического: настоящий нейрон работает во времени, а его синапсы различаются по типу и меняются. Урок не объясняет, как сеть обучается, — это тема урока о градиентном спуске.
 
 ## English
+
+### In plain words
+
+A vector is just a row of numbers, for example `(3, 4)`. The dot product of two vectors: multiply the numbers in pairs and add them up. It is like a shop receipt: each item's quantity is multiplied by its price and added into the total. A matrix is a table of numbers, and multiplying it by a vector means making many such "receipts" at once. That is exactly what one layer of a neural network computes.
+
+**What to know first.** Multiplication and addition. For the programs, «Collections and Loops» (step 2) helps.
+
+**If something is unclear.** If it is unclear which numbers to multiply, write a matrix row above the vector and join the pairs with arrows. If lists in code are unclear, go back to «Collections and Loops». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

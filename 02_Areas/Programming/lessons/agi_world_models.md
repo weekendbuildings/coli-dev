@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.agi_world_models
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Модели мира: учиться в воображении / World models: learning in imagination
 
 ## Русский
+
+### Простыми словами
+
+Модель мира это внутренняя «карта» того, что случится, если сделать действие. Имея её, агент может проигрывать шаги в уме и учиться на них, не тратя настоящих шагов. Так шахматист продумывает ходы в голове, не двигая фигуры. Но если мир изменился, а карта старая, воображение начинает обманывать, и это ты тоже увидишь. В конце разобран настоящий спор: нужны ли для AGI модели мира вместо языковых моделей. Это спор мнений, а не доказанный вывод.
+
+**Что нужно знать до.** Урок «Q-обучение: агент учится сам» (шаг 13): оценка `Q`, шаг `α` и скидка. Урок «Клетчатый мир и уравнение Беллмана» (шаг 13): что такое состояние и ценность.
+
+**Если непонятно.** Если неясна формула шага, вернись к шагу 2 урока «Q-обучение» и посчитай его пример ещё раз. Если неясно, что такое скидка, перечитай шаг 7 урока «Клетчатый мир». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -134,7 +142,7 @@ the wall moves at game 30; plans, steps in games 29, 31, 32-40, 41-60
 
 **Шаг 5. Спор.** Здесь нужно отделить слова от опытов.
 
-*Мнение Лекуна:* языковые модели тупиковый путь к настоящему интеллекту, потому что они не понимают физический мир, не умеют планировать и у них нет постоянной памяти. Нужны модели мира.
+*Мнение Лекуна:* языковые модели тупиковый путь к настоящему интеллекту, потому что они не понимают физический мир, у них нет постоянной памяти, и они не умеют рассуждать и планировать, разве что очень примитивно. Нужны модели мира.
 
 *Возражение:* в языковых моделях находят внутренние представления мира. Например, на игре в отелло сеть без единого объяснения правил хранила положение доски (Li и др., 2022). Сторонники масштабирования считают, что такие представления появятся сами и шире.
 
@@ -171,6 +179,14 @@ the wall moves at game 30; plans, steps in games 29, 31, 32-40, 41-60
 Мир здесь без шума и крошечный, поэтому модель это просто таблица и она всегда верна, пока мир не изменится. В настоящих системах модель ошибается, и эти ошибки накапливаются при длинном воображении. Числа зависят от карты и от настроек, которые выбрал я. Двадцать запусков дают заметный разброс в первых играх.
 
 ## English
+
+### In plain words
+
+A world model is an inner "map" of what will happen if you take an action. With it, an agent can play steps out in its head and learn from them without spending real steps. A chess player thinks moves through in their head without touching the pieces. But if the world has changed and the map is old, imagination starts to mislead, and you will see this too. At the end comes a real dispute: does AGI need world models instead of language models. It is a dispute of opinions, not a proven conclusion.
+
+**What to know first.** The lesson «Q-learning: an agent learns on its own» (step 13): the estimate `Q`, the step `α` and the discount. The lesson «A grid world and the Bellman equation» (step 13): what a state and a value are.
+
+**If something is unclear.** If the update formula is unclear, go back to step 2 of «Q-learning» and work its example again. If the discount is unclear, reread step 7 of «A grid world». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -295,7 +311,7 @@ The agent with a model is faster again, 65 steps against 153 in the following ga
 
 **Step 5. The dispute.** Here words must be separated from experiments.
 
-*LeCun's opinion:* language models are a dead end on the way to real intelligence, because they do not understand the physical world, cannot plan and have no lasting memory. World models are needed.
+*LeCun's opinion:* language models are a dead end on the way to real intelligence, because they do not understand the physical world, have no persistent memory, and cannot reason or plan except in a very primitive way. World models are needed.
 
 *The objection:* inner representations of the world are found in language models. For example, in the game of Othello a network, told no rules, kept track of the board's state (Li et al., 2022). Scaling supporters believe such representations will arise by themselves, more widely.
 
@@ -333,10 +349,10 @@ The world here is noiseless and tiny, so the model is just a table and is always
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 8, recalled; the book page opened 2026-11-03, the chapter itself not re-read: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 8 read in the authors' free PDF on 2026-11-07: the Tabular Dyna-Q box (real step, model update, n imagined updates) and Example 8.2 "Blocking Maze", where the world changes after 1000 steps: [book page](http://incompleteideas.net/book/the-book-2nd.html), [PDF](http://incompleteideas.net/book/RLbook2020.pdf)
 - David Ha, Jürgen Schmidhuber, "World Models", arXiv:1803.10122 (2018), title read 2026-11-03: [arXiv:1803.10122](https://arxiv.org/abs/1803.10122)
 - Danijar Hafner et al., "Mastering Diverse Domains through World Models", arXiv:2301.04104 (2023), title read 2026-11-03: [arXiv:2301.04104](https://arxiv.org/abs/2301.04104)
-- Yann LeCun, "A Path Towards Autonomous Machine Intelligence" (2022), recalled: OpenReview asked for a browser check on 2026-11-03, so the paper was not read; JEPA comparing representations rather than pixels read in the I-JEPA post the same day: [OpenReview](https://openreview.net/forum?id=BZ5a1r-kVsf), [I-JEPA post](https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/)
+- Yann LeCun, "A Path Towards Autonomous Machine Intelligence" (2022), position paper on OpenReview, not read: OpenReview asked for a browser check on 2026-11-03 and again on 2026-11-07. The opinion on language models is taken from LeCun's own words in Lex Fridman Podcast #416 (2024), transcript read 2026-11-07: LLMs lack understanding of the physical world, persistent memory, reasoning and planning, or have them only in a very primitive way. JEPA comparing representations rather than pixels read in the I-JEPA post on 2026-11-03: [OpenReview](https://openreview.net/forum?id=BZ5a1r-kVsf), [transcript](https://lexfridman.com/yann-lecun-3-transcript), [I-JEPA post](https://ai.meta.com/blog/yann-lecun-ai-model-i-jepa/)
 - Mido Assran et al., "V-JEPA 2", arXiv:2506.09985 (2025), title read 2026-11-03: [arXiv:2506.09985](https://arxiv.org/abs/2506.09985)
 - Kenneth Li et al., "Emergent World Representations", arXiv:2210.13382 (2022), abstract and the probes section read 2026-11-03: [arXiv:2210.13382](https://arxiv.org/abs/2210.13382)
 - Julian Schrittwieser et al., "Mastering Atari, Go, Chess and Shogi by Planning with a Learned Model", arXiv:1911.08265 (2019), abstract read 2026-11-03: [arXiv:1911.08265](https://arxiv.org/abs/1911.08265)

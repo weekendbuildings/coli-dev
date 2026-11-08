@@ -76,7 +76,8 @@ def test_automatic_gradient_matches_numerical_slopes() -> None:
             p.data[r][c] = keep - 1e-5
             down = program["cross_entropy"](program["forward"](x), y)[0]
             p.data[r][c] = keep
-            assert math.isclose((up - down) / 2e-5, p.grad[r][c], abs_tol=1e-6)
+            # Central differences with h = 1e-5 err by about 1e-6 on slopes near 0.4, so the tolerance is relative too.
+            assert math.isclose((up - down) / 2e-5, p.grad[r][c], rel_tol=1e-5, abs_tol=1e-6)
             checked += 1
     assert checked > 30
 

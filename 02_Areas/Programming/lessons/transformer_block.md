@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Блок трансформера это повторяющаяся деталь, из которой собраны все большие языковые модели. В нём несколько голов внимания смотрят на текст по-разному, а маленькая сеть обрабатывает каждый токен отдельно. Обходной путь `x + F(x)` прибавляет новое к старому, а не заменяет его. Как правки в документе поверх исходного текста: исходник остаётся, и ошибка легко доходит до нижних слоёв. Нормализация держит числа в разумном масштабе.
+
+**Что нужно знать до.** Уроки «Механизм внимания» (шаг 11), «Инициализация и нормализация» и «Оптимизаторы» (шаг 9).
+
+**Если непонятно.** Если неясно, зачем обходной путь, вернись к уроку «Инициализация и нормализация»: там сигнал гаснет без него. Если неясно внимание, перечитай урок «Механизм внимания». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Собрать блок трансформера из многоголового внимания, сети прямого прохода, обходных путей и нормализации, проверить его программой и понять, почему без обходных путей глубокая сеть почти не учится.
@@ -194,6 +202,14 @@ bypass 1.28e+00
 Блок в программе не обучен, поэтому проверяет устройство, а не умение. Цифры про затухание относятся к этой стопке с `tanh`, этим размером весов и этим началом: при других весах сигнал может и взрываться, поэтому их начальный размер подбирают тщательно. Нормализацию в настоящих моделях часто ставят перед вниманием, а не после: это другой порядок той же идеи. Для простоты мы взяли ReLU, а большие модели часто используют похожие функции. Настоящие модели используют десятки блоков и тысячи чисел в векторах, и им нужна защита от переобучения, например отключение случайных связей.
 
 ## English
+
+### In plain words
+
+The transformer block is the repeating part from which all large language models are built. In it, several attention heads look at the text in different ways, and a small network processes each token separately. The shortcut `x + F(x)` adds the new to the old instead of replacing it. Like tracked changes over the original text: the original stays, and the error easily reaches the lower layers. Normalization keeps the numbers at a sensible scale.
+
+**What to know first.** «The Attention Mechanism» (step 11), «Initialization and normalization» and «Optimizers» (step 9).
+
+**If something is unclear.** If the shortcut is unclear, go back to «Initialization and normalization»: there the signal fades without it. If attention is unclear, reread «The Attention Mechanism». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

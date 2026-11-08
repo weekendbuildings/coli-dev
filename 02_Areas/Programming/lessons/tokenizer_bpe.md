@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Модель не читает буквы и слова, она читает токены: кусочки текста из своего словаря. Токенизатор BPE строит этот словарь сам. Он находит пару кусочков, которая встречается чаще всего, склеивает её в один новый кусочек и повторяет. Похоже на стенографию: частые сочетания получают свой короткий значок. Поэтому частые слова становятся одним токеном, а редкие и русские разбиваются на много кусочков.
+
+**Что нужно знать до.** Урок «Живая модель на твоём Mac» (шаг 1): что такое токен. Урок «Строки, файлы и исключения» (шаг 2).
+
+**Если непонятно.** Если неясно, что такое байт, считай так: каждая буква хранится как одно или несколько чисел от 0 до 255, и русская буква занимает два таких числа. Если неясна программа, вернись к урокам шага 2. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Написать на чистом Python токенизатор BPE, обучить его на тексте и своими глазами увидеть, откуда берутся токены и почему русский текст у моделей занимает больше токенов. Это первая часть первого задания стэнфордского курса CS336. Нужно около 40 минут.
@@ -160,6 +168,14 @@ for sample in ("Модель читает токены", "The model reads", "К�
 Наш текст крошечный, поэтому и словарь учебный. Настоящие токенизаторы сначала делят текст на части по шаблону, например отдельно слова и знаки, чтобы слияния не шли через границу слова, и имеют особые токены вроде `<|im_start|>` из урока о чате. Наша функция заново считает все пары на каждом слиянии, и на больших текстах это слишком медленно. Почему именно у этой модели `Привет` занимает 3 токена, я объясняю по косвенным признакам: состав её обучающих текстов я не проверял.
 
 ## English
+
+### In plain words
+
+A model does not read letters or words; it reads tokens: pieces of text from its vocabulary. The BPE tokenizer builds that vocabulary itself. It finds the pair of pieces that occurs most often, glues it into one new piece and repeats. It is like shorthand: frequent combinations get their own short sign. That is why frequent words become one token, while rare and Russian words split into many pieces.
+
+**What to know first.** «A live model on your Mac» (step 1): what a token is. «Strings, Files, and Exceptions» (step 2).
+
+**If something is unclear.** If a byte is unclear, think of it this way: each letter is stored as one or more numbers from 0 to 255, and a Russian letter takes two such numbers. If the program is unclear, go back to the lessons of step 2. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

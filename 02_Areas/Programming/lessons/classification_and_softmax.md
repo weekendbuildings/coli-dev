@@ -11,6 +11,14 @@ source_review_interval_days: 365
 
 ## Русский
 
+### Простыми словами
+
+Классификация значит выбрать один ответ из нескольких: кошка, собака или птица. Модель сначала даёт каждому варианту оценку, любое число. Softmax превращает оценки в вероятности: все положительные и в сумме дают 1. Похоже на деление пирога: у кого оценка выше, тому кусок больше, но кусок есть у каждого. Ошибку считают как удивление верным ответом, и спуск двигает оценки так, чтобы верный кусок рос.
+
+**Что нужно знать до.** Урок «Информация, энтропия и кросс-энтропия» (шаг 6) и урок «Градиентный спуск и шаг обучения» (шаг 4).
+
+**Если непонятно.** Если неясна экспонента `e^z`, посчитай softmax для оценок `(2, 1, 0)` руками и проверь, что сумма равна 1. Если неясна ошибка `−ln q`, вернись к уроку «Информация, энтропия и кросс-энтропия». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
+
 ### Цель
 
 Превращать оценки модели в вероятности через softmax, выводить градиент кросс-энтропии и написать на чистом Python классификатор, который сам учится выбирать один класс из нескольких.
@@ -129,6 +137,14 @@ print(sum(max(range(3), key=lambda k: answer(w, x1, x2)[k]) == label for x1, x2,
 Двенадцать чистых точек на плоскости — учебный пример: настоящие классы редко образуют такие ровные облака. Модель в этом уроке линейна и видит только два входа, поэтому границы у неё прямые. Вероятности модели — это её собственная оценка, а не обязательно правда: у обученной сети они могут быть завышены, поэтому уверенность проверяют на отложенных данных. Рост весов на разделимых данных не останавливается сам: ошибка стремится к нулю только при бесконечно больших весах.
 
 ## English
+
+### In plain words
+
+Classification means picking one answer out of several: cat, dog or bird. The model first gives each option a score, any number. Softmax turns the scores into probabilities: all positive and adding up to 1. It is like slicing a pie: a higher score gets a bigger slice, but everyone gets some. The error is the surprise at the right answer, and descent moves the scores so the right slice grows.
+
+**What to know first.** The lesson «Information, Entropy, and Cross-Entropy» (step 6) and «Gradient Descent and the Learning Rate» (step 4).
+
+**If something is unclear.** If the exponent `e^z` is unclear, compute softmax for the scores `(2, 1, 0)` by hand and check that the sum is 1. If the error `−ln q` is unclear, go back to «Information, Entropy, and Cross-Entropy». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 

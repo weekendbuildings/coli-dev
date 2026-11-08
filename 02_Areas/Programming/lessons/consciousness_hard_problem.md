@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.consciousness_hard_problem
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Трудная проблема сознания / The hard problem of consciousness
 
 ## Русский
+
+### Простыми словами
+
+Философ Дэвид Чалмерс разделил вопросы о сознании на «лёгкие» и «трудную». Лёгкие: как мозг различает сигналы, запоминает, сообщает о себе. Они тоже сложные, но понятно, что искать: механизм. Трудная: почему за этой работой вообще что-то переживается. Можно полностью объяснить, как камера обрабатывает красный свет, и всё равно спросить: видит ли она красное? В уроке ты напишешь агента, который пишет «мне больно», объяснишь каждую его строку и посмотришь, осталось ли что-то необъяснённым. Есть сильное возражение, что ничего не остаётся, и урок его тоже разбирает.
+
+**Что нужно знать до.** Урок «Сознание: что известно и что нет» (шаг 23): доступ и переживание. Основы Python из шага 2, чтобы читать агента.
+
+**Если непонятно.** Если неясна программа, вернись к уроку «Условия, циклы и функции» (шаг 2). Если неясно, чем доступ отличается от переживания, перечитай начало урока «Сознание: что известно и что нет». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -117,6 +125,14 @@ first report: всё хорошо
 Наш агент это учебная игрушка, и никто не считает его сознательным. Я упростил споры, и у каждой стороны есть намного более тонкие доводы, поэтому читай первоисточники. Разделение на лёгкое и трудное принимают не все. Что именно показывает слепое зрение, обсуждают до сих пор, в том числе саму точность отчётов.
 
 ## English
+
+### In plain words
+
+The philosopher David Chalmers split questions about consciousness into the "easy" ones and the "hard" one. The easy ones: how the brain tells signals apart, remembers, reports on itself. They are difficult too, but it is clear what to look for: a mechanism. The hard one: why any of this work is experienced at all. You could fully explain how a camera processes red light and still ask: does it see red? In the lesson you write an agent that prints "it hurts", explain each of its lines and check whether anything is left unexplained. There is a strong objection that nothing is left, and the lesson covers it too.
+
+**What to know first.** The lesson «Consciousness: What Is Known and What Is Not» (step 23): access and experience. Python basics from step 2, to read the agent.
+
+**If something is unclear.** If the program is unclear, go back to «Conditions, Loops, and Functions» (step 2). If the difference between access and experience is unclear, reread the start of «Consciousness: What Is Known and What Is Not». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
 
 ### Goal
 
@@ -229,7 +245,7 @@ Our agent is a teaching toy, and nobody considers it conscious. I simplified the
 - Thomas Nagel, "What Is It Like to Be a Bat?", The Philosophical Review 83 (1974), title and journal checked 2026-11-03; the paper itself not re-read.
 - Ned Block, "On a confusion about a function of consciousness", Behavioral and Brain Sciences 18 (1995), title and journal checked 2026-11-03; the paper itself not re-read; access consciousness as a separate sense read in the survey: [Stanford Encyclopedia: Consciousness](https://plato.stanford.edu/entries/consciousness/)
 - Daniel C. Dennett, "Consciousness Explained" (1991), details checked 2026-11-03 in the Stanford Encyclopedia bibliography, the book itself not re-read; TED talk: [The illusion of consciousness](https://www.ted.com/talks/dan_dennett_the_illusion_of_consciousness)
-- Keith Frankish, "Illusionism as a Theory of Consciousness", Journal of Consciousness Studies 23 (2016), recalled: not found in Crossref or OpenAlex on 2026-11-03, so not confirmed.
+- Keith Frankish, "Illusionism as a Theory of Consciousness", Journal of Consciousness Studies 23 (11–12), pp. 11–39 (2016), the target paper of a special issue; the paper itself not read, because the free copy found needs a login. Confirmed on 2026-11-07: the special issue was reprinted as the book "Illusionism", edited by Keith Frankish, Imprint Academic (2017), ISBN 9781845409579, with the target paper and commentaries (publisher listing read), and replies from the same JCS volume 23, among them Daniel Dennett's "Illusionism as the Obvious Default Theory of Consciousness", are indexed in OpenAlex: [book listing](https://store.ellibs.com/sv/book/9781845409579/illusionism)
 - Lawrence Weiskrantz, Elizabeth K. Warrington et al., "Visual capacity in the hemianopic field following a restricted occipital ablation", Brain (1974), the first report of blindsight, title and journal checked 2026-11-03; the paper itself not re-read.
 - David Chalmers, TED talk: [How do you explain consciousness?](https://www.ted.com/talks/david_chalmers_how_do_you_explain_consciousness)
 - The program was written for this lesson. The lesson paraphrases these sources and does not copy their text.

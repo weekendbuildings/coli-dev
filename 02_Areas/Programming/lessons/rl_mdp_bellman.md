@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.rl_mdp_bellman
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Клетчатый мир и уравнение Беллмана / A grid world and the Bellman equation
 
 ## Русский
+
+### Простыми словами
+
+Теперь у агента есть мир из клеток, и его действие меняет, где он окажется дальше. Клетка, где он стоит, называется состоянием, правило выбора действия политикой, а ценность клетки это сколько награды можно получить, начав с неё. Уравнение Беллмана говорит: ценность клетки равна награде за шаг плюс ценность лучшей соседней, чуть уменьшенная. Похоже на указатели расстояния в горах: зная расстояние от соседней развилки, легко посчитать своё. Ценность расходится от цели волной.
+
+**Что нужно знать до.** Урок «Автоматы: пробовать новое или брать лучшее» (шаг 13): награда и оценка.
+
+**Если непонятно.** Если неясна скидка, считай её так: при скидке 0,95 награда через шаг стоит 0,95 от сегодняшней, через два шага примерно 0,9. Если неясна волна, посчитай ценности двух клеток рядом с целью руками по шагу 2. Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -278,6 +286,14 @@ gamma 0.99 sweeps 32 V(S) 0.282
 
 ## English
 
+### In plain words
+
+Now the agent has a world of cells, and its action changes where it ends up next. The cell it stands in is called the state, the rule for choosing an action the policy, and a cell's value is how much reward you can get starting from it. The Bellman equation says: a cell's value equals the reward for the step plus the value of the best neighbour, slightly reduced. It is like distance signs in the mountains: knowing the distance from the next fork, you easily get your own. Value spreads out from the goal like a wave.
+
+**What to know first.** «Slot machines: explore or exploit» (step 13): reward and estimate.
+
+**If something is unclear.** If the discount is unclear, think of it this way: with a discount of 0.95 a reward one step away is worth 0.95 of today's, two steps away about 0.9. If the wave is unclear, compute the values of two cells next to the goal by hand, following step 2. Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Understand state, policy and value. Compute a cell's value by hand from the Bellman equation, run value iteration, and watch value spread as a wave from the goal and become a real surface in 3D. It takes about 50 minutes.
@@ -545,7 +561,7 @@ Here the agent knows the whole model of the world in advance: where each action 
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapters 3 and 4, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read, and the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapters 3 and 4 read in the authors' free PDF on 2026-11-07: the Bellman equation (3.14), the Bellman optimality equation (3.19) and value iteration, section 4.4; the numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html), [PDF](http://incompleteideas.net/book/RLbook2020.pdf)
 - David Silver, "Lectures on Reinforcement Learning", lectures 2 and 3 (the site refused the automated check on 2026-11-03): [course page](https://www.davidsilver.uk/teaching/)
 - Stanford CS234, "Reinforcement Learning": [course page](https://web.stanford.edu/class/cs234/)
 - The world, the program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.

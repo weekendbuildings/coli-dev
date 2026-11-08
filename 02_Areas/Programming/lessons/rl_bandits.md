@@ -3,13 +3,21 @@ subject: programming
 lesson_id: programming.rl_bandits
 level: advanced
 languages: ru, en
-source_checked: 2026-11-03
+source_checked: 2026-11-07
 source_review_interval_days: 365
 ---
 
 # Автоматы: пробовать новое или брать лучшее / Slot machines: explore or exploit
 
 ## Русский
+
+### Простыми словами
+
+Обучение с подкреплением значит учиться не по готовым ответам, а по награде за свои действия. Самая простая задача такого рода: несколько игровых автоматов, у каждого свой неизвестный выигрыш. Главный спор: играть на том, что пока кажется лучшим, или пробовать другие. Как выбор кафе в новом городе: если всегда ходить в первое неплохое, лучшее можно так и не найти. Сожаление показывает, сколько ты потерял по сравнению с лучшим выбором.
+
+**Что нужно знать до.** Урок «Случайные величины и выборка» (шаг 5): среднее и разброс. Основы Python из шага 2.
+
+**Если непонятно.** Если неясна оценка автомата, это просто средний выигрыш на нём: посчитай пример шага 2 на бумаге. Если неясно среднее, вернись к уроку «Случайные величины и выборка». Незнакомое слово ищи в «Словаре пути ИИ», это первый пункт пути.
 
 ### Цель
 
@@ -175,6 +183,14 @@ UCB1 за те же ходы прибавил только `126,1 − 80,6 = 45,
 
 ## English
 
+### In plain words
+
+Reinforcement learning means learning not from given answers but from the reward for your own actions. The simplest task of this kind: several slot machines, each with its own unknown payout. The main dilemma: play the one that seems best so far, or try others. Like choosing a café in a new city: if you always go to the first decent one, you may never find the best. Regret shows how much you lost compared with the best choice.
+
+**What to know first.** «Random Variables and Sampling» (step 5): average and spread. Python basics from step 2.
+
+**If something is unclear.** If a machine's estimate is unclear, it is just the average payout on it: work the example in step 2 on paper. If the average is unclear, go back to «Random Variables and Sampling». Look up any unfamiliar word in «The AI path glossary», the first item of the path.
+
 ### Goal
 
 Understand the central tension of reinforcement learning: use what you already know, or try something new. Compute an estimate and regret by hand, see in a real experiment how greed locks the agent into a bad choice, and compare three rules. It takes about 40 minutes.
@@ -339,8 +355,8 @@ The probabilities here are constant, while in real life they change, and then a 
 
 ## Sources
 
-- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 2, recalled from the book; the book page opened 2026-11-03, the chapter itself not re-read, and the rules and numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html)
-- Peter Auer, Nicolò Cesa-Bianchi, Paul Fischer, "Finite-time Analysis of the Multiarmed Bandit Problem", Machine Learning 47 (2002), logarithmic regret read in the abstract 2026-11-03; the UCB1 formula recalled from the paper: [Springer](https://link.springer.com/article/10.1023/A:1013689704352)
+- Richard S. Sutton, Andrew G. Barto, "Reinforcement Learning: An Introduction", 2nd ed., MIT Press (2018), chapter 2 read in the authors' free PDF on 2026-11-07: the incremental update NewEstimate ← OldEstimate + StepSize · (Target − OldEstimate), equation (2.4), and UCB selection Q + c · √(ln t / N) in section 2.7; the rules and numbers here are recomputed by the program: [book page](http://incompleteideas.net/book/the-book-2nd.html), [PDF](http://incompleteideas.net/book/RLbook2020.pdf)
+- Peter Auer, Nicolò Cesa-Bianchi, Paul Fischer, "Finite-time Analysis of the Multiarmed Bandit Problem", Machine Learning 47 (2002), logarithmic regret read in the abstract 2026-11-03; Figure 1 read on 2026-11-07: play each machine once, then the machine that maximizes x̄ⱼ + √(2 ln n / nⱼ); Theorem 1 assumes rewards in [0, 1], which holds here because each pull pays 0 or 1: [Springer](https://link.springer.com/article/10.1023/A:1013689704352), [PDF](https://homes.di.unimi.it/~cesabian/Pubblicazioni/ml-02.pdf)
 - David Silver, "Lectures on Reinforcement Learning", lecture 9 (the site refused the automated check on 2026-11-03): [course page](https://www.davidsilver.uk/teaching/)
 - Stanford CS234, "Reinforcement Learning": [course page](https://web.stanford.edu/class/cs234/)
 - The program and all numbers were written and computed for this lesson. The lesson paraphrases these sources and does not copy their text.
