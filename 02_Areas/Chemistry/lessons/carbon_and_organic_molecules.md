@@ -35,9 +35,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- 10: из 4 · 4 = 16 связей три связи C−C занимают 6, остаются 10 для водорода.
-- 16: у каждого из четырёх атомов углерода по четыре связи с водородом.
-- 8: на каждый атом углерода приходится по два атома водорода.
+- 10: из 4 · 4 = 16 связей три связи C−C занимают 6, остаются 10.
+- 16: у каждого из четырёх атомов углерода 4 связи с водородом, 4 · 4 = 16.
+- 8: на каждый атом углерода приходится по два водорода, 4 · 2 = 8.
 
 ### Ответ
 
@@ -77,9 +77,9 @@ How many hydrogen atoms are in an unbranched alkane molecule with four carbon at
 
 ### Options
 
-- 10: of the 4 · 4 = 16 bonds, three C−C bonds take 6, leaving 10 for hydrogen.
-- 16: each of the four carbon atoms has four bonds to hydrogen.
-- 8: there are two hydrogen atoms per carbon atom.
+- 10: of the 4 · 4 = 16 bonds, three C−C bonds take 6, leaving 10.
+- 16: each of the four carbons has four bonds to hydrogen, 4 · 4 = 16.
+- 8: each carbon atom carries two hydrogen atoms, so 4 · 2 = 8.
 
 ### Answer
 

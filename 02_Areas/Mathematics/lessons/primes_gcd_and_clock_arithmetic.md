@@ -54,9 +54,9 @@ print((9 + 30) % 12)
 
 ### Варианты
 
-- 12: 24 = 2³·3 и 36 = 2²·3², общие множители с наименьшими степенями дают 2²·3.
-- 6: это общий делитель, значит, он и наибольший.
-- 72: это наименьшее число, которое делится на оба.
+- 12: 24 = 2³·3 и 36 = 2²·3², общие множители дают 2²·3 = 12.
+- 6: 24 = 6 · 4 и 36 = 6 · 6, значит, 6 и есть наибольший делитель.
+- 72: 72 = 24 · 3 = 36 · 2, это общее число для обоих.
 
 ### Ответ
 
@@ -115,9 +115,9 @@ What is the greatest common divisor of 24 and 36?
 
 ### Options
 
-- 12: 24 = 2³·3 and 36 = 2²·3², and the common factors with their smallest powers give 2²·3.
-- 6: it is a common divisor, so it is the greatest one.
-- 72: it is the smallest number divisible by both.
+- 12: 24 = 2³·3 and 36 = 2²·3², so the common factors give 2²·3 = 12.
+- 6: 24 = 6 · 4 and 36 = 6 · 6, so 6 is the greatest divisor.
+- 72: 72 = 24 · 3 = 36 · 2, a number shared by both.
 
 ### Answer
 

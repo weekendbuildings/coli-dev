@@ -59,8 +59,8 @@ print(a.count)
 
 ### Варианты
 
-- 2: у каждого объекта свой атрибут `count`, а `add()` у `a` вызвали дважды.
-- 3: все объекты класса делят один счётчик.
+- 2: у каждого объекта свой `count`, а `add()` у `a` вызвали дважды.
+- 3: все объекты класса делят один счётчик, и `add()` вызвали трижды.
 - 0: `__init__` сбрасывает счётчик при каждом вызове метода.
 
 ### Ответ
@@ -125,8 +125,8 @@ What does the program print?
 
 ### Options
 
-- 2: each object has its own `count` attribute, and `add()` was called twice on `a`.
-- 3: all objects of the class share one counter.
+- 2: each object has its own `count`, and `add()` ran twice on `a`.
+- 3: all objects of the class share one counter, and `add()` ran three times.
 - 0: `__init__` resets the counter on every method call.
 
 ### Answer

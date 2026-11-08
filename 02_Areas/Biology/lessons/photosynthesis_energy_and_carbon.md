@@ -37,9 +37,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- Светозависимые реакции дают ATP и NADPH, которые цикл Кальвина использует для фиксации углерода из CO₂.
-- Цикл Кальвина производит свет, который поглощают хлорофиллы.
-- Кислород из CO₂ сразу превращается в глюкозу без промежуточных этапов.
+- Светозависимые реакции дают ATP и NADPH, а цикл Кальвина тратит их на фиксацию CO₂.
+- Цикл Кальвина производит свет, который затем поглощают хлорофиллы в тилакоидах.
+- Кислород из CO₂ сразу превращается в глюкозу, и второй этап не нужен первому.
 
 ### Ответ
 
@@ -81,9 +81,9 @@ How are the two stages of photosynthesis connected?
 
 ### Options
 
-- Light-dependent reactions provide ATP and NADPH, which the Calvin cycle uses to fix carbon from CO₂.
-- The Calvin cycle produces light for chlorophyll to absorb.
-- Oxygen from CO₂ is converted directly into glucose without intermediate steps.
+- Light reactions make ATP and NADPH, which the Calvin cycle spends to fix CO₂.
+- The Calvin cycle produces light, which chlorophyll in the thylakoids then absorbs.
+- Oxygen from CO₂ turns straight into glucose, so neither stage needs the other.
 
 ### Answer
 

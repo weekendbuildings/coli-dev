@@ -85,9 +85,9 @@ git push -u origin feature/add-lesson-check
 
 ### Варианты
 
-- Сверить имя в месте использования с объявленным именем и проверить гипотезу исправлением опечатки.
-- Обернуть `print` в `try/except Exception`.
-- Удалить строку печати, чтобы ошибка исчезла.
+- Сверить имя в `print` с объявленным и проверить гипотезу об опечатке.
+- Обернуть `print` в `try/except Exception`, чтобы программа не падала.
+- Удалить строку печати: если ошибки больше нет, проблема решена.
 
 ### Ответ
 
@@ -177,9 +177,9 @@ The last traceback line says `NameError: name 'totel' is not defined`; above it 
 
 ### Options
 
-- Compare the used name with the declared name and test the misspelling hypothesis.
-- Wrap `print` in `try/except Exception`.
-- Delete the print line to make the error disappear.
+- Compare the name in `print` with the declared one and test the typo hypothesis.
+- Wrap `print` in `try/except Exception` so the program stops crashing.
+- Delete the print line: if the error is gone, the problem is solved.
 
 ### Answer
 

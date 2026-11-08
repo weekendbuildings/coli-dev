@@ -157,7 +157,7 @@ print([(round(x, 2), round(y, 2)) for x, y in adam(0.5)[:4]])
 
 ### Варианты
 
-- По крутой оси каждый шаг умножает `y` на `1 − 2 · шаг`, и при шаге больше 1 он растёт.
+- По крутой оси шаг больше 1 перескакивает дно всё дальше, и `y` растёт с каждым шагом.
 - По пологой оси ошибка почти плоская, и при большом шаге градиент там совсем пропадает.
 - Формула спуска определена только для шага до единицы, и больший шаг в ней не имеет смысла.
 
@@ -321,7 +321,7 @@ Why can plain descent not take a step above 1 on this valley?
 
 ### Options
 
-- On the steep axis each step multiplies `y` by `1 − 2 · step`, and above 1 it grows.
+- On the steep axis a step above 1 overshoots the floor further each time, so `y` grows.
 - On the gentle axis the error is nearly flat, and at a large step the gradient vanishes.
 - The descent formula is defined only for steps up to one, and a larger one means nothing.
 

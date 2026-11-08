@@ -283,6 +283,15 @@ adapter on 1.549
 
 В программе поставь адаптер ещё и на внутренний слой. Настоящая LoRA ставит добавки на много слоёв, а не на один.
 
+**Собери и проверь сам.** Код выше дан готовым. Теперь напиши ключевой шаг своими руками: выход с адаптером, градиенты по A и B и слияние адаптера в одну матрицу. Заготовка и строгая проверка лежат в папке проекта `01_Projects/creator_labs`. Скопируй её к себе (уже написанные тобой файлы не перезапишутся) и запусти проверку:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_finetuning_and_lora.py
+```
+
+Сначала все строки будут с ✗. Открой `lora_blank.py`, допиши функции, где стоит `NotImplementedError`, и запускай проверку, пока все строки не станут ✓. Проверка сверяет твой код с численной производной, граничными случаями и свойствами, которые обязаны выполняться всегда. В самом файле проверки есть ответ: открывай его только после своей попытки.
+
 ### Вопрос
 
 Почему адаптер LoRA можно выключить, и модель станет в точности прежней?
@@ -578,6 +587,15 @@ From scratch it is nearly mush, with all weights "мама видит" ("mum see
 The lab has the real curves of this program. Move the weight budget, switch methods on and compare, read the text, and then switch the adapter off.
 
 In the program, put an adapter on the inner layer too. Real LoRA places additions on many layers, not one.
+
+**Build and check it yourself.** The code above was given ready-made. Now write the key step with your own hands: the output with the adapter, the gradients for A and B and merging the adapter into one matrix. The blank and a strict check are in the project folder `01_Projects/creator_labs`. Copy it (files you have already written are not overwritten) and run the check:
+
+```bash
+mkdir -p ~/ai-path && cp -Rn ~/Desktop/"coli-dev 4"/coli-dev/01_Projects/creator_labs ~/ai-path/
+cd ~/ai-path/creator_labs && python3 check_finetuning_and_lora.py
+```
+
+At first every line shows ✗. Open `lora_blank.py`, fill in the functions that raise `NotImplementedError`, and rerun until every line shows ✓. The check compares your code with numerical derivatives, edge cases and invariants that must always hold. The check file itself contains the answer: open it only after your own attempt.
 
 ### Question
 

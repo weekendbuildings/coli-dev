@@ -48,9 +48,9 @@ except ValueError:
 
 ### Варианты
 
-- Сложение: умножение 3 * 4 — его поддерево, и оно вычисляется первым.
-- Умножение: в корне стоит то, что выполняется первым.
-- Никакая: дерево хранит выражение просто как строку.
+- Сложение: умножение 3 * 4 — его поддерево и считается первым.
+- Умножение: 3 * 4 выполняется первым, значит, оно и стоит в корне.
+- Никакая: дерево хранит выражение 2 + 3 * 4 просто как строку.
 
 ### Ответ
 
@@ -103,9 +103,9 @@ Which operation ends up at the root of the abstract syntax tree of the expressio
 
 ### Options
 
-- Addition: the multiplication 3 * 4 is its subtree and is evaluated first.
-- Multiplication: whatever runs first sits at the root.
-- None: the tree stores the expression simply as a string.
+- Addition: the multiplication 3 * 4 is its subtree and runs first.
+- Multiplication: 3 * 4 runs first, so it must sit at the root.
+- None: the tree keeps 2 + 3 * 4 simply as a string.
 
 ### Answer
 

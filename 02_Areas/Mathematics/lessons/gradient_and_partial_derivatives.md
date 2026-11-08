@@ -89,7 +89,7 @@ For f(x, y) = x² + 3y² at the point (1, 1), one gradient descent step with ε 
 
 ### Options
 
-- At (0.8, 0.4): ∇f = (2, 6), and (1, 1) − 0.1 · (2, 6) = (0.8, 0.4).
+- At (0.8, 0.4): (1, 1) − 0.1 · (2, 6) = (0.8, 0.4).
 - At (1.2, 1.6): the step is taken along the gradient.
 - At (0.9, 0.9): both coordinates decrease by the same ε.
 

@@ -33,9 +33,9 @@ source_review_interval_days: 365
 
 ### Варианты
 
-- Около 656 нм: ΔE = 13,6 · (1/4 − 1/9) ≈ 1,89 эВ, λ = 1240 / 1,89 ≈ 656 нм.
-- Около 365 нм: ΔE = 13,6 / 4 = 3,4 эВ.
-- Около 91 нм: ΔE = 13,6 эВ.
+- Около 656 нм: ΔE = 13,6 · (1/4 − 1/9) ≈ 1,89 эВ.
+- Около 365 нм: ΔE = 13,6 / 4 = 3,4 эВ, уровень n = 2.
+- Около 91 нм: ΔE = 13,6 эВ, вся энергия ионизации.
 
 ### Ответ
 
@@ -73,9 +73,9 @@ An electron in a hydrogen atom drops from level n = 3 to level n = 2. What is th
 
 ### Options
 
-- About 656 nm: ΔE = 13.6 · (1/4 − 1/9) ≈ 1.89 eV, λ = 1240 / 1.89 ≈ 656 nm.
-- About 365 nm: ΔE = 13.6 / 4 = 3.4 eV.
-- About 91 nm: ΔE = 13.6 eV.
+- About 656 nm: ΔE = 13.6 · (1/4 − 1/9) ≈ 1.89 eV.
+- About 365 nm: ΔE = 13.6 / 4 = 3.4 eV, the n = 2 level.
+- About 91 nm: ΔE = 13.6 eV, the whole ionisation energy.
 
 ### Answer
 

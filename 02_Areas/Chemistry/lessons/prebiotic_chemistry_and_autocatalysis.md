@@ -73,7 +73,7 @@ An autocatalytic molecule doubles in number every hour. How many molecules does 
 
 ### Options
 
-- 1024: the number doubles 10 times, 2¹⁰ = 1024.
+- 1024: it doubles 10 times, 2¹⁰ = 1024.
 - 10: one molecule is added every hour.
 - 20: two molecules are added every hour.
 

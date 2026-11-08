@@ -77,7 +77,7 @@ Why can’t one genetic variant always predict an observable trait exactly?
 
 ### Options
 
-- A trait may depend on several genes, regulation, and environmental conditions
+- A trait can depend on several genes, regulation, and environment
 - DNA does not carry hereditary information
 - Every cell in an organism must have a different DNA sequence
 
