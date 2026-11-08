@@ -21,7 +21,7 @@ extension OrchestratorClient {
         }
         for try await line in bytes.lines {
             try Task.checkCancellation()
-            if let event = AssistantStreamEvent.parse(line: line) { await onEvent(event) }
+            if let event = AssistantStreamEvent.parse(line: line) { onEvent(event) }
         }
     }
 
