@@ -1,0 +1,513 @@
+{
+  "read_on": "2026-11-08",
+  "note_ru": "Названия тем курсов Skillbox на аккаунте владельца (вход через Lerna, personal.lerna.uz). Уроки Skillbox не копируются: только названия, ссылки и связь с уроками пути. Прогресс на дату чтения; дальше владелец отмечает темы галочками в приложении. Проверка практических работ куратором отключена: проверку делают «Спросить Claude» и локальный тьютор.",
+  "note_en": "Topic titles of the Skillbox courses on the owner's account (signed in through Lerna). Skillbox lessons are not copied: only titles, links and the mapping to path lessons. Progress as of the reading date; afterwards the owner ticks topics in the app. Tutor review of practical work is off: checking is done by Ask Claude and the local tutor.",
+  "roles": {
+    "main": "главная дорожка: модуль Python пути Творца / the main track: the Python module of the Creator path",
+    "engineering": "инженерная дорожка: параллельно с путём ИИ, понемногу каждый день / the engineering track: alongside the AI path, a little every day",
+    "stage1": "рядом с этапом 1 пути: работа с готовыми ИИ-сервисами / next to stage 1: working with ready AI services"
+  },
+  "courses": [
+    {
+      "id": "python-basic-plus",
+      "title": "Основы Python. Часть 1",
+      "url": "https://go.skillbox.ru/profession/profession-python/python-basic-plus",
+      "role": "main",
+      "progress_on_read": {
+        "videos": "59/82",
+        "practical": "18/25",
+        "tests": "1/2",
+        "continue": "10.4 Решение задач с помощью вложенных циклов"
+      },
+      "modules": [
+        {
+          "n": 1,
+          "title": "Python intro",
+          "done": true,
+          "path": [
+            "variables_and_types"
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Основы",
+          "done": true,
+          "path": [
+            "variables_and_types"
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Операторы, выражения",
+          "done": true,
+          "path": [
+            "variables_and_types"
+          ]
+        },
+        {
+          "n": 4,
+          "title": "Условный оператор if, ветвления",
+          "done": true,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 5,
+          "title": "Условный оператор if: продолжение",
+          "done": true,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 6,
+          "title": "Цикл while",
+          "done": true,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 7,
+          "title": "For: циклы со счётчиком",
+          "done": true,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 8,
+          "title": "For: циклы со счётчиком. Часть 2",
+          "done": true,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 9,
+          "title": "Цикл for: работа со строками",
+          "done": true,
+          "path": [
+            "strings_files_and_exceptions"
+          ]
+        },
+        {
+          "n": 10,
+          "title": "Вложенные циклы",
+          "done": false,
+          "current": true,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 11,
+          "title": "Числа с плавающей точкой (int/float)",
+          "done": false,
+          "path": [
+            "variables_and_types"
+          ]
+        },
+        {
+          "n": 12,
+          "title": "Функции",
+          "done": false,
+          "path": [
+            "conditions_loops_functions"
+          ]
+        },
+        {
+          "n": 13,
+          "title": "float 2",
+          "done": false,
+          "path": [
+            "variables_and_types"
+          ]
+        },
+        {
+          "n": 14,
+          "title": "Итоговое тестирование «Основы Python. Часть 1»",
+          "done": false,
+          "path": []
+        }
+      ]
+    },
+    {
+      "id": "python-basic",
+      "title": "Основы Python. Часть 2",
+      "url": "https://go.skillbox.ru/profession/profession-python/python-basic",
+      "role": "main",
+      "progress_on_read": {
+        "videos": "0/117",
+        "practical": "0/20",
+        "tests": "0/4"
+      },
+      "modules": [
+        {
+          "n": 1,
+          "title": "Установка и настройка IDE",
+          "path": []
+        },
+        {
+          "n": 2,
+          "title": "Базовые коллекции 1 - list (списки)",
+          "path": [
+            "collections_and_loops"
+          ]
+        },
+        {
+          "n": 3,
+          "title": "Методы для работы со списками",
+          "path": [
+            "collections_and_loops"
+          ]
+        },
+        {
+          "n": 4,
+          "title": "List comprehensions",
+          "path": [
+            "collections_and_loops"
+          ]
+        },
+        {
+          "n": 5,
+          "title": "Базовые коллекции: Строки",
+          "path": [
+            "strings_files_and_exceptions"
+          ]
+        },
+        {
+          "n": 6,
+          "title": "Базовые коллекции: словари и множества",
+          "path": [
+            "collections_and_loops"
+          ]
+        },
+        {
+          "n": 7,
+          "title": "Базовые коллекции: Кортежи",
+          "path": [
+            "collections_and_loops"
+          ]
+        },
+        {
+          "n": 8,
+          "title": "Функции — Рекурсия",
+          "path": []
+        },
+        {
+          "n": 9,
+          "title": "Работа с файлами",
+          "path": [
+            "strings_files_and_exceptions"
+          ]
+        },
+        {
+          "n": 10,
+          "title": "Исключения: работа с ошибками",
+          "path": [
+            "strings_files_and_exceptions"
+          ]
+        },
+        {
+          "n": 11,
+          "title": "Введение в ООП",
+          "path": [
+            "python_classes_and_composition"
+          ]
+        },
+        {
+          "n": 12,
+          "title": "Основные принципы ООП",
+          "path": [
+            "python_classes_and_composition"
+          ]
+        },
+        {
+          "n": 13,
+          "title": "Итераторы и генераторы",
+          "path": []
+        },
+        {
+          "n": 14,
+          "title": "Декораторы: базовый уровень",
+          "path": []
+        },
+        {
+          "n": 15,
+          "title": "Углублённая работа с классами и встроенные декораторы",
+          "path": [
+            "python_classes_and_composition"
+          ]
+        },
+        {
+          "n": 16,
+          "title": "Декораторы: продвинутый уровень",
+          "path": []
+        },
+        {
+          "n": 17,
+          "title": "Элементы функционального программирования или «Функции: конец»",
+          "path": []
+        },
+        {
+          "n": 18,
+          "title": "Библиотеки для работы с данными",
+          "path": [
+            "from_loops_to_matrices"
+          ]
+        },
+        {
+          "n": 19,
+          "title": "Подготовка к созданию Telegram бота",
+          "path": []
+        },
+        {
+          "n": 20,
+          "title": "Подготовка к созданию ВК-бота",
+          "path": []
+        }
+      ]
+    },
+    {
+      "id": "python-advanced",
+      "title": "Python Advanced",
+      "url": "https://go.skillbox.ru/profession/profession-python/python-advanced",
+      "role": "engineering",
+      "progress_on_read": {
+        "videos": "0/135",
+        "practical": "0/22"
+      },
+      "modules": [
+        {
+          "n": 1,
+          "title": "Flask: начало (виртуальные окружения, Git)",
+          "path": [
+            "virtual_environments_and_dependencies",
+            "debugging_tests_and_git"
+          ]
+        },
+        {
+          "n": 2,
+          "title": "Основы работы в Linux",
+          "path": []
+        },
+        {
+          "n": 3,
+          "title": "Основы культуры CI. Часть 1",
+          "path": []
+        },
+        {
+          "n": 4,
+          "title": "Flask",
+          "path": []
+        },
+        {
+          "n": 5,
+          "title": "Основы работы в Linux 2",
+          "path": []
+        },
+        {
+          "n": 6,
+          "title": "Основы дебаггинга и профилирования. Часть 1",
+          "path": [
+            "debugging_tests_and_git"
+          ]
+        },
+        {
+          "n": 7,
+          "title": "Logger",
+          "path": []
+        },
+        {
+          "n": 8,
+          "title": "Деплой приложения на linux",
+          "path": []
+        },
+        {
+          "n": 9,
+          "title": "Docker",
+          "path": []
+        },
+        {
+          "n": 10,
+          "title": "Базы данных. Часть 1",
+          "path": []
+        },
+        {
+          "n": 11,
+          "title": "Мультипоточность. Часть 1",
+          "path": [
+            "concurrency_async_await"
+          ]
+        },
+        {
+          "n": 12,
+          "title": "Мультипоточность. Часть 2",
+          "path": [
+            "concurrency_async_await"
+          ]
+        },
+        {
+          "n": 13,
+          "title": "Базы данных. Часть 2",
+          "path": []
+        },
+        {
+          "n": 14,
+          "title": "MVC, язык шаблонов",
+          "path": []
+        },
+        {
+          "n": 15,
+          "title": "Основы сетевого взаимодействия",
+          "path": []
+        },
+        {
+          "n": 16,
+          "title": "Базы данных. Часть 3",
+          "path": []
+        },
+        {
+          "n": 17,
+          "title": "REST API",
+          "path": [
+            "http_and_apis"
+          ]
+        },
+        {
+          "n": 18,
+          "title": "Документирование. Стандарты API",
+          "path": []
+        },
+        {
+          "n": 19,
+          "title": "Базы данных. Часть 4",
+          "path": []
+        },
+        {
+          "n": 20,
+          "title": "ORM SQLAlchemy",
+          "path": []
+        },
+        {
+          "n": 21,
+          "title": "ORM SQLAlchemy. Часть 2",
+          "path": []
+        },
+        {
+          "n": 22,
+          "title": "Очереди задач",
+          "path": []
+        },
+        {
+          "n": 23,
+          "title": "CGI server",
+          "path": []
+        },
+        {
+          "n": 24,
+          "title": "Основы дебаггинга и профилирования. Часть 2",
+          "path": [
+            "debugging_tests_and_git"
+          ]
+        },
+        {
+          "n": 25,
+          "title": "Многозадачность: asyncio",
+          "path": [
+            "concurrency_async_await"
+          ]
+        },
+        {
+          "n": 26,
+          "title": "Многозадачность: fastAPI",
+          "path": [
+            "http_and_apis"
+          ]
+        },
+        {
+          "n": 27,
+          "title": "Postgres + Миграции",
+          "path": []
+        },
+        {
+          "n": 28,
+          "title": "Безопасность",
+          "path": [
+            "application_security_injection_and_secrets"
+          ]
+        },
+        {
+          "n": 29,
+          "title": "Pytest, Mock",
+          "path": [
+            "debugging_tests_and_git"
+          ]
+        },
+        {
+          "n": 30,
+          "title": "Основы культуры CI 3: linters",
+          "path": []
+        },
+        {
+          "n": 31,
+          "title": "CD, автоматический деплой",
+          "path": []
+        }
+      ]
+    },
+    {
+      "id": "django",
+      "title": "Python-фреймворк Django",
+      "url": "https://go.skillbox.ru/profession/profession-python",
+      "role": "engineering",
+      "progress_on_read": {
+        "videos": "0/116",
+        "practical": "0/16",
+        "tests": "0/2"
+      },
+      "modules": [],
+      "why_ru": "Веб-фреймворк: чтобы выкладывать свои модели и сервисы для людей.",
+      "why_en": "A web framework: to put your own models and services in front of people."
+    },
+    {
+      "id": "practice-python",
+      "title": "Практика Python (2 этапа)",
+      "url": "https://go.skillbox.ru/profession/profession-python",
+      "role": "engineering",
+      "modules": []
+    },
+    {
+      "id": "sql-basics",
+      "title": "Основы SQL",
+      "url": "https://go.skillbox.ru/profession/profession-python",
+      "role": "engineering",
+      "progress_on_read": {
+        "videos": "0/46",
+        "tests": "0/1"
+      },
+      "modules": []
+    },
+    {
+      "id": "neural-networks-practical",
+      "title": "Нейросети: практический курс (тестовый доступ)",
+      "url": "https://go.skillbox.ru/profession/neural-networks-practical-course-paket",
+      "role": "stage1",
+      "progress_on_read": {
+        "videos": "8/134",
+        "tests": "0/6"
+      },
+      "modules": [],
+      "path": [
+        "live_model_tokens_temperature",
+        "asking_well_and_structured_output"
+      ],
+      "why_ru": "Как пользоваться готовыми ИИ-сервисами: ChatGPT, картинки, видео, звук. Рядом с этапом 1, где ты работаешь с живой моделью. Инструменты здесь меняются быстрее всего.",
+      "why_en": "How to use ready AI services; next to stage 1. These tools change fastest."
+    }
+  ],
+  "decision_ru": "Решение владельца 2026-11-08: вся профессия «Python-разработчик» входит в путь, включая веб и Django: инженерная база пригодится. Нейросетевой курс — рядом с этапом 1.",
+  "decision_en": "Owner's decision 2026-11-08: the whole Python developer profession is part of the path, web and Django included. The neural networks course sits next to stage 1."
+}
