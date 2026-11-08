@@ -54,6 +54,20 @@ from learning_progress import StudyProgressStore, default_database_path
 from network_safety import is_loopback_http_url as _is_loopback_http_url
 from obsidian_worker import ObsidianWorker
 from python_practice import execute_python_practice
+from assistant_router import (
+    TIER_PAID,
+    AssistantProvider,
+    AssistantSettingsStore,
+    ClaudeCLIProvider,
+    GeminiProvider,
+    OllamaProvider,
+    OpenAICompatibleFreeProvider,
+    build_messages as build_assistant_messages,
+    build_system_prompt as build_assistant_system_prompt,
+    internet_reachable,
+    is_free_openrouter_model,
+    route_stream as assistant_route_stream,
+)
 from provider_usage import (
     ProviderUsageStore,
     TokenUsage,
@@ -228,6 +242,12 @@ OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 OPENROUTER_MODEL = os.getenv("OPENROUTER_MODEL", "openrouter/free").strip() or "openrouter/free"
 OPENROUTER_FREE_MODEL = "openrouter/free"
 
+# Groq → free plan for the in-lesson assistant (project-plan/FREE_MODELS_RU_EN.md).
+# Groq → бесплатный план для ассистента в уроках.
+GROQ_KEY = os.getenv("GROQ_API_KEY", "")
+GROQ_BASE_URL = "https://api.groq.com/openai/v1"
+GROQ_ASSISTANT_MODEL = os.getenv("GROQ_ASSISTANT_MODEL", "openai/gpt-oss-120b").strip() or "openai/gpt-oss-120b"
+
 # User-configured OpenAI-compatible endpoint (for example a hosted API or a
 # loopback service). Endpoint/model preferences are local; the key uses Keychain.
 OPENAI_COMPATIBLE_KEY = os.getenv("OPENAI_COMPATIBLE_API_KEY", "")
@@ -281,6 +301,7 @@ PROVIDER_ENV_NAMES = {
     "gemini": "GEMINI_API_KEY",
     "kimi": "KIMI_API_KEY",
     "openrouter": "OPENROUTER_API_KEY",
+    "groq": "GROQ_API_KEY",
     "compatible": "OPENAI_COMPATIBLE_API_KEY",
     "obsidian": "OBSIDIAN_API_KEY",
 }
@@ -288,6 +309,7 @@ _ENV_PROVIDER_VALUES = {
     "GEMINI_API_KEY": GEMINI_KEY,
     "KIMI_API_KEY": KIMI_KEY,
     "OPENROUTER_API_KEY": OPENROUTER_KEY,
+    "GROQ_API_KEY": GROQ_KEY,
     "OPENAI_COMPATIBLE_API_KEY": OPENAI_COMPATIBLE_KEY,
     "OBSIDIAN_API_KEY": OBSIDIAN_API_KEY,
 }
@@ -345,6 +367,8 @@ def _load_provider_secrets() -> None:
             globals()["KIMI_KEY"] = secret
         elif provider == "openrouter":
             globals()["OPENROUTER_KEY"] = secret
+        elif provider == "groq":
+            globals()["GROQ_KEY"] = secret
         elif provider == "compatible":
             globals()["OPENAI_COMPATIBLE_KEY"] = secret
         elif provider == "obsidian":
@@ -376,6 +400,8 @@ def _provider_secret_value(provider: str) -> str:
         return KIMI_KEY
     if provider == "openrouter":
         return OPENROUTER_KEY
+    if provider == "groq":
+        return GROQ_KEY
     if provider == "compatible":
         return OPENAI_COMPATIBLE_KEY
     return OBSIDIAN_API_KEY
@@ -388,6 +414,8 @@ def _set_provider_secret_value(provider: str, value: str) -> None:
         globals()["KIMI_KEY"] = value
     elif provider == "openrouter":
         globals()["OPENROUTER_KEY"] = value
+    elif provider == "groq":
+        globals()["GROQ_KEY"] = value
     elif provider == "compatible":
         globals()["OPENAI_COMPATIBLE_KEY"] = value
     elif provider == "obsidian":
@@ -5685,6 +5713,192 @@ async def _handle_local_stream(
             "X-Accel-Buffering": "no",
         },
     )
+
+# ─── In-lesson assistant / ассистент в уроке ──────────
+
+# Claude by the owner's subscription answers first; `sonnet` spends the shared
+# 5-hour limit slower than Opus. Claude по подписке отвечает первым; `sonnet`
+# медленнее расходует общий 5-часовой лимит, чем Opus.
+ASSISTANT_CLAUDE_MODEL = os.getenv("COLIDEV_ASSISTANT_CLAUDE_MODEL", "sonnet").strip() or "sonnet"
+ASSISTANT_LOCAL_MODELS = (DEFAULT_OLLAMA_TUTOR_MODEL, "qwen2.5-coder:7b")
+# Ollama Cloud has no free plan (2026-11-08): listed, marked paid, never called.
+# У Ollama Cloud нет бесплатного плана: в списке, помечена платной, не вызывается.
+ASSISTANT_OLLAMA_CLOUD_MODELS = ("gpt-oss:120b-cloud",)
+ASSISTANT_KEY_PROVIDERS = {"openrouter": "openrouter", "gemini": "gemini", "groq": "groq"}
+assistant_settings = AssistantSettingsStore(app_data_dir() / "assistant-models.json")
+
+
+def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
+    """All assistant providers; keys are read from the backend at call time, never returned."""
+    return {
+        "claude_cli": ClaudeCLIProvider(model=ASSISTANT_CLAUDE_MODEL, language=language),
+        "openrouter": OpenAICompatibleFreeProvider(
+            id="openrouter",
+            label="OpenRouter",
+            base_url=OPENROUTER_URL.removesuffix("/chat/completions"),
+            status_path="/key",
+            key=lambda: OPENROUTER_KEY,
+            model=OPENROUTER_FREE_MODEL,
+            extra_headers={"HTTP-Referer": "https://github.com/weekendbuildings/coli-dev", "X-Title": "ColiDev"},
+            free_model_check=is_free_openrouter_model,
+        ),
+        "gemini": GeminiProvider(key=lambda: GEMINI_KEY, model=GEMINI_FLASH_MODEL),
+        "groq": OpenAICompatibleFreeProvider(
+            id="groq",
+            label="Groq",
+            base_url=GROQ_BASE_URL,
+            status_path="/models",
+            key=lambda: GROQ_KEY,
+            model=GROQ_ASSISTANT_MODEL,
+        ),
+        "ollama_local": OllamaProvider(
+            id="ollama_local", label="Ollama", base_url=OLLAMA_BASE, models=ASSISTANT_LOCAL_MODELS,
+            num_predict=OLLAMA_NUM_PREDICT,
+        ),
+        "ollama_cloud": OllamaProvider(
+            id="ollama_cloud", label="Ollama Cloud", base_url=OLLAMA_BASE, models=ASSISTANT_OLLAMA_CLOUD_MODELS,
+            tier=TIER_PAID,
+        ),
+    }
+
+
+# Replaced in tests. Подменяются в тестах.
+_assistant_provider_factory = _assistant_providers
+_assistant_network_ok = internet_reachable
+
+
+class AssistantContextModel(BaseModel):
+    kind: Literal["lesson", "skillbox"] = "lesson"
+    title: str = Field(min_length=1, max_length=300)
+    subject: str = Field(default="", max_length=120)
+    goal: str = Field(default="", max_length=2000)
+    position: str = Field(default="", max_length=300)
+    course: str = Field(default="", max_length=200)
+    track: str = Field(default="", max_length=200)
+
+
+class AssistantTurnModel(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str = Field(min_length=1, max_length=20_000)
+
+
+class AssistantAskRequest(BaseModel):
+    language: Literal["ru", "en"] = "ru"
+    context: AssistantContextModel
+    question: str = Field(min_length=1, max_length=8_000)
+    code: str | None = Field(default=None, max_length=20_000)
+    history: list[AssistantTurnModel] = Field(default_factory=list, max_length=24)
+
+
+class AssistantModelsRequest(BaseModel):
+    order: list[str] = Field(default_factory=list, max_length=16)
+    disabled: list[str] = Field(default_factory=list, max_length=16)
+
+
+def _assistant_no_answer_message(language: str) -> str:
+    if language == "ru":
+        return (
+            "Ни одна модель не ответила. Проверь вход в Claude (`claude auth login` в Терминале), "
+            "ключи в «Управление → Интеграции» и что Ollama запущена."
+        )
+    return (
+        "No model answered. Check the Claude sign-in (`claude auth login` in Terminal), "
+        "the keys in Control → Integrations and that Ollama is running."
+    )
+
+
+@app.post("/assistant/ask/stream")
+@limiter.limit(CHAT_RATE_LIMIT)
+async def assistant_ask_stream(request: Request, req: AssistantAskRequest):
+    """Ask about the current lesson; the router streams the first model that answers.
+
+    Вопрос по текущему уроку; маршрутизатор передаёт поток первой ответившей модели.
+    """
+    _require_local_settings_request(request)
+    settings = assistant_settings.get()
+    providers = _assistant_provider_factory(req.language)
+    ordered = [providers[provider_id] for provider_id in settings.order if provider_id in providers]
+    system = build_assistant_system_prompt(req.context.model_dump(), req.language)
+    messages = build_assistant_messages(
+        [turn.model_dump() for turn in req.history], req.question, req.code, req.language
+    )
+
+    async def events():
+        yield ": connected\n\n"
+        async for event in assistant_route_stream(
+            ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok
+        ):
+            if event["type"] == "error":
+                event = {**event, "error": _assistant_no_answer_message(req.language)}
+            elif event["type"] == "done":
+                logger.info(
+                    "Assistant answered",
+                    extra={"provider": event["provider"], "model": event["model"]},
+                )
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        events(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
+
+
+async def _assistant_models_payload(check: bool) -> dict[str, Any]:
+    settings = assistant_settings.get()
+    providers = _assistant_provider_factory()
+    statuses: dict[str, dict[str, Any]] = {}
+    if check:
+        async def probe(provider: AssistantProvider) -> dict[str, Any]:
+            if provider.tier == TIER_PAID:
+                return {"configured": provider.configured(), "reachable": None, "detail": "paid_blocked"}
+            try:
+                return await asyncio.wait_for(provider.status(), timeout=20)
+            except Exception:
+                return {"configured": provider.configured(), "reachable": False, "detail": "timeout"}
+
+        ids = [pid for pid in settings.order if pid in providers]
+        results = await asyncio.gather(*(probe(providers[pid]) for pid in ids))
+        statuses = dict(zip(ids, results))
+    rows = []
+    for provider_id in settings.order:
+        provider = providers.get(provider_id)
+        if provider is None:
+            continue
+        status = statuses.get(provider_id) or {"configured": provider.configured(), "reachable": None, "detail": ""}
+        row = {
+            "id": provider_id,
+            "label": provider.label,
+            "tier": provider.tier,
+            "model": provider.model,
+            "enabled": provider_id not in settings.disabled and provider.tier != TIER_PAID,
+            "configured": bool(status.get("configured")),
+            "reachable": status.get("reachable"),
+            "detail": str(status.get("detail") or ""),
+            "key_provider": ASSISTANT_KEY_PROVIDERS.get(provider_id),
+        }
+        if isinstance(status.get("remaining_today"), int):
+            row["remaining_today"] = status["remaining_today"]
+        rows.append(row)
+    return {"order": settings.order, "disabled": settings.disabled, "providers": rows}
+
+
+@app.get("/settings/assistant-models")
+async def get_assistant_models(request: Request, check: bool = Query(default=False)):
+    """Order and state of assistant models; never key values. Порядок и состояние моделей, без ключей."""
+    _require_local_settings_request(request)
+    return await _assistant_models_payload(check)
+
+
+@app.put("/settings/assistant-models")
+async def save_assistant_models(payload: AssistantModelsRequest, request: Request):
+    _require_local_settings_request(request)
+    try:
+        await asyncio.to_thread(assistant_settings.save, payload.order, payload.disabled)
+    except OSError:
+        raise HTTPException(status_code=503, detail="Could not save assistant model settings") from None
+    return await _assistant_models_payload(False)
+
 
 # ─── Obsidian API endpoints ──────────────────────────
 
