@@ -183,16 +183,23 @@ def test_extra_subjects_hide_by_default_and_tools_never_hide():
     assert "ForEach(store.customCurriculum.subjects)" in sidebar
 
 
-def test_lesson_has_ask_claude_and_freshness_label():
+def test_lesson_has_in_app_assistant_and_freshness_label():
     views = (APP / "LearningViews.swift").read_text(encoding="utf-8")
     strings = (APP / "L10n.swift").read_text(encoding="utf-8")
-    ask = views.split("private func askClaude(about document: CurriculumLessonDocument) {", 1)[1].split("\n    }\n", 1)[0]
+    assistant = (APP / "LessonAssistantView.swift").read_text(encoding="utf-8")
+    request = views.split("private func assistantRequest(for document: CurriculumLessonDocument) -> LessonAssistantRequest {", 1)[1].split("\n    }\n", 1)[0]
 
-    assert '.accessibilityIdentifier("lesson.askClaude")' in views
-    assert "NSPasteboard.general.setString(prompt, forType: .string)" in ask
-    assert "NSWorkspace.shared.open(AskClaudePrompt.newChatURL)" in ask
-    assert "URLSession" not in ask and "api.anthropic" not in views
-    prompt = strings.split('"lesson.askClaude.prompt": ("', 1)[1].split("\n", 1)[0]
+    # The old "Ask Claude" opened claude.ai in Safari; part 3 answers inside the app.
+    # Старая «Спросить Claude» открывала claude.ai в Safari; часть 3 отвечает внутри приложения.
+    assert "lesson.askClaude" not in views and "lesson.askClaude" not in strings
+    assert "claude.ai" not in views and "NSWorkspace.shared.open(AssistantExplainPrompt" not in views
+    assert '.accessibilityIdentifier("lesson.assistant")' in views
+    assert ".sheet(item: $assistantRequest)" in views and "LessonAssistantView(request: request)" in views
+    assert "AssistantExplainPrompt.make(" in request and '"assistant.position.path"' in request
+    assert "OrchestratorClient.streamAssistant(" in assistant and "/assistant/ask/stream" in assistant
+    assert "OrchestratorClient.saveObsidianNote(path: path, content: note)" in assistant
+    assert "NSWorkspace.shared.open" not in assistant and "api.anthropic" not in views
+    prompt = strings.split('"assistant.explain.prompt": ("', 1)[1].split("\n", 1)[0]
     assert prompt.count("%@") == 6 and "простым русским языком" in prompt and "задание для практики" in prompt
     assert 'hasPrefix("source_review_interval_days:")' in views
     assert "LessonFreshness.make(" in views and '.accessibilityIdentifier("lesson.freshness.overdue")' in views

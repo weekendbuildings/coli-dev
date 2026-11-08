@@ -376,11 +376,14 @@ def test_progress_screen_knows_every_lab_and_reads_the_results_file() -> None:
     assert "reloadLabsIfChanged()" in view and "NSApplication.didBecomeActiveNotification" in view
     sidebar = (app / "ContentView.swift").read_text(encoding="utf-8").split("} detail: {", 1)[0]
     assert 'sidebarRow(.creatorProgress, L10n.text("nav.creatorProgress", store.language)' in sidebar
-    # Skillbox topics have no "Ask Claude" that opens a website: a future in-app "Explain" plugs into `explain`.
-    # У тем Skillbox нет «Спросить Claude», открывающей сайт: будущая «Объяснить» подключается через `explain`.
+    # Skillbox topics have no "Ask Claude" that opens a website: "Explain" opens the in-app assistant (part 3).
+    # У тем Skillbox нет «Спросить Claude», открывающей сайт: «Объяснить» открывает ассистента в приложении (часть 3).
     assert "AskClaudePrompt" not in view and "NSWorkspace.shared.open" not in view
     assert "var explain: ((SkillboxItem, SkillboxCourse, SkillboxTrack) -> Void)? = nil" in view
     assert "if let explain {" in view
-    assert "CreatorProgressView(openLesson: openPathLesson)" in (app / "ContentView.swift").read_text(encoding="utf-8")
+    content = (app / "ContentView.swift").read_text(encoding="utf-8")
+    assert "CreatorProgressView(openLesson: openPathLesson, explain: explainSkillboxTopic)" in content
+    explain = content.split("private func explainSkillboxTopic(", 1)[1].split("\n    }\n", 1)[0]
+    assert '"skillbox.explain.prompt"' in explain and 'kind: "skillbox"' in explain and "startExplaining: true" in explain
     ignored = (LABS.parent.parent / ".gitignore").read_text(encoding="utf-8")
     assert "01_Projects/creator_labs/.results.json*" in ignored

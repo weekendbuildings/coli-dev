@@ -629,7 +629,7 @@ struct CurriculumModuleView: View {
     @State private var notebookExportDocument: NotebookLMSourceFile?
     @State private var notebookExportFilename = "Creator-lesson.md"
     @State private var notebookExportStatus: String?
-    @State private var askClaudeStatus: String?
+    @State private var assistantRequest: LessonAssistantRequest?
     @State private var isSavingObsidianNote = false
     @State private var obsidianSaveStatus: String?
 
@@ -749,18 +749,12 @@ struct CurriculumModuleView: View {
                         }
                         .buttonStyle(.borderedProminent)
 
-                        Button { askClaude(about: document) } label: {
-                            Label(L10n.text("lesson.askClaude", store.language), systemImage: "bubble.left.and.bubble.right")
+                        Button { assistantRequest = assistantRequest(for: document) } label: {
+                            Label(L10n.text("assistant.open", store.language), systemImage: "bubble.left.and.bubble.right")
                         }
                         .buttonStyle(.bordered)
-                        .help(L10n.text("lesson.askClaude.help", store.language))
-                        .accessibilityIdentifier("lesson.askClaude")
-                    }
-                    if let askClaudeStatus {
-                        Text(askClaudeStatus)
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .accessibilityIdentifier("lesson.askClaude.status")
+                        .help(L10n.text("assistant.open.help", store.language))
+                        .accessibilityIdentifier("lesson.assistant")
                     }
 
                     if !document.plainWords.isEmpty {
@@ -1152,6 +1146,10 @@ struct CurriculumModuleView: View {
                     .frame(minWidth: 680, minHeight: 520)
             }
         }
+        .sheet(item: $assistantRequest) { request in
+            LessonAssistantView(request: request)
+                .environmentObject(store)
+        }
         }
     }
 
@@ -1194,24 +1192,31 @@ struct CurriculumModuleView: View {
         }
     }
 
-    /// Copies a prompt about this lesson and opens a new chat on claude.ai. No API call: the learner pastes it themselves.
-    /// Копирует подсказку об этом уроке и открывает новый чат claude.ai. Без API: ученик вставляет подсказку сам.
-    private func askClaude(about document: CurriculumLessonDocument) {
-        let prompt = AskClaudePrompt.make(
-            template: L10n.text("lesson.askClaude.prompt", store.language),
+    /// Lesson context for the in-app assistant: topic, goal and where the learner is on the path.
+    /// Контекст урока для ассистента в приложении: тема, цель и где ученик на пути.
+    private func assistantRequest(for document: CurriculumLessonDocument) -> LessonAssistantRequest {
+        let lesson = AIPathLesson(subject: subject, resource: resource)
+        var position = subject.title(in: store.language)
+        if let step = AIPathCatalog.step(of: lesson), let module = AIPathCatalog.module(of: lesson) {
+            position = String(
+                format: L10n.text("assistant.position.path", store.language),
+                "\(step.number)", "\(AIPathCatalog.steps.count)", "\(module.number)"
+            )
+        }
+        let context = AssistantLessonContext(
+            kind: "lesson",
+            title: document.title,
+            subject: subject.title(in: store.language),
+            goal: AssistantExplainPrompt.shortGoal(document.objective),
+            position: position
+        )
+        let prompt = AssistantExplainPrompt.make(
+            template: L10n.text("assistant.explain.prompt", store.language),
             title: document.title,
             subject: subject.title(in: store.language),
             goal: document.objective
         )
-        NSPasteboard.general.clearContents()
-        guard NSPasteboard.general.setString(prompt, forType: .string) else {
-            askClaudeStatus = L10n.text("lesson.askClaude.failed", store.language)
-            return
-        }
-        askClaudeStatus = L10n.text(
-            NSWorkspace.shared.open(AskClaudePrompt.newChatURL) ? "lesson.askClaude.copied" : "lesson.askClaude.openFailed",
-            store.language
-        )
+        return LessonAssistantRequest(context: context, explainPrompt: prompt)
     }
 
     private func copyNotebookQuestion(_ question: String) {

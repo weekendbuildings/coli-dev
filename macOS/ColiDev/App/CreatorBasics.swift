@@ -66,14 +66,13 @@ enum RussianPlural {
     }
 }
 
-/// The prompt that "Ask Claude" copies. It only opens claude.ai in the browser: no API call, nothing is sent by itself.
-/// Подсказка, которую копирует «Спросить Claude». Кнопка только открывает claude.ai в браузере: без API, сама ничего не отправляет.
-enum AskClaudePrompt {
-    static let newChatURL = URL(string: "https://claude.ai/new")!
+/// The "Explain the topic" request the lesson assistant sends (answered inside the app, no browser).
+/// Просьба «Объясни тему», которую отправляет ассистент урока (ответ внутри приложения, без браузера).
+enum AssistantExplainPrompt {
     /// Long goals are cut so the prompt stays readable. / Длинная цель обрезается, чтобы подсказка оставалась читаемой.
     static let goalLimit = 600
 
-    /// `template` comes from `L10n` (`lesson.askClaude.prompt`) and has three `%@`: title, subject, goal.
+    /// `template` comes from `L10n` (`assistant.explain.prompt`) and has three `%@`: title, subject, goal.
     /// `template` берётся из `L10n` и содержит три `%@`: название, предмет, цель.
     static func make(template: String, title: String, subject: String, goal: String) -> String {
         String(format: template, clean(title), clean(subject), shortGoal(goal))

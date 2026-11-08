@@ -58,15 +58,13 @@ struct VerifyCreatorBasics {
 
         // Claude prompt / Подсказка для Claude
         let template = "Урок «%@» (%@).\nЦель: %@\nОбъясни простым русским языком."
-        let prompt = AskClaudePrompt.make(template: template, title: "Автоматы", subject: "Программирование",
+        let prompt = AssistantExplainPrompt.make(template: template, title: "Автоматы", subject: "Программирование",
                                           goal: "Понять **жадный** выбор\nи 100% исследование.")
         require(prompt == "Урок «Автоматы» (Программирование).\nЦель: Понять жадный выбор и 100％ исследование.\nОбъясни простым русским языком.",
                 "the prompt fills title, subject and a cleaned goal: \(prompt)")
         let long = String(repeating: "слово ", count: 300)
-        let short = AskClaudePrompt.shortGoal(long)
-        require(short.count <= AskClaudePrompt.goalLimit + 1 && short.hasSuffix("…") && !short.contains("  "), "a long goal is cut at a word")
-        require(AskClaudePrompt.newChatURL.absoluteString == "https://claude.ai/new", "opens a new chat on claude.ai")
-        require(AskClaudePrompt.newChatURL.query == nil, "nothing about the lesson goes into the URL")
+        let short = AssistantExplainPrompt.shortGoal(long)
+        require(short.count <= AssistantExplainPrompt.goalLimit + 1 && short.hasSuffix("…") && !short.contains("  "), "a long goal is cut at a word")
 
         print("Creator basics verified / Основа «Творца» проверена")
     }

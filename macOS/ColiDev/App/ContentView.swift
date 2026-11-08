@@ -69,6 +69,7 @@ struct ContentView: View {
     @State private var practiceFocusRoute: StudyLessonRoute?
     @State private var didOpenCell3DUITestRoute = false
     @State private var didOpenFrictionUITestRoute = false
+    @State private var skillboxAssistantRequest: LessonAssistantRequest?
     @AppStorage(StudyProgressionPolicy.previewLockedLessonsDefaultsKey) private var previewLockedLessons = false
     @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
 
@@ -129,8 +130,12 @@ struct ContentView: View {
                     AIPathView(openLesson: openPathLesson)
                         .navigationTitle(L10n.text("path.title", store.language))
                 case .creatorProgress:
-                    CreatorProgressView(openLesson: openPathLesson)
+                    CreatorProgressView(openLesson: openPathLesson, explain: explainSkillboxTopic)
                         .navigationTitle(L10n.text("nav.creatorProgress", store.language))
+                        .sheet(item: $skillboxAssistantRequest) { request in
+                            LessonAssistantView(request: request)
+                                .environmentObject(store)
+                        }
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
                 case .subject(let subject):
@@ -314,6 +319,19 @@ struct ContentView: View {
         SidebarRow(title: title, symbol: symbol, tint: tint, identifier: identifier, isSelected: (selection ?? .today) == section) {
             selection = section
         }
+    }
+
+    /// "Explain" on a Skillbox topic: the assistant explains it in the app and says what may be out of date by 2026.
+    /// «Объяснить» у темы Skillbox: ассистент объясняет её в приложении и говорит, что могло устареть к 2026 году.
+    private func explainSkillboxTopic(_ item: SkillboxItem, _ course: SkillboxCourse, _ track: SkillboxTrack) {
+        let trackTitle = L10n.text("skillbox.track.\(track.rawValue)", store.language)
+        let prompt = String(format: L10n.text("skillbox.explain.prompt", store.language), item.title, course.title, trackTitle)
+        skillboxAssistantRequest = LessonAssistantRequest(
+            context: AssistantLessonContext(kind: "skillbox", title: item.title, subject: "Python",
+                                            course: course.title, track: trackTitle),
+            explainPrompt: prompt,
+            startExplaining: true
+        )
     }
 
     private func openPathLesson(_ lesson: AIPathLesson) {
@@ -3720,11 +3738,14 @@ private struct ManagementView: View {
                     .padding(.top, 6)
                 }
 
+                AssistantModelsSettingsView()
+
                 GroupBox(label: Text(L10n.text("settings.keysTitle", store.language))) {
                     VStack(alignment: .leading, spacing: 12) {
                         ProviderKeyEntryView(provider: "gemini", title: "Gemini")
                         ProviderKeyEntryView(provider: "kimi", title: "Kimi")
                         ProviderKeyEntryView(provider: "openrouter", title: "OpenRouter")
+                        ProviderKeyEntryView(provider: "groq", title: "Groq")
                         VStack(alignment: .leading, spacing: 10) {
                             Text(L10n.text("management.compatibleTitle", store.language))
                                 .font(.headline)
