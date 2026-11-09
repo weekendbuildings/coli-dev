@@ -1,48 +1,70 @@
 import AppKit
 import Carbon.HIToolbox
+import Combine
 import SwiftUI
 
-// The workshop over other apps: global hot keys through Carbon RegisterEventHotKey (no Accessibility
-// permission needed) and a floating panel that does not pull the main window forward.
-// Мастерская поверх других программ: глобальные горячие клавиши через Carbon RegisterEventHotKey
-// (разрешение на управление компьютером не нужно) и плавающая панель, которая не тянет за собой главное окно.
+
+// Calling the workshop from anywhere: global hot keys through Carbon RegisterEventHotKey (no Accessibility
+// permission needed), the wake word (WorkshopWake.swift) and a soft sound. The HUD comes up on the current desktop.
+// Вызов Мастерской откуда угодно: глобальные горячие клавиши через Carbon RegisterEventHotKey (разрешение на
+// управление компьютером не нужно), слово вызова (WorkshopWake.swift) и мягкий звук. HUD появляется на текущем столе.
 
 enum WorkshopHotKey: UInt32 {
-    /// ⌃⌥T — show or hide the panel. / Показать или спрятать панель.
-    case panel = 1
+    /// Show the HUD; the key is chosen in Settings (⌃⌥T by default). / Показать HUD; клавиша выбирается в настройках.
+    case summon = 1
     /// ⌃⌥V — hold to talk, release to send. / Держи и говори, отпусти — вопрос уйдёт.
     case voice = 2
 
-    var keyCode: UInt32 { self == .panel ? UInt32(kVK_ANSI_T) : UInt32(kVK_ANSI_V) }
-    static let modifiers = UInt32(controlKey | optionKey)
     static let signature: OSType = 0x5456_5254 // "TVRT"
 }
 
-/// Connects the hot keys, the floating panel and the shared models. / Связывает горячие клавиши, панель и общие модели.
+/// Connects the hot keys, the wake word and the shared models. / Связывает горячие клавиши, слово вызова и модели.
 @MainActor
 final class WorkshopHub {
     static let shared = WorkshopHub()
 
+    let wake = WorkshopWakeListener()
     private weak var store: LearningStore?
     private weak var model: WorkshopModel?
-    private var panel: NSPanel?
     private var handler: EventHandlerRef?
-    private var hotKeys: [EventHotKeyRef] = []
-    private(set) var registered: [WorkshopHotKey] = []
+    private var hotKeys: [WorkshopHotKey: EventHotKeyRef] = [:]
+    private var subscriptions: Set<AnyCancellable> = []
+    private var turn: (started: Date, lastChange: Date, transcript: String)?
 
     func connect(store: LearningStore, model: WorkshopModel) {
+        guard self.store == nil else { return }
         self.store = store
         self.model = model
-        registerHotKeys()
+        installHandler()
+        _ = register(.summon, HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey)))
+        _ = register(.voice, HUDShortcut.voice)
+        wake.onWake = { [weak self] in
+            self?.summon()
+            self?.listenAfterWake()
+        }
+        // Listening pauses while the owner talks or the assistant speaks. / Пауза, пока владелец говорит или ассистент отвечает.
+        Publishers.CombineLatest(model.voice.$isListening, model.voice.$isSpeaking)
+            .map { $0 || $1 }
+            .removeDuplicates()
+            .sink { [weak self] _ in Task { await self?.refreshWake() } }
+            .store(in: &subscriptions)
+        store.$language.removeDuplicates().sink { [weak self] _ in Task { await self?.refreshWake() } }.store(in: &subscriptions)
     }
 
-    private func registerHotKeys() {
+    func refreshWake(askPermissions: Bool = false) async {
+        guard let store, let model else { return }
+        // A turn after the wake word still runs: keep the microphone for it. / Вопрос после слова ещё идёт.
+        await wake.refresh(language: store.language, paused: model.voice.isListening || model.voice.isSpeaking || turn != nil,
+                           askPermissions: askPermissions)
+    }
+
+    private func installHandler() {
         guard handler == nil else { return }
         var types = [
             EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyPressed)),
             EventTypeSpec(eventClass: OSType(kEventClassKeyboard), eventKind: UInt32(kEventHotKeyReleased)),
         ]
-        let status = InstallEventHandler(GetApplicationEventTarget(), { _, event, _ -> OSStatus in
+        InstallEventHandler(GetApplicationEventTarget(), { _, event, _ -> OSStatus in
             guard let event else { return OSStatus(eventNotHandledErr) }
             var hotKeyID = EventHotKeyID()
             let read = GetEventParameter(event, EventParamName(kEventParamDirectObject), EventParamType(typeEventHotKeyID), nil,
@@ -54,27 +76,42 @@ final class WorkshopHub {
             DispatchQueue.main.async { WorkshopHub.shared.handle(key, pressed: pressed) }
             return noErr
         }, types.count, &types, nil, &handler)
-        guard status == noErr else { return }
-        for key in [WorkshopHotKey.panel, .voice] {
-            var reference: EventHotKeyRef?
-            let id = EventHotKeyID(signature: WorkshopHotKey.signature, id: key.rawValue)
-            if RegisterEventHotKey(key.keyCode, WorkshopHotKey.modifiers, id, GetApplicationEventTarget(), 0, &reference) == noErr,
-               let reference {
-                hotKeys.append(reference)
-                registered.append(key)
-            }
+    }
+
+    private func register(_ key: WorkshopHotKey, _ shortcut: HUDShortcut) -> Bool {
+        if let old = hotKeys.removeValue(forKey: key) { UnregisterEventHotKey(old) }
+        var reference: EventHotKeyRef?
+        let id = EventHotKeyID(signature: WorkshopHotKey.signature, id: key.rawValue)
+        guard RegisterEventHotKey(shortcut.keyCode, shortcut.modifiers, id, GetApplicationEventTarget(), 0, &reference) == noErr,
+              let reference else { return false }
+        hotKeys[key] = reference
+        return true
+    }
+
+    /// False when another app holds the key; the old one is put back. / false, если клавиша занята; старая возвращается.
+    func setSummonShortcut(_ shortcut: HUDShortcut) -> Bool {
+        let previous = HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey))
+        if register(.summon, shortcut) {
+            UserDefaults.standard.set(shortcut.id, forKey: HUDShortcut.defaultsKey)
+            return true
         }
+        _ = register(.summon, previous)
+        return false
     }
 
     private func handle(_ key: WorkshopHotKey, pressed: Bool) {
         guard let store, let model else { return }
         switch key {
-        case .panel:
-            if pressed { togglePanel() }
+        case .summon:
+            guard pressed else { return }
+            if NSApp.isActive, let window = Self.mainWindow, window.isKeyWindow, window.isVisible {
+                NSApp.hide(nil)
+            } else {
+                summon()
+            }
         case .voice:
             if pressed {
-                showPanel()
-                model.tab = .chat
+                summon()
                 model.startListening(language: store.language)
             } else {
                 model.stopListeningAndAsk(store: store)
@@ -82,35 +119,61 @@ final class WorkshopHub {
         }
     }
 
-    func togglePanel() {
-        if let panel, panel.isVisible, panel.isKeyWindow {
-            panel.orderOut(nil)
-        } else {
-            showPanel()
-        }
+    // MARK: Summon / вызов
+
+    /// The app window, not the menu-bar panel. / Окно приложения, а не панель строки меню.
+    static var mainWindow: NSWindow? {
+        NSApp.windows.first { !($0 is NSPanel) && $0.canBecomeMain && $0.contentView != nil }
     }
 
-    func showPanel() {
-        guard let store, let model else { return }
-        if panel == nil {
-            let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 460, height: 620),
-                                styleMask: [.titled, .closable, .resizable, .nonactivatingPanel, .fullSizeContentView],
-                                backing: .buffered, defer: false)
-            panel.title = L10n.text("workshop.title", store.language)
-            panel.isFloatingPanel = true
-            panel.level = .floating
-            panel.hidesOnDeactivate = false
-            panel.isReleasedWhenClosed = false
-            panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
-            panel.contentView = NSHostingView(rootView:
-                WorkshopView(model: model, compact: true)
-                    .environmentObject(store)
-                    .tint(AppPalette.accent.color)
-                    .frame(minWidth: 380, minHeight: 420)
-            )
-            panel.center()
-            self.panel = panel
+    /// The HUD on the current desktop, in front of every app, with a soft sound. / HUD на текущем столе, поверх всех программ.
+    func summon() {
+        if UserDefaults.standard.object(forKey: WorkshopWakeListener.soundKey) as? Bool ?? true {
+            let sound = NSSound(named: NSSound.Name("Purr")) ?? NSSound(named: NSSound.Name("Tink"))
+            sound?.volume = 0.45
+            sound?.play()
         }
-        panel?.makeKeyAndOrderFront(nil)
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = Self.mainWindow {
+            window.collectionBehavior.insert(.moveToActiveSpace)
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            // No window left: reopening the app makes SwiftUI create one. / Окна нет: повторное открытие создаёт его.
+            NSWorkspace.shared.open(Bundle.main.bundleURL)
+        }
+        NotificationCenter.default.post(name: .workshopSummon, object: nil)
+    }
+
+    /// After the wake word the question is heard until a pause, then sent. / После слова вызова вопрос слушается до паузы.
+    private func listenAfterWake() {
+        guard let store, let model, turn == nil, !model.voice.isListening else { return }
+        let now = Date()
+        turn = (now, now, "")
+        wake.stop()
+        model.startListening(language: store.language)
+        followTurn()
+    }
+
+    private func followTurn() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self, let store = self.store, let model = self.model, var current = self.turn else { return }
+            let now = Date()
+            if model.voice.transcript != current.transcript {
+                current.transcript = model.voice.transcript
+                current.lastChange = now
+                self.turn = current
+            }
+            switch HUDVoiceTurn.ending(transcript: current.transcript, started: current.started, lastChange: current.lastChange, now: now) {
+            case .ask?:
+                self.turn = nil
+                model.stopListeningAndAsk(store: store)
+            case .cancel?:
+                self.turn = nil
+                Task { _ = await model.voice.stop(); await self.refreshWake() }
+            case nil:
+                self.followTurn()
+            }
+        }
     }
 }

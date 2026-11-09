@@ -420,3 +420,59 @@ struct HUDTask: Codable, Equatable {
         return Array(([HUDTask(text: clean, date: date)] + tasks).prefix(limit))
     }
 }
+
+// MARK: - Summoning the workshop / вызов Мастерской
+
+/// The wake word, heard on the Mac. / Слово вызова, распознаётся на Mac.
+enum HUDWakeWord {
+    /// "Creator" as the Russian and English recognizers write it, and «Творец». / Как его пишут оба распознавателя.
+    static let words: Set<String> = ["creator", "креатор", "криэйтор", "криейтор", "крейтор", "креэйтор", "творец"]
+    static let hints = ["Creator", "Креатор", "Творец"]
+
+    /// Whole words only, any case, ё = е; «Путь Творца» does not count. / Только целые слова; «Творца» не считается.
+    static func count(in transcript: String) -> Int {
+        transcript.lowercased().replacingOccurrences(of: "ё", with: "е")
+            .split(whereSeparator: { !$0.isLetter }).filter { words.contains(String($0)) }.count
+    }
+}
+
+/// When a voice turn after the wake word ends. / Когда кончается голосовой вопрос после слова вызова.
+enum HUDVoiceTurn {
+    enum Ending: Equatable { case ask, cancel }
+    static let pause: TimeInterval = 1.8
+    static let silenceLimit: TimeInterval = 7
+    static let longest: TimeInterval = 40
+
+    /// A pause after words sends the question; silence from the start or a too long turn ends it.
+    /// Пауза после слов отправляет вопрос; тишина с самого начала или слишком долгий вопрос — конец.
+    static func ending(transcript: String, started: Date, lastChange: Date, now: Date) -> Ending? {
+        let heard = !transcript.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        if now.timeIntervalSince(started) >= longest { return heard ? .ask : .cancel }
+        if heard { return now.timeIntervalSince(lastChange) >= pause ? .ask : nil }
+        return now.timeIntervalSince(started) >= silenceLimit ? .cancel : nil
+    }
+}
+
+/// Global hot keys to call the workshop; Carbon codes written out so this file needs no Carbon.
+/// Горячие клавиши вызова Мастерской; коды Carbon записаны числами, чтобы файл не зависел от Carbon.
+struct HUDShortcut: Identifiable, Equatable {
+    let id: String
+    let keyCode: UInt32
+    let modifiers: UInt32
+    let title: String
+
+    static let control: UInt32 = 0x1000, option: UInt32 = 0x0800, command: UInt32 = 0x0100, shift: UInt32 = 0x0200
+    static let all = [
+        HUDShortcut(id: "ctrl-opt-t", keyCode: 0x11, modifiers: control | option, title: "⌃⌥T"),
+        HUDShortcut(id: "ctrl-opt-space", keyCode: 0x31, modifiers: control | option, title: "⌃⌥Space"),
+        HUDShortcut(id: "opt-space", keyCode: 0x31, modifiers: option, title: "⌥Space"),
+        HUDShortcut(id: "ctrl-opt-c", keyCode: 0x08, modifiers: control | option, title: "⌃⌥C"),
+        HUDShortcut(id: "cmd-shift-c", keyCode: 0x08, modifiers: command | shift, title: "⇧⌘C"),
+        HUDShortcut(id: "f13", keyCode: 0x69, modifiers: 0, title: "F13"),
+    ]
+    /// ⌃⌥V stays the hold-to-talk key. / ⌃⌥V остаётся клавишей «держи и говори».
+    static let voice = HUDShortcut(id: "ctrl-opt-v", keyCode: 0x09, modifiers: control | option, title: "⌃⌥V")
+    static let defaultsKey = "workshop.summon.shortcut"
+
+    static func find(_ id: String?) -> HUDShortcut { all.first { $0.id == id } ?? all[0] }
+}

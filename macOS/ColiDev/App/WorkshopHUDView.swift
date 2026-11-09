@@ -362,7 +362,8 @@ final class WorkshopHUDController: ObservableObject {
             HUDListItem(name: text("hud.set.voice"), detail: text(model.speakAnswers ? "hud.set.voice.on" : "hud.set.voice.off"), path: nil),
             HUDListItem(name: text("hud.set.models"), detail: text("hud.set.models.detail"), path: nil),
             HUDListItem(name: text("hud.set.access"), detail: text("hud.set.access.detail"), path: nil),
-            HUDListItem(name: text("hud.set.keys"), detail: text("hud.set.keys.detail"), path: nil),
+            HUDListItem(name: text("hud.set.keys"), detail: format("hud.set.keys.detail",
+                        HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey)).title, HUDShortcut.voice.title), path: nil),
         ], empty: "")
         let nextName = next.map(lessonName) ?? text("hud.rail.path")
         return HUDDataMessage(

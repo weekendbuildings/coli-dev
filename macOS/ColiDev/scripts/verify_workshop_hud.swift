@@ -21,6 +21,7 @@ struct VerifyWorkshopHUD {
         text()
         html()
         paths()
+        summon()
         page()
         if failures > 0 {
             print("\(failures) check(s) failed / проверок не прошло: \(failures)")
@@ -116,6 +117,23 @@ struct VerifyWorkshopHUD {
         check(script.hasPrefix("window.creatorApp && window.creatorApp.receive({"), "script calls the page / скрипт зовёт страницу")
         check(script.contains("\"mode\":\"speak\"") && script.contains("\\u2028") && !script.contains("\u{2028}"), "JSON safe for JavaScript / безопасный JSON")
         check(HUDScript.receive(HUDConfirmMessage(id: nil, text: "")).map { !$0.contains("\"id\"") } ?? false, "no id hides the bar / без id полоса скрыта")
+    }
+
+    static func summon() {
+        check(HUDWakeWord.count(in: "Creator, объясни LoRA") == 1, "Creator heard / слово услышано")
+        check(HUDWakeWord.count(in: "креатор… КРЕАТОР!") == 2, "any case, twice / любой регистр, дважды")
+        check(HUDWakeWord.count(in: "Привет, Творец") == 1 && HUDWakeWord.count(in: "Путь Творца") == 0, "«Творец» yes, «Творца» no / форма слова")
+        check(HUDWakeWord.count(in: "recreation creators") == 0, "only whole words / только целые слова")
+        let t0 = Date(timeIntervalSince1970: 0)
+        check(HUDVoiceTurn.ending(transcript: "", started: t0, lastChange: t0, now: t0.addingTimeInterval(2)) == nil, "wait for words / ждём слов")
+        check(HUDVoiceTurn.ending(transcript: "", started: t0, lastChange: t0, now: t0.addingTimeInterval(8)) == .cancel, "silence ends quietly / тишина — отмена")
+        check(HUDVoiceTurn.ending(transcript: "что такое", started: t0, lastChange: t0.addingTimeInterval(3), now: t0.addingTimeInterval(4)) == nil, "still talking / ещё говорит")
+        check(HUDVoiceTurn.ending(transcript: "что такое LoRA", started: t0, lastChange: t0.addingTimeInterval(3), now: t0.addingTimeInterval(5)) == .ask, "a pause sends / пауза отправляет")
+        check(HUDVoiceTurn.ending(transcript: "долго", started: t0, lastChange: t0.addingTimeInterval(39.9), now: t0.addingTimeInterval(40)) == .ask, "a long turn is cut / долгий вопрос обрезается")
+        let combos = HUDShortcut.all.map { "\($0.keyCode)-\($0.modifiers)" }
+        check(Set(HUDShortcut.all.map(\.id)).count == HUDShortcut.all.count && Set(combos).count == combos.count, "presets unique / клавиши разные")
+        check(!combos.contains("\(HUDShortcut.voice.keyCode)-\(HUDShortcut.voice.modifiers)"), "voice key kept apart / ⌃⌥V отдельно")
+        check(HUDShortcut.find(nil).title == "⌃⌥T" && HUDShortcut.find("f13").keyCode == 0x69 && HUDShortcut.find("bad").id == "ctrl-opt-t", "default ⌃⌥T / по умолчанию ⌃⌥T")
     }
 
     static func paths() {

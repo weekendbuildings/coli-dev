@@ -11,7 +11,7 @@
     <key>CFBundleShortVersionString</key>
     <string>$(MARKETING_VERSION)</string>
     <key>NSMicrophoneUsageDescription</key>
-    <string>Creator listens to your voice question in the Workshop only while you hold the microphone button or ⌃⌥V. Speech is recognized on this Mac.</string>
+    <string>Creator listens to your voice question in the Workshop while you hold the microphone button or ⌃⌥V and, if you turn it on in Settings, for the word “Creator” to call the Workshop. Speech is recognized on this Mac only.</string>
     <key>NSSpeechRecognitionUsageDescription</key>
     <string>Creator turns your voice question into text on this Mac (on-device recognition) to ask the Workshop assistant.</string>
     <key>NSAppTransportSecurity</key>

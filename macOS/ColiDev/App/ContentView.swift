@@ -260,6 +260,11 @@ struct ContentView: View {
             // Первая раскладка может всё равно показать боковую панель; HUD нужно всё окно.
             if Self.startSection == .workshop { DispatchQueue.main.async { columns = .detailOnly } }
         }
+        // The wake word or the hot key brings the HUD up. / Слово вызова или горячая клавиша показывают HUD.
+        .onReceive(NotificationCenter.default.publisher(for: .workshopSummon)) { _ in
+            selection = .workshop
+            columns = .detailOnly
+        }
         .task {
             // Первый запуск backend может сорваться: без повтора «Сегодня» остаётся с нулями.
             // The first backend start can fail: without a retry Today stays at zero.
@@ -1725,6 +1730,7 @@ private struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
             }
+            WorkshopSummonSection()
             Section {
                 Toggle(isOn: $soundEffectsEnabled) {
                     Text(L10n.text("settings.soundEffects", store.language))
