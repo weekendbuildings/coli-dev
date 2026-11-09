@@ -476,3 +476,64 @@ struct HUDShortcut: Identifiable, Equatable {
 
     static func find(_ id: String?) -> HUDShortcut { all.first { $0.id == id } ?? all[0] }
 }
+
+// MARK: - ElevenLabs voice / голос ElevenLabs
+
+/// The request and the fallback rules for spoken answers through ElevenLabs. Any failure means the macOS voice.
+/// Запрос и правила отката для ответа голосом ElevenLabs. Любая ошибка — значит системный голос macOS.
+enum ElevenLabsVoice {
+    /// "Rachel", one of the default voices; with the multilingual model it also speaks Russian.
+    /// «Rachel», голос по умолчанию; с многоязычной моделью говорит и по-русски.
+    static let defaultVoiceID = "21m00Tcm4TlvDq8EV7DXq"
+    /// Flash v2.5: multilingual, fast and the cheapest per character. / Многоязычная, быстрая и самая экономная по символам.
+    static let model = "eleven_flash_v2_5"
+    /// Every character counts against the owner's plan, so long answers are cut. / Символы тратят тариф владельца.
+    static let maxCharacters = 1200
+    static let voiceDefaultsKey = "workshop.voice.elevenlabs.voice"
+    static let keychainService = "ColiDev.voice"
+    static let keychainAccount = "elevenlabs"
+    /// After a key or quota failure the Mac voice is used for a while, so failing calls do not repeat.
+    /// После ошибки ключа или лимита какое-то время говорит системный голос, чтобы не повторять неудачные запросы.
+    static let cooldown: TimeInterval = 15 * 60
+
+    enum Failure: String, Equatable { case key, quota, server, network, audio }
+
+    static func voiceID(_ stored: String?) -> String {
+        let trimmed = (stored ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let valid = !trimmed.isEmpty && trimmed.count <= 64 && trimmed.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber) }
+        return valid ? trimmed : defaultVoiceID
+    }
+
+    /// Whole sentences up to the limit. / Целые предложения до предела.
+    static func spoken(_ text: String) -> String {
+        guard text.count > maxCharacters else { return text }
+        let head = String(text.prefix(maxCharacters))
+        if let end = head.lastIndex(where: { ".!?…".contains($0) }), head.distance(from: head.startIndex, to: end) > maxCharacters / 2 {
+            return String(head[...end])
+        }
+        return head
+    }
+
+    static func request(text: String, voiceID: String, key: String) -> URLRequest? {
+        guard !key.isEmpty, !text.isEmpty,
+              let url = URL(string: "https://api.elevenlabs.io/v1/text-to-speech/\(Self.voiceID(voiceID))?output_format=mp3_44100_128"),
+              let body = try? JSONSerialization.data(withJSONObject: ["text": spoken(text), "model_id": model]) else { return nil }
+        var request = URLRequest(url: url, timeoutInterval: 20)
+        request.httpMethod = "POST"
+        request.setValue(key, forHTTPHeaderField: "xi-api-key")
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("audio/mpeg", forHTTPHeaderField: "Accept")
+        request.httpBody = body
+        return request
+    }
+
+    /// nil means play the audio. ElevenLabs reports a spent quota as 401 "quota_exceeded".
+    /// nil — играть звук. Исчерпанный лимит ElevenLabs приходит как 401 «quota_exceeded».
+    static func failure(status: Int, body: Data) -> Failure? {
+        if status == 200 { return body.isEmpty ? .audio : nil }
+        let text = String(decoding: body.prefix(2000), as: UTF8.self).lowercased()
+        if status == 402 || status == 429 || text.contains("quota_exceeded") || text.contains("quota") { return .quota }
+        if status == 401 || status == 403 { return .key }
+        return .server
+    }
+}

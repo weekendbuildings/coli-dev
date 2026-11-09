@@ -227,37 +227,7 @@ final class WorkshopVoice: ObservableObject {
     func stopSpeaking() { speaker.stop() }
 }
 
-/// AVSpeechSynthesizer with the best installed voice for the language. / Лучший установленный голос для языка.
-final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendable {
-    private let synthesizer = AVSpeechSynthesizer()
-    var onSpeakingChanged: ((Bool) -> Void)?
-
-    override init() {
-        super.init()
-        synthesizer.delegate = self
-    }
-
-    static func bestVoice(languagePrefix: String) -> AVSpeechSynthesisVoice? {
-        let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix(languagePrefix) }
-        return voices.max { $0.quality.rawValue < $1.quality.rawValue }
-            ?? AVSpeechSynthesisVoice(language: languagePrefix == "ru" ? "ru-RU" : "en-US")
-    }
-
-    func speak(_ text: String, language: String) {
-        stop()
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = Self.bestVoice(languagePrefix: language)
-        synthesizer.speak(utterance)
-    }
-
-    func stop() {
-        if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
-    }
-
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) { onSpeakingChanged?(true) }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { onSpeakingChanged?(false) }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { onSpeakingChanged?(false) }
-}
+// WorkshopSpeaker (ElevenLabs or the macOS voice) is in WorkshopElevenLabs.swift. / Голос ответов — в WorkshopElevenLabs.swift.
 
 #if compiler(>=6.2)
 /// macOS 26+ SpeechAnalyzer with SpeechTranscriber: microphone buffers are converted to the analyzer's format.

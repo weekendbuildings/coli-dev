@@ -1731,6 +1731,7 @@ private struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
             WorkshopSummonSection()
+            WorkshopVoiceSection()
             Section {
                 Toggle(isOn: $soundEffectsEnabled) {
                     Text(L10n.text("settings.soundEffects", store.language))

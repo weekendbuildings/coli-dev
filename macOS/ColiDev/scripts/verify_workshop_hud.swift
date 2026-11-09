@@ -22,6 +22,7 @@ struct VerifyWorkshopHUD {
         html()
         paths()
         summon()
+        elevenLabs()
         page()
         if failures > 0 {
             print("\(failures) check(s) failed / проверок не прошло: \(failures)")
@@ -134,6 +135,28 @@ struct VerifyWorkshopHUD {
         check(Set(HUDShortcut.all.map(\.id)).count == HUDShortcut.all.count && Set(combos).count == combos.count, "presets unique / клавиши разные")
         check(!combos.contains("\(HUDShortcut.voice.keyCode)-\(HUDShortcut.voice.modifiers)"), "voice key kept apart / ⌃⌥V отдельно")
         check(HUDShortcut.find(nil).title == "⌃⌥T" && HUDShortcut.find("f13").keyCode == 0x69 && HUDShortcut.find("bad").id == "ctrl-opt-t", "default ⌃⌥T / по умолчанию ⌃⌥T")
+    }
+
+    static func elevenLabs() {
+        check(ElevenLabsVoice.request(text: "Привет", voiceID: "", key: "") == nil, "no key → no request / без ключа запроса нет")
+        guard let request = ElevenLabsVoice.request(text: "Привет", voiceID: "../evil?x=1", key: "k") else {
+            check(false, "request with a key / запрос с ключом")
+            return
+        }
+        check(request.url?.absoluteString == "https://api.elevenlabs.io/v1/text-to-speech/\(ElevenLabsVoice.defaultVoiceID)?output_format=mp3_44100_128",
+              "bad voice ID falls back to the default / плохой ID голоса заменён: \(request.url?.absoluteString ?? "")")
+        check(request.value(forHTTPHeaderField: "xi-api-key") == "k" && request.httpMethod == "POST", "key in the header only / ключ только в заголовке")
+        check(!(request.url?.absoluteString.contains("k?") ?? true) && request.url?.query == "output_format=mp3_44100_128", "key never in the URL / ключа нет в адресе")
+        let body = (try? JSONSerialization.jsonObject(with: request.httpBody ?? Data())) as? [String: String]
+        check(body?["model_id"] == ElevenLabsVoice.model && body?["text"] == "Привет", "body / тело запроса")
+        let long = String(repeating: "Предложение про градиент. ", count: 100)
+        check(ElevenLabsVoice.spoken(long).count <= ElevenLabsVoice.maxCharacters && ElevenLabsVoice.spoken(long).hasSuffix("."), "quota guard / предел символов")
+        check(ElevenLabsVoice.failure(status: 200, body: Data([1])) == nil, "audio plays / звук играет")
+        check(ElevenLabsVoice.failure(status: 200, body: Data()) == .audio, "empty audio → Mac voice / пустой звук")
+        check(ElevenLabsVoice.failure(status: 401, body: Data("{\"detail\":{\"status\":\"quota_exceeded\"}}".utf8)) == .quota, "401 quota_exceeded is the quota / лимит")
+        check(ElevenLabsVoice.failure(status: 401, body: Data("{\"detail\":{\"status\":\"invalid_api_key\"}}".utf8)) == .key, "bad key / неверный ключ")
+        check(ElevenLabsVoice.failure(status: 429, body: Data()) == .quota && ElevenLabsVoice.failure(status: 503, body: Data()) == .server, "429 and 5xx")
+        check(ElevenLabsVoice.voiceID("pNInz6obpgDQGcFmaJgB") == "pNInz6obpgDQGcFmaJgB", "a real voice ID is kept / настоящий ID сохраняется")
     }
 
     static func paths() {
