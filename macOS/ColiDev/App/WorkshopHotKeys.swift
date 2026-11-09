@@ -42,6 +42,7 @@ final class WorkshopHub {
             self?.summon()
             self?.listenAfterWake()
         }
+        wake.onClose = { if WorkshopOverlay.shared.isVisible { WorkshopOverlay.shared.hide() } }
         // Listening pauses while the owner talks or the assistant speaks. / Пауза, пока владелец говорит или ассистент отвечает.
         Publishers.CombineLatest(model.voice.$isListening, model.voice.$isSpeaking)
             .map { $0 || $1 }
@@ -124,11 +125,6 @@ final class WorkshopHub {
 
     /// The workshop overlay on the current desktop, over every app, with a soft sound. / Оверлей поверх всех программ.
     func summon() {
-        if UserDefaults.standard.object(forKey: WorkshopWakeListener.soundKey) as? Bool ?? true {
-            let sound = NSSound(named: NSSound.Name("Purr")) ?? NSSound(named: NSSound.Name("Tink"))
-            sound?.volume = 0.45
-            sound?.play()
-        }
         // The overlay over everything; the window inside the app stays as it is. / Оверлей поверх всего; окно приложения не трогаем.
         WorkshopOverlay.shared.show()
     }
@@ -151,6 +147,13 @@ final class WorkshopHub {
                 current.transcript = model.voice.transcript
                 current.lastChange = now
                 self.turn = current
+            }
+            if HUDWakeWord.isClose(current.transcript) {
+                // "Close workshop" is a command, not a question. / «Закрыть мастерскую» — команда, а не вопрос.
+                self.turn = nil
+                Task { _ = await model.voice.stop(); await self.refreshWake() }
+                WorkshopOverlay.shared.hide()
+                return
             }
             switch HUDVoiceTurn.ending(transcript: current.transcript, started: current.started, lastChange: current.lastChange, now: now) {
             case .ask?:

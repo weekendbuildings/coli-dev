@@ -116,24 +116,39 @@ final class WorkshopOverlay {
             return
         }
         let panel = self.panel ?? makePanel()
+        guard !isVisible else { return }
         let screen = NSScreen.screens.first { NSMouseInRect(NSEvent.mouseLocation, $0.frame, false) } ?? NSScreen.main
-        if let screen { panel.setFrame(screen.frame, display: true) }
+        let full = screen?.frame ?? panel.frame
+        // Grows from slightly smaller with a fade, like macOS opening a space. / Вырастает из чуть меньшего с проявлением.
+        panel.setFrame(full.insetBy(dx: full.width * 0.035, dy: full.height * 0.035), display: false)
         panel.alphaValue = 0
         panel.orderFrontRegardless()
         panel.makeKey()
+        Self.play("Purr", volume: 0.45)
         NSAnimationContext.runAnimationGroup { context in
-            context.duration = 0.35
-            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            context.duration = 0.42
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.2, 0.8, 0.2, 1)
             panel.animator().alphaValue = 1
+            panel.animator().setFrame(full, display: true)
         }
     }
 
+    private static func play(_ name: String, volume: Float) {
+        guard UserDefaults.standard.object(forKey: WorkshopWakeListener.soundKey) as? Bool ?? true else { return }
+        let sound = NSSound(named: NSSound.Name(name)) ?? NSSound(named: NSSound.Name("Tink"))
+        sound?.volume = volume
+        sound?.play()
+    }
+
     func hide() {
-        guard let panel, panel.isVisible else { return }
+        guard let panel, panel.isVisible, panel.alphaValue > 0.5 else { return }
+        let full = panel.frame
+        Self.play("Bottle", volume: 0.3)
         NSAnimationContext.runAnimationGroup({ context in
-            context.duration = 0.3
-            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            context.duration = 0.32
+            context.timingFunction = CAMediaTimingFunction(controlPoints: 0.4, 0, 1, 1)
             panel.animator().alphaValue = 0
+            panel.animator().setFrame(full.insetBy(dx: full.width * 0.035, dy: full.height * 0.035), display: true)
         }, completionHandler: {
             Task { @MainActor in if panel.alphaValue < 0.05 { panel.orderOut(nil) } }
         })

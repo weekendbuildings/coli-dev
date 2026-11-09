@@ -620,3 +620,10 @@ def test_network_check_is_remembered_and_expires():
     assert asyncio.run(network()) is True and answers == [False]
     now[0] = 31
     assert asyncio.run(network()) is False
+
+
+def test_code_model_only_for_the_learners_code():
+    assert ar.has_code("Почему падает?\n```python\nprint(1/0)\n```")
+    assert not ar.has_code("Чем список отличается от кортежа в Python?")
+    augmented = 'JSON [{"excerpt": "import sys; print(sys.argv)"}]\n\nСообщение ученика:\nЧем список отличается от кортежа?'
+    assert not ar.has_code(augmented), "code in RAG excerpts must not switch to the coder model"

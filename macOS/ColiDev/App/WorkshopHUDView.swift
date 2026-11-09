@@ -176,7 +176,10 @@ final class WorkshopHUDController: ObservableObject {
         refreshFolders()
         refreshProviders()
         bridge.onMessage = { [weak self] in self?.handle($0) }
-        model.voiceHandler = { [weak self] heard in self?.routeToAgent(heard, byVoice: true) ?? false }
+        model.voiceHandler = { [weak self] heard in
+            if HUDWakeWord.isClose(heard) { WorkshopOverlay.shared.hide(); return true }
+            return self?.routeToAgent(heard, byVoice: true) ?? false
+        }
         let changes: [AnyPublisher<Void, Never>] = [
             store.objectWillChange.map { _ in }.eraseToAnyPublisher(),
             model.objectWillChange.map { _ in }.eraseToAnyPublisher(),
@@ -289,7 +292,7 @@ final class WorkshopHUDController: ObservableObject {
                                     sources: text("hud.sources.pending"), open: false)
         }
         var sources = last.answeredBy.map { format("hud.sources", $0, last.model ?? "") } ?? text("hud.sources.pending")
-        if cloudKeysMissing, last.answeredBy == "Ollama" { sources += "\n" + text("hud.keys.missing") }
+        if last.answeredBy == "Ollama" { sources += "\n" + text(cloudKeysMissing ? "hud.keys.missing" : "hud.sources.local") }
         let checked = last.sources ?? []
         sources += "\n" + (checked.isEmpty ? text("hud.sources.none")
             : checked.map { source in

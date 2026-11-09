@@ -181,6 +181,12 @@ def build_workshop_messages(history: Iterable[dict[str, str]], question: str, vo
     if voice:
         content += ("\n\n(Вопрос задан голосом: ответь коротко, 2–4 предложения.)" if language == "ru"
                     else "\n\n(Asked by voice: answer briefly, 2–4 sentences.)")
+    # The language and length rule sits right after the question: local models follow the last instruction best.
+    # Правило языка и длины — сразу после вопроса: локальные модели лучше всего слушают последнюю инструкцию.
+    content += ("\n\n(Ответь по-русски, ясно и коротко — обычно 3–8 предложений, если не просят подробнее. "
+                "Если не знаешь — так и скажи.)" if language == "ru"
+                else "\n\n(Answer in English, clearly and briefly — usually 3–8 sentences unless asked for more. "
+                     "If you do not know, say so.)")
     return [*turns, {"role": "user", "content": content}]
 
 

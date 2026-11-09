@@ -600,6 +600,18 @@ class GeminiProvider(_HTTPProvider):
                                 yield text
 
 
+OLLAMA_CONTEXT = 8192
+
+
+def has_code(text: str) -> bool:
+    """A code block or obvious Python in the learner's own words, not in the RAG excerpts placed before them.
+    Блок кода или явный Python в словах ученика, а не во фрагментах RAG перед ними."""
+    for label in ("Сообщение ученика:\n", "Learner message:\n"):
+        if label in text:
+            text = text.rsplit(label, 1)[1]
+    return "```" in text or any(marker in text for marker in ("def ", "import ", "print(", "Traceback", "for i in "))
+
+
 class OllamaProvider(_HTTPProvider):
     """Local Ollama (and, marked paid, Ollama Cloud models through the same server)."""
 
@@ -650,7 +662,10 @@ class OllamaProvider(_HTTPProvider):
         except Exception as exc:
             raise ProviderFailure("failed" if self.tier == TIER_LOCAL else classify_exception(exc),
                                   "Ollama is not running") from None
-        model = next((found for m in self.models if (found := self._matches(m, installed))), None)
+        # The coder model goes first only for questions with code. / Модель для кода — первой только для вопросов с кодом.
+        last = next((m.get("content", "") for m in reversed(messages) if m.get("role") == "user"), "")
+        order = sorted(self.models, key=lambda name: 0 if ("coder" in name) == has_code(last) else 1)
+        model = next((found for m in order if (found := self._matches(m, installed))), None)
         if not model:
             raise ProviderFailure("not_configured", "no listed model is installed")
         yield ModelInfo(model)
@@ -658,7 +673,10 @@ class OllamaProvider(_HTTPProvider):
             "model": model,
             "stream": True,
             "think": False,
-            "options": {"num_predict": self.num_predict},
+            # 8K context: the system prompt, RAG excerpts and history must fit, or the language rule at the top is cut.
+            # Контекст 8K: системная подсказка, фрагменты RAG и история должны влезть, иначе правило языка обрежется.
+            "options": {"num_predict": self.num_predict, "num_ctx": OLLAMA_CONTEXT, "temperature": 0.4, "top_p": 0.9,
+                        "repeat_penalty": 1.1},
             "messages": [{"role": "system", "content": system}, *messages],
         }
         async with self._client() as client:

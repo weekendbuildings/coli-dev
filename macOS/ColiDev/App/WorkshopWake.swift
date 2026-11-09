@@ -23,6 +23,9 @@ final class WorkshopWakeListener: ObservableObject {
 
     @Published private(set) var status: Status = .off
     var onWake: () -> Void = {}
+    /// "Close workshop" heard while the overlay is open. / Услышано «Закрыть мастерскую».
+    var onClose: () -> Void = {}
+    private var closeHeard: [String: Bool] = [:]
 
     private let engine = AVAudioEngine()
     private let feed = RequestFeed()
@@ -84,6 +87,7 @@ final class WorkshopWakeListener: ObservableObject {
             do { try engine.start() } catch { status = .unavailable; return }
         }
         counted = [:]
+        closeHeard = [:]
         cycle += 1
         let current = cycle
         var requests: [SFSpeechAudioBufferRecognitionRequest] = []
@@ -111,6 +115,12 @@ final class WorkshopWakeListener: ObservableObject {
 
     private func heard(_ text: String, locale: String, done: Bool, failed: Bool, cycle current: Int) {
         guard current == cycle else { return }
+        if HUDWakeWord.isClose(text), closeHeard[locale] != true {
+            closeHeard[locale] = true
+            onClose()
+            restart(after: 0.3)
+            return
+        }
         let total = HUDWakeWord.count(in: text)
         if total > counted[locale, default: 0] {
             counted[locale] = total

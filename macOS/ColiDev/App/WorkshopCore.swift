@@ -165,7 +165,8 @@ enum WorkshopSafety {
 
     static func openRisk(_ target: String) -> WorkshopRisk {
         let lower = target.lowercased()
-        if lower.hasPrefix("https://") || lower.hasPrefix("http://") { return .safe }
+        // Nothing pops up by itself (the owner's rule): a web page opens after "yes". / Ничего не выскакивает само.
+        if lower.hasPrefix("https://") || lower.hasPrefix("http://") { return .confirm("workshop.risk.web") }
         if lower.contains("://") || lower.hasPrefix("mailto:") || lower.hasPrefix("tel:") || lower.hasPrefix("sms:") {
             return .confirm("workshop.risk.scheme")
         }

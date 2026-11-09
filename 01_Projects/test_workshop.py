@@ -241,4 +241,5 @@ def test_workshop_ask_uses_rag_sources_and_shows_only_safe_fields(api, monkeypat
     assert shown["id"] == "K1" and shown["title"] == "Градиент" and shown["date"] == "2026-11-01"
     assert "excerpt" not in shown and "/secret" not in str(events[0])
     sent = fakes["gemini"].messages[0][-1]["content"]
-    assert "[K#]" in sent and "Градиент показывает направление роста." in sent and sent.rstrip().endswith("Что такое градиент?")
+    assert "[K#]" in sent and "Градиент показывает направление роста." in sent and "Что такое градиент?" in sent
+    assert "Ответь по-русски" in sent

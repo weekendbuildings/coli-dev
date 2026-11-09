@@ -78,7 +78,7 @@ struct VerifyWorkshop {
         }
         require(WorkshopSafety.shellRisk("sudo softwareupdate -l") == .admin, "sudo goes to the admin route")
         require(WorkshopSafety.shellRisk("cd /tmp && sudo rm x") == .admin, "sudo anywhere is admin")
-        require(WorkshopSafety.openRisk("https://docs.python.org") == .safe, "web links open at once")
+        require(WorkshopSafety.openRisk("https://docs.python.org") == .confirm("workshop.risk.web"), "web links wait for yes")
         require(WorkshopSafety.openRisk("~/Творец/Статьи/attention.pdf") == .safe, "documents open at once")
         require(WorkshopSafety.openRisk("~/Downloads/Installer.pkg").needsConfirmation, "installers need yes")
         require(WorkshopSafety.openRisk("~/x.command").needsConfirmation, "scripts need yes")

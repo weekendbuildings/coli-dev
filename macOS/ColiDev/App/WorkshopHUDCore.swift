@@ -507,6 +507,14 @@ enum HUDWakeWord {
     static let words: Set<String> = ["creator", "креатор", "криэйтор", "криейтор", "крейтор", "креэйтор", "творец", "tvorets", "tvorec"]
     static let hints = ["Creator", "Креатор", "Творец"]
 
+    /// "Close workshop" by voice; never sent to the assistant. / «Закрыть мастерскую» голосом; ассистенту не уходит.
+    static func isClose(_ transcript: String) -> Bool {
+        let words = transcript.lowercased().replacingOccurrences(of: "ё", with: "е").split(whereSeparator: { !$0.isLetter }).map(String.init)
+        let text = " " + words.joined(separator: " ") + " "
+        return [" закрыть мастерскую ", " закрой мастерскую ", " закрыть мастерская ", " close workshop ", " close the workshop ",
+                " close creator workshop "].contains { text.contains($0) }
+    }
+
     /// Whole words only, any case, ё = е; «Путь Творца» does not count. / Только целые слова; «Творца» не считается.
     static func count(in transcript: String) -> Int {
         transcript.lowercased().replacingOccurrences(of: "ё", with: "е")
