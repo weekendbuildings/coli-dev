@@ -144,6 +144,8 @@ final class WorkshopHUDController: ObservableObject {
     private var notes: (count: Int, items: [HUDListItem]) = (0, [])
     private var tasks: [HUDTask] = []
     private var streakCache: (value: Int, at: Date) = (0, .distantPast)
+    /// No free cloud has a key (or the Keychain was not opened to the backend). / Ни у одного облака нет ключа.
+    private var cloudKeysMissing = false
     /// The agent that takes the next spoken or typed task; nil means the assistant. / Агент для следующей задачи.
     private var agentMode: WorkshopAgent?
     private var terminalRun = 0
@@ -163,6 +165,7 @@ final class WorkshopHUDController: ObservableObject {
            let saved = try? JSONDecoder().decode([HUDTask].self, from: data) { tasks = saved }
         refreshInstalled()
         refreshFolders()
+        refreshProviders()
         bridge.onMessage = { [weak self] in self?.handle($0) }
         model.voiceHandler = { [weak self] heard in self?.routeToAgent(heard, byVoice: true) ?? false }
         let changes: [AnyPublisher<Void, Never>] = [
@@ -274,6 +277,7 @@ final class WorkshopHUDController: ObservableObject {
                                     sources: text("hud.sources.pending"), open: false)
         }
         var sources = last.answeredBy.map { format("hud.sources", $0, last.model ?? "") } ?? text("hud.sources.pending")
+        if cloudKeysMissing, last.answeredBy == "Ollama" { sources += "\n" + text("hud.keys.missing") }
         let checked = last.sources ?? []
         sources += "\n" + (checked.isEmpty ? text("hud.sources.none")
             : checked.map { source in
@@ -411,7 +415,7 @@ final class WorkshopHUDController: ObservableObject {
 
         let settings = HUDListInfo(title: text("hud.rail.set"), sub: "", items: [
             HUDListItem(name: text("hud.set.voice"), detail: text(model.speakAnswers ? "hud.set.voice.on" : "hud.set.voice.off"), path: nil),
-            HUDListItem(name: text("hud.set.models"), detail: text("hud.set.models.detail"), path: nil),
+            HUDListItem(name: text("hud.set.models"), detail: text(cloudKeysMissing ? "hud.keys.missing" : "hud.set.models.detail"), path: nil),
             HUDListItem(name: text("hud.set.access"), detail: text("hud.set.access.detail"), path: nil),
             HUDListItem(name: text("hud.set.keys"), detail: format("hud.set.keys.detail",
                         HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey)).title, HUDShortcut.voice.title), path: nil),
@@ -456,6 +460,19 @@ final class WorkshopHUDController: ObservableObject {
         formatter.locale = Locale(identifier: language == .ru ? "ru_RU" : "en_US")
         formatter.unitsStyle = .full
         return formatter.localizedString(for: date, relativeTo: Date())
+    }
+
+    /// Which free clouds have keys, from the backend this app started. / Какие облака с ключами — у своего backend.
+    private func refreshProviders() {
+        Task {
+            struct Row: Decodable { let id: String; let configured: Bool? }
+            struct Rows: Decodable { let providers: [Row] }
+            guard let url = URL(string: LearningStore.orchestratorBaseURL + "/settings/assistant-models"),
+                  let (data, _) = try? await URLSession.shared.data(from: url),
+                  let rows = try? JSONDecoder().decode(Rows.self, from: data) else { return }
+            cloudKeysMissing = !rows.providers.contains { ["gemini", "groq", "openrouter"].contains($0.id) && $0.configured == true }
+            schedulePush()
+        }
     }
 
     private func refreshInstalled() {
@@ -581,6 +598,7 @@ final class WorkshopHUDController: ObservableObject {
             case "proj": refreshFolders()
             case "notes": memoryOpen = true
             case "agents": refreshInstalled()
+            case "set": refreshProviders()
             case "ed": if practice.document == nil { practice.restore(language) }
             default: break
             }

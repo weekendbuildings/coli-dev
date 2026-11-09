@@ -4,7 +4,14 @@ enum BackendEndpointRegistry {
     private static let portKey = "colidev.backend.port"
     static let defaultPort = 8000
 
+    /// The port of the backend this process started. Two copies of the app (installed and a test build) share
+    /// UserDefaults, so the saved port alone could point at the other copy's older backend.
+    /// Порт backend, запущенного этим процессом. Две копии приложения делят UserDefaults, поэтому сохранённый порт
+    /// мог вести к старому backend другой копии.
+    private static var processPort: Int?
+
     static var port: Int {
+        if let processPort { return processPort }
         let savedPort = UserDefaults.standard.integer(forKey: portKey)
         return (1...65_535).contains(savedPort) ? savedPort : defaultPort
     }
@@ -15,6 +22,7 @@ enum BackendEndpointRegistry {
 
     static func updatePort(_ port: Int) {
         guard (1...65_535).contains(port) else { return }
+        processPort = port
         UserDefaults.standard.set(port, forKey: portKey)
     }
 
