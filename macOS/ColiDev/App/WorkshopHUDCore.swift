@@ -56,6 +56,11 @@ enum HUDInbound: Equatable {
     case voice
     case reveal(String)
     case dismiss
+    case memoryNote(String)
+    case memorySearch(String)
+    case memoryObsidian
+    case memoryChoose
+    case notebookRect(x: Double, y: Double, width: Double, height: Double, open: Bool)
 
     static let maxText = 4000
     static let rails: Set<String> = ["path", "new", "ex", "ed", "proj", "notes", "rem", "agents", "set"]
@@ -86,6 +91,15 @@ enum HUDInbound: Equatable {
         case "voice": return .voice
         case "reveal": return text("path").map(HUDInbound.reveal)
         case "dismiss": return .dismiss
+        case "memoryNote": return text("id").map(HUDInbound.memoryNote)
+        case "memorySearch": return .memorySearch(text("text") ?? "")
+        case "memoryObsidian": return .memoryObsidian
+        case "memoryChoose": return .memoryChoose
+        case "nbRect":
+            guard let x = message["x"] as? Double, let y = message["y"] as? Double, let width = message["w"] as? Double,
+                  let height = message["h"] as? Double, let open = message["open"] as? Bool,
+                  [x, y, width, height].allSatisfy({ $0.isFinite && abs($0) < 100_000 }) else { return nil }
+            return .notebookRect(x: x, y: y, width: max(0, width), height: max(0, height), open: open)
         default: return nil
         }
     }
@@ -98,6 +112,27 @@ enum HUDInbound: Equatable {
             return rest.isEmpty ? nil : rest
         }
         return nil
+    }
+}
+
+/// The state shown at the top of an agent's panel. / Состояние в шапке панели агента.
+enum HUDAgentState: String, Equatable {
+    case notInstalled, ready, running, done, failed, needsLogin, interactiveOnly
+
+    /// Sign-in problems as the CLIs print them. / Как CLI сообщают, что нужен вход.
+    static func needsLogin(_ output: String) -> Bool {
+        let lower = output.lowercased()
+        return ["/login", "not logged in", "please log in", "please login", "invalid api key", "auth login", "unauthorized",
+                "authentication required", "not authenticated", "sign in"].contains { lower.contains($0) }
+    }
+
+    static func of(installed: Bool, interactive: Bool, running: Bool, exitCode: Int32?, output: String) -> HUDAgentState {
+        if !installed { return .notInstalled }
+        if interactive { return .interactiveOnly }
+        if running { return .running }
+        guard let exitCode else { return .ready }
+        if exitCode != 0 && needsLogin(String(output.suffix(1500))) { return .needsLogin }
+        return exitCode == 0 ? .done : .failed
     }
 }
 
@@ -396,6 +431,24 @@ struct HUDTerminalMessage: Encodable, Equatable {
     var title: String
     var html: String
     var open: Bool
+}
+
+struct HUDMemoryItem: Encodable, Equatable { var id: String; var title: String; var folder: String }
+
+/// «Память» inside the HUD. / «Память» внутри HUD.
+struct HUDMemoryMessage: Encodable, Equatable {
+    var type = "memory"
+    var openID: Int
+    var vault: String
+    var items: [HUDMemoryItem]
+    var selected: String
+    var html: String
+    var empty: String
+}
+
+struct HUDNotebookMessage: Encodable, Equatable {
+    var type = "notebook"
+    var openID: Int
 }
 
 /// No `id` hides the bar. / Без `id` полоса скрыта.

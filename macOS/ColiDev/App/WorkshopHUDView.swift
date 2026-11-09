@@ -150,6 +150,11 @@ final class WorkshopHUDController: ObservableObject {
     private var hasVoiceKey = VoiceKeychain.exists
     /// The agent that takes the next spoken or typed task; nil means the assistant. / Агент для следующей задачи.
     private var agentMode: WorkshopAgent?
+    /// The agent whose glass panel is shown. / Агент, чья стеклянная панель показана.
+    private var agentPanel: WorkshopAgent?
+    let memory = MemoryModel()
+    private var memoryOpenID = 0
+    private var notebookOpenID = 0
     private var terminalRun = 0
     /// Agents in the order the orchestrator tries them for "агент: …". / Порядок агентов для «агент: …».
     static let agentOrder: [WorkshopAgent] = [.claude, .opencode, .gemini, .hermes, .openclaw]
@@ -178,6 +183,7 @@ final class WorkshopHUDController: ObservableObject {
             model.voice.objectWillChange.map { _ in }.eraseToAnyPublisher(),
             practice.objectWillChange.map { _ in }.eraseToAnyPublisher(),
             backend.objectWillChange.map { _ in }.eraseToAnyPublisher(),
+            memory.objectWillChange.map { _ in }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes).sink { [weak self] in self?.schedulePush() }.store(in: &subscriptions)
         push()
@@ -206,6 +212,8 @@ final class WorkshopHUDController: ObservableObject {
         bridge.send("practice", practiceMessage())
         bridge.send("confirm", confirmMessage(model))
         bridge.send("terminal", terminalMessage(model))
+        bridge.send("memory", memoryMessage())
+        bridge.send("notebook", HUDNotebookMessage(openID: notebookOpenID))
         if let answer = answerMessage(model) { bridge.send("answer", answer) }
         bridge.send("state", stateMessage(store: store, model: model))
     }
@@ -319,10 +327,42 @@ final class WorkshopHUDController: ObservableObject {
         if !model.agentOutput.isEmpty { lines.append(model.agentOutput) }
         if let status = model.agentStatus, !model.agentRunning { lines.append(status) }
         let all = lines.joined(separator: "\n").components(separatedBy: "\n").suffix(220)
-        let html = all.isEmpty ? "<p>" + HUDHTML.escape(text("hud.terminal.empty")) + "</p>"
+        var html = all.isEmpty ? "<p>" + HUDHTML.escape(text("hud.terminal.empty")) + "</p>"
             : "<pre class=\"code\">" + all.map { "<span class=\"l\">" + (HUDHTML.escape($0).isEmpty ? " " : HUDHTML.escape($0)) + "</span>" }.joined() + "</pre>"
-        return HUDTerminalMessage(id: String(terminalRun), title: model.agentRunning ? model.agent.title : text("hud.ex.terminal"),
-                                  html: html, open: terminalRun > 0)
+        var title = text("hud.ex.terminal")
+        if let agent = agentPanel {
+            // A clear state on top: ready, working, done, error, not installed, sign-in needed. / Ясное состояние сверху.
+            let mine = model.agent == agent
+            let state = HUDAgentState.of(installed: installed.contains(agent), interactive: !agent.runsNonInteractively,
+                                         running: mine && model.agentRunning, exitCode: mine ? model.agentExitCode : nil,
+                                         output: mine ? model.agentOutput : "")
+            title = agent.title + " · " + text("hud.agentState.\(state.rawValue)")
+            let hint = String(format: text("hud.agentHint.\(state.rawValue)"), agent.title, Self.loginCommand(agent))
+            html = "<p class=\"hint\">" + HUDHTML.escape(hint) + "</p>" + (mine || model.actionItems.contains { $0.action.tool == .shell } ? html : "")
+        }
+        return HUDTerminalMessage(id: String(terminalRun), title: title, html: html, open: terminalRun > 0)
+    }
+
+    static func loginCommand(_ agent: WorkshopAgent) -> String {
+        switch agent {
+        case .claude: return "claude auth login"
+        case .opencode: return "opencode auth login"
+        case .gemini: return "gemini"
+        case .hermes: return "hermes"
+        case .openclaw: return "openclaw onboard"
+        case .freebuff: return "freebuff"
+        }
+    }
+
+    /// «Память» for the glass panel: the list, the open note as HTML and the vault. / «Память» для стеклянной панели.
+    private func memoryMessage() -> HUDMemoryMessage {
+        HUDMemoryMessage(
+            openID: memoryOpenID, vault: memory.vault.map(PracticeEnvironment.tilde) ?? text("memory.noVaultShort"),
+            items: memory.shown.prefix(300).map { HUDMemoryItem(id: $0.id, title: $0.title, folder: $0.folder) },
+            selected: memory.selected?.id ?? "",
+            html: memory.selected == nil ? "<p>" + HUDHTML.escape(text(memory.vault == nil ? "memory.noVault" : "memory.pick")) + "</p>"
+                : "<p><b>" + HUDHTML.escape(memory.selected?.title ?? "") + "</b></p>" + HUDHTML.answer(memory.text),
+            empty: text(memory.loading ? "memory.loading" : (memory.vault == nil ? "memory.noVault" : "memory.empty")))
     }
 
     private func confirmMessage(_ model: WorkshopModel) -> HUDConfirmMessage {
@@ -600,7 +640,7 @@ final class WorkshopHUDController: ObservableObject {
         case .rail(let act):
             switch act {
             case "proj": refreshFolders()
-            case "notes": memoryOpen = true
+            case "notes": openMemory()
             case "agents": refreshInstalled()
             case "set": refreshProviders(); hasVoiceKey = VoiceKeychain.exists
             case "ed": if practice.document == nil { practice.restore(language) }
@@ -633,6 +673,20 @@ final class WorkshopHUDController: ObservableObject {
             if model.voice.isListening { model.stopListeningAndAsk(store: store) } else { model.startListening(language: language) }
         case .dismiss:
             onDismiss?()
+        case .memoryNote(let id):
+            memory.selected = memory.shown.first { $0.id == id }
+        case .memorySearch(let query):
+            memory.query = query
+        case .memoryObsidian:
+            let path = memory.selected?.url.path ?? memory.vault?.path
+            if let path, let url = MemoryVault.obsidianURL(path: path) { NSWorkspace.shared.open(url) }
+        case .memoryChoose:
+            // The folder picker cannot sit above the overlay: hide it for the moment. / Окно выбора папки не встанет над оверлеем.
+            if onDismiss != nil { WorkshopOverlay.shared.hide() }
+            if MemoryFolderPicker.choose() { memory.load() }
+            if onDismiss != nil { WorkshopOverlay.shared.show() }
+        case .notebookRect(let x, let y, let width, let height, let open):
+            placeNotebook(x: x, y: y, width: width, height: height, open: open)
         case .reveal(let path):
             let url = URL(fileURLWithPath: path)
             guard WorkshopAgents.isInside(url, root: WorkshopModel.root), FileManager.default.fileExists(atPath: url.path) else { return }
@@ -650,6 +704,14 @@ final class WorkshopHUDController: ObservableObject {
         guard !testQuestionTyped, let question = environment["COLIDEV_HUD_TEST_ASK"], !question.isEmpty,
               let json = try? JSONEncoder().encode([question]), let literal = String(data: json, encoding: .utf8) else { return }
         testQuestionTyped = true
+        if let dump = environment["COLIDEV_HUD_TEST_DUMP"], !dump.isEmpty {
+            // A check reads what the page shows (window open, title, text) into a file. / Проверка читает, что видно на странице.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 18) { [weak self] in
+                self?.bridge.webView.evaluateJavaScript(
+                    "JSON.stringify({exOpen: document.getElementById('exWin').classList.contains('open'), title: document.getElementById('exTitle').textContent, state: document.getElementById('state').textContent, line: document.getElementById('line').textContent, body: document.getElementById('exBody').innerText.slice(0, 1500)})"
+                ) { result, _ in try? ((result as? String) ?? "").write(toFile: dump, atomically: true, encoding: .utf8) }
+            }
+        }
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             self?.bridge.webView.evaluateJavaScript(
                 "(() => { const q = \(literal)[0]; const f = document.getElementById('ask'); f.focus(); f.value = q; document.getElementById('form').requestSubmit(); })();")
@@ -675,38 +737,53 @@ final class WorkshopHUDController: ObservableObject {
         model.agent = agent
         model.agentFolder = WorkshopModel.root
         model.agentTask = task
+        agentPanel = agent
         terminalRun += 1
         model.runAgent(language: language)
         return true
+    }
+
+    private func openMemory() {
+        memory.load()
+        memoryOpenID += 1
+        schedulePush()
+    }
+
+    /// The NotebookLM web view follows the glass panel the page draws. / Веб-вид NotebookLM следует за стеклянной панелью.
+    private func placeNotebook(x: Double, y: Double, width: Double, height: Double, open: Bool) {
+        let pane = NotebookWindow.shared.paneView()
+        let host = bridge.webView
+        guard open, width > 40, height > 40 else {
+            if pane.superview === host { pane.removeFromSuperview() }
+            return
+        }
+        if pane.superview !== host {
+            pane.removeFromSuperview()
+            host.addSubview(pane)
+        }
+        let top = host.isFlipped ? y : host.bounds.height - y - height
+        pane.frame = NSRect(x: x, y: top, width: width, height: height)
     }
 
     private func useTool(_ tool: String) {
         if let id = HUDTool.agentID(tool), let agent = WorkshopAgent(rawValue: id) {
             refreshInstalled()
             guard let model else { return }
-            guard installed.contains(agent) else { say(format("hud.agent.notInstalled", agent.title)); return }
-            if !agent.runsNonInteractively {
-                // FreeBuff has only its own screen: it opens in Terminal. / У FreeBuff только свой экран — открывается в Терминале.
-                model.agent = agent
-                model.agentFolder = WorkshopModel.root
-                model.runAgent(language: language)
-                return
-            }
+            // The panel opens at once with the agent's state; nothing goes to an outside app.
+            // Панель открывается сразу с состоянием агента; во внешние программы ничего не уходит.
+            agentPanel = agent
+            terminalRun += 1
+            guard installed.contains(agent), agent.runsNonInteractively else { schedulePush(); return }
             agentMode = agentMode == agent ? nil : agent
             say(agentMode == nil ? text("hud.agent.modeOff") : format("hud.agent.mode", agent.title))
             return
         }
         switch tool {
         case "obs":
-            let url = URL(string: "obsidian://open")!
-            if NSWorkspace.shared.urlForApplication(toOpen: url) != nil {
-                NSWorkspace.shared.open(url)
-                say(text("hud.obs.open"))
-            } else {
-                say(text("hud.obs.missing"))
-            }
+            openMemory()
         case "nlm":
-            NotebookWindow.shared.show(title: "NotebookLM · " + text("hud.sub"))
+            notebookOpenID += 1
+            schedulePush()
             say(text("hud.nlm.open"))
         case "term":
             let folder = WorkshopModel.existingRoot

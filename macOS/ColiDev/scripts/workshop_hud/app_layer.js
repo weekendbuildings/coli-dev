@@ -2,7 +2,7 @@
    Swift вызывает window.creatorApp.receive({type, …}): state, data, practice, answer, confirm.
    Swift calls window.creatorApp.receive({type, …}): state, data, practice, answer, confirm. */
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const appState = { answerId: null, confirmId: null, lessonsSet: false, terminal: null, terminalId: '0' };
+const appState = { answerId: null, confirmId: null, lessonsSet: false, terminal: null, terminalId: '0', memoryId: 0, notebookId: 0 };
 const GRAD = ['#ffb27a,#ffe3c8', '#a9ccff,#e0ecff', '#cbbcff,#ece6ff'];
 function setTip(el, text) { if (!el || !text) return; el.dataset.tip = text; el.setAttribute('aria-label', text); }
 function applyStrings(s, locale) {
@@ -84,10 +84,30 @@ function appTerminal(m) {
   exViews[name] = m.html;
   const body = $('exBody'), atEnd = body.scrollTop + body.clientHeight >= body.scrollHeight - 24, top = body.scrollTop;
   if (m.open && m.id !== appState.terminalId) {
-    appState.terminalId = m.id; exSel = name; $('exTitle').textContent = m.title; setWin('exWin', true);
+    appState.terminalId = m.id; exSel = name; setWin('exWin', true);
   }
+  if (exSel === name) $('exTitle').textContent = m.title;
   buildTabs();
   body.scrollTop = exSel === name && atEnd ? body.scrollHeight : top;
+}
+/* «Память»: список, поиск и заметка в стеклянной панели. / Memory in a glass panel. */
+function appMemory(m) {
+  $('memVault').textContent = m.vault;
+  $('memList').innerHTML = m.items.length
+    ? m.items.map((i) => `<button type="button" class="memi${i.id === m.selected ? ' on' : ''}" data-id="${esc(i.id)}"><b>${esc(i.title)}</b><span>${esc(i.folder || '/')}</span></button>`).join('')
+    : `<p class="hint">${esc(m.empty)}</p>`;
+  $('memBody').innerHTML = m.html;
+  if (m.openID && m.openID !== appState.memoryId) { appState.memoryId = m.openID; $('nbWin').classList.remove('open'); $('memWin').classList.add('open'); }
+}
+/* NotebookLM: настоящий веб-вид macOS лежит поверх #nbBody; страница сообщает его место.
+   NotebookLM: a native web view sits over #nbBody; the page reports where it is. */
+function nbReport() {
+  const open = $('nbWin').classList.contains('open'), r = $('nbBody').getBoundingClientRect();
+  post('nbRect', { x: r.left, y: r.top, w: r.width, h: r.height, open });
+}
+function nbFollow() { const end = performance.now() + 700; const step = () => { nbReport(); if (performance.now() < end) requestAnimationFrame(step); }; requestAnimationFrame(step); }
+function appNotebook(m) {
+  if (m.openID && m.openID !== appState.notebookId) { appState.notebookId = m.openID; $('memWin').classList.remove('open'); $('nbWin').classList.add('open'); }
 }
 function appConfirm(c) {
   appState.confirmId = c.id || null;
@@ -103,17 +123,29 @@ window.creatorApp = {
       else if (m.type === 'answer') appAnswer(m);
       else if (m.type === 'confirm') appConfirm(m);
       else if (m.type === 'terminal') appTerminal(m);
+      else if (m.type === 'memory') appMemory(m);
+      else if (m.type === 'notebook') appNotebook(m);
     } catch (e) { console.error('creatorApp', e); }
   },
 };
 if (APP) {
   lineEl.textContent = '';
   document.querySelector('.voice').addEventListener('click', () => post('voice'));
+  $('memList').addEventListener('click', (e) => { const b = e.target.closest('[data-id]'); if (b) post('memoryNote', { id: b.dataset.id }); });
+  let memTimer;
+  $('memQ').addEventListener('input', () => { clearTimeout(memTimer); memTimer = setTimeout(() => post('memorySearch', { text: $('memQ').value }), 250); });
+  $('memObs').addEventListener('click', () => post('memoryObsidian'));
+  $('memChoose').addEventListener('click', () => post('memoryChoose'));
+  new MutationObserver(nbFollow).observe($('nbWin'), { attributes: true, attributeFilter: ['class'] });
+  addEventListener('resize', nbReport);
   document.querySelector('#edWin .file').addEventListener('click', () => post('practiceEdit'));
   document.querySelector('#edWin pre.code').addEventListener('dblclick', () => post('practiceEdit'));
   $('pop').addEventListener('click', (e) => { const r = e.target.closest('[data-path]'); if (r) post('reveal', { path: r.dataset.path }); });
   // Esc on an empty HUD hides the overlay (seen before the page closes its windows). / Esc на пустом HUD прячет оверлей.
   addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && ($('memWin').classList.contains('open') || $('nbWin').classList.contains('open'))) {
+      $('memWin').classList.remove('open'); $('nbWin').classList.remove('open'); e.stopImmediatePropagation(); return;
+    }
     if (e.key === 'Escape' && !$('edWin').classList.contains('open') && !$('exWin').classList.contains('open') && !popOpen
         && !$('bc').classList.contains('tools') && document.activeElement !== $('ask')) post('dismiss');
   }, true);

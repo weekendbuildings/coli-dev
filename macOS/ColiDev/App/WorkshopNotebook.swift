@@ -19,6 +19,16 @@ final class NotebookWindow: NSObject, WKUIDelegate, WKNavigationDelegate {
     private var window: NSWindow?
     private var webView: WKWebView?
 
+    /// The same web view for the glass panel inside the HUD (one parent at a time; the sign-in is shared).
+    /// Тот же веб-вид для стеклянной панели внутри HUD (одна панель за раз, вход общий).
+    func paneView() -> WKWebView {
+        if let webView { return webView }
+        let webView = makeWebView()
+        self.webView = webView
+        webView.load(URLRequest(url: Self.home))
+        return webView
+    }
+
     func show(title: String) {
         if window == nil { makeWindow(title: title) }
         NSApp.activate(ignoringOtherApps: true)
@@ -26,7 +36,7 @@ final class NotebookWindow: NSObject, WKUIDelegate, WKNavigationDelegate {
         window?.makeKeyAndOrderFront(nil)
     }
 
-    private func makeWindow(title: String) {
+    private func makeWebView() -> WKWebView {
         let configuration = WKWebViewConfiguration()
         configuration.websiteDataStore = .default()
         configuration.mediaTypesRequiringUserActionForPlayback = []
@@ -37,7 +47,15 @@ final class NotebookWindow: NSObject, WKUIDelegate, WKNavigationDelegate {
         webView.navigationDelegate = self
         webView.allowsBackForwardNavigationGestures = true
         webView.underPageBackgroundColor = .black
+        webView.wantsLayer = true
+        webView.layer?.cornerRadius = 16
+        webView.layer?.masksToBounds = true
+        return webView
+    }
 
+    private func makeWindow(title: String) {
+        let webView = self.webView ?? makeWebView()
+        webView.removeFromSuperview()
         let window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 1240, height: 820),
                               styleMask: [.titled, .closable, .miniaturizable, .resizable, .fullSizeContentView],
                               backing: .buffered, defer: false)
@@ -50,8 +68,8 @@ final class NotebookWindow: NSObject, WKUIDelegate, WKNavigationDelegate {
         window.setFrameAutosaveName("ColiDev.NotebookLM")
         if !window.setFrameUsingName("ColiDev.NotebookLM") { window.center() }
         self.window = window
+        if self.webView == nil { webView.load(URLRequest(url: Self.home)) }
         self.webView = webView
-        webView.load(URLRequest(url: Self.home))
     }
 
     /// Sign-in and share pop-ups open in the same window. / Окна входа и общего доступа открываются в этом же окне.

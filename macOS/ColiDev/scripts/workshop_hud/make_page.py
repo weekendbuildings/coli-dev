@@ -39,6 +39,21 @@ html.app #edWin pre.code { max-height: min(38vh, 340px); overflow: auto; }
 html.app .exb code { font: 400 12.5px var(--mono); color: #ffcf8a; }
 html.app #edWin .file, html.app .voice, html.app .plist [data-path] { cursor: pointer; }
 pre.code .c { color: #6d6762; }
+/* Память и NotebookLM — большие стеклянные панели внутри HUD (только в приложении).
+   Memory and NotebookLM — large glass panels inside the HUD (app only). */
+.appwin { display: none; }
+html.app .appwin { display: flex; flex-direction: column; top: 96px; bottom: calc(176px + env(safe-area-inset-bottom, 0px)); left: calc(var(--side) + 88px); right: calc(var(--side-r) + 88px); width: auto; }
+.hud:has(.appwin.open) #say { opacity: 0; transition: opacity .3s ease; }
+.memgrid { display: grid; grid-template-columns: minmax(200px, 280px) 1fr; gap: 14px; flex: 1; min-height: 0; }
+.memside { display: flex; flex-direction: column; gap: 8px; min-height: 0; }
+.memside input { height: 36px; border-radius: 12px; border: 1px solid rgba(255,255,255,.14); background: rgba(0,0,0,.25); color: var(--fg); padding: 0 12px; font: inherit; }
+#memList { overflow-y: auto; display: grid; gap: 2px; align-content: start; }
+.memi { text-align: left; border: 0; background: none; color: var(--fg); padding: 7px 10px; border-radius: 10px; cursor: pointer; }
+.memi b { display: block; font-weight: 500; font-size: 13.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.memi span { display: block; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.memi:hover, .memi.on { background: rgba(255,255,255,.08); }
+html.app #memBody { max-height: none; overflow-y: auto; min-height: 0; padding-right: 6px; }
+#nbBody { flex: 1; min-height: 0; border-radius: 16px; background: rgba(0,0,0,.28); }
 </style>
 
 <canvas id="scene"''')
@@ -54,6 +69,7 @@ let T = {};
 const t = (k, d) => T[k] || d || '';
 if (APP) document.documentElement.classList.add('app');
 """)
+rep('  <div class="bc" id="bc">', '  <!-- Память и NotebookLM: панели приложения. / App-only panels. -->\n  <section class="win gl appwin" id="memWin" data-bezel="16" data-blur="20" data-fade aria-label="Память">\n    <div class="wh"><b id="memTitle">Память</b><span class="file" id="memVault"></span><button class="round" type="button" data-close="memWin" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>\n    <div class="memgrid"><div class="memside"><input id="memQ" placeholder="Поиск" aria-label="Поиск"><div id="memList"></div></div><div class="exb" id="memBody"></div></div>\n    <div class="wa"><button class="pill light" type="button" id="memObs">Открыть в Obsidian</button><button class="pill" type="button" id="memChoose">Папка хранилища…</button></div>\n  </section>\n  <section class="win gl appwin" id="nbWin" data-bezel="16" data-blur="20" data-fade aria-label="NotebookLM">\n    <div class="wh"><b>NotebookLM</b><button class="round" type="button" data-close="nbWin" aria-label="Закрыть"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>\n    <div id="nbBody"></div>\n  </section>\n\n' + '  <div class="bc" id="bc">')
 rep("const fmtTime = new Intl", "let fmtTime = new Intl")
 rep("const fmtDay = new Intl", "let fmtDay = new Intl")
 rep("if (v === 'rem') $('remBreak')", "if (v === 'rem' && $('remBreak')) $('remBreak')")

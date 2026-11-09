@@ -256,6 +256,8 @@ final class WorkshopModel: ObservableObject {
     @Published private(set) var agentStatus: String?
     /// Tools Claude Code asked for and did not get; the HUD asks the owner. / Инструменты, которых Claude не получил.
     @Published private(set) var agentDenials: [String] = []
+    /// Exit code of the last agent run; nil while running or never run. / Код выхода последнего запуска агента.
+    @Published private(set) var agentExitCode: Int32?
     private var agentAllowedTools: [String] = []
     private var lastAgentTask = ""
     /// The HUD can take a voice question (agent mode); true means handled. / HUD может забрать голосовой вопрос.
@@ -492,6 +494,7 @@ final class WorkshopModel: ObservableObject {
             openInTerminal(command, language: language)
             return
         }
+        agentExitCode = nil
         agentOutput = "$ \(agent.title) · \(PracticeEnvironment.tilde(agentFolder))\n"
         agentLines = LiveTextBuffer()
         agentRunning = true
@@ -529,6 +532,7 @@ final class WorkshopModel: ObservableObject {
             agentOutput += (claude ? AgentOutputText.claudeLine(rest) ?? "" : rest) + "\n"
         }
         agentRunning = false
+        agentExitCode = ending.failedToStart != nil || ending.timedOut ? -1 : (ending.stopped ? -2 : ending.status)
         if let failure = ending.failedToStart {
             agentStatus = failure
         } else if ending.stopped {
