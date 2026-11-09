@@ -22,6 +22,7 @@ import asyncio
 import json
 import os
 import shutil
+import time
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, AsyncIterator, Awaitable, Callable, Iterable
@@ -50,7 +51,9 @@ TIER_PAID = "paid"
 
 # OmniRoute (a local OpenAI-style gateway) comes after the free clouds; Kimi (Moonshot API) and Ollama Cloud are
 # paid and only listed. / OmniRoute (локальный шлюз) после бесплатных облаков; Kimi и Ollama Cloud платные, только в списке.
-DEFAULT_ORDER = ("claude_cli", "openrouter", "gemini", "groq", "omniroute", "ollama_local", "kimi", "ollama_cloud")
+# Free clouds by strength and daily limit: Gemini 3 Flash, Groq gpt-oss-120b (~1000/day), OpenRouter free (50/day
+# without credits). / Бесплатные облака по силе и дневному лимиту: Gemini, Groq (~1000 в день), OpenRouter (50 в день).
+DEFAULT_ORDER = ("claude_cli", "gemini", "groq", "openrouter", "omniroute", "ollama_local", "kimi", "ollama_cloud")
 
 # Environment variables that would make `claude` bill an API key or run in bare
 # mode (bare mode accepts only an API key). Они переключили бы `claude` на ключ API.
@@ -732,6 +735,70 @@ class AssistantSettingsStore:
         return settings
 
 
+# ─── Smart fallback / умный откат ─────────────────────────────────────────
+
+# How long a provider rests after a failure: a rate limit for 10 min, a timeout or error for 2 min.
+# Сколько провайдер отдыхает после ошибки: лимит — 10 мин, таймаут или ошибка — 2 мин.
+COOLDOWN_SECONDS = {"rate_limited": 600.0, "timeout": 120.0, "failed": 120.0, "empty": 60.0}
+
+
+class ProviderCooldowns:
+    """Providers that just failed are skipped at once for a while, so the next question goes straight on.
+    Провайдер, который только что упал, какое-то время пропускается сразу, и следующий вопрос не ждёт его."""
+
+    def __init__(self, clock: Callable[[], float] = time.monotonic) -> None:
+        self._clock = clock
+        self._until: dict[str, float] = {}
+
+    def active(self, provider_id: str) -> bool:
+        return self._until.get(provider_id, 0.0) > self._clock()
+
+    def note(self, provider_id: str, result: str) -> None:
+        if result == "ok":
+            self._until.pop(provider_id, None)
+        elif result in COOLDOWN_SECONDS:
+            self._until[provider_id] = self._clock() + COOLDOWN_SECONDS[result]
+
+    def clear(self) -> None:
+        self._until.clear()
+
+
+class CachedReachability:
+    """The internet check, remembered for a while: online for 30 s, offline for 5 s. A provider that loses the network
+    marks it offline at once, so the rest of the route goes to the local model without waiting.
+    Проверка интернета с памятью: «есть» помнится 30 с, «нет» — 5 с. Провайдер, потерявший сеть, сразу отмечает её
+    пропавшей, и остаток маршрута идёт к локальной модели без ожидания."""
+
+    def __init__(self, probe: Callable[[], Awaitable[bool]], *, online_ttl: float = 30.0, offline_ttl: float = 5.0,
+                 clock: Callable[[], float] = time.monotonic) -> None:
+        self._probe = probe
+        self._online_ttl = online_ttl
+        self._offline_ttl = offline_ttl
+        self._clock = clock
+        self._value: bool | None = None
+        self._until = 0.0
+
+    async def __call__(self) -> bool:
+        if self._value is not None and self._clock() < self._until:
+            return self._value
+        try:
+            value = bool(await self._probe())
+        except Exception:  # noqa: BLE001 — a failed check means offline
+            value = False
+        self._remember(value)
+        return value
+
+    def mark_offline(self) -> None:
+        self._remember(False)
+
+    def forget(self) -> None:
+        self._value = None
+
+    def _remember(self, value: bool) -> None:
+        self._value = value
+        self._until = self._clock() + (self._online_ttl if value else self._offline_ttl)
+
+
 async def route_stream(
     providers: Iterable[AssistantProvider],
     system: str,
@@ -739,6 +806,7 @@ async def route_stream(
     *,
     disabled: Iterable[str] = (),
     network_ok: Callable[[], Awaitable[bool]] | None = None,
+    cooldowns: ProviderCooldowns | None = None,
 ) -> AsyncIterator[dict[str, Any]]:
     """Try providers in order and stream events.
 
@@ -764,6 +832,9 @@ async def route_stream(
             continue
         if not provider.configured():
             attempts.append({"provider": provider.id, "model": provider.model, "result": "not_configured"})
+            continue
+        if cooldowns is not None and cooldowns.active(provider.id):
+            attempts.append({"provider": provider.id, "model": provider.model, "result": "cooling_down"})
             continue
         if provider.needs_network and network_ok is not None:
             if online is None:
@@ -791,10 +862,21 @@ async def route_stream(
         except asyncio.CancelledError:
             raise
         except Exception as exc:  # noqa: BLE001 — every failure moves on to the next provider
+            kind = classify_exception(exc)
             if parts:
                 yield {"type": "reset", "provider": provider.id}
-            yield skip(classify_exception(exc))
+            if cooldowns is not None:
+                cooldowns.note(provider.id, kind)
+            if kind == "offline" and provider.needs_network:
+                # The network just dropped: skip the other cloud providers at once. / Сеть пропала: облака пропускаем сразу.
+                online = False
+                mark = getattr(network_ok, "mark_offline", None)
+                if callable(mark):
+                    mark()
+            yield skip(kind)
             continue
+        if cooldowns is not None:
+            cooldowns.note(provider.id, "ok")
         attempts.append({"provider": provider.id, "model": model, "result": "ok"})
         yield {
             "type": "done",

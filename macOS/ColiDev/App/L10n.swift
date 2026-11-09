@@ -48,6 +48,7 @@ enum L10n {
         "assistant.reason.not_configured": ("нет ключа или модели", "no key or model"),
         "assistant.reason.not_signed_in": ("нужен вход: claude auth login в Терминале", "sign-in needed: claude auth login in Terminal"),
         "assistant.reason.rate_limited": ("кончился лимит", "limit reached"),
+        "assistant.reason.cooling_down": ("отдыхает после лимита или ошибки", "resting after a limit or an error"),
         "assistant.reason.offline": ("нет интернета", "no internet"),
         "assistant.reason.timeout": ("не ответил вовремя", "did not answer in time"),
         "assistant.reason.paid_blocked": ("платно — выключено", "paid — off"),

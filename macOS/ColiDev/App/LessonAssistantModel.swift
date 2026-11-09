@@ -135,6 +135,7 @@ struct AssistantConversation: Equatable {
 enum AssistantReason {
     static let known: Set<String> = [
         "not_configured", "not_signed_in", "rate_limited", "offline", "timeout", "paid_blocked", "empty", "disabled", "failed",
+        "cooling_down",
     ]
 
     static func key(_ reason: String) -> String {

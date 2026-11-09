@@ -58,6 +58,8 @@ from assistant_router import (
     TIER_LOCAL,
     TIER_PAID,
     AssistantProvider,
+    CachedReachability,
+    ProviderCooldowns,
     AssistantSettingsStore,
     ClaudeCLIProvider,
     GeminiProvider,
@@ -5747,6 +5749,15 @@ def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
     gateway_url = gateway["base_url"] or ASSISTANT_GATEWAY_DEFAULT_URL
     return {
         "claude_cli": ClaudeCLIProvider(model=ASSISTANT_CLAUDE_MODEL, language=language),
+        "gemini": GeminiProvider(key=lambda: GEMINI_KEY, model=GEMINI_FLASH_MODEL),
+        "groq": OpenAICompatibleFreeProvider(
+            id="groq",
+            label="Groq",
+            base_url=GROQ_BASE_URL,
+            status_path="/models",
+            key=lambda: GROQ_KEY,
+            model=GROQ_ASSISTANT_MODEL,
+        ),
         "openrouter": OpenAICompatibleFreeProvider(
             id="openrouter",
             label="OpenRouter",
@@ -5756,15 +5767,6 @@ def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
             model=OPENROUTER_FREE_MODEL,
             extra_headers={"HTTP-Referer": "https://github.com/weekendbuildings/coli-dev", "X-Title": "ColiDev"},
             free_model_check=is_free_openrouter_model,
-        ),
-        "gemini": GeminiProvider(key=lambda: GEMINI_KEY, model=GEMINI_FLASH_MODEL),
-        "groq": OpenAICompatibleFreeProvider(
-            id="groq",
-            label="Groq",
-            base_url=GROQ_BASE_URL,
-            status_path="/models",
-            key=lambda: GROQ_KEY,
-            model=GROQ_ASSISTANT_MODEL,
         ),
         # The gateway runs on this Mac: no internet check, key optional; a remote address is treated as paid.
         # Шлюз на этом Mac: без проверки интернета, ключ не обязателен; удалённый адрес считается платным.
@@ -5803,7 +5805,11 @@ def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
 
 # Replaced in tests. Подменяются в тестах.
 _assistant_provider_factory = _assistant_providers
-_assistant_network_ok = internet_reachable
+# The internet check is remembered (30 s online, 5 s offline) and short (1.5 s), so going offline costs no wait.
+# Проверка интернета запоминается и короткая, поэтому без сети ответ локальной модели начинается сразу.
+_assistant_network_ok = CachedReachability(lambda: internet_reachable(timeout=1.5))
+# Providers that just hit a limit or failed rest for a while. / Провайдеры после лимита или ошибки отдыхают.
+assistant_cooldowns = ProviderCooldowns()
 
 
 class AssistantContextModel(BaseModel):
@@ -5865,7 +5871,8 @@ async def assistant_ask_stream(request: Request, req: AssistantAskRequest):
     async def events():
         yield ": connected\n\n"
         async for event in assistant_route_stream(
-            ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok
+            ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok,
+            cooldowns=assistant_cooldowns,
         ):
             if event["type"] == "error":
                 event = {**event, "error": _assistant_no_answer_message(req.language)}
@@ -6010,7 +6017,8 @@ async def workshop_ask_stream(request: Request, req: WorkshopAskRequest):
     async def events():
         yield ": connected\n\n"
         async for event in assistant_route_stream(
-            ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok
+            ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok,
+            cooldowns=assistant_cooldowns,
         ):
             if event["type"] == "error":
                 event = {**event, "error": _assistant_no_answer_message(req.language)}

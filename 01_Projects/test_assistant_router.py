@@ -553,7 +553,7 @@ def test_assistant_providers_list_omniroute_local_and_kimi_paid(monkeypatch):
     import orchestrator
     monkeypatch.setattr(orchestrator.openai_compatible_settings, "get", lambda: {"base_url": "", "model": "auto"})
     providers = orchestrator._assistant_providers()
-    assert list(ar.DEFAULT_ORDER) == ["claude_cli", "openrouter", "gemini", "groq", "omniroute", "ollama_local", "kimi", "ollama_cloud"]
+    assert list(ar.DEFAULT_ORDER) == ["claude_cli", "gemini", "groq", "openrouter", "omniroute", "ollama_local", "kimi", "ollama_cloud"]
     assert set(providers) == set(ar.DEFAULT_ORDER)
     assert providers["omniroute"].tier == ar.TIER_LOCAL and providers["omniroute"].needs_network is False
     assert providers["omniroute"].base_url == "http://127.0.0.1:20128/v1"
@@ -569,3 +569,54 @@ def test_kimi_is_never_called():
     events = collect(ar.route_stream([kimi, local], "sys", MESSAGES))
     assert kimi.calls == 0 and events[-1]["provider"] == "ollama_local"
     assert {"provider": "kimi", "model": kimi.model, "result": "paid_blocked"} in events[-1]["attempts"]
+
+
+# ─── Smart fallback / умный откат ───────────────────────────────────────────
+
+def test_rate_limited_provider_rests_and_is_skipped_at_once():
+    now = [1000.0]
+    cooldowns = ar.ProviderCooldowns(clock=lambda: now[0])
+    limited = FakeProvider("gemini", fail=ar.ProviderFailure("rate_limited"))
+    groq = FakeProvider("groq", chunks=["ответ"])
+    first = collect(ar.route_stream([limited, groq], "sys", MESSAGES, cooldowns=cooldowns))
+    assert first[-1]["provider"] == "groq" and limited.calls == 1
+    second = collect(ar.route_stream([limited, groq], "sys", MESSAGES, cooldowns=cooldowns))
+    assert limited.calls == 1, "a rate-limited provider is not asked again for 10 min"
+    assert {"provider": "gemini", "model": "m", "result": "cooling_down"} in second[-1]["attempts"]
+    now[0] += 601
+    limited.fail = None
+    limited.chunks = ["снова"]
+    third = collect(ar.route_stream([limited, groq], "sys", MESSAGES, cooldowns=cooldowns))
+    assert third[-1]["provider"] == "gemini" and not cooldowns.active("gemini")
+
+
+def test_lost_network_sends_the_rest_of_the_route_to_the_local_model_without_new_checks():
+    checks = []
+
+    async def probe():
+        checks.append(1)
+        return True
+
+    network = ar.CachedReachability(probe)
+    dropped = FakeProvider("gemini", fail=ar.ProviderFailure("offline"))
+    cloud = FakeProvider("groq", chunks=["облако"])
+    local = FakeProvider("ollama_local", chunks=["локально"], needs_network=False)
+    events = collect(ar.route_stream([dropped, cloud, local], "sys", MESSAGES, network_ok=network))
+    assert events[-1]["provider"] == "ollama_local" and cloud.calls == 0
+    assert len(checks) == 1, "the network check ran once and was then marked offline"
+    assert asyncio.run(network()) is False and len(checks) == 1, "offline is remembered for a few seconds"
+
+
+def test_network_check_is_remembered_and_expires():
+    now = [0.0]
+    answers = [True, False]
+
+    async def probe():
+        return answers.pop(0)
+
+    network = ar.CachedReachability(probe, online_ttl=30, offline_ttl=5, clock=lambda: now[0])
+    assert asyncio.run(network()) is True
+    now[0] = 29
+    assert asyncio.run(network()) is True and answers == [False]
+    now[0] = 31
+    assert asyncio.run(network()) is False
