@@ -795,7 +795,7 @@ struct WorkshopView: View {
             }
             if let notice = model.notice {
                 HStack {
-                    Text(notice).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Text(notice).font(.caption).foregroundStyle(.secondary).lineLimit(4)
                     Spacer()
                     Button { model.notice = nil } label: { Image(systemName: "xmark") }.buttonStyle(.borderless)
                         .accessibilityLabel(text("workshop.close"))
@@ -898,7 +898,7 @@ struct WorkshopView: View {
         VStack(alignment: .leading, spacing: 6) {
             if voice.isListening {
                 Text(voice.transcript.isEmpty ? text("workshop.voice.listening") : voice.transcript)
-                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    .font(.callout).foregroundStyle(.secondary).lineLimit(4)
             }
             voiceStatus
             HStack(alignment: .bottom, spacing: 8) {
@@ -948,11 +948,11 @@ struct WorkshopView: View {
 
     @ViewBuilder private var voiceStatus: some View {
         if case .unavailable(let problem) = voice.route {
-            Text(text(problem.key)).font(.caption).foregroundStyle(.orange).fixedSize(horizontal: false, vertical: true)
+            Text(text(problem.key)).font(.caption).foregroundStyle(.orange).lineLimit(4)
         }
         if voice.analyzerNeedsDownload {
             HStack(spacing: 8) {
-                Text(text("workshop.voice.downloadHint")).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                Text(text("workshop.voice.downloadHint")).font(.caption).foregroundStyle(.secondary).lineLimit(3)
                 Button(voice.isDownloading ? text("workshop.voice.downloading") : text("workshop.voice.download")) {
                     Task { await voice.downloadAnalyzerModel(language: store.language) }
                 }
@@ -961,7 +961,7 @@ struct WorkshopView: View {
             }
         }
         if let error = voice.errorText {
-            Text(error).font(.caption).foregroundStyle(.red).fixedSize(horizontal: false, vertical: true)
+            Text(error).font(.caption).foregroundStyle(.red).lineLimit(3)
         }
     }
 
@@ -988,8 +988,11 @@ struct WorkshopView: View {
                     .help(text("workshop.agents.tempFolder.help"))
                     .disabled(model.agentRunning)
             }
+            // No fixedSize outside a ScrollView: the window's minimum size is measured with a tiny width
+            // and a fixed-height text would make the window thousands of points tall.
+            // Без fixedSize вне прокрутки: минимальный размер окна меряется при крошечной ширине.
             Text(text(model.agent.runsNonInteractively ? "workshop.agents.hint" : "workshop.agents.interactiveHint"))
-                .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                .font(.caption).foregroundStyle(.secondary).lineLimit(4)
             HStack(alignment: .bottom, spacing: 8) {
                 TextField(text("workshop.agents.task"), text: $model.agentTask, axis: .vertical)
                     .lineLimit(1...4)
