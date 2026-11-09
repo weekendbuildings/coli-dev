@@ -72,7 +72,12 @@ for snippet in (
 
 assert "Нажми прямо на органеллу в 3D-сцене" in lesson, "Russian lesson does not explain direct scene selection"
 assert "Click an organelle directly in the 3D scene" in lesson, "English lesson does not explain direct scene selection"
-assert "@State private var selection: AppSection? = .today" in content_view, "UI-test launch must start from a valid visible sidebar selection"
+# The app starts on the workshop HUD; UI tests (and this lesson route) still start on Today with the sidebar visible.
+# Приложение стартует на HUD Мастерской; UI-тесты (и этот маршрут урока) по-прежнему стартуют на «Сегодня» с боковой панелью.
+assert "@State private var selection: AppSection? = ContentView.startSection" in content_view, "UI-test launch must start from a valid visible sidebar selection"
+start_section = content_view.split("static var startSection: AppSection {", 1)[1].split("\n    }\n", 1)[0]
+assert 'UserDefaults.standard.bool(forKey: "colidev.uiTestCell3D")' in start_section and "return .today" in start_section, "UI-test launch must start from a valid visible sidebar selection"
+assert 'environment.keys.contains(where: { $0.hasPrefix("COLIDEV_UI_TEST") })' in start_section, "UI-test launches must start on Today / UI-тесты стартуют с «Сегодня»"
 assert ".onAppear(perform: openCell3DUITestRouteIfNeeded)" in content_view, "UI-test lesson route must wait until the first screen appears"
 assert "DispatchQueue.main.async" in content_view, "UI-test lesson route must be deferred until after the first render"
 assert 'UserDefaults.standard.bool(forKey: "colidev.uiTestCell3D")' in content_view, "UI-test route must use a dedicated UserDefaults launch override. / Тестовый маршрут должен использовать отдельный флаг запуска UserDefaults."

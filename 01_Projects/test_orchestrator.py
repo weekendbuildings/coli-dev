@@ -4865,9 +4865,12 @@ class TestMemoryFootprint:
         mock_engine.run_local = AsyncMock(return_value=(mock_answer, mock_log))
 
         with patch("orchestrator.ConsiliumEngine", return_value=mock_engine):
-            # Первый запрос один раз загружает ленивые кэши (в замерах 15–25 MB) — это не утечка.
-            # The first request loads lazy caches once (15–25 MB in measurements); that is not a leak.
-            assert client.post("/chat/stream", json={"message": "Прогрев"}).status_code == 200
+            # Ограниченные кэши заполняются примерно за 25 запросов: 182 → 200 MB, дальше память стоит
+            # на месте до 41-го запроса (замер 2026-11-09). Это не утечка, поэтому мерим после прогрева.
+            # Bounded caches fill over about 25 requests (182 → 200 MB), then memory stays flat up to request 41
+            # (measured 2026-11-09). That is not a leak, so the window is measured after the warm-up.
+            for i in range(30):
+                assert client.post("/chat/stream", json={"message": f"Прогрев {i}"}).status_code == 200
             rss_before = self._rss_mb()
             for i in range(10):
                 resp = client.post(

@@ -176,7 +176,7 @@ def test_extra_subjects_hide_by_default_and_tools_never_hide():
     assert view.count("@AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false") == 4
     assert view.count("ForEach(Subject.visible(showAll: showAllSubjects))") == 3
     assert '.accessibilityIdentifier("settings.showAllSubjects")' in view
-    sidebar = view.split("NavigationSplitView {", 1)[1].split("} detail: {", 1)[0]
+    sidebar = view.split("NavigationSplitView(columnVisibility: $columns) {", 1)[1].split("} detail: {", 1)[0]
     for identifier in ("sidebar.management", "sidebar.local-models", "sidebar.tools", "sidebar.settings"):
         row = sidebar.split(f'identifier: "{identifier}"', 1)[0].rsplit("\n", 1)[1]
         assert "if " not in row and "showAll" not in row, identifier
