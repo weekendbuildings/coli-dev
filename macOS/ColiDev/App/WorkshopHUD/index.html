@@ -780,7 +780,7 @@ const toolSay = {
   nlm: 'Блокнот NotebookLM для модуля «Python» готов: 12 источников.', term: 'Терминал открыт в ~/Творец. Команды с sudo сначала покажу тебе.',
   oll: 'В Ollama на Mac три модели: Qwen 7B, Llama 3.2 и Phi-4 mini.',
 };
-document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); if (APP) { post('tool', { tool: b.dataset.tool }); return; } setTools(false); run([[b.dataset.tool === 'open' || b.dataset.tool === 'hermes' ? 'agents' : 'speak', toolSay[b.dataset.tool], 5000]]); }));
+document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); if (APP) { if (typeof setTools === 'function') setTools(false); post('tool', { tool: b.dataset.tool }); return; } setTools(false); run([[b.dataset.tool === 'open' || b.dataset.tool === 'hermes' ? 'agents' : 'speak', toolSay[b.dataset.tool], 5000]]); }));
 $('toast').addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b) return;
   $('toast').classList.remove('open'); lastAct = performance.now();

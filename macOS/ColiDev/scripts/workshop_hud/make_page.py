@@ -99,7 +99,7 @@ rep("""  lastAct = performance.now(); const act = b.dataset.act;
   }
 """)
 rep("""document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); """,
-    """document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); if (APP) { post('tool', { tool: b.dataset.tool }); return; } """)
+    """document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); if (APP) { if (typeof setTools === 'function') setTools(false); post('tool', { tool: b.dataset.tool }); return; } """)
 rep("""  $('toast').classList.remove('open'); lastAct = performance.now();
 """, """  $('toast').classList.remove('open'); lastAct = performance.now();
   if (APP) { post('confirm', { id: appState.confirmId, yes: b.dataset.ans === 'yes' }); return; }
