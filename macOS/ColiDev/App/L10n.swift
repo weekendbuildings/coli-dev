@@ -316,7 +316,7 @@ enum L10n {
         "hud.tile.oll": ("Ollama · модели на Mac", "Ollama · models on the Mac"),
         "hud.obs.open": ("Открываю Obsidian.", "Opening Obsidian."),
         "hud.obs.missing": ("Obsidian не найден на этом Mac.", "Obsidian is not on this Mac."),
-        "hud.nlm.open": ("Открываю NotebookLM в браузере.", "Opening NotebookLM in the browser."),
+        "hud.nlm.open": ("NotebookLM открыт в окне Мастерской. Войди в Google один раз — вход сохранится.", "NotebookLM is open in a workshop window. Sign in to Google once and it is remembered."),
         "hud.term.open": ("Терминал открыт в %@. Команды с sudo — только с твоим паролем.", "Terminal is open in %@. sudo commands need your password."),
         "hud.oll.models": ("Моделей в Ollama на Mac: %@ — %@.", "Ollama on this Mac has %@ models: %@."),
         "hud.oll.down": ("Ollama не отвечает. Запусти её, и модели появятся.", "Ollama does not answer. Start it and the models show up."),

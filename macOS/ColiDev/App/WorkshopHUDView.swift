@@ -673,7 +673,7 @@ final class WorkshopHUDController: ObservableObject {
                 say(text("hud.obs.missing"))
             }
         case "nlm":
-            NSWorkspace.shared.open(URL(string: "https://notebooklm.google.com")!)
+            NotebookWindow.shared.show(title: "NotebookLM · " + text("hud.sub"))
             say(text("hud.nlm.open"))
         case "term":
             let folder = WorkshopModel.existingRoot
