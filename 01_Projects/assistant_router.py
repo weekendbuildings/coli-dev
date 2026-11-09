@@ -551,10 +551,19 @@ def is_free_openrouter_model(model: str) -> bool:
     return model == "openrouter/free" or model.endswith(":free")
 
 
+@dataclass
+class WebSources:
+    """Web pages a provider grounded its answer in (Gemini Google Search). / Веб-страницы, на которые опёрся ответ."""
+    sources: list[dict[str, str]]
+
+
 class GeminiProvider(_HTTPProvider):
     id = "gemini"
     label = "Gemini"
     base_url = "https://generativelanguage.googleapis.com/v1beta"
+    #: Google Search grounding on the owner's key, free tier; a limit simply moves the route on.
+    #: Опора на поиск Google по ключу владельца, бесплатный уровень; при лимите маршрут идёт дальше.
+    grounding = False
 
     async def status(self) -> dict[str, Any]:
         result = await self._probe(f"{self.base_url}/models/{self.model}", {"x-goog-api-key": self.key()})
@@ -572,7 +581,10 @@ class GeminiProvider(_HTTPProvider):
             ],
             "generationConfig": {"maxOutputTokens": 4096},
         }
+        if self.grounding:
+            body["tools"] = [{"google_search": {}}]
         url = f"{self.base_url}/models/{self.model}:streamGenerateContent?alt=sse"
+        cited: dict[str, str] = {}
         async with self._client() as client:
             async with client.stream("POST", url, json=body, headers={"x-goog-api-key": self.key()}) as response:
                 if response.status_code != 200:
@@ -598,6 +610,14 @@ class GeminiProvider(_HTTPProvider):
                             text = part.get("text") if isinstance(part, dict) else None
                             if isinstance(text, str) and text and not part.get("thought"):
                                 yield text
+                        metadata = candidate.get("groundingMetadata") if isinstance(candidate, dict) else None
+                        for chunk in (metadata or {}).get("groundingChunks") or []:
+                            web = chunk.get("web") if isinstance(chunk, dict) else None
+                            uri = (web or {}).get("uri")
+                            if isinstance(uri, str) and uri.startswith("https://") and uri not in cited:
+                                cited[uri] = str((web or {}).get("title") or "")[:160]
+                if cited:
+                    yield WebSources([{"title": title or uri, "url": uri} for uri, title in list(cited.items())[:5]])
 
 
 OLLAMA_CONTEXT = 8192
@@ -871,6 +891,12 @@ async def route_stream(
             async for item in provider.stream(system, messages):
                 if isinstance(item, ModelInfo):
                     model = item.model
+                    continue
+                if isinstance(item, WebSources):
+                    retrieved = time.strftime("%Y-%m-%d", time.gmtime())
+                    yield {"type": "sources", "append": True, "sources": [
+                        {"id": f"G{index + 1}", "title": s["title"], "kind": "google", "url": s["url"], "date": retrieved}
+                        for index, s in enumerate(item.sources)]}
                     continue
                 if item:
                     parts.append(item)

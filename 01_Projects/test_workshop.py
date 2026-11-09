@@ -166,7 +166,7 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setattr(orchestrator, "assistant_settings", ar.AssistantSettingsStore(tmp_path / "a.json"))
     monkeypatch.setattr(orchestrator, "_assistant_provider_factory", lambda language="ru": fakes)
 
-    async def no_sources(question):
+    async def no_sources(*args):
         return []
 
     monkeypatch.setattr(orchestrator, "_workshop_sources", no_sources)
@@ -230,7 +230,7 @@ def test_workshop_endpoints_reject_remote_clients(api):
 def test_workshop_ask_uses_rag_sources_and_shows_only_safe_fields(api, monkeypatch):
     client, fakes = api
 
-    async def found(question):
+    async def found(*args):
         return [{"id": "K1", "source_type": "course", "title": "Градиент", "path": "/secret/lesson.md",
                  "excerpt": "Градиент показывает направление роста.", "source_checked_at": "2026-11-01"}]
 

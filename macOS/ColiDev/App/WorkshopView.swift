@@ -26,9 +26,11 @@ private struct WorkshopAskBody: Encodable {
     let nextStep: WorkshopNextStep?
     let labs: [String]
     let voice: Bool
+    /// The «Память» folder, read by the backend as plain markdown for RAG. / Папка «Памяти» для RAG.
+    var vault: String?
 
     enum CodingKeys: String, CodingKey {
-        case language, question, history, labs, voice
+        case language, question, history, labs, voice, vault
         case nextStep = "next_step"
     }
 }
@@ -102,11 +104,13 @@ struct WorkshopSource: Codable, Equatable {
     var url: String
     var date: String
 
-    static func parse(line: String) -> [WorkshopSource]? {
-        struct Event: Decodable { let type: String; let sources: [WorkshopSource]? }
+    /// The sources event; `append` marks web pages a model grounded on (they join the RAG sources).
+    /// Событие источников; `append` — веб-страницы, на которые опёрлась модель (добавляются к источникам RAG).
+    static func parse(line: String) -> (sources: [WorkshopSource], append: Bool)? {
+        struct Event: Decodable { let type: String; let sources: [WorkshopSource]?; let append: Bool? }
         guard line.hasPrefix("data:"), let data = line.dropFirst(5).trimmingCharacters(in: .whitespaces).data(using: .utf8),
               let event = try? JSONDecoder().decode(Event.self, from: data), event.type == "sources" else { return nil }
-        return event.sources ?? []
+        return (event.sources ?? [], event.append ?? false)
     }
 }
 
@@ -326,7 +330,8 @@ final class WorkshopModel: ObservableObject {
         isAnswering = true
         let language = store.language
         let body = WorkshopAskBody(language: language.rawValue, question: question, history: history,
-                                   nextStep: Self.nextStep(store: store), labs: CreatorLabCatalog.labs.map(\.lesson), voice: byVoice)
+                                   nextStep: Self.nextStep(store: store), labs: CreatorLabCatalog.labs.map(\.lesson), voice: byVoice,
+                                   vault: UserDefaults.standard.string(forKey: MemoryVault.defaultsKey))
         askTask = Task {
             // Right after launch (or at login) the backend may still be starting: wait for it, then try twice.
             // Сразу после запуска (или входа) backend может ещё стартовать: ждём его и пробуем дважды.
@@ -339,7 +344,10 @@ final class WorkshopModel: ObservableObject {
                     self.currentSources = []
                     try await OrchestratorClient.streamLines(path: "/workshop/ask/stream", body: data) { line in
                         heardAnything = true
-                        if let found = WorkshopSource.parse(line: line) { self.currentSources = found; return }
+                        if let found = WorkshopSource.parse(line: line) {
+                            self.currentSources = found.append ? self.currentSources + found.sources : found.sources
+                            return
+                        }
                         if let event = AssistantStreamEvent.parse(line: line) { self.current.apply(event) }
                     }
                     break

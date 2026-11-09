@@ -72,6 +72,8 @@ from assistant_router import (
     is_loopback_url,
     route_stream as assistant_route_stream,
 )
+from vault_index import VaultIndex, safe_vault
+from web_lookup import wikipedia_sources
 from workshop import (
     build_workshop_messages,
     build_workshop_system_prompt,
@@ -5743,13 +5745,19 @@ ASSISTANT_GATEWAY_DEFAULT_URL = "http://127.0.0.1:20128/v1"
 assistant_settings = AssistantSettingsStore(app_data_dir() / "assistant-models.json")
 
 
+def _grounded(provider: GeminiProvider) -> GeminiProvider:
+    """Google Search grounding for Gemini answers (owner's key, free tier). / Опора Gemini на поиск Google."""
+    provider.grounding = True
+    return provider
+
+
 def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
     """All assistant providers; keys are read from the backend at call time, never returned."""
     gateway = openai_compatible_settings.get()
     gateway_url = gateway["base_url"] or ASSISTANT_GATEWAY_DEFAULT_URL
     return {
         "claude_cli": ClaudeCLIProvider(model=ASSISTANT_CLAUDE_MODEL, language=language),
-        "gemini": GeminiProvider(key=lambda: GEMINI_KEY, model=GEMINI_FLASH_MODEL),
+        "gemini": _grounded(GeminiProvider(key=lambda: GEMINI_KEY, model=GEMINI_FLASH_MODEL)),
         "groq": OpenAICompatibleFreeProvider(
             id="groq",
             label="Groq",
@@ -5965,6 +5973,8 @@ class WorkshopAskRequest(BaseModel):
     next_step: WorkshopNextStepModel | None = None
     labs: list[str] = Field(default_factory=list, max_length=40)
     voice: bool = False
+    # The «Память» vault folder the owner picked in the app (read as plain markdown). / Папка «Памяти» из приложения.
+    vault: str | None = Field(default=None, max_length=1024)
 
 
 class WorkshopCouncilRequest(BaseModel):
@@ -6002,21 +6012,40 @@ def _sse(events) -> StreamingResponse:
 WORKSHOP_RETRIEVAL_TIMEOUT = 6.0
 
 
-async def _workshop_sources(question: str) -> list[dict[str, Any]]:
-    """Up to four excerpts for the workshop answer; a slow index never holds the answer back.
-    До четырёх фрагментов для ответа Мастерской; медленный индекс не задерживает ответ."""
+workshop_vault_index = VaultIndex()
+
+
+async def _retrieve_vault_sources(question: str, vault: str | None) -> list[dict[str, str]]:
+    folder = safe_vault(vault)
+    if folder is None:
+        return []
+    return await asyncio.to_thread(workshop_vault_index.search, question, folder, 2)
+
+
+async def _retrieve_web_sources(question: str, language: str) -> list[dict[str, str]]:
+    """Wikipedia (free, no key) only when online. / Википедия (бесплатно, без ключа) — только при сети."""
+    if not await _assistant_network_ok():
+        return []
+    return await wikipedia_sources(question, ("ru", "en") if language == "ru" else ("en", "ru"))
+
+
+async def _workshop_sources(question: str, vault: str | None = None, language: str = "ru") -> list[dict[str, Any]]:
+    """Up to five excerpts: lessons, Obsidian/«Память», official pages and Wikipedia; a slow source never holds the
+    answer back. / До пяти фрагментов: уроки, Obsidian/«Память», официальные страницы и Википедия."""
     try:
         results = await asyncio.wait_for(asyncio.gather(
             _retrieve_local_course_sources(question),
             _retrieve_obsidian_sources(question),
             _retrieve_licensed_official_sources(question),
+            _retrieve_vault_sources(question, vault),
+            _retrieve_web_sources(question, language),
             return_exceptions=True,
         ), timeout=WORKSHOP_RETRIEVAL_TIMEOUT)
     except asyncio.TimeoutError:
         logger.info("Workshop retrieval timed out")
         return []
-    course, obsidian, official = (result if isinstance(result, list) else [] for result in results)
-    return _combine_retrieval_sources(course, obsidian, official_sources=official)
+    course, obsidian, official, notes, web = (result if isinstance(result, list) else [] for result in results)
+    return _combine_retrieval_sources(course, notes + obsidian, limit=5, official_sources=web + official)
 
 
 def _workshop_public_sources(sources: list[dict[str, Any]]) -> list[dict[str, str]]:
@@ -6024,8 +6053,9 @@ def _workshop_public_sources(sources: list[dict[str, Any]]) -> list[dict[str, st
     Что можно показать: id, название, вид, ссылка и дата — без фрагментов и путей к файлам."""
     shown = []
     for source in sources:
-        url = str(source.get("url") or source.get("source_url") or "")
-        date = str(source.get("source_checked_at") or source.get("last_reviewed") or source.get("modified") or "")
+        url = str(source.get("url") or source.get("source_url") or source.get("location") or "")
+        date = str(source.get("page_updated_at") or source.get("source_checked_at") or source.get("modified_at")
+                   or source.get("last_reviewed") or source.get("modified") or "")
         shown.append({
             "id": str(source.get("id", "")),
             "title": str(source.get("title") or source.get("lesson_title") or source.get("path") or "")[:160],
@@ -6052,7 +6082,7 @@ async def workshop_ask_stream(request: Request, req: WorkshopAskRequest):
                                        voice=req.voice, language=req.language)
     # RAG, as in the rest of the app: checked course lessons, the Obsidian vault and licensed official pages, cited
     # by [K#] with their dates. / RAG, как во всём приложении: проверенные уроки, Obsidian и официальные страницы.
-    sources = await _workshop_sources(req.question)
+    sources = await _workshop_sources(req.question, req.vault, req.language)
     if sources and messages:
         messages[-1] = {**messages[-1], "content": _augment_message_with_sources(messages[-1]["content"], sources, req.language)}
 
