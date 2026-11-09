@@ -125,6 +125,7 @@ struct VerifyWorkshop {
         var expected: [WorkshopAgent: [String]] = [
             .claude: ["-p", task, "--output-format", "stream-json", "--verbose"],
             .opencode: ["run", task],
+            .gemini: ["-p", task],
             .hermes: ["-z", task],
             .openclaw: ["agent", "--local", "--session-id", "s1", "-m", task],
         ]
@@ -233,6 +234,14 @@ struct VerifyWorkshop {
         require(failure.value?.failedToStart != nil, "a missing program reports failure")
 
         try? FileManager.default.removeItem(at: root)
+        // Claude permission requests go to the owner; "yes" allows exactly those tools. / Разрешения — только по «да».
+        let denial = #"{"type":"result","is_error":false,"permission_denials":[{"tool_name":"Write","tool_input":{}},{"tool_name":"Bash","tool_input":{}},{"tool_name":"Write"}]}"#
+        require(AgentOutputText.permissionDenials(denial) == ["Write", "Bash"], "denied tools are read once each")
+        require(AgentOutputText.permissionDenials(#"{"type":"assistant"}"#).isEmpty, "only the result event has denials")
+        let allowed = WorkshopAgents.command(for: .claude, task: task, directory: inside, root: root, home: "/Users/u", sessionID: "s1",
+                                             allowedTools: ["Write", "Bash; rm -rf /"], isExecutable: everyone)?.arguments ?? []
+        require(Array(allowed.suffix(2)) == ["--allowedTools", "Write"], "only clean tool names are allowed: \(allowed)")
+        require(!allowed.contains(where: WorkshopAgents.isForbidden), "allowing tools is not an auto-approval flag")
         print("OK: workshop actions, confirmation rule, agents, folder, voice route and live process verified")
     }
 }

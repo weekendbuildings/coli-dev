@@ -309,7 +309,7 @@ struct WorkshopAgentCommand: Equatable {
 }
 
 enum WorkshopAgent: String, CaseIterable, Identifiable {
-    case claude, opencode, hermes, openclaw, freebuff
+    case claude, opencode, gemini, hermes, openclaw, freebuff
 
     var id: String { rawValue }
 
@@ -317,6 +317,7 @@ enum WorkshopAgent: String, CaseIterable, Identifiable {
         switch self {
         case .claude: return "Claude Code"
         case .opencode: return "OpenCode"
+        case .gemini: return "Gemini CLI"
         case .hermes: return "Hermes"
         case .openclaw: return "OpenClaw"
         case .freebuff: return "FreeBuff"
@@ -327,6 +328,7 @@ enum WorkshopAgent: String, CaseIterable, Identifiable {
         switch self {
         case .claude: return ["\(home)/.local/bin/claude", "/opt/homebrew/bin/claude", "/usr/local/bin/claude"]
         case .opencode: return ToolLaunch.openCodeCandidates() + ["/usr/local/bin/opencode", "\(home)/.opencode/bin/opencode"]
+        case .gemini: return ["/opt/homebrew/bin/gemini", "/usr/local/bin/gemini", "\(home)/.npm-global/bin/gemini", "\(home)/.local/bin/gemini"]
         case .hermes: return ToolLaunch.hermesCandidates(home: home) + ["/opt/homebrew/bin/hermes"]
         case .openclaw: return ToolLaunch.openClawCandidates(home: home)
         case .freebuff: return ["/opt/homebrew/bin/freebuff", "/usr/local/bin/freebuff", "\(home)/.npm-global/bin/freebuff"]
@@ -343,6 +345,8 @@ enum WorkshopAgent: String, CaseIterable, Identifiable {
         switch self {
         case .claude: return ["-p", task, "--output-format", "stream-json", "--verbose"]
         case .opencode: return ["run", task]
+        // Headless prompt; tools that need approval are refused, never auto-approved. / Без автоодобрения.
+        case .gemini: return ["-p", task]
         case .hermes: return ["-z", task]
         case .openclaw: return ["agent", "--local", "--session-id", sessionID, "-m", task]
         case .freebuff: return ["--cwd", directory.path]
@@ -377,12 +381,15 @@ enum WorkshopAgents {
         return path == base || path.hasPrefix(base + "/")
     }
 
+    /// `allowedTools`: only the Claude Code tools the owner said "yes" to, by exact name. / Только одобренные владельцем инструменты.
     static func command(for agent: WorkshopAgent, task: String, directory: URL, root: URL, home: String,
-                        sessionID: String = "colidev-" + UUID().uuidString.lowercased(),
+                        sessionID: String = "colidev-" + UUID().uuidString.lowercased(), allowedTools: [String] = [],
                         isExecutable: (String) -> Bool = { FileManager.default.isExecutableFile(atPath: $0) }) -> WorkshopAgentCommand? {
         guard isInside(directory, root: root),
               let executable = ToolLaunch.firstExecutable(in: agent.candidates(home: home), isExecutable: isExecutable) else { return nil }
-        let arguments = agent.arguments(task: task, directory: directory, sessionID: sessionID)
+        var arguments = agent.arguments(task: task, directory: directory, sessionID: sessionID)
+        let tools = allowedTools.filter { !$0.isEmpty && $0.allSatisfy { $0.isLetter || $0.isNumber || $0 == "_" } }
+        if agent == .claude, !tools.isEmpty { arguments += ["--allowedTools", tools.joined(separator: ",")] }
         guard !arguments.contains(where: isForbidden) else { return nil }
         return WorkshopAgentCommand(executable: executable, arguments: arguments, directory: directory,
                                     interactive: !agent.runsNonInteractively)
@@ -417,6 +424,20 @@ enum AgentOutputText {
         return result
     }
 
+    /// Tools Claude Code wanted but was not allowed to use (the `result` event); they go to the owner's "Yes" strip.
+    /// Инструменты, которые Claude Code хотел, но не получил (событие `result`); они уходят в полосу «Да» владельца.
+    static func permissionDenials(_ line: String) -> [String] {
+        guard let data = line.trimmingCharacters(in: .whitespaces).data(using: .utf8),
+              let object = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              (object["type"] as? String) == "result",
+              let denials = object["permission_denials"] as? [[String: Any]] else { return [] }
+        var names: [String] = []
+        for denial in denials {
+            if let name = denial["tool_name"] as? String, !names.contains(name) { names.append(name) }
+        }
+        return names
+    }
+
     /// One line of `claude -p --output-format stream-json`; nil means nothing to show.
     /// Одна строка потока Claude; nil — показывать нечего.
     static func claudeLine(_ line: String) -> String? {
@@ -446,7 +467,8 @@ enum AgentOutputText {
             return parts.isEmpty ? nil : parts.joined(separator: "\n")
         case "result":
             if (object["is_error"] as? Bool) == true { return "✗ " + (object["result"] as? String ?? "error") }
-            return "■"
+            let denied = permissionDenials(line)
+            return denied.isEmpty ? "■" : "■ ⚠︎ " + denied.joined(separator: ", ")
         default:
             return nil
         }

@@ -232,6 +232,12 @@ final class WorkshopModel: ObservableObject {
     @Published private(set) var agentOutput = ""
     @Published private(set) var agentRunning = false
     @Published private(set) var agentStatus: String?
+    /// Tools Claude Code asked for and did not get; the HUD asks the owner. / Инструменты, которых Claude не получил.
+    @Published private(set) var agentDenials: [String] = []
+    private var agentAllowedTools: [String] = []
+    private var lastAgentTask = ""
+    /// The HUD can take a voice question (agent mode); true means handled. / HUD может забрать голосовой вопрос.
+    var voiceHandler: ((String) -> Bool)?
     private let agentProcess = LiveProcess()
     private var agentLines = LiveTextBuffer()
 
@@ -427,7 +433,9 @@ final class WorkshopModel: ObservableObject {
     func stopListeningAndAsk(store: LearningStore) {
         Task {
             let heard = await voice.stop()
-            if !heard.isEmpty { send(store: store, voiceQuestion: heard) }
+            if heard.isEmpty { return }
+            if let handler = voiceHandler, handler(heard) { return }
+            send(store: store, voiceQuestion: heard)
         }
     }
 
@@ -447,7 +455,11 @@ final class WorkshopModel: ObservableObject {
             return
         }
         let text = WorkshopAgents.task(task, directory: agentFolder, root: Self.root, russian: language == .ru)
-        guard let command = WorkshopAgents.command(for: agent, task: text, directory: agentFolder, root: Self.root, home: NSHomeDirectory()) else {
+        if task != lastAgentTask { agentAllowedTools = [] }
+        lastAgentTask = task
+        agentDenials = []
+        guard let command = WorkshopAgents.command(for: agent, task: text, directory: agentFolder, root: Self.root, home: NSHomeDirectory(),
+                                                   allowedTools: agentAllowedTools) else {
             agentStatus = String(format: L10n.text("workshop.agents.missing", language), agent.title)
             return
         }
@@ -478,6 +490,8 @@ final class WorkshopModel: ObservableObject {
         if claude {
             for line in agentLines.lines(from: clean) {
                 if let shown = AgentOutputText.claudeLine(line) { agentOutput += shown + "\n" }
+                let denied = AgentOutputText.permissionDenials(line)
+                if !denied.isEmpty { agentDenials = denied }
             }
         } else {
             agentOutput += clean
@@ -502,6 +516,26 @@ final class WorkshopModel: ObservableObject {
     }
 
     func stopAgent() { agentProcess.stop() }
+
+    /// The owner said "yes": the same task again with exactly the tools that were asked for.
+    /// Владелец сказал «да»: та же задача ещё раз ровно с запрошенными инструментами.
+    func approveAgentTools(language: AppLanguage) {
+        guard !agentDenials.isEmpty, !agentRunning else { return }
+        agentAllowedTools = Array(Set(agentAllowedTools + agentDenials)).sorted()
+        agentTask = lastAgentTask
+        runAgent(language: language)
+    }
+
+    func declineAgentTools() { agentDenials = [] }
+
+    /// A raw command from the HUD ("$ …"): the same safety rule as the assistant's actions — read-only runs, the rest
+    /// waits for "yes", sudo asks macOS for the password. / Команда из HUD: те же правила, что у действий ассистента.
+    func proposeShell(_ command: String, language: AppLanguage) {
+        let action = WorkshopAction(tool: .shell, arguments: ["command": command])
+        let item = WorkshopActionItem(messageID: UUID(), action: action)
+        actionItems.append(item)
+        if !item.risk.needsConfirmation { run(item.id, confirmed: false, language: language) }
+    }
 
     private func openInTerminal(_ command: WorkshopAgentCommand, language: AppLanguage) {
         let script = ToolLaunch.scriptText(directory: command.directory.path, executable: command.executable,

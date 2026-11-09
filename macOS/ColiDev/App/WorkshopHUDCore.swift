@@ -388,6 +388,14 @@ struct HUDAnswerMessage: Encodable, Equatable {
     var open: Bool
 }
 
+struct HUDTerminalMessage: Encodable, Equatable {
+    var type = "terminal"
+    var id: String
+    var title: String
+    var html: String
+    var open: Bool
+}
+
 /// No `id` hides the bar. / Без `id` полоса скрыта.
 struct HUDConfirmMessage: Encodable, Equatable {
     var type = "confirm"
@@ -403,7 +411,7 @@ enum HUDStrings {
         "hud.rail.agents", "hud.rail.set", "hud.seg.council", "hud.note", "hud.noteLabel", "hud.addTask", "hud.run", "hud.check",
         "hud.ask", "hud.askLabel", "hud.send", "hud.yes", "hud.no", "hud.confirmLabel", "hud.state.listen", "hud.state.think",
         "hud.state.agents", "hud.state.speak", "hud.fallback", "hud.ex.title", "hud.ex.answer", "hud.ex.sources", "hud.ex.empty",
-        "hud.newProject", "hud.newProject.say", "hud.voice", "hud.edit",
+        "hud.newProject", "hud.newProject.say", "hud.voice", "hud.edit", "hud.ex.terminal",
     ]
 }
 

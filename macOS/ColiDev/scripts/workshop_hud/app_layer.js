@@ -2,7 +2,7 @@
    Swift вызывает window.creatorApp.receive({type, …}): state, data, practice, answer, confirm.
    Swift calls window.creatorApp.receive({type, …}): state, data, practice, answer, confirm. */
 const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-const appState = { answerId: null, confirmId: null, lessonsSet: false };
+const appState = { answerId: null, confirmId: null, lessonsSet: false, terminal: null, terminalId: '0' };
 const GRAD = ['#ffb27a,#ffe3c8', '#a9ccff,#e0ecff', '#cbbcff,#ece6ff'];
 function setTip(el, text) { if (!el || !text) return; el.dataset.tip = text; el.setAttribute('aria-label', text); }
 function applyStrings(s, locale) {
@@ -44,7 +44,7 @@ function appData(d) {
     ? l.items.map((i) => `<div${i.path ? ` data-path="${esc(i.path)}" role="button" tabindex="0"` : ''}><b>${esc(i.name)}</b><span>${esc(i.detail)}</span></div>`).join('')
     : `<div><span>${esc(l.empty)}</span></div>`}</div>`;
   pops.proj = list(d.projects); pops.notes = list(d.notes); pops.set = list(d.settings);
-  views.agents = () => d.agents.map((a) => `<div class="row">${ico(a.icon)}<div><b>${esc(a.name)}</b><span>${esc(a.detail)}</span></div><span class="st${a.live ? ' live' : ''}">${esc(a.status)}</span></div>`).join('');
+  views.agents = () => d.agents.map((a) => `<div class="row">${ico(AG[a.icon] ? a.icon : 'open')}<div><b>${esc(a.name)}</b><span>${esc(a.detail)}</span></div><span class="st${a.live ? ' live' : ''}">${esc(a.status)}</span></div>`).join('');
   views.council = () => d.council.members.map((m, i) => `<div class="vote"><span>${esc(m.name)}</span><div class="tr"><i style="width:${m.percent}%;background:linear-gradient(90deg,${GRAD[i % 3]})"></i></div><output>${esc(m.mark)}</output></div>`).join('')
     + `<p class="hint">${esc(d.council.hint)}</p>`;
   views.rem = () => (d.reminders.length ? d.reminders.map((r) => `<div class="rem"><time>${esc(r.time)}</time><span>${esc(r.text)}</span></div>`).join('') : `<p class="hint">${esc(d.remindersEmpty)}</p>`);
@@ -72,9 +72,22 @@ function appAnswer(a) {
   Object.keys(exViews).forEach((k) => delete exViews[k]);
   exViews[t('hud.ex.answer', 'Ответ')] = a.html;
   exViews[t('hud.ex.sources', 'Источники')] = `<p>${esc(a.sources)}</p>`;
+  if (appState.terminal) exViews[t('hud.ex.terminal', 'Терминал')] = appState.terminal;
   const body = $('exBody'), top = body.scrollTop;
   buildTabs(); body.scrollTop = top;
   if (a.open && a.id !== appState.answerId) { appState.answerId = a.id; setWin('exWin', true); }
+}
+/* «Терминал»: команды «$ …» и живой вывод агента. / Raw commands and the live agent output. */
+function appTerminal(m) {
+  appState.terminal = m.html;
+  const name = t('hud.ex.terminal', 'Терминал');
+  exViews[name] = m.html;
+  const body = $('exBody'), atEnd = body.scrollTop + body.clientHeight >= body.scrollHeight - 24, top = body.scrollTop;
+  if (m.open && m.id !== appState.terminalId) {
+    appState.terminalId = m.id; exSel = name; $('exTitle').textContent = m.title; setWin('exWin', true);
+  }
+  buildTabs();
+  body.scrollTop = exSel === name && atEnd ? body.scrollHeight : top;
 }
 function appConfirm(c) {
   appState.confirmId = c.id || null;
@@ -89,6 +102,7 @@ window.creatorApp = {
       else if (m.type === 'practice') appPractice(m);
       else if (m.type === 'answer') appAnswer(m);
       else if (m.type === 'confirm') appConfirm(m);
+      else if (m.type === 'terminal') appTerminal(m);
     } catch (e) { console.error('creatorApp', e); }
   },
 };

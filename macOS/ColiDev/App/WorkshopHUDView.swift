@@ -61,7 +61,7 @@ final class HUDBridge: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
     private var latest: [String: String] = [:]
     private var sent: [String: String] = [:]
     /// Order on (re)load: data first, so the state line already has its strings. / Порядок при загрузке.
-    private let order = ["data", "practice", "answer", "confirm", "state"]
+    private let order = ["data", "practice", "answer", "terminal", "confirm", "state"]
 
     override init() {
         let configuration = WKWebViewConfiguration()
@@ -143,6 +143,11 @@ final class WorkshopHUDController: ObservableObject {
     private var notes: (count: Int, items: [HUDListItem]) = (0, [])
     private var tasks: [HUDTask] = []
     private var streakCache: (value: Int, at: Date) = (0, .distantPast)
+    /// The agent that takes the next spoken or typed task; nil means the assistant. / Агент для следующей задачи.
+    private var agentMode: WorkshopAgent?
+    private var terminalRun = 0
+    /// Agents in the order the orchestrator tries them for "агент: …". / Порядок агентов для «агент: …».
+    static let agentOrder: [WorkshopAgent] = [.claude, .opencode, .gemini, .hermes, .openclaw]
 
     private var language: AppLanguage { store?.language ?? .ru }
     private func text(_ key: String) -> String { L10n.text(key, language) }
@@ -158,6 +163,7 @@ final class WorkshopHUDController: ObservableObject {
         refreshInstalled()
         refreshFolders()
         bridge.onMessage = { [weak self] in self?.handle($0) }
+        model.voiceHandler = { [weak self] heard in self?.routeToAgent(heard, byVoice: true) ?? false }
         let changes: [AnyPublisher<Void, Never>] = [
             store.objectWillChange.map { _ in }.eraseToAnyPublisher(),
             model.objectWillChange.map { _ in }.eraseToAnyPublisher(),
@@ -191,6 +197,7 @@ final class WorkshopHUDController: ObservableObject {
         bridge.send("data", dataMessage(store: store, model: model))
         bridge.send("practice", practiceMessage())
         bridge.send("confirm", confirmMessage(model))
+        bridge.send("terminal", terminalMessage(model))
         if let answer = answerMessage(model) { bridge.send("answer", answer) }
         bridge.send("state", stateMessage(store: store, model: model))
     }
@@ -233,7 +240,10 @@ final class WorkshopHUDController: ObservableObject {
         } else if let notice = model.notice {
             line = HUDText.line(notice)
         } else if model.agentRunning {
-            line = format("hud.agentRunning", model.agent.title, PracticeEnvironment.tilde(model.agentFolder))
+            line = Self.lastLine(model.agentOutput).map { model.agent.title + ": " + HUDText.short($0, limit: 160) }
+                ?? format("hud.agentRunning", model.agent.title, PracticeEnvironment.tilde(model.agentFolder))
+        } else if let agent = agentMode {
+            line = format("hud.agent.mode", agent.title)
         } else if model.councilRunning {
             line = format("hud.councilRunning", model.councilMembers.map(\.label).joined(separator: ", "))
         } else if let answerID, let last = model.messages.last(where: { $0.id == answerID }) {
@@ -271,7 +281,40 @@ final class WorkshopHUDController: ObservableObject {
                                 sources: sources, open: last.id == answerID && HUDText.needsWindow(last.text))
     }
 
+    private static func lastLine(_ output: String) -> String? {
+        output.split(separator: "\n").last { line in
+            let text = line.trimmingCharacters(in: .whitespaces)
+            return !text.isEmpty && text != "■" && !text.hasPrefix("$ ")
+        }.map(String.init)
+    }
+
+    /// The «Терминал» tab: raw commands and the live agent output, newest at the bottom.
+    /// Вкладка «Терминал»: команды и живой вывод агента, новое внизу.
+    private func terminalMessage(_ model: WorkshopModel) -> HUDTerminalMessage {
+        var lines: [String] = []
+        for item in model.actionItems.suffix(8) where item.action.tool == .shell {
+            lines.append("$ " + item.action.exactCommand)
+            switch item.state {
+            case .proposed: lines.append(text("hud.terminal.waiting"))
+            case .running: lines.append("…")
+            case .done(let output), .failed(let output): lines.append(HUDText.short(output, limit: 4000))
+            case .cancelled: lines.append(text("hud.confirm.no"))
+            }
+        }
+        if !model.agentOutput.isEmpty { lines.append(model.agentOutput) }
+        if let status = model.agentStatus, !model.agentRunning { lines.append(status) }
+        let all = lines.joined(separator: "\n").components(separatedBy: "\n").suffix(220)
+        let html = all.isEmpty ? "<p>" + HUDHTML.escape(text("hud.terminal.empty")) + "</p>"
+            : "<pre class=\"code\">" + all.map { "<span class=\"l\">" + (HUDHTML.escape($0).isEmpty ? " " : HUDHTML.escape($0)) + "</span>" }.joined() + "</pre>"
+        return HUDTerminalMessage(id: String(terminalRun), title: model.agentRunning ? model.agent.title : text("hud.ex.terminal"),
+                                  html: html, open: terminalRun > 0)
+    }
+
     private func confirmMessage(_ model: WorkshopModel) -> HUDConfirmMessage {
+        if !model.agentDenials.isEmpty, !model.actionItems.contains(where: { $0.state == .proposed && $0.risk.needsConfirmation }) {
+            return HUDConfirmMessage(id: Self.agentToolsID,
+                                     text: HUDText.short(format("hud.agent.approve", model.agent.title, model.agentDenials.joined(separator: ", ")), limit: 72))
+        }
         guard let item = model.actionItems.first(where: { $0.state == .proposed && $0.risk.needsConfirmation }) else {
             return HUDConfirmMessage(id: nil, text: "")
         }
@@ -331,9 +374,10 @@ final class WorkshopHUDController: ObservableObject {
             let live = model.agentRunning && model.agent == agent
             let isInstalled = installed.contains(agent)
             let status = live ? text("hud.agent.live") : (isInstalled ? text("hud.agent.ready") : text("hud.agent.missing"))
-            let detail = live ? HUDText.short(model.agentTask, limit: 60) : text(isInstalled ? "hud.agent.\(agent.rawValue)" : "hud.agent.notInstalledShort")
+            let detail = live ? HUDText.short(Self.lastLine(model.agentOutput) ?? model.agentTask, limit: 60)
+                : text(isInstalled ? "hud.agent.\(agent.rawValue)" : "hud.agent.notInstalledShort")
             let tile = HUDTool.tile(ofAgent: agent.rawValue) ?? agent.rawValue
-            tiles[tile] = HUDTile(tip: agent.title + " · " + (live ? status : text("hud.agent.\(agent.rawValue)")), live: live)
+            tiles[tile] = HUDTile(tip: agent.title + " · " + (live ? status : text("hud.agent.\(agent.rawValue)")), live: live || agentMode == agent)
             return HUDAgentRow(icon: tile, name: agent.title, detail: detail.isEmpty ? status : detail, status: status, live: live)
         }
         tiles["obs"] = HUDTile(tip: text("hud.tile.obs"), live: false)
@@ -518,7 +562,13 @@ final class WorkshopHUDController: ObservableObject {
         case .ask(let question):
             model.notice = nil
             localLineUntil = .distantPast
-            model.ask(question, store: store)
+            if question.hasPrefix("$ ") || question.hasPrefix("$") && question.count > 1 {
+                // A raw command in the «Терминал» tab, under the usual safety rule. / Команда во вкладке «Терминал».
+                terminalRun += 1
+                model.proposeShell(String(question.dropFirst()).trimmingCharacters(in: .whitespaces), language: language)
+            } else if !routeToAgent(question, byVoice: false) {
+                model.ask(question, store: store)
+            }
         case .rail(let act):
             switch act {
             case "proj", "notes": refreshFolders()
@@ -529,6 +579,8 @@ final class WorkshopHUDController: ObservableObject {
             schedulePush()
         case .tool(let tool):
             useTool(tool)
+        case .confirm(let id, let yes) where id == Self.agentToolsID:
+            if yes { terminalRun += 1; model.approveAgentTools(language: language) } else { model.declineAgentTools(); say(text("hud.confirm.no")) }
         case .confirm(let id, let yes):
             guard let uuid = UUID(uuidString: id) else { return }
             if yes { model.run(uuid, confirmed: true, language: language) } else { model.cancel(uuid); say(text("hud.confirm.no")) }
@@ -569,14 +621,44 @@ final class WorkshopHUDController: ObservableObject {
         }
     }
 
+    static let agentToolsID = "agent-tools"
+
+    /// Agent mode or "агент: …" sends the task to a CLI agent inside the workshop; false means the assistant answers.
+    /// Режим агента или «агент: …» отдают задачу агенту внутри Мастерской; false — отвечает ассистент.
+    private func routeToAgent(_ question: String, byVoice: Bool) -> Bool {
+        guard let model else { return false }
+        var task = question
+        var agent = agentMode
+        for prefix in ["агент:", "agent:"] where question.lowercased().hasPrefix(prefix) {
+            task = String(question.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+            refreshInstalled()
+            // The first installed agent in order; missing ones are skipped. / Первый установленный, отсутствующие пропускаются.
+            agent = agent.flatMap { installed.contains($0) ? $0 : nil } ?? Self.agentOrder.first { installed.contains($0) }
+            if agent == nil { say(text("hud.agent.none")); return true }
+        }
+        guard let agent, !task.isEmpty, !model.agentRunning else { return false }
+        model.agent = agent
+        model.agentFolder = WorkshopModel.root
+        model.agentTask = task
+        terminalRun += 1
+        model.runAgent(language: language)
+        return true
+    }
+
     private func useTool(_ tool: String) {
         if let id = HUDTool.agentID(tool), let agent = WorkshopAgent(rawValue: id) {
             refreshInstalled()
             guard let model else { return }
-            model.agent = agent
-            model.tab = .agents
-            agentSheet = agent
-            say(installed.contains(agent) ? format("hud.agent.open", agent.title) : format("hud.agent.notInstalled", agent.title))
+            guard installed.contains(agent) else { say(format("hud.agent.notInstalled", agent.title)); return }
+            if !agent.runsNonInteractively {
+                // FreeBuff has only its own screen: it opens in Terminal. / У FreeBuff только свой экран — открывается в Терминале.
+                model.agent = agent
+                model.agentFolder = WorkshopModel.root
+                model.runAgent(language: language)
+                return
+            }
+            agentMode = agentMode == agent ? nil : agent
+            say(agentMode == nil ? text("hud.agent.modeOff") : format("hud.agent.mode", agent.title))
             return
         }
         switch tool {
