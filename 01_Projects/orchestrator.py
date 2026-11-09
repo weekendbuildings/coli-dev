@@ -55,6 +55,7 @@ from network_safety import is_loopback_http_url as _is_loopback_http_url
 from obsidian_worker import ObsidianWorker
 from python_practice import execute_python_practice
 from assistant_router import (
+    TIER_LOCAL,
     TIER_PAID,
     AssistantProvider,
     AssistantSettingsStore,
@@ -66,6 +67,7 @@ from assistant_router import (
     build_system_prompt as build_assistant_system_prompt,
     internet_reachable,
     is_free_openrouter_model,
+    is_loopback_url,
     route_stream as assistant_route_stream,
 )
 from workshop import (
@@ -5732,12 +5734,17 @@ ASSISTANT_LOCAL_MODELS = (DEFAULT_OLLAMA_TUTOR_MODEL, "qwen2.5-coder:7b")
 # Ollama Cloud has no free plan (2026-11-08): listed, marked paid, never called.
 # У Ollama Cloud нет бесплатного плана: в списке, помечена платной, не вызывается.
 ASSISTANT_OLLAMA_CLOUD_MODELS = ("gpt-oss:120b-cloud",)
-ASSISTANT_KEY_PROVIDERS = {"openrouter": "openrouter", "gemini": "gemini", "groq": "groq"}
+ASSISTANT_KEY_PROVIDERS = {"openrouter": "openrouter", "gemini": "gemini", "groq": "groq", "kimi": "kimi", "omniroute": "compatible"}
+# OmniRoute listens here by default; the address is set with the OpenAI-compatible endpoint in Settings.
+# OmniRoute по умолчанию слушает здесь; адрес задаётся в настройках вместе с OpenAI-совместимым адресом.
+ASSISTANT_GATEWAY_DEFAULT_URL = "http://127.0.0.1:20128/v1"
 assistant_settings = AssistantSettingsStore(app_data_dir() / "assistant-models.json")
 
 
 def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
     """All assistant providers; keys are read from the backend at call time, never returned."""
+    gateway = openai_compatible_settings.get()
+    gateway_url = gateway["base_url"] or ASSISTANT_GATEWAY_DEFAULT_URL
     return {
         "claude_cli": ClaudeCLIProvider(model=ASSISTANT_CLAUDE_MODEL, language=language),
         "openrouter": OpenAICompatibleFreeProvider(
@@ -5759,9 +5766,33 @@ def _assistant_providers(language: str = "ru") -> dict[str, AssistantProvider]:
             key=lambda: GROQ_KEY,
             model=GROQ_ASSISTANT_MODEL,
         ),
+        # The gateway runs on this Mac: no internet check, key optional; a remote address is treated as paid.
+        # Шлюз на этом Mac: без проверки интернета, ключ не обязателен; удалённый адрес считается платным.
+        "omniroute": OpenAICompatibleFreeProvider(
+            id="omniroute",
+            label="OmniRoute",
+            base_url=gateway_url,
+            status_path="/models",
+            key=lambda: OPENAI_COMPATIBLE_KEY,
+            model=gateway["model"],
+            tier=TIER_LOCAL if is_loopback_url(gateway_url) else TIER_PAID,
+            needs_network=False,
+            key_required=False,
+        ),
         "ollama_local": OllamaProvider(
             id="ollama_local", label="Ollama", base_url=OLLAMA_BASE, models=ASSISTANT_LOCAL_MODELS,
             num_predict=OLLAMA_NUM_PREDICT,
+        ),
+        # Moonshot's API is pay-as-you-go: listed with the key status, never called (free-only rule).
+        # API Moonshot оплачивается по факту: в списке со статусом ключа, но не вызывается (правило «только бесплатно»).
+        "kimi": OpenAICompatibleFreeProvider(
+            id="kimi",
+            label="Kimi",
+            base_url=KIMI_URL.removesuffix("/chat/completions"),
+            status_path="/models",
+            key=lambda: KIMI_KEY,
+            model=KIMI_MODEL,
+            tier=TIER_PAID,
         ),
         "ollama_cloud": OllamaProvider(
             id="ollama_cloud", label="Ollama Cloud", base_url=OLLAMA_BASE, models=ASSISTANT_OLLAMA_CLOUD_MODELS,

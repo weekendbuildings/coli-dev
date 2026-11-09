@@ -48,7 +48,9 @@ TIER_FREE_CLOUD = "free_cloud"
 TIER_LOCAL = "local"
 TIER_PAID = "paid"
 
-DEFAULT_ORDER = ("claude_cli", "openrouter", "gemini", "groq", "ollama_local", "ollama_cloud")
+# OmniRoute (a local OpenAI-style gateway) comes after the free clouds; Kimi (Moonshot API) and Ollama Cloud are
+# paid and only listed. / OmniRoute (локальный шлюз) после бесплатных облаков; Kimi и Ollama Cloud платные, только в списке.
+DEFAULT_ORDER = ("claude_cli", "openrouter", "gemini", "groq", "omniroute", "ollama_local", "kimi", "ollama_cloud")
 
 # Environment variables that would make `claude` bill an API key or run in bare
 # mode (bare mode accepts only an API key). Они переключили бы `claude` на ключ API.
@@ -456,11 +458,12 @@ async def _sse_payloads(response: httpx.Response) -> AsyncIterator[str]:
 
 
 class OpenAICompatibleFreeProvider(_HTTPProvider):
-    """OpenRouter `:free` and Groq: OpenAI-style streaming chat."""
+    """OpenRouter `:free`, Groq, Kimi and a local gateway such as OmniRoute: OpenAI-style streaming chat."""
 
     def __init__(self, *, id: str, label: str, base_url: str, status_path: str, key: KeyGetter, model: str,
                  extra_headers: dict[str, str] | None = None, free_model_check: Callable[[str], bool] | None = None,
-                 transport: httpx.AsyncBaseTransport | None = None) -> None:
+                 transport: httpx.AsyncBaseTransport | None = None, tier: str = TIER_FREE_CLOUD,
+                 needs_network: bool = True, key_required: bool = True) -> None:
         super().__init__(key=key, model=model, transport=transport)
         self.id = id
         self.label = label
@@ -468,9 +471,17 @@ class OpenAICompatibleFreeProvider(_HTTPProvider):
         self.status_path = status_path
         self.extra_headers = extra_headers or {}
         self.free_model_check = free_model_check
+        self.tier = tier
+        self.needs_network = needs_network
+        self.key_required = key_required
+
+    def configured(self) -> bool:
+        # A local gateway may run without a key. / Локальный шлюз может работать без ключа.
+        return bool(self.base_url and self.model) and (not self.key_required or bool(self.key()))
 
     def _headers(self) -> dict[str, str]:
-        return {"Authorization": f"Bearer {self.key()}", **self.extra_headers}
+        key = self.key()
+        return {**({"Authorization": f"Bearer {key}"} if key else {}), **self.extra_headers}
 
     async def status(self) -> dict[str, Any]:
         result = await self._probe(self.base_url + self.status_path, self._headers())
@@ -521,6 +532,16 @@ class OpenAICompatibleFreeProvider(_HTTPProvider):
                         content = delta.get("content") if isinstance(delta, dict) else None
                         if isinstance(content, str) and content:
                             yield content
+
+
+def is_loopback_url(url: str) -> bool:
+    """Only a gateway on this Mac counts as local; any other address may be a paid API.
+    Локальным считается только шлюз на этом Mac; другой адрес может оказаться платным API."""
+    try:
+        host = (httpx.URL(url).host or "").lower()
+    except Exception:  # noqa: BLE001 — a broken address is simply not local
+        return False
+    return host in {"127.0.0.1", "localhost", "::1", "[::1]"}
 
 
 def is_free_openrouter_model(model: str) -> bool:

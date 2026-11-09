@@ -531,3 +531,41 @@ def test_real_provider_list_has_no_paid_route_enabled_and_free_openrouter_model(
     assert ar.is_free_openrouter_model(providers["openrouter"].model)
     assert providers["claude_cli"].model == "sonnet"
     assert "groq" in orchestrator.PROVIDER_ENV_NAMES
+
+
+# ─── OmniRoute and Kimi / OmniRoute и Kimi ──────────────────────────────────
+
+def test_local_gateway_needs_no_key_and_only_loopback_is_local():
+    assert ar.is_loopback_url("http://127.0.0.1:20128/v1") and ar.is_loopback_url("http://localhost:20128/v1")
+    assert not ar.is_loopback_url("https://api.openai.com/v1") and not ar.is_loopback_url("not a url")
+    gateway = ar.OpenAICompatibleFreeProvider(id="omniroute", label="OmniRoute", base_url="http://127.0.0.1:20128/v1",
+                                              status_path="/models", key=lambda: "", model="auto",
+                                              tier=ar.TIER_LOCAL, needs_network=False, key_required=False)
+    assert gateway.configured() and "Authorization" not in gateway._headers()
+    assert not ar.OpenAICompatibleFreeProvider(id="omniroute", label="OmniRoute", base_url="http://127.0.0.1:20128/v1",
+                                               status_path="/models", key=lambda: "", model="", key_required=False).configured()
+    keyed = ar.OpenAICompatibleFreeProvider(id="groq", label="Groq", base_url="https://x/v1", status_path="/models",
+                                            key=lambda: "", model="m")
+    assert not keyed.configured()
+
+
+def test_assistant_providers_list_omniroute_local_and_kimi_paid(monkeypatch):
+    import orchestrator
+    monkeypatch.setattr(orchestrator.openai_compatible_settings, "get", lambda: {"base_url": "", "model": "auto"})
+    providers = orchestrator._assistant_providers()
+    assert list(ar.DEFAULT_ORDER) == ["claude_cli", "openrouter", "gemini", "groq", "omniroute", "ollama_local", "kimi", "ollama_cloud"]
+    assert set(providers) == set(ar.DEFAULT_ORDER)
+    assert providers["omniroute"].tier == ar.TIER_LOCAL and providers["omniroute"].needs_network is False
+    assert providers["omniroute"].base_url == "http://127.0.0.1:20128/v1"
+    assert providers["kimi"].tier == ar.TIER_PAID
+    monkeypatch.setattr(orchestrator.openai_compatible_settings, "get",
+                        lambda: {"base_url": "https://api.example.com/v1", "model": "gpt"})
+    assert orchestrator._assistant_providers()["omniroute"].tier == ar.TIER_PAID, "a remote gateway may be paid"
+
+
+def test_kimi_is_never_called():
+    kimi = FakeProvider("kimi", chunks=["¥"], tier=ar.TIER_PAID)
+    local = FakeProvider("ollama_local", chunks=["ok"])
+    events = collect(ar.route_stream([kimi, local], "sys", MESSAGES))
+    assert kimi.calls == 0 and events[-1]["provider"] == "ollama_local"
+    assert {"provider": "kimi", "model": kimi.model, "result": "paid_blocked"} in events[-1]["attempts"]
