@@ -1731,6 +1731,7 @@ private struct SettingsView: View {
                 .pickerStyle(.segmented)
             }
             WorkshopSummonSection()
+            WorkshopBackgroundSection()
             WorkshopVoiceSection()
             WorkshopMemorySection()
             Section {

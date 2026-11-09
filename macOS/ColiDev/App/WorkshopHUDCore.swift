@@ -55,6 +55,7 @@ enum HUDInbound: Equatable {
     case practiceEdit
     case voice
     case reveal(String)
+    case dismiss
 
     static let maxText = 4000
     static let rails: Set<String> = ["path", "new", "ex", "ed", "proj", "notes", "rem", "agents", "set"]
@@ -84,6 +85,7 @@ enum HUDInbound: Equatable {
         case "practiceEdit": return .practiceEdit
         case "voice": return .voice
         case "reveal": return text("path").map(HUDInbound.reveal)
+        case "dismiss": return .dismiss
         default: return nil
         }
     }

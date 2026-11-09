@@ -126,6 +126,7 @@ final class WorkshopHUDController: ObservableObject {
     @Published var agentSheet: WorkshopAgent?
     @Published var editDocument: PracticeDocument?
     @Published var memoryOpen = false
+    var onDismiss: (() -> Void)?
 
     let bridge = HUDBridge()
     let practice = PracticeModel()
@@ -161,6 +162,8 @@ final class WorkshopHUDController: ObservableObject {
         self.store = store
         self.model = model
         self.backend = backend
+        // The overlay may come up before any window started the backend. / Оверлей может появиться раньше окна.
+        if !backend.isReady { Task { _ = await backend.ensureRunning() } }
         if let data = UserDefaults.standard.data(forKey: HUDTask.defaultsKey),
            let saved = try? JSONDecoder().decode([HUDTask].self, from: data) { tasks = saved }
         refreshInstalled()
@@ -627,6 +630,8 @@ final class WorkshopHUDController: ObservableObject {
             editDocument = practice.document
         case .voice:
             if model.voice.isListening { model.stopListeningAndAsk(store: store) } else { model.startListening(language: language) }
+        case .dismiss:
+            onDismiss?()
         case .reveal(let path):
             let url = URL(fileURLWithPath: path)
             guard WorkshopAgents.isInside(url, root: WorkshopModel.root), FileManager.default.fileExists(atPath: url.path) else { return }
@@ -638,7 +643,10 @@ final class WorkshopHUDController: ObservableObject {
     /// `COLIDEV_HUD_TEST_ASK`: проверка вписывает вопрос в форму страницы и отправляет его — тем же путём, что и человек.
     private var testQuestionTyped = false
     private func typeTestQuestion() {
-        guard !testQuestionTyped, let question = ProcessInfo.processInfo.environment["COLIDEV_HUD_TEST_ASK"], !question.isEmpty,
+        let environment = ProcessInfo.processInfo.environment
+        // With the overlay check only the overlay types it. / При проверке оверлея вопрос вписывает только оверлей.
+        if environment["COLIDEV_OVERLAY_AT_LAUNCH"] == "1", onDismiss == nil { return }
+        guard !testQuestionTyped, let question = environment["COLIDEV_HUD_TEST_ASK"], !question.isEmpty,
               let json = try? JSONEncoder().encode([question]), let literal = String(data: json, encoding: .utf8) else { return }
         testQuestionTyped = true
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
@@ -728,6 +736,8 @@ struct WorkshopHUDView: View {
     @EnvironmentObject private var store: LearningStore
     @EnvironmentObject private var backend: LocalBackendSupervisor
     @ObservedObject var model: WorkshopModel
+    /// Set for the overlay: Esc on an empty HUD hides it. / Для оверлея: Esc на пустом HUD прячет его.
+    var onDismiss: (() -> Void)?
     @StateObject private var controller = WorkshopHUDController()
 
     var body: some View {
@@ -735,7 +745,10 @@ struct WorkshopHUDView: View {
             .background(Color.black)
             .accessibilityElement(children: .contain)
             .accessibilityIdentifier("workshop.hud")
-            .onAppear { controller.connect(store: store, model: model, backend: backend) }
+            .onAppear {
+                controller.onDismiss = onDismiss
+                controller.connect(store: store, model: model, backend: backend)
+            }
             .sheet(item: $controller.agentSheet) { _ in
                 VStack(spacing: 0) {
                     WorkshopView(model: model)

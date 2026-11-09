@@ -104,11 +104,7 @@ final class WorkshopHub {
         switch key {
         case .summon:
             guard pressed else { return }
-            if NSApp.isActive, let window = Self.mainWindow, window.isKeyWindow, window.isVisible {
-                NSApp.hide(nil)
-            } else {
-                summon()
-            }
+            if WorkshopOverlay.shared.isVisible { WorkshopOverlay.shared.hide() } else { summon() }
         case .voice:
             if pressed {
                 summon()
@@ -126,23 +122,15 @@ final class WorkshopHub {
         NSApp.windows.first { !($0 is NSPanel) && $0.canBecomeMain && $0.contentView != nil }
     }
 
-    /// The HUD on the current desktop, in front of every app, with a soft sound. / HUD на текущем столе, поверх всех программ.
+    /// The workshop overlay on the current desktop, over every app, with a soft sound. / Оверлей поверх всех программ.
     func summon() {
         if UserDefaults.standard.object(forKey: WorkshopWakeListener.soundKey) as? Bool ?? true {
             let sound = NSSound(named: NSSound.Name("Purr")) ?? NSSound(named: NSSound.Name("Tink"))
             sound?.volume = 0.45
             sound?.play()
         }
-        NSApp.activate(ignoringOtherApps: true)
-        if let window = Self.mainWindow {
-            window.collectionBehavior.insert(.moveToActiveSpace)
-            if window.isMiniaturized { window.deminiaturize(nil) }
-            window.makeKeyAndOrderFront(nil)
-        } else {
-            // No window left: reopening the app makes SwiftUI create one. / Окна нет: повторное открытие создаёт его.
-            NSWorkspace.shared.open(Bundle.main.bundleURL)
-        }
-        NotificationCenter.default.post(name: .workshopSummon, object: nil)
+        // The overlay over everything; the window inside the app stays as it is. / Оверлей поверх всего; окно приложения не трогаем.
+        WorkshopOverlay.shared.show()
     }
 
     /// After the wake word the question is heard until a pause, then sent. / После слова вызова вопрос слушается до паузы.

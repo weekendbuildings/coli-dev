@@ -174,11 +174,15 @@ struct MacWorkshopSystem: WorkshopSystem {
 
     func run(_ executable: String, _ arguments: [String], directory: URL) async -> (status: Int32, output: String) {
         let box = TextBox()
+        // The process object must live until it ends, or the command never reports back.
+        // Объект процесса должен жить до конца команды, иначе она так и не сообщит о завершении.
+        let process = LiveProcess()
         let ending: LiveProcess.Ending = await withCheckedContinuation { continuation in
-            LiveProcess().start(executable: executable, arguments: arguments, directory: directory,
-                                environment: WorkshopAgents.environment(base: ProcessInfo.processInfo.environment, home: NSHomeDirectory()),
-                                timeout: 120, onOutput: { box.add($0) }, onExit: { continuation.resume(returning: $0) })
+            process.start(executable: executable, arguments: arguments, directory: directory,
+                          environment: WorkshopAgents.environment(base: ProcessInfo.processInfo.environment, home: NSHomeDirectory()),
+                          timeout: 120, onOutput: { box.add($0) }, onExit: { continuation.resume(returning: $0) })
         }
+        withExtendedLifetime(process) {}
         let output = String(AgentOutputText.clean(box.text).prefix(20_000))
         if let failure = ending.failedToStart { return (-1, failure) }
         return (ending.timedOut ? -2 : ending.status ?? -1, output)

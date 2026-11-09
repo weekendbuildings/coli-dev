@@ -924,6 +924,11 @@ if (APP) {
   document.querySelector('#edWin .file').addEventListener('click', () => post('practiceEdit'));
   document.querySelector('#edWin pre.code').addEventListener('dblclick', () => post('practiceEdit'));
   $('pop').addEventListener('click', (e) => { const r = e.target.closest('[data-path]'); if (r) post('reveal', { path: r.dataset.path }); });
+  // Esc on an empty HUD hides the overlay (seen before the page closes its windows). / Esc на пустом HUD прячет оверлей.
+  addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !$('edWin').classList.contains('open') && !$('exWin').classList.contains('open') && !popOpen
+        && !$('bc').classList.contains('tools') && document.activeElement !== $('ask')) post('dismiss');
+  }, true);
   addEventListener('keydown', (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r' && $('edWin').classList.contains('open')) { e.preventDefault(); post('practiceRun'); }
   });

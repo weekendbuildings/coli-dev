@@ -149,7 +149,14 @@ enum L10n {
         "nav.creatorProgress": ("Прогресс Творца", "Creator progress"),
         "nav.practice": ("Практика", "Practice"),
         "nav.workshop": ("Мастерская", "Workshop"),
-        // Memory (WorkshopMemory.swift) / Память
+        // Workshop overlay and background (WorkshopOverlay.swift) / оверлей и фон
+        "menu.overlay": ("Мастерская Творца", "Creator Workshop"),
+        "menu.quitForReal": ("Выйти совсем", "Quit completely"),
+        "settings.background.title": ("Мастерская в фоне", "Workshop in the background"),
+        "settings.background.keepRunning": ("Не закрывать Мастерскую, когда закрыто окно или нажато ⌘Q", "Keep the workshop running when the window is closed or ⌘Q is pressed"),
+        "settings.background.login": ("Запускать при входе в macOS (без окна, слушает только Мастерская)", "Start at macOS login (no window, only the workshop listens)"),
+        "settings.background.approve": ("Разрешить в «Объектах входа»…", "Allow in Login Items…"),
+        "settings.background.help": ("Слово «Creator» или горячая клавиша показывают Мастерскую поверх всех окон и полноэкранных программ; Esc прячет её. Совсем закрыть приложение — «Выйти совсем» в значке строки меню. Поверх экрана блокировки macOS рисовать не даёт: вопрос всё равно слышен, ответ звучит голосом, а Мастерская появится сразу после разблокировки.", "The word “Creator” or the hot key shows the workshop over every window and full-screen app; Esc hides it. To quit completely use “Quit completely” in the menu-bar icon. macOS lets nothing draw over the lock screen: the question is still heard, the answer is spoken, and the workshop appears right after unlock."),
         "memory.title": ("Память", "Memory"),
         "memory.settingsTitle": ("Мастерская: Память (Obsidian)", "Workshop: Memory (Obsidian)"),
         "memory.choose": ("Выбрать папку хранилища…", "Choose the vault folder…"),
