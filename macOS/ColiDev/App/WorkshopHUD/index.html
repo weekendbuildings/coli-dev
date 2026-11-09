@@ -883,7 +883,7 @@ function appAnswer(a) {
   $('exTitle').textContent = a.title;
   Object.keys(exViews).forEach((k) => delete exViews[k]);
   exViews[t('hud.ex.answer', 'Ответ')] = a.html;
-  exViews[t('hud.ex.sources', 'Источники')] = `<p>${esc(a.sources)}</p>`;
+  exViews[t('hud.ex.sources', 'Источники')] = a.sources.split('\n').map((l) => `<p>${esc(l)}</p>`).join('');
   if (appState.terminal) exViews[t('hud.ex.terminal', 'Терминал')] = appState.terminal;
   const body = $('exBody'), top = body.scrollTop;
   buildTabs(); body.scrollTop = top;

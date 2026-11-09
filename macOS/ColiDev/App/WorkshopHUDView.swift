@@ -273,7 +273,13 @@ final class WorkshopHUDController: ObservableObject {
             return HUDAnswerMessage(id: "empty", title: text("hud.ex.title"), html: "<p>" + HUDHTML.escape(text("hud.ex.empty")) + "</p>",
                                     sources: text("hud.sources.pending"), open: false)
         }
-        let sources = last.answeredBy.map { format("hud.sources", $0, last.model ?? "") } ?? text("hud.sources.pending")
+        var sources = last.answeredBy.map { format("hud.sources", $0, last.model ?? "") } ?? text("hud.sources.pending")
+        let checked = last.sources ?? []
+        sources += "\n" + (checked.isEmpty ? text("hud.sources.none")
+            : checked.map { source in
+                ["[\(source.id)] \(source.title)", text("hud.source.\(source.kind)"), source.date, source.url]
+                    .filter { !$0.isEmpty && !$0.hasPrefix("hud.source.") }.joined(separator: " · ")
+            }.joined(separator: "\n"))
         let question = model.messages.last(where: { $0.role == "user" && $0.date <= last.date })?.text ?? text("hud.ex.title")
         // The same id as the live answer, so a window the owner closed does not open again.
         // Тот же id, что у живого ответа: закрытое окно не открывается снова.

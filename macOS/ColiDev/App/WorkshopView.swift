@@ -94,6 +94,22 @@ extension OrchestratorClient {
 
 // MARK: - Model / модель
 
+/// A checked source behind an answer (RAG): lesson, Obsidian note or licensed official page. / Источник ответа (RAG).
+struct WorkshopSource: Codable, Equatable {
+    var id: String
+    var title: String
+    var kind: String
+    var url: String
+    var date: String
+
+    static func parse(line: String) -> [WorkshopSource]? {
+        struct Event: Decodable { let type: String; let sources: [WorkshopSource]? }
+        guard line.hasPrefix("data:"), let data = line.dropFirst(5).trimmingCharacters(in: .whitespaces).data(using: .utf8),
+              let event = try? JSONDecoder().decode(Event.self, from: data), event.type == "sources" else { return nil }
+        return event.sources ?? []
+    }
+}
+
 struct WorkshopMessage: Codable, Identifiable, Equatable {
     var id = UUID()
     let role: String
@@ -102,6 +118,7 @@ struct WorkshopMessage: Codable, Identifiable, Equatable {
     var model: String?
     var voice = false
     var date = Date()
+    var sources: [WorkshopSource]?
 }
 
 struct WorkshopActionItem: Identifiable, Equatable {
@@ -224,6 +241,7 @@ final class WorkshopModel: ObservableObject {
     }
     let voice = WorkshopVoice()
     private var askTask: Task<Void, Never>?
+    @Published private(set) var currentSources: [WorkshopSource] = []
 
     // Agents / агенты
     @Published var agent: WorkshopAgent = .claude
@@ -306,7 +324,9 @@ final class WorkshopModel: ObservableObject {
         askTask = Task {
             do {
                 let data = try JSONEncoder().encode(body)
+                self.currentSources = []
                 try await OrchestratorClient.streamLines(path: "/workshop/ask/stream", body: data) { line in
+                    if let found = WorkshopSource.parse(line: line) { self.currentSources = found; return }
                     if let event = AssistantStreamEvent.parse(line: line) { self.current.apply(event) }
                 }
             } catch is CancellationError {
@@ -326,8 +346,9 @@ final class WorkshopModel: ObservableObject {
         let reply = current.text
         guard !reply.isEmpty else { return }
         let split = WorkshopActionParser.split(reply)
-        let message = WorkshopMessage(role: "assistant", text: split.text.isEmpty ? reply : split.text,
+        var message = WorkshopMessage(role: "assistant", text: split.text.isEmpty ? reply : split.text,
                                       answeredBy: current.answeredBy, model: current.model)
+        message.sources = currentSources.isEmpty ? nil : currentSources
         messages.append(message)
         current = AssistantAnswerState()
         save()

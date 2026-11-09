@@ -5999,6 +5999,43 @@ def _sse(events) -> StreamingResponse:
     )
 
 
+WORKSHOP_RETRIEVAL_TIMEOUT = 6.0
+
+
+async def _workshop_sources(question: str) -> list[dict[str, Any]]:
+    """Up to four excerpts for the workshop answer; a slow index never holds the answer back.
+    До четырёх фрагментов для ответа Мастерской; медленный индекс не задерживает ответ."""
+    try:
+        results = await asyncio.wait_for(asyncio.gather(
+            _retrieve_local_course_sources(question),
+            _retrieve_obsidian_sources(question),
+            _retrieve_licensed_official_sources(question),
+            return_exceptions=True,
+        ), timeout=WORKSHOP_RETRIEVAL_TIMEOUT)
+    except asyncio.TimeoutError:
+        logger.info("Workshop retrieval timed out")
+        return []
+    course, obsidian, official = (result if isinstance(result, list) else [] for result in results)
+    return _combine_retrieval_sources(course, obsidian, official_sources=official)
+
+
+def _workshop_public_sources(sources: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """What the app may show: id, title, kind, a web link and a date — never excerpts or file paths.
+    Что можно показать: id, название, вид, ссылка и дата — без фрагментов и путей к файлам."""
+    shown = []
+    for source in sources:
+        url = str(source.get("url") or source.get("source_url") or "")
+        date = str(source.get("source_checked_at") or source.get("last_reviewed") or source.get("modified") or "")
+        shown.append({
+            "id": str(source.get("id", "")),
+            "title": str(source.get("title") or source.get("lesson_title") or source.get("path") or "")[:160],
+            "kind": str(source.get("source_type", "course"))[:40],
+            "url": url if url.startswith("https://") else "",
+            "date": date[:40],
+        })
+    return shown
+
+
 @app.post("/workshop/ask/stream")
 @limiter.limit(CHAT_RATE_LIMIT)
 async def workshop_ask_stream(request: Request, req: WorkshopAskRequest):
@@ -6013,9 +6050,16 @@ async def workshop_ask_stream(request: Request, req: WorkshopAskRequest):
     system = await _workshop_system(req.language, req.next_step, req.labs)
     messages = build_workshop_messages([turn.model_dump() for turn in req.history], req.question,
                                        voice=req.voice, language=req.language)
+    # RAG, as in the rest of the app: checked course lessons, the Obsidian vault and licensed official pages, cited
+    # by [K#] with their dates. / RAG, как во всём приложении: проверенные уроки, Obsidian и официальные страницы.
+    sources = await _workshop_sources(req.question)
+    if sources and messages:
+        messages[-1] = {**messages[-1], "content": _augment_message_with_sources(messages[-1]["content"], sources, req.language)}
 
     async def events():
         yield ": connected\n\n"
+        if sources:
+            yield f"data: {json.dumps({'type': 'sources', 'sources': _workshop_public_sources(sources)}, ensure_ascii=False)}\n\n"
         async for event in assistant_route_stream(
             ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok,
             cooldowns=assistant_cooldowns,

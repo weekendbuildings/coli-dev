@@ -166,6 +166,11 @@ def api(tmp_path, monkeypatch):
     monkeypatch.setattr(orchestrator, "assistant_settings", ar.AssistantSettingsStore(tmp_path / "a.json"))
     monkeypatch.setattr(orchestrator, "_assistant_provider_factory", lambda language="ru": fakes)
 
+    async def no_sources(question):
+        return []
+
+    monkeypatch.setattr(orchestrator, "_workshop_sources", no_sources)
+
     class Store:
         def get_progress(self):
             return PROGRESS
@@ -220,3 +225,20 @@ def test_workshop_endpoints_reject_remote_clients(api):
     remote = TestClient(orchestrator.app, client=("203.0.113.9", 50000))
     assert remote.post("/workshop/ask/stream", json={"question": "Hi"}).status_code == 403
     assert remote.post("/workshop/council/stream", json={"question": "Hi"}).status_code == 403
+
+
+def test_workshop_ask_uses_rag_sources_and_shows_only_safe_fields(api, monkeypatch):
+    client, fakes = api
+
+    async def found(question):
+        return [{"id": "K1", "source_type": "course", "title": "Градиент", "path": "/secret/lesson.md",
+                 "excerpt": "Градиент показывает направление роста.", "source_checked_at": "2026-11-01"}]
+
+    monkeypatch.setattr(orchestrator, "_workshop_sources", found)
+    events = stream_events(client.post("/workshop/ask/stream", json={"language": "ru", "question": "Что такое градиент?"}))
+    assert events[0]["type"] == "sources"
+    shown = events[0]["sources"][0]
+    assert shown["id"] == "K1" and shown["title"] == "Градиент" and shown["date"] == "2026-11-01"
+    assert "excerpt" not in shown and "/secret" not in str(events[0])
+    sent = fakes["gemini"].messages[0][-1]["content"]
+    assert "[K#]" in sent and "Градиент показывает направление роста." in sent and sent.rstrip().endswith("Что такое градиент?")
