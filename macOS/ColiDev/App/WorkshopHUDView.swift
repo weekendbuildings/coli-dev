@@ -245,7 +245,7 @@ final class WorkshopHUDController: ObservableObject {
             line = voice.transcript.isEmpty ? text("hud.listening") : HUDText.line(voice.transcript)
         } else if model.isAnswering {
             if !model.current.text.isEmpty {
-                line = HUDText.line(model.current.text)
+                line = HUDText.line(HUDText.withoutActions(model.current.text))
             } else if let trying = model.current.trying {
                 line = format("hud.trying", trying)
             } else {
@@ -279,7 +279,7 @@ final class WorkshopHUDController: ObservableObject {
     private func answerMessage(_ model: WorkshopModel) -> HUDAnswerMessage? {
         let title = HUDText.short(lastQuestion(model) ?? text("hud.ex.title"), limit: 80)
         if model.isAnswering {
-            let partial = model.current.text
+            let partial = HUDText.withoutActions(model.current.text)
             guard !partial.isEmpty else { return nil }
             return HUDAnswerMessage(id: "live-\(model.messages.count)", title: title, html: HUDHTML.answer(partial),
                                     sources: text("hud.sources.pending"), open: HUDText.needsWindow(partial))

@@ -9,7 +9,8 @@ enum L10n {
         "nav.today": ("Сегодня", "Today"),
         "nav.subjects": ("Направления", "Subjects"),
         "nav.aiPath": ("Путь Творца", "Creator path"),
-        "app.name": ("Творец", "Creator"),
+        // The owner's name for the app: English in both languages. / Имя приложения от владельца, по-английски в обоих языках.
+        "app.name": ("Creator's Path", "Creator's Path"),
         "home.nextStep.title": ("Твой следующий шаг", "Your next step"),
         "home.nextStep.where": ("Модуль %@ · %@ · шаг %@", "Module %@ · %@ · step %@"),
         "home.nextStep.open": ("Открыть урок", "Open the lesson"),
@@ -201,7 +202,7 @@ enum L10n {
         "settings.workshop.sound": ("Мягкий звук при появлении", "Soft sound when it appears"),
         "settings.workshop.help": ("%@ — держи и говори: вопрос уйдёт, когда отпустишь. После слова вызова вопрос отправляется сам после паузы.", "%@ — hold to talk; the question goes when you let go. After the wake word the question goes by itself after a pause."),
         // Workshop HUD (WorkshopHUDView, WorkshopHUD/index.html) / HUD Мастерской
-        "hud.sub": ("Мастерская Творца", "Creator's workshop"),
+        "hud.sub": ("Мастерская Творца", "Creator Workshop"),
         "hud.online": ("Онлайн", "Online"),
         "hud.starting": ("Запуск", "Starting"),
         "hud.tip.claude": ("Claude · по подписке", "Claude · subscription"),

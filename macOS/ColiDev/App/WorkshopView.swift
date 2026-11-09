@@ -328,16 +328,31 @@ final class WorkshopModel: ObservableObject {
         let body = WorkshopAskBody(language: language.rawValue, question: question, history: history,
                                    nextStep: Self.nextStep(store: store), labs: CreatorLabCatalog.labs.map(\.lesson), voice: byVoice)
         askTask = Task {
-            do {
-                let data = try JSONEncoder().encode(body)
-                self.currentSources = []
-                try await OrchestratorClient.streamLines(path: "/workshop/ask/stream", body: data) { line in
-                    if let found = WorkshopSource.parse(line: line) { self.currentSources = found; return }
-                    if let event = AssistantStreamEvent.parse(line: line) { self.current.apply(event) }
+            // Right after launch (or at login) the backend may still be starting: wait for it, then try twice.
+            // Сразу после запуска (или входа) backend может ещё стартовать: ждём его и пробуем дважды.
+            let backend = AppServices.shared.backend
+            if !backend.isReady { _ = await backend.ensureRunning() }
+            for attempt in 0..<2 {
+                var heardAnything = false
+                do {
+                    let data = try JSONEncoder().encode(body)
+                    self.currentSources = []
+                    try await OrchestratorClient.streamLines(path: "/workshop/ask/stream", body: data) { line in
+                        heardAnything = true
+                        if let found = WorkshopSource.parse(line: line) { self.currentSources = found; return }
+                        if let event = AssistantStreamEvent.parse(line: line) { self.current.apply(event) }
+                    }
+                    break
+                } catch is CancellationError {
+                    break
+                } catch {
+                    if attempt == 0, !heardAnything, !Task.isCancelled {
+                        _ = await backend.ensureRunning()
+                        try? await Task.sleep(nanoseconds: 1_500_000_000)
+                        continue
+                    }
+                    if current.error == nil { current.error = L10n.text("workshop.chat.offline", language) }
                 }
-            } catch is CancellationError {
-            } catch {
-                if current.error == nil { current.error = L10n.text("workshop.chat.offline", language) }
             }
             finishAnswer(language: language, speak: byVoice)
         }

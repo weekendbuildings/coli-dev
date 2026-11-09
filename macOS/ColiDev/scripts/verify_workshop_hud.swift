@@ -84,6 +84,8 @@ struct VerifyWorkshopHUD {
         check(HUDText.needsWindow(markdown), "code needs the window / код открывает окно")
         check(!HUDText.needsWindow("Да."), "a short answer stays in the line / короткий ответ остаётся в строке")
         check(HUDText.short("абв\nгде", limit: 4) == "абв…", "short text is one line / одна строка")
+        check(HUDText.withoutActions("Готово.\n```action\n{\"tool\": \"open\"}\n```\nДальше.") == "Готово.\n\nДальше."
+              && HUDText.withoutActions("Сейчас.\n```action\n{\"tool\":") == "Сейчас.", "action blocks hidden while streaming / действия скрыты")
         check(HUDText.outputLine("1 2 3\n2 4 6\n\n3 6 9\n") == "1 2 3 · 2 4 6 · 3 6 9", "output in the design's style / вывод в стиле макета")
         let tasks = HUDTask.adding("Повторить циклы", to: [], at: Date())
         check(tasks.count == 1 && HUDTask.adding("  ", to: tasks, at: Date()).count == 1, "empty task ignored / пустая задача не пишется")

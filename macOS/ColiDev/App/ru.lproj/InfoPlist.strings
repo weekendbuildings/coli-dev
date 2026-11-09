@@ -1,4 +1,4 @@
-"CFBundleName" = "Творец";
-"CFBundleDisplayName" = "Творец";
+"CFBundleName" = "Creator's Path";
+"CFBundleDisplayName" = "Creator's Path";
 "NSMicrophoneUsageDescription" = "«Творец» слушает твой голосовой вопрос в Мастерской, пока ты держишь кнопку микрофона или ⌃⌥V, а если включишь это в настройках — слово «Creator», чтобы вызвать Мастерскую. Речь распознаётся только на этом Mac.";
 "NSSpeechRecognitionUsageDescription" = "«Творец» превращает твой голосовой вопрос в текст прямо на этом Mac (распознавание на устройстве), чтобы спросить ассистента Мастерской.";

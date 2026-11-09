@@ -13,7 +13,7 @@ function applyStrings(s, locale) {
     document.documentElement.lang = locale.slice(0, 2); tick();
   }
   const set = (sel, key, prop) => { const el = document.querySelector(sel); if (el && T[key]) el[prop || 'textContent'] = T[key]; };
-  set('.wm-sub', 'hud.sub'); set('#ask', 'hud.ask', 'placeholder'); set('label[for="ask"]', 'hud.askLabel');
+  set('.wm', 'hud.sub'); set('.wm-sub', 'hud.sub'); set('#ask', 'hud.ask', 'placeholder'); set('label[for="ask"]', 'hud.askLabel');
   const send = document.querySelector('.send'); if (send && T['hud.send']) send.setAttribute('aria-label', T['hud.send']);
   const tips = ['hud.tip.claude', 'hud.tip.gemini', 'hud.tip.qwen', 'hud.tip.access'];
   document.querySelectorAll('.status svg[data-tip]').forEach((el, i) => setTip(el, T[tips[i]]));

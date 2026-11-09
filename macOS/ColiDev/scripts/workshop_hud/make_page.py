@@ -39,6 +39,20 @@ html.app #edWin pre.code { max-height: min(38vh, 340px); overflow: auto; }
 html.app .exb code { font: 400 12.5px var(--mono); color: #ffcf8a; }
 html.app #edWin .file, html.app .voice, html.app .plist [data-path] { cursor: pointer; }
 pre.code .c { color: #6d6762; }
+/* Одно название: «Мастерская Творца» / "Creator Workshop", без подзаголовка. / One title, no subtitle. */
+html.app .wm-sub { display: none; }
+html.app .wm { text-transform: uppercase; }
+/* Строка под ядром — не больше трёх строк и не просвечивает сквозь открытые окна. / The line stays short and never shows through windows. */
+html.app #line { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; max-width: min(560px, 46vw); }
+html.app .hud:has(#exWin.open) #line, html.app .hud:has(#edWin.open) #line { opacity: 0; }
+html.app #line { transition: opacity .3s ease; }
+/* Вкладки карточки — вертикально на её краю; свёрнутая карточка — только эта полоса. / Vertical tabs on the card's edge. */
+html.app .card { display: flex; flex-direction: row-reverse; align-items: flex-start; width: auto; }
+html.app .card .row1 { flex: none; }
+html.app .card .seg { flex-direction: column; width: auto; gap: 3px; }
+html.app .card .seg button { flex: none; writing-mode: vertical-rl; height: auto; min-height: 92px; width: 34px; padding: 12px 0; }
+html.app .card .body { grid-template-rows: 1fr; width: 0; max-height: 0; transition: width .55s cubic-bezier(.2,.8,.2,1), max-height .55s cubic-bezier(.2,.8,.2,1), opacity .3s ease; }
+html.app .card.open .body { width: 300px; max-height: calc(100vh - 300px); transition: width .55s cubic-bezier(.2,.8,.2,1), max-height .55s cubic-bezier(.2,.8,.2,1), opacity .45s ease .1s; }
 /* Память и NotebookLM — большие стеклянные панели внутри HUD (только в приложении).
    Memory and NotebookLM — large glass panels inside the HUD (app only). */
 .appwin { display: none; }

@@ -1,4 +1,4 @@
-"CFBundleName" = "Творец";
-"CFBundleDisplayName" = "Творец";
+"CFBundleName" = "Creator's Path";
+"CFBundleDisplayName" = "Creator's Path";
 "NSMicrophoneUsageDescription" = "Creator listens to your voice question in the Workshop while you hold the microphone button or ⌃⌥V and, if you turn it on in Settings, for the word “Creator” to call the Workshop. Speech is recognized on this Mac only.";
 "NSSpeechRecognitionUsageDescription" = "Creator turns your voice question into text on this Mac (on-device recognition) to ask the Workshop assistant.";

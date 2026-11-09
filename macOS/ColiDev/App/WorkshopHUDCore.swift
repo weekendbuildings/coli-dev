@@ -150,6 +150,20 @@ enum HUDTool {
 // MARK: - Text for the page / текст для страницы
 
 enum HUDText {
+    /// The answer without ```action blocks, finished or still streaming: actions are shown as buttons, not text.
+    /// Ответ без блоков ```action, законченных и ещё идущих: действия показываются кнопками, а не текстом.
+    static func withoutActions(_ markdown: String) -> String {
+        var result = markdown
+        while let start = result.range(of: "```action") {
+            if let end = result.range(of: "```", range: start.upperBound..<result.endIndex) {
+                result.removeSubrange(start.lowerBound..<end.upperBound)
+            } else {
+                result.removeSubrange(start.lowerBound..<result.endIndex)
+            }
+        }
+        return result.trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
     /// Markdown made plain for one line: no code, headings, emphasis or links. / Markdown в простой строке.
     static func plain(_ markdown: String) -> String {
         var lines: [String] = []

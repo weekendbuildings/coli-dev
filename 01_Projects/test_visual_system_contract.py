@@ -152,17 +152,17 @@ def test_app_shows_the_new_name_but_keeps_the_identifiers_that_hold_user_data():
     # Finder shows the localized name only while CFBundleDisplayName equals the file name ColiDev.app.
     # Finder показывает перевод имени, только пока CFBundleDisplayName совпадает с именем файла ColiDev.app.
     assert "<key>CFBundleDisplayName</key>\n    <string>ColiDev</string>" in plist
-    assert "<key>CFBundleName</key>\n    <string>Creator</string>" in plist
+    assert "<key>CFBundleName</key>\n    <string>Creator's Path</string>" in plist
     assert "<key>LSHasLocalizedDisplayName</key>\n    <true/>" in plist
     assert "PRODUCT_BUNDLE_IDENTIFIER = com.colidev.learningstudio;" in project
     assert '_KEYCHAIN_SERVICE = "ColiDev"' in orchestrator
-    # The name is not translated: Finder shows «Творец» on an English macOS too (owner's decision, 2026-11-08).
-    # Имя не переводится: Finder показывает «Творец» и на английской macOS (решение владельца 2026-11-08).
-    for language, name in (("en", "Творец"), ("ru", "Творец")):
+    # The name is not translated: Finder shows "Creator's Path" in both languages (owner's decision, 2026-11-09).
+    # Имя не переводится: Finder показывает «Creator's Path» на обоих языках (решение владельца 2026-11-09).
+    for language, name in (("en", "Creator's Path"), ("ru", "Creator's Path")):
         strings = (APP / f"{language}.lproj" / "InfoPlist.strings").read_text(encoding="utf-8")
         assert f'"CFBundleName" = "{name}";' in strings
         assert f'"CFBundleDisplayName" = "{name}";' in strings
-    assert '"app.name": ("Творец", "Creator")' in strings_source
+    assert '"app.name": ("Creator\'s Path", "Creator\'s Path")' in strings_source
     assert "Cause & Course" not in strings_source
     view = (APP / "ContentView.swift").read_text(encoding="utf-8")
     assert view.count('.navigationTitle(L10n.text("app.name", store.language))') == 2
