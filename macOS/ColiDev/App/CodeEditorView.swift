@@ -217,7 +217,11 @@ final class LineNumberRulerView: NSRulerView {
         lineStarts = starts
         let digits = max(2, String(starts.count).count)
         let width = CGFloat(digits) * ((textView?.font?.pointSize ?? 13) * 0.62) + 20
-        if abs(ruleThickness - width) > 0.5 { ruleThickness = width }
+        if abs(ruleThickness - width) > 0.5 {
+            ruleThickness = width
+            // Without this the text slides under a wider ruler. / Иначе текст уезжает под расширившуюся колонку.
+            scrollView?.tile()
+        }
         needsDisplay = true
     }
 

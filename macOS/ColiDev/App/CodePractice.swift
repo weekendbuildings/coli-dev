@@ -312,7 +312,16 @@ final class PythonRunner {
             return PythonRunResult(ending: .failedToStart(error.localizedDescription), stdout: "", stderr: "", seconds: 0, truncated: false)
         }
         defer { try? FileManager.default.removeItem(at: folder) }
-        return await run(arguments: [fileName], in: folder, timeout: timeout, interpreter: interpreter)
+        let result = await run(arguments: [fileName], in: folder, timeout: timeout, interpreter: interpreter)
+        // The temporary folder means nothing to the learner: a traceback names just the file.
+        // Временная папка ученику ничего не говорит: в трассировке остаётся только имя файла.
+        func short(_ text: String) -> String {
+            var text = text
+            for prefix in ["/private" + folder.path + "/", folder.path + "/"] { text = text.replacingOccurrences(of: prefix, with: "") }
+            return text
+        }
+        return PythonRunResult(ending: result.ending, stdout: short(result.stdout), stderr: short(result.stderr),
+                               seconds: result.seconds, truncated: result.truncated)
     }
 
     func run(arguments: [String], in folder: URL, timeout: TimeInterval,

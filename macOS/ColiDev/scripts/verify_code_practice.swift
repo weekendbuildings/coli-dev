@@ -197,6 +197,8 @@ func checkRunner() async {
     expect(broken.ending == .finished(1), "an error exits with 1: \(broken.ending)")
     expect(PythonTraceback.errorLine(in: broken.stderr, fileName: "Черновик.py") == 4, "the error is on line 4: \(broken.stderr)")
     expect(PythonTraceback.summary(broken.stderr) == "NameError: name 'y' is not defined", "summary: \(broken.stderr)")
+    expect(broken.stderr.contains("File \"Черновик.py\", line 4") && !broken.stderr.contains("ColiDevPractice-"),
+           "the traceback names just the file, not the temporary folder: \(broken.stderr)")
 
     let syntax = await runner.run(code: "print('a')\nx = = 2\nprint('b')\n", timeout: 20)
     expect(PythonTraceback.errorLine(in: syntax.stderr, fileName: "main.py") == 2, "syntax error line: \(syntax.stderr)")

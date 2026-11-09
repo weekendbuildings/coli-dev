@@ -222,7 +222,10 @@ final class PracticeModel: ObservableObject {
         guard let document, phase == .idle else { return }
         save()
         phase = .running
+        result = nil
         report = nil
+        errorLine = nil
+        errorSummary = nil
         let name = document.url.lastPathComponent
         let outcome = await runner.run(code: text, fileName: name, timeout: Self.runTimeout)
         finish(outcome, fileName: name)
@@ -235,6 +238,10 @@ final class PracticeModel: ObservableObject {
         save()
         guard prepareLabs(language: language) else { return }
         phase = .checking
+        result = nil
+        report = nil
+        errorLine = nil
+        errorSummary = nil
         let folder = PracticeEnvironment.labsFolder
         let outcome = await runner.run(
             arguments: [lab.checkFile, document.url.path], in: folder, timeout: Self.checkTimeout,
@@ -450,45 +457,12 @@ struct PracticeView: View {
                     Button(text("assistant.close")) { model.save(); dismiss() }.keyboardShortcut(.cancelAction)
                 }
             }
-            HStack(spacing: 8) {
-                if model.phase == .idle {
-                    Button { Task { await model.run() } } label: { Label(text("code.run"), systemImage: "play.fill") }
-                        .buttonStyle(.borderedProminent)
-                        .keyboardShortcut("r", modifiers: .command)
-                        .help(text("code.run.help"))
-                        .accessibilityIdentifier("practice.run")
-                        .disabled(model.document == nil)
-                    if let lab = model.document?.lab {
-                        Button { Task { await model.check(language: store.language) } } label: {
-                            Label(text("code.check"), systemImage: "checkmark.seal")
-                        }
-                        .keyboardShortcut("r", modifiers: [.command, .shift])
-                        .help(format("code.check.help", lab.checkFile))
-                        .accessibilityIdentifier("practice.check")
-                    }
-                } else {
-                    Button(role: .cancel) { model.stop() } label: { Label(text("code.stop"), systemImage: "stop.fill") }
-                        .keyboardShortcut(".", modifiers: .command)
-                        .accessibilityIdentifier("practice.stop")
-                    ProgressView().controlSize(.small)
-                }
-                Button { assistantRequest = reviewRequest() } label: {
-                    Label(text("code.review"), systemImage: "bubble.left.and.bubble.right")
-                }
-                .help(text("code.review.help"))
-                .disabled(model.document == nil || model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-                .accessibilityIdentifier("practice.review")
-                Spacer(minLength: 8)
-                Button { fontSize = max(10, fontSize - 1) } label: { Image(systemName: "textformat.size.smaller") }
-                    .help(text("code.fontSmaller")).keyboardShortcut("-", modifiers: .command)
-                Button { fontSize = min(24, fontSize + 1) } label: { Image(systemName: "textformat.size.larger") }
-                    .help(text("code.fontLarger")).keyboardShortcut("=", modifiers: .command)
-                if let url = model.document?.url {
-                    Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: { Image(systemName: "folder") }
-                        .help(text("code.reveal"))
-                }
+            // Full labels when they fit, icons with tooltips in a narrow window.
+            // Подписи целиком, когда помещаются; в узком окне — значки с подсказками.
+            ViewThatFits(in: .horizontal) {
+                toolbar(compact: false)
+                toolbar(compact: true)
             }
-            .buttonStyle(.bordered)
             if let task = model.document?.task, !task.isEmpty, model.document?.lab != nil {
                 Text(task).font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
             }
@@ -504,6 +478,51 @@ struct PracticeView: View {
         }
         .padding(.horizontal, 14).padding(.vertical, 10)
         .background(AppPalette.card.color)
+    }
+
+    /// Run / Check / Stop, Check my code, font size and Finder. / Запуск, проверка, «Проверь мой код», шрифт, Finder.
+    private func toolbar(compact: Bool) -> some View {
+        HStack(spacing: 8) {
+            if model.phase == .idle {
+                Button { Task { await model.run() } } label: { Label(text("code.run"), systemImage: "play.fill") }
+                    .buttonStyle(.borderedProminent)
+                    .keyboardShortcut("r", modifiers: .command)
+                    .help(text("code.run.help"))
+                    .accessibilityIdentifier("practice.run")
+                    .disabled(model.document == nil)
+                if let lab = model.document?.lab {
+                    Button { Task { await model.check(language: store.language) } } label: {
+                        Label(text("code.check"), systemImage: "checkmark.seal")
+                    }
+                    .keyboardShortcut("r", modifiers: [.command, .shift])
+                    .help(format("code.check.help", lab.checkFile))
+                    .accessibilityIdentifier("practice.check")
+                }
+            } else {
+                Button(role: .cancel) { model.stop() } label: { Label(text("code.stop"), systemImage: "stop.fill") }
+                    .keyboardShortcut(".", modifiers: .command)
+                    .accessibilityIdentifier("practice.stop")
+                ProgressView().controlSize(.small)
+            }
+            Button { assistantRequest = reviewRequest() } label: {
+                Label(text("code.review"), systemImage: "bubble.left.and.bubble.right")
+                    .labelStyle(compact ? AnyLabelStyle(.iconOnly) : AnyLabelStyle(.titleAndIcon))
+            }
+            .help(text("code.review.help"))
+            .disabled(model.document == nil || model.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            .accessibilityIdentifier("practice.review")
+            Spacer(minLength: 8)
+            Button { fontSize = max(10, fontSize - 1) } label: { Image(systemName: "textformat.size.smaller") }
+                .help(text("code.fontSmaller")).keyboardShortcut("-", modifiers: .command)
+            Button { fontSize = min(24, fontSize + 1) } label: { Image(systemName: "textformat.size.larger") }
+                .help(text("code.fontLarger")).keyboardShortcut("=", modifiers: .command)
+            if let url = model.document?.url {
+                Button { NSWorkspace.shared.activateFileViewerSelecting([url]) } label: { Image(systemName: "folder") }
+                    .help(text("code.reveal"))
+            }
+        }
+        .buttonStyle(.bordered)
+        .fixedSize(horizontal: !compact, vertical: false)
     }
 
     @ViewBuilder
@@ -641,4 +660,11 @@ struct PracticeView: View {
         return LessonAssistantRequest(context: document.context, explainPrompt: explain,
                                       initialCode: PracticeReviewPrompt.code(model.text), checkPrompt: prompt, startCheckingCode: true)
     }
+}
+
+/// Switches a label between text and icon at run time. / Переключает подпись между текстом и значком.
+private struct AnyLabelStyle: LabelStyle {
+    private let make: (Configuration) -> AnyView
+    init<S: LabelStyle>(_ style: S) { make = { AnyView(style.makeBody(configuration: $0)) } }
+    func makeBody(configuration: Configuration) -> some View { make(configuration) }
 }
