@@ -264,6 +264,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-creator-progress"
           "$RUNNER_TEMP/verify-creator-progress"
 
+      - name: Verify code practice / Проверка редактора «Практика»
+        run: |
+          swiftc -parse-as-library macOS/ColiDev/App/CodePractice.swift macOS/ColiDev/App/CreatorProgress.swift \
+            macOS/ColiDev/scripts/verify_code_practice.swift -o "$RUNNER_TEMP/verify-code-practice"
+          "$RUNNER_TEMP/verify-code-practice"
+
       - name: Verify lesson assistant / Проверка ассистента в уроке
         run: |
           swiftc -parse-as-library macOS/ColiDev/App/LessonAssistantModel.swift macOS/ColiDev/scripts/verify_lesson_assistant.swift \
