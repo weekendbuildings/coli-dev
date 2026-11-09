@@ -70,6 +70,7 @@ struct ContentView: View {
     @State private var didOpenCell3DUITestRoute = false
     @State private var didOpenFrictionUITestRoute = false
     @State private var skillboxAssistantRequest: LessonAssistantRequest?
+    @State private var skillboxPractice: PracticeDocument?
     @AppStorage(StudyProgressionPolicy.previewLockedLessonsDefaultsKey) private var previewLockedLessons = false
     @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
 
@@ -81,6 +82,7 @@ struct ContentView: View {
                         sidebarRow(.today, L10n.text("nav.today", store.language), symbol: "sparkles")
                         sidebarRow(.aiPath, L10n.text("nav.aiPath", store.language), symbol: "brain.head.profile", identifier: "sidebar.ai-path")
                         sidebarRow(.creatorProgress, L10n.text("nav.creatorProgress", store.language), symbol: "chart.bar.xaxis", identifier: "sidebar.creator-progress")
+                        sidebarRow(.practice, L10n.text("nav.practice", store.language), symbol: "chevron.left.forwardslash.chevron.right", identifier: "sidebar.practice")
                         sidebarRow(.subjects, L10n.text("nav.subjects", store.language), symbol: "square.grid.2x2")
                     }
                     SidebarSection(title: L10n.text("nav.subjects", store.language)) {
@@ -130,12 +132,19 @@ struct ContentView: View {
                     AIPathView(openLesson: openPathLesson)
                         .navigationTitle(L10n.text("path.title", store.language))
                 case .creatorProgress:
-                    CreatorProgressView(openLesson: openPathLesson, explain: explainSkillboxTopic)
+                    CreatorProgressView(openLesson: openPathLesson, explain: explainSkillboxTopic, practice: practiceSkillboxTopic)
                         .navigationTitle(L10n.text("nav.creatorProgress", store.language))
                         .sheet(item: $skillboxAssistantRequest) { request in
                             LessonAssistantView(request: request)
                                 .environmentObject(store)
                         }
+                        .sheet(item: $skillboxPractice) { document in
+                            PracticeView(initial: document, asSheet: true)
+                                .environmentObject(store)
+                        }
+                case .practice:
+                    PracticeView()
+                        .navigationTitle(L10n.text("nav.practice", store.language))
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
                 case .subject(let subject):
@@ -332,6 +341,13 @@ struct ContentView: View {
             explainPrompt: prompt,
             startExplaining: true
         )
+    }
+
+    /// "Practice" on a Skillbox topic: its own file in ~/Творец/Практика/<курс>/<тема>.py; the assistant checks it, not a curator.
+    /// «Практика» у темы Skillbox: свой файл в ~/Творец/Практика/<курс>/<тема>.py; проверяет ассистент, а не куратор.
+    private func practiceSkillboxTopic(_ item: SkillboxItem, _ course: SkillboxCourse, _ track: SkillboxTrack) {
+        skillboxPractice = .skillbox(topic: item.title, course: course.title,
+                                     track: L10n.text("skillbox.track.\(track.rawValue)", store.language), store.language)
     }
 
     private func openPathLesson(_ lesson: AIPathLesson) {

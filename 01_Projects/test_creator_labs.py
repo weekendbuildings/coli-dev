@@ -382,8 +382,23 @@ def test_progress_screen_knows_every_lab_and_reads_the_results_file() -> None:
     assert "var explain: ((SkillboxItem, SkillboxCourse, SkillboxTrack) -> Void)? = nil" in view
     assert "if let explain {" in view
     content = (app / "ContentView.swift").read_text(encoding="utf-8")
-    assert "CreatorProgressView(openLesson: openPathLesson, explain: explainSkillboxTopic)" in content
+    assert "CreatorProgressView(openLesson: openPathLesson, explain: explainSkillboxTopic, practice: practiceSkillboxTopic)" in content
     explain = content.split("private func explainSkillboxTopic(", 1)[1].split("\n    }\n", 1)[0]
     assert '"skillbox.explain.prompt"' in explain and 'kind: "skillbox"' in explain and "startExplaining: true" in explain
     ignored = (LABS.parent.parent / ".gitignore").read_text(encoding="utf-8")
     assert "01_Projects/creator_labs/.results.json*" in ignored
+
+
+def test_practice_editor_opens_every_blank_and_runs_its_check_from_the_app() -> None:
+    """Редактор «Практика» знает заготовку каждого задания, а приложение несёт папку заданий в себе.
+    The Practice editor knows every lab's blank, and the app bundle carries the lab folder."""
+    root = LABS.parent.parent
+    logic = (root / "macOS" / "ColiDev" / "App" / "CodePractice.swift").read_text(encoding="utf-8")
+    pairs = dict(re.findall(r'CreatorLab\(lesson: "([a-z0-9_]+)", blank: "([a-z0-9_]+\.py)"\)', logic))
+    assert pairs == {lesson: f"{lab}_blank.py" for lab, lesson in LESSON_OF.items()}
+    assert all((LABS / blank).is_file() and (LABS / f"check_{lesson}.py").is_file() for lesson, blank in pairs.items())
+    project = (root / "macOS" / "ColiDev" / "ColiDev.xcodeproj" / "project.pbxproj").read_text(encoding="utf-8")
+    assert "path = ../../01_Projects/creator_labs;" in project and "creator_labs in Resources */, " in project
+    assert 'static let bundleFolderName = "creator_labs"' in logic
+    # Like `cp -n`: the owner's code is never overwritten. / Как `cp -n`: код владельца не перезаписывается.
+    assert "if fileManager.fileExists(atPath: to.path) { continue }" in logic

@@ -62,6 +62,11 @@ struct LessonAssistantRequest: Identifiable {
     let context: AssistantLessonContext
     let explainPrompt: String
     var startExplaining = false
+    /// "Check my code" from the Practice editor: the code, the request with the task and output, and start at once.
+    /// «Проверь мой код» из редактора «Практика»: код, просьба с условием и выводом, и сразу отправить.
+    var initialCode: String? = nil
+    var checkPrompt: String? = nil
+    var startCheckingCode = false
 }
 
 struct LessonAssistantView: View {
@@ -112,7 +117,12 @@ struct LessonAssistantView: View {
         }
         .frame(minWidth: 680, minHeight: 560)
         .onAppear {
-            if request.startExplaining && conversation.isEmpty && !isAnswering { explain() }
+            guard conversation.isEmpty && !isAnswering else { return }
+            if let initial = request.initialCode, !initial.isEmpty, request.startCheckingCode {
+                ask(shown: text("assistant.checkCode"), sent: request.checkPrompt ?? text("assistant.checkCode.prompt"), code: initial)
+            } else if request.startExplaining {
+                explain()
+            }
         }
         .onDisappear { task?.cancel() }
     }

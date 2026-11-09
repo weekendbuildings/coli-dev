@@ -40,6 +40,8 @@ struct CreatorProgressView: View {
     /// Будущая кнопка «Объяснить» прямо в приложении (`claude -p` по подписке, запасной вариант — локальная модель).
     /// Пока nil, кнопки нет: прежняя «Спросить Claude» открывала сайт и владельцу не подошла.
     var explain: ((SkillboxItem, SkillboxCourse, SkillboxTrack) -> Void)? = nil
+    /// "Practice": the topic's own Python file in the app editor. / «Практика»: свой файл темы в редакторе приложения.
+    var practice: ((SkillboxItem, SkillboxCourse, SkillboxTrack) -> Void)? = nil
 
     @State private var labRuns: [CreatorLabRun] = []
     @State private var labFileDate: Date?
@@ -509,6 +511,13 @@ struct CreatorProgressView: View {
                         .help(text("skillbox.explain.help"))
                         .accessibilityLabel(text("skillbox.explain"))
                         .accessibilityIdentifier("skillbox.explain.\(item.key)")
+                }
+                if let practice {
+                    Button { practice(item, course, track) } label: { Image(systemName: "chevron.left.forwardslash.chevron.right") }
+                        .buttonStyle(.borderless)
+                        .help(text("skillbox.practice.help"))
+                        .accessibilityLabel(text("skillbox.practice"))
+                        .accessibilityIdentifier("skillbox.practice.\(item.key)")
                 }
             }
             if let note = SkillboxModernNotes.notes[item.key] {

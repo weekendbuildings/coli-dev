@@ -630,6 +630,7 @@ struct CurriculumModuleView: View {
     @State private var notebookExportFilename = "Creator-lesson.md"
     @State private var notebookExportStatus: String?
     @State private var assistantRequest: LessonAssistantRequest?
+    @State private var practiceDocument: PracticeDocument?
     @State private var isSavingObsidianNote = false
     @State private var obsidianSaveStatus: String?
 
@@ -755,6 +756,16 @@ struct CurriculumModuleView: View {
                         .buttonStyle(.bordered)
                         .help(L10n.text("assistant.open.help", store.language))
                         .accessibilityIdentifier("lesson.assistant")
+
+                        Button {
+                            practiceDocument = .lesson(subject: subject, resource: resource, title: document.title,
+                                                       goal: document.objective, store.language)
+                        } label: {
+                            Label(L10n.text("lesson.practice", store.language), systemImage: "chevron.left.forwardslash.chevron.right")
+                        }
+                        .buttonStyle(.bordered)
+                        .help(L10n.text(CreatorLabCatalog.lab(forLesson: resource) == nil ? "lesson.practice.help" : "lesson.practice.labHelp", store.language))
+                        .accessibilityIdentifier("lesson.practice")
                     }
 
                     if !document.plainWords.isEmpty {
@@ -1148,6 +1159,10 @@ struct CurriculumModuleView: View {
         }
         .sheet(item: $assistantRequest) { request in
             LessonAssistantView(request: request)
+                .environmentObject(store)
+        }
+        .sheet(item: $practiceDocument) { document in
+            PracticeView(initial: document, asSheet: true)
                 .environmentObject(store)
         }
         }
