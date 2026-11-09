@@ -593,3 +593,53 @@ enum ElevenLabsVoice {
         return .server
     }
 }
+
+// MARK: - Memory (Obsidian vault, read-only) / Память (хранилище Obsidian, только чтение)
+
+enum MemoryVault {
+    static let defaultsKey = "workshop.memory.vault"
+    static let maxFiles = 5000
+    static let maxBytes = 400_000
+
+    /// The note without its YAML front matter. / Заметка без YAML-шапки.
+    static func body(_ text: String) -> String {
+        guard text.hasPrefix("---\n") || text.hasPrefix("---\r\n") else { return text }
+        let lines = text.components(separatedBy: "\n")
+        guard let end = lines.dropFirst().firstIndex(where: { $0.trimmingCharacters(in: .whitespaces) == "---" }) else { return text }
+        return lines[(end + 1)...].joined(separator: "\n").trimmingCharacters(in: .newlines)
+    }
+
+    /// `[[link|name]]` → name, `[[link]]` → link: wiki links read as plain words. / Вики-ссылки как обычные слова.
+    static func readable(_ text: String) -> String {
+        guard let regex = try? NSRegularExpression(pattern: "!?\\[\\[([^\\]|]+)(?:\\|([^\\]]+))?\\]\\]") else { return text }
+        var result = text
+        for match in regex.matches(in: text, range: NSRange(text.startIndex..., in: text)).reversed() {
+            guard let whole = Range(match.range, in: result) else { continue }
+            let label = Range(match.range(at: 2), in: text).map { String(text[$0]) } ?? Range(match.range(at: 1), in: text).map { String(text[$0]) } ?? ""
+            result.replaceSubrange(whole, with: "**" + label + "**")
+        }
+        return result
+    }
+
+    /// obsidian://open?path=… for one note. / Ссылка, открывающая заметку в Obsidian.
+    static func obsidianURL(path: String) -> URL? {
+        var components = URLComponents()
+        components.scheme = "obsidian"
+        components.host = "open"
+        components.queryItems = [URLQueryItem(name: "path", value: path)]
+        return components.url
+    }
+
+    /// Every word of the query must be in the name or the text, any case. / Каждое слово запроса — в имени или тексте.
+    static func matches(query: String, name: String, text: String) -> Bool {
+        let words = query.lowercased().split(whereSeparator: \.isWhitespace)
+        guard !words.isEmpty else { return true }
+        let haystack = (name + "\n" + text).lowercased()
+        return words.allSatisfy { haystack.contains($0) }
+    }
+
+    /// Hidden folders (.obsidian, .trash, .git) are skipped. / Скрытые папки пропускаются.
+    static func isNote(relativePath: String) -> Bool {
+        relativePath.lowercased().hasSuffix(".md") && !relativePath.split(separator: "/").contains { $0.hasPrefix(".") }
+    }
+}

@@ -125,6 +125,7 @@ private struct HUDWebView: NSViewRepresentable {
 final class WorkshopHUDController: ObservableObject {
     @Published var agentSheet: WorkshopAgent?
     @Published var editDocument: PracticeDocument?
+    @Published var memoryOpen = false
 
     let bridge = HUDBridge()
     let practice = PracticeModel()
@@ -571,7 +572,8 @@ final class WorkshopHUDController: ObservableObject {
             }
         case .rail(let act):
             switch act {
-            case "proj", "notes": refreshFolders()
+            case "proj": refreshFolders()
+            case "notes": memoryOpen = true
             case "agents": refreshInstalled()
             case "ed": if practice.document == nil { practice.restore(language) }
             default: break
@@ -723,6 +725,9 @@ struct WorkshopHUDView: View {
                 }
                 .environmentObject(store)
                 .frame(minWidth: 760, minHeight: 600)
+            }
+            .sheet(isPresented: $controller.memoryOpen) {
+                MemoryView().environmentObject(store)
             }
             .sheet(item: $controller.editDocument, onDismiss: controller.reloadPractice) { document in
                 PracticeView(initial: document, asSheet: true)

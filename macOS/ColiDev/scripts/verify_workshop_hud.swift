@@ -23,6 +23,7 @@ struct VerifyWorkshopHUD {
         paths()
         summon()
         elevenLabs()
+        memory()
         page()
         if failures > 0 {
             print("\(failures) check(s) failed / проверок не прошло: \(failures)")
@@ -168,6 +169,16 @@ struct VerifyWorkshopHUD {
         check(name.count == 68 && name.hasSuffix(".mp3") && name == ElevenLabsVoice.cacheName(text: "Слушаю.", voiceID: ElevenLabsVoice.defaultVoiceID)
               && name != ElevenLabsVoice.cacheName(text: "Слушаю!", voiceID: ""), "cache name by voice, model and text / имя кэша")
         check(ElevenLabsVoice.isCacheable("Слушаю.") && !ElevenLabsVoice.isCacheable(String(repeating: "a", count: 81)), "only short phrases cached / кэш только коротких")
+    }
+
+    static func memory() {
+        check(MemoryVault.body("---\ntags: [a]\n---\n# Заголовок\nтекст") == "# Заголовок\nтекст", "front matter removed / шапка убрана")
+        check(MemoryVault.body("# Без шапки") == "# Без шапки", "no front matter kept / без шапки как есть")
+        check(MemoryVault.readable("См. [[Градиент]] и [[attention|внимание]], ![[img.png]]") == "См. **Градиент** и **внимание**, **img.png**", "wiki links readable / вики-ссылки")
+        let url = MemoryVault.obsidianURL(path: "/Users/u/Творец/Заметка 1.md")?.absoluteString ?? ""
+        check(url.hasPrefix("obsidian://open?path=") && !url.contains(" ") && url.contains("%D0%A2"), "Obsidian link encoded / ссылка закодирована: \(url)")
+        check(MemoryVault.matches(query: "градиент спуск", name: "ml/Градиент.md", text: "Градиентный спуск — ...") && !MemoryVault.matches(query: "LoRA", name: "a.md", text: "b"), "search words / поиск")
+        check(MemoryVault.isNote(relativePath: "ml/Заметка.md") && !MemoryVault.isNote(relativePath: ".obsidian/workspace.md") && !MemoryVault.isNote(relativePath: "a.png"), "notes only / только заметки")
     }
 
     static func paths() {

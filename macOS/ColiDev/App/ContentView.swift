@@ -1732,6 +1732,7 @@ private struct SettingsView: View {
             }
             WorkshopSummonSection()
             WorkshopVoiceSection()
+            WorkshopMemorySection()
             Section {
                 Toggle(isOn: $soundEffectsEnabled) {
                     Text(L10n.text("settings.soundEffects", store.language))

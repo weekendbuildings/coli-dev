@@ -96,6 +96,7 @@ rep("""  lastAct = performance.now(); const act = b.dataset.act;
   if (APP) {
     post('rail', { act });
     if (act === 'new') { $('ask').value = t('hud.newProject'); $('ask').focus(); clearInterval(typing); lineEl.textContent = t('hud.newProject.say', railSay.new); return; }
+    if (act === 'notes') return; // «Память» opens in the app. / «Память» открывается в приложении.
   }
 """)
 rep("""document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); """,
