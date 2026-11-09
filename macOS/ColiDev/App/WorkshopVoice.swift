@@ -225,6 +225,11 @@ final class WorkshopVoice: ObservableObject {
     }
 
     func stopSpeaking() { speaker.stop() }
+
+    /// "Listen" in Settings: a short fixed phrase, cached after the first time. / «Прослушать»: короткая фраза, потом из кэша.
+    func preview(language: AppLanguage) {
+        speaker.speak(L10n.text("settings.voice.previewText", language), language: language == .ru ? "ru" : "en")
+    }
 }
 
 // WorkshopSpeaker (ElevenLabs or the macOS voice) is in WorkshopElevenLabs.swift. / Голос ответов — в WorkshopElevenLabs.swift.

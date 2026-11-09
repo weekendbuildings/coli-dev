@@ -1,3 +1,4 @@
+import CryptoKit
 import Foundation
 
 // The logic of the workshop HUD without WebKit or SwiftUI, so `scripts/verify_workshop_hud.swift` can check it:
@@ -482,9 +483,20 @@ struct HUDShortcut: Identifiable, Equatable {
 /// The request and the fallback rules for spoken answers through ElevenLabs. Any failure means the macOS voice.
 /// Запрос и правила отката для ответа голосом ElevenLabs. Любая ошибка — значит системный голос macOS.
 enum ElevenLabsVoice {
-    /// "Rachel", one of the default voices; with the multilingual model it also speaks Russian.
-    /// «Rachel», голос по умолчанию; с многоязычной моделью говорит и по-русски.
-    static let defaultVoiceID = "21m00Tcm4TlvDq8EV7DXq"
+    /// Premade ElevenLabs voices; with the multilingual flash model each also speaks Russian.
+    /// Готовые голоса ElevenLabs; с многоязычной моделью каждый говорит и по-русски.
+    struct Voice: Identifiable, Equatable { let id: String; let name: String; let note: String }
+    static let voices = [
+        Voice(id: "onwK4e9ZLuTAKqWW03F9", name: "Daniel", note: "calm, low · спокойный, низкий"),
+        Voice(id: "nPczCjzI2devNBz1zQrb", name: "Brian", note: "deep · глубокий"),
+        Voice(id: "JBFqnCBsd6RMkjVDRZzb", name: "George", note: "warm · тёплый"),
+        Voice(id: "pNInz6obpgDQGcFmaJgB", name: "Adam", note: "deep · глубокий"),
+        Voice(id: "21m00Tcm4TlvDq8EV7DXq", name: "Rachel", note: "calm · спокойный"),
+    ]
+    /// Daniel: the calm low male voice the owner asked for. / Daniel — спокойный низкий мужской голос.
+    static let defaultVoiceID = voices[0].id
+    /// Short fixed phrases are kept on disk and never spend the quota twice. / Короткие фразы хранятся и не тратят лимит дважды.
+    static let cacheLimit = 80
     /// Flash v2.5: multilingual, fast and the cheapest per character. / Многоязычная, быстрая и самая экономная по символам.
     static let model = "eleven_flash_v2_5"
     /// Every character counts against the owner's plan, so long answers are cut. / Символы тратят тариф владельца.
@@ -496,7 +508,7 @@ enum ElevenLabsVoice {
     /// После ошибки ключа или лимита какое-то время говорит системный голос, чтобы не повторять неудачные запросы.
     static let cooldown: TimeInterval = 15 * 60
 
-    enum Failure: String, Equatable { case key, quota, server, network, audio }
+    enum Failure: String, Equatable, Error { case key, quota, server, network, audio }
 
     static func voiceID(_ stored: String?) -> String {
         let trimmed = (stored ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
@@ -512,6 +524,42 @@ enum ElevenLabsVoice {
             return String(head[...end])
         }
         return head
+    }
+
+    /// The answer in pieces of whole sentences (short ones joined, up to `target` characters), spoken one after another,
+    /// so speech starts quickly and a lost network moves only the rest to the Mac voice.
+    /// Ответ кусками из целых предложений (короткие склеиваются, до ~240 символов): речь начинается быстро, а при
+    /// потере сети на голос Mac уходит только остаток.
+    static func sentences(_ text: String, target: Int = 240) -> [String] {
+        let clean = spoken(text).replacingOccurrences(of: "\n", with: " ")
+        var pieces: [String] = []
+        var current = ""
+        for character in clean {
+            current.append(character)
+            if ".!?…".contains(character), current.trimmingCharacters(in: .whitespaces).count > 1 {
+                pieces.append(current.trimmingCharacters(in: .whitespaces))
+                current = ""
+            }
+        }
+        if !current.trimmingCharacters(in: .whitespaces).isEmpty { pieces.append(current.trimmingCharacters(in: .whitespaces)) }
+        var chunks: [String] = []
+        for piece in pieces where !piece.isEmpty {
+            // Only short sentences are joined, so the first sound comes fast. / Склеиваются только короткие — звук начинается быстро.
+            if let last = chunks.last, last.count + piece.count + 1 <= target, last.count < 60, piece.count < 60 {
+                chunks[chunks.count - 1] = last + " " + piece
+            } else {
+                chunks.append(piece)
+            }
+        }
+        return chunks
+    }
+
+    static func isCacheable(_ text: String) -> Bool { !text.isEmpty && text.count <= cacheLimit }
+
+    /// A file name for a cached phrase: voice, model and text, hashed. / Имя файла фразы в кэше: хэш голоса, модели и текста.
+    static func cacheName(text: String, voiceID: String) -> String {
+        let digest = SHA256.hash(data: Data("\(Self.voiceID(voiceID))|\(model)|\(text)".utf8))
+        return digest.map { String(format: "%02x", $0) }.joined() + ".mp3"
     }
 
     static func request(text: String, voiceID: String, key: String) -> URLRequest? {

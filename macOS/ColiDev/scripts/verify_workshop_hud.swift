@@ -157,6 +157,17 @@ struct VerifyWorkshopHUD {
         check(ElevenLabsVoice.failure(status: 401, body: Data("{\"detail\":{\"status\":\"invalid_api_key\"}}".utf8)) == .key, "bad key / неверный ключ")
         check(ElevenLabsVoice.failure(status: 429, body: Data()) == .quota && ElevenLabsVoice.failure(status: 503, body: Data()) == .server, "429 and 5xx")
         check(ElevenLabsVoice.voiceID("pNInz6obpgDQGcFmaJgB") == "pNInz6obpgDQGcFmaJgB", "a real voice ID is kept / настоящий ID сохраняется")
+        check(ElevenLabsVoice.voices.first?.name == "Daniel" && ElevenLabsVoice.defaultVoiceID == ElevenLabsVoice.voices[0].id
+              && Set(ElevenLabsVoice.voices.map(\.id)).count == ElevenLabsVoice.voices.count, "Daniel by default, voices unique / Daniel по умолчанию")
+        let pieces = ElevenLabsVoice.sentences("Да. Это градиент! Он показывает, куда расти функции быстрее всего, и поэтому обучение идёт против него. Вопросы?")
+        check(pieces.count == 3 && pieces[0] == "Да. Это градиент!" && pieces[2] == "Вопросы?", "short sentences joined, long kept / предложения: \(pieces)")
+        check(ElevenLabsVoice.sentences("без точки в конце") == ["без точки в конце"], "an unfinished sentence is kept / хвост без точки")
+        check(ElevenLabsVoice.sentences(String(repeating: "Фраза номер один. ", count: 200)).joined(separator: " ").count <= ElevenLabsVoice.maxCharacters,
+              "quota guard over all pieces / предел на весь ответ")
+        let name = ElevenLabsVoice.cacheName(text: "Слушаю.", voiceID: "")
+        check(name.count == 68 && name.hasSuffix(".mp3") && name == ElevenLabsVoice.cacheName(text: "Слушаю.", voiceID: ElevenLabsVoice.defaultVoiceID)
+              && name != ElevenLabsVoice.cacheName(text: "Слушаю!", voiceID: ""), "cache name by voice, model and text / имя кэша")
+        check(ElevenLabsVoice.isCacheable("Слушаю.") && !ElevenLabsVoice.isCacheable(String(repeating: "a", count: 81)), "only short phrases cached / кэш только коротких")
     }
 
     static func paths() {
