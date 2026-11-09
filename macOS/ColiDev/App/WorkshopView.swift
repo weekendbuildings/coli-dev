@@ -249,8 +249,12 @@ final class WorkshopModel: ObservableObject {
 
     static var root: URL { CreatorWorkspace.root(environment: ProcessInfo.processInfo.environment, home: FileManager.default.homeDirectoryForCurrentUser) }
 
+    /// `COLIDEV_WORKSHOP_DIR` keeps a test run away from the owner's conversation. / Тестовый запуск не трогает разговор владельца.
     static var conversationURL: URL {
-        FileManager.default.homeDirectoryForCurrentUser
+        if let folder = ProcessInfo.processInfo.environment["COLIDEV_WORKSHOP_DIR"], !folder.isEmpty {
+            return URL(fileURLWithPath: folder, isDirectory: true).appendingPathComponent("conversation.json")
+        }
+        return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Library/Application Support/coli-dev-workshop/conversation.json")
     }
 
@@ -331,6 +335,19 @@ final class WorkshopModel: ObservableObject {
     }
 
     func stopAnswer() { askTask?.cancel() }
+
+    /// A question from the HUD line: "совет: …" goes to the council, everything else to the assistant
+    /// (Claude by subscription → free cloud → local model).
+    /// Вопрос из строки HUD: «совет: …» уходит совету, остальное — ассистенту (Claude → бесплатное облако → локальная модель).
+    func ask(_ question: String, store: LearningStore) {
+        if let council = HUDInbound.councilQuestion(question) {
+            councilQuestion = council
+            askCouncil(store: store)
+        } else {
+            draft = question
+            send(store: store)
+        }
+    }
 
     func run(_ id: UUID, confirmed: Bool, language: AppLanguage) {
         guard let index = actionItems.firstIndex(where: { $0.id == id }) else { return }

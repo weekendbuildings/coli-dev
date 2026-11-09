@@ -66,7 +66,10 @@ struct ContentView: View {
     @EnvironmentObject private var backendSupervisor: LocalBackendSupervisor
     @EnvironmentObject private var workshop: WorkshopModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @State private var selection: AppSection? = .today
+    @State private var selection: AppSection? = ContentView.startSection
+    /// The workshop HUD is the main screen and takes the whole window; the sidebar button brings the rest back.
+    /// HUD Мастерской — главный экран на всё окно; кнопка боковой панели возвращает остальное.
+    @State private var columns: NavigationSplitViewVisibility = ContentView.startSection == .workshop ? .detailOnly : .automatic
     @State private var practiceFocusRoute: StudyLessonRoute?
     @State private var didOpenCell3DUITestRoute = false
     @State private var didOpenFrictionUITestRoute = false
@@ -75,8 +78,19 @@ struct ContentView: View {
     @AppStorage(StudyProgressionPolicy.previewLockedLessonsDefaultsKey) private var previewLockedLessons = false
     @AppStorage(SubjectVisibility.showAllDefaultsKey) private var showAllSubjects = false
 
+    /// UI tests start on Today, as before; `COLIDEV_START_SCREEN=today` does the same by hand.
+    /// UI-тесты начинают с «Сегодня», как раньше; `COLIDEV_START_SCREEN=today` — то же вручную.
+    static var startSection: AppSection {
+        let environment = ProcessInfo.processInfo.environment
+        if environment["COLIDEV_START_SCREEN"] == "today" || environment.keys.contains(where: { $0.hasPrefix("COLIDEV_UI_TEST") })
+            || UserDefaults.standard.bool(forKey: "colidev.uiTestCell3D") {
+            return .today
+        }
+        return .workshop
+    }
+
     var body: some View {
-        NavigationSplitView {
+        NavigationSplitView(columnVisibility: $columns) {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     SidebarSection(title: L10n.text("nav.yourLearning", store.language)) {
@@ -148,7 +162,7 @@ struct ContentView: View {
                     PracticeView()
                         .navigationTitle(L10n.text("nav.practice", store.language))
                 case .workshop:
-                    WorkshopView(model: workshop)
+                    WorkshopHUDView(model: workshop)
                         .navigationTitle(L10n.text("nav.workshop", store.language))
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
@@ -242,6 +256,9 @@ struct ContentView: View {
         .onAppear {
             // Hot keys ⌃⌥T and ⌃⌥V work from the first launch. / Горячие клавиши работают с первого запуска.
             WorkshopHub.shared.connect(store: store, model: workshop)
+            // The first layout may show the sidebar anyway; the HUD needs the whole window.
+            // Первая раскладка может всё равно показать боковую панель; HUD нужно всё окно.
+            if Self.startSection == .workshop { DispatchQueue.main.async { columns = .detailOnly } }
         }
         .task {
             // Первый запуск backend может сорваться: без повтора «Сегодня» остаётся с нулями.

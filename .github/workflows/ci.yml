@@ -283,6 +283,12 @@ jobs:
             -o "$RUNNER_TEMP/verify-workshop"
           "$RUNNER_TEMP/verify-workshop"
 
+      - name: Verify the workshop HUD / Проверка HUD Мастерской
+        run: |
+          swiftc -parse-as-library macOS/ColiDev/App/WorkshopHUDCore.swift macOS/ColiDev/scripts/verify_workshop_hud.swift \
+            -o "$RUNNER_TEMP/verify-workshop-hud"
+          "$RUNNER_TEMP/verify-workshop-hud"
+
       - name: Verify 3D surface geometry / Проверка геометрии 3D-поверхности
         run: |
           swiftc -parse-as-library macOS/ColiDev/App/SurfacePlot3D.swift macOS/ColiDev/App/ConstrainedOptimization.swift macOS/ColiDev/scripts/verify_surface_plot_3d.swift \

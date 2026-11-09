@@ -1,0 +1,1002 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>[hidden]{display:none!important}</style>
+<title>Мастерская Творца</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<!-- Шрифты лежат рядом, без сети. / Fonts ship next to the page, no network. -->
+<link rel="stylesheet" href="fonts/fonts.css">
+<style>
+/* Мастерская: минималистичный HUD поверх 3D-сцены (ядро из частиц, море из частиц, чёрные сферы в бесконечном космосе).
+   Стекло панелей рисует WebGL-шейдер: настоящее преломление сцены, размытие и тонкая кромка.
+   Тема только тёмная: стекло и свечение ядра читаются лишь на тёмном фоне. */
+@property --accent { syntax: '<color>'; inherits: true; initial-value: #ece9e4; }
+:root {
+  --bg: #050507;
+  --fg: #f4f0ea;
+  --muted: #a7a09a;
+  --faint: #6d6762;
+  --accent: #ece9e4;
+  --mint: #7cf5c8;
+  --ink: #18171b;
+  --paper: #f4f1ec;
+  --sans: 'Onest', -apple-system, system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --side: max(16px, env(safe-area-inset-left, 0px));
+  --side-r: max(16px, env(safe-area-inset-right, 0px));
+  color-scheme: dark;
+  transition: --accent 1.4s ease;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--fg); }
+body { font-family: var(--sans); font-size: 14px; line-height: 1.45; overflow: hidden; -webkit-font-smoothing: antialiased; }
+#scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+button, input { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Стекло. С WebGL фон рисует шейдер, без WebGL — запасной вид на CSS */
+.gl { position: relative; border-radius: 26px; }
+html:not(.webgl) .gl { background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); backdrop-filter: blur(18px) saturate(160%); -webkit-backdrop-filter: blur(18px) saturate(160%); }
+
+/* Значки агентов и инструментов — прежние, из одобренной «Сборки 2» */
+.tile { position: relative; flex: none; width: 44px; height: 44px; border: 0; padding: 0; background: none; border-radius: 13px; display: grid; place-items: center; transition: transform .3s cubic-bezier(.2,.8,.2,1); }
+.tile svg { width: 42px; height: 42px; display: block; }
+.tile.run::after { content: ''; position: absolute; bottom: -7px; left: 50%; width: 4px; height: 4px; margin-left: -2px; border-radius: 50%; background: #f4f0ea; box-shadow: 0 0 6px #f4f0ea; }
+.dock .tile:hover { transform: translateY(-3px); }
+.ag { display: block; width: 34px; height: 34px; }
+.ag svg { width: 34px; height: 34px; display: block; }
+
+.hud { position: fixed; inset: 0; pointer-events: none; }
+.hud > * { pointer-events: auto; }
+
+/* Верх */
+.top { position: absolute; top: calc(16px + env(safe-area-inset-top, 0px)); left: var(--side); right: var(--side-r); height: 52px; display: flex; align-items: center; gap: 14px; pointer-events: none; }
+.top > * { pointer-events: auto; }
+.logo { width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; }
+.wm { font-weight: 600; font-size: 12.5px; letter-spacing: .34em; }
+.wm-sub { font-size: 12px; color: var(--muted); }
+.clock { position: absolute; left: 50%; transform: translateX(-50%); font: 400 13px var(--mono); color: var(--muted); white-space: nowrap; }
+.status { margin-left: auto; display: flex; align-items: center; gap: 14px; height: 46px; padding: 0 18px; border-radius: 23px; }
+.status .on { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #ddd7d0; white-space: nowrap; }
+.status .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--mint); box-shadow: 0 0 8px var(--mint); }
+.status svg { width: 17px; height: 17px; display: block; }
+.status .vr { width: 1px; height: 18px; background: rgba(255,255,255,.14); }
+
+/* Левая полоса: только значки. Подпись при наведении, по нажатию на значок выходит окно */
+.rail { position: absolute; left: var(--side); top: 96px; width: 60px; padding: 8px; border-radius: 24px; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.ringb { width: 44px; height: 44px; border: 0; padding: 0; background: none; border-radius: 50%; display: grid; place-items: center; margin-bottom: 4px; }
+.ringb svg { width: 40px; height: 40px; display: block; }
+.item { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border-radius: 14px; border: 1px solid transparent; background: none; transition: background .2s ease; }
+.item svg { width: 19px; height: 19px; fill: none; stroke: #f4f0ea; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; opacity: .85; }
+.item:hover { background: rgba(255,255,255,.07); }
+.item[aria-pressed="true"] { background: rgba(255,255,255,.11); border-color: rgba(255,255,255,.16); box-shadow: inset 0 1px 0 rgba(255,255,255,.22); }
+.ringb[aria-pressed="true"] { box-shadow: 0 0 0 1px rgba(255,255,255,.22); }
+.rail .sep { width: 24px; height: 1px; background: rgba(255,255,255,.1); margin: 6px 0; }
+.pop { position: absolute; left: calc(var(--side) + 72px); top: 96px; width: 300px; padding: 20px; border-radius: 26px; opacity: 0; visibility: hidden; transform: translateX(-8px) scale(.985); transition: opacity .35s ease, transform .45s cubic-bezier(.2,.8,.2,1), visibility 0s .45s; }
+.pop.open { opacity: 1; visibility: visible; transform: none; transition: opacity .35s ease, transform .45s cubic-bezier(.2,.8,.2,1); }
+.pop h3 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.02em; }
+.pop .big { margin-top: 10px; font-size: 44px; font-weight: 700; letter-spacing: -.03em; line-height: 1; }
+.psub { margin-top: 6px; font-size: 13px; color: var(--muted); }
+.stages { margin-top: 16px; display: grid; gap: 10px; }
+.stg { display: grid; grid-template-columns: 1fr auto; gap: 5px 10px; font-size: 13.5px; }
+.stg output { font: 400 12px var(--mono); color: var(--muted); }
+.stg .tr { grid-column: 1 / -1; height: 3px; border-radius: 2px; background: rgba(255,255,255,.09); overflow: hidden; }
+.stg .tr i { display: block; height: 100%; background: #f4f0ea; border-radius: inherit; }
+.trio { margin-top: 16px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.trio div { padding: 9px 6px; border-radius: 14px; background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08); text-align: center; }
+.trio b { display: block; font-size: 17px; font-weight: 600; }
+.trio span { font-size: 11.5px; color: var(--muted); }
+.plist { margin-top: 14px; display: grid; gap: 12px; }
+.plist b { display: block; font-weight: 500; font-size: 14px; }
+.plist span { display: block; font-size: 12.5px; color: var(--muted); }
+
+/* Правая карточка: сегменты, крупный заголовок, список, строка заметки */
+.card { position: absolute; right: var(--side-r); top: 96px; width: 348px; padding: 8px; border-radius: 28px; }
+.card .body { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows .55s cubic-bezier(.2,.8,.2,1), opacity .3s ease; }
+.card.open .body { grid-template-rows: 1fr; opacity: 1; transition: grid-template-rows .55s cubic-bezier(.2,.8,.2,1), opacity .45s ease .1s; }
+.card .inner { min-height: 0; overflow: hidden; padding: 0 12px; }
+.card:not(.open) .seg button[aria-selected="true"] { background: none; color: var(--muted); box-shadow: none; }
+.card .row1 { display: flex; align-items: center; gap: 10px; }
+.seg { display: flex; width: 100%; padding: 4px; border-radius: 15px; background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.12); }
+.seg button { flex: 1; height: 34px; padding: 0 10px; border: 0; border-radius: 11px; background: none; color: var(--muted); font-size: 13px; font-weight: 500; transition: background .25s ease, color .25s ease; }
+.seg button[aria-selected="true"] { background: var(--paper); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.35); }
+.round { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; border: 1px solid rgba(255,255,255,.14); background: rgba(255,255,255,.06); }
+.round svg { width: 16px; height: 16px; fill: none; stroke: #f4f0ea; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.card .row1 .round { margin-left: auto; }
+.card .row2 { display: flex; align-items: flex-end; gap: 8px; margin-top: 18px; }
+.card h2 { margin: 0; font-size: 38px; line-height: 1.05; font-weight: 700; letter-spacing: -.025em; }
+.card .row2 .round { width: 32px; height: 32px; }
+.card .row2 .round:first-of-type { margin-left: auto; }
+.card .sub { margin-top: 6px; color: var(--muted); font-size: 13.5px; }
+.list { margin-top: 18px; min-height: 246px; display: grid; align-content: start; gap: 2px; }
+.row { display: grid; grid-template-columns: 34px minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 6px 0; }
+.row > div { min-width: 0; }
+.row b { display: block; font-weight: 500; font-size: 14px; }
+.row span { display: block; font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.row .st { font: 500 12px var(--mono); color: var(--faint); }
+.row .st.live { color: var(--mint); }
+.bar { grid-column: 2 / 4; height: 3px; border-radius: 2px; background: rgba(255,255,255,.09); overflow: hidden; margin-top: -3px; }
+.bar i { display: block; height: 100%; width: 64%; border-radius: inherit; background: linear-gradient(90deg, #7cf5c8, #e4fff6); transition: width .5s ease; }
+.vote { display: grid; grid-template-columns: 64px 1fr 36px; gap: 12px; align-items: center; font-size: 13.5px; padding: 9px 0; }
+.vote .tr { height: 6px; border-radius: 3px; background: rgba(255,255,255,.08); overflow: hidden; }
+.vote .tr i { display: block; height: 100%; border-radius: inherit; transition: width 1.1s cubic-bezier(.2,.8,.2,1); }
+.vote output { font: 400 12px var(--mono); color: var(--muted); text-align: right; }
+.hint { margin-top: 10px; font-size: 12.5px; color: var(--muted); }
+.rem { display: grid; grid-template-columns: 58px 1fr; gap: 12px; align-items: baseline; padding: 9px 0; font-size: 14px; }
+.rem time { font: 500 12.5px var(--mono); color: var(--accent); }
+.foot { margin: 14px 0 6px; padding-top: 14px; border-top: 1px solid rgba(255,255,255,.1); display: flex; align-items: center; gap: 10px; }
+.foot label { flex: 1; min-width: 0; display: flex; align-items: center; gap: 9px; color: var(--muted); }
+.foot label svg { flex: none; width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+.foot input { flex: 1; min-width: 0; border: 0; background: none; outline: 0; font-size: 14px; color: var(--fg); }
+.foot input::placeholder { color: var(--muted); }
+.pill { height: 38px; padding: 0 15px; border-radius: 13px; border: 1px solid rgba(255,255,255,.18); background: rgba(255,255,255,.1); box-shadow: inset 0 1px 0 rgba(255,255,255,.26); font-size: 13.5px; font-weight: 500; white-space: nowrap; display: inline-flex; align-items: center; gap: 7px; }
+.pill:hover { background: rgba(255,255,255,.15); }
+.pill.light { background: var(--paper); color: var(--ink); border-color: transparent; }
+
+/* Центр: сцена, подпись под ядром */
+#stage { position: absolute; left: calc(var(--side) + 76px); right: calc(var(--side-r) + 76px); top: 80px; bottom: 166px; pointer-events: none; }
+#say { position: absolute; left: 0; top: 0; width: 640px; text-align: center; pointer-events: none; will-change: transform; }
+#state { font-size: 13px; font-weight: 500; letter-spacing: .5em; text-indent: .5em; color: var(--accent); text-shadow: 0 0 16px color-mix(in srgb, var(--accent) 40%, transparent); }
+#line { text-shadow: 0 1px 14px rgba(0,0,0,.85); margin: 8px auto 0; max-width: 560px; min-height: 2.9em; color: #e2dcd5; font-size: 15px; line-height: 1.45; text-wrap: balance; }
+
+/* Низ: док инструментов и строка вопроса */
+.bc { position: absolute; left: calc(var(--side) + 76px); right: calc(var(--side-r) + 76px); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; align-items: center; gap: 12px; pointer-events: none; }
+.bc > * { pointer-events: auto; }
+.slot { display: grid; justify-items: center; align-items: end; }
+.slot > * { grid-area: 1 / 1; transition: opacity .35s ease, transform .35s ease; }
+.dock { display: flex; gap: 8px; padding: 9px 12px 13px; border-radius: 26px; }
+.dock { opacity: 0; visibility: hidden; transform: translateY(10px) scale(.98); transition: opacity .3s ease, transform .45s cubic-bezier(.2,.8,.2,1), visibility 0s .45s; }
+.bc.tools .dock { opacity: 1; visibility: visible; transform: none; transition: opacity .35s ease, transform .45s cubic-bezier(.2,.8,.2,1); }
+.tbtn { width: 38px; height: 38px; flex: none; border-radius: 50%; border: 1px solid transparent; background: none; display: grid; place-items: center; transition: background .2s ease, border-color .2s ease; }
+.tbtn:hover, .tbtn[aria-expanded="true"] { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.14); }
+.tbtn svg { width: 18px; height: 18px; fill: none; stroke: #f4f0ea; stroke-width: 1.7; stroke-linejoin: round; }
+.ask { width: min(640px, 100%); height: 60px; border-radius: 30px; display: flex; align-items: center; gap: 10px; padding: 0 9px 0 10px; }
+.ask svg.voice { width: 42px; height: 42px; flex: none; }
+.ask input { flex: 1; min-width: 0; border: 0; background: none; outline: 0; font-size: 16px; font-weight: 500; color: var(--fg); }
+.ask input::placeholder { color: rgba(244,240,234,.62); }
+.ask kbd { font: 400 11.5px var(--mono); color: var(--faint); border: 1px solid rgba(255,255,255,.14); border-radius: 7px; padding: 2px 7px; }
+.send { width: 42px; height: 42px; flex: none; border-radius: 50%; border: 0; display: grid; place-items: center; background: var(--paper); color: var(--ink); box-shadow: 0 2px 8px rgba(0,0,0,.35); }
+.send svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Окна модулей: появляются по делу и плавно */
+.win { position: absolute; bottom: calc(176px + env(safe-area-inset-bottom, 0px)); padding: 18px; border-radius: 28px; opacity: 0; visibility: hidden; transform: translateY(14px) scale(.985); transition: opacity .4s ease, transform .5s cubic-bezier(.2,.8,.2,1), right .55s cubic-bezier(.2,.8,.2,1), visibility 0s .5s; }
+.win.open { opacity: 1; visibility: visible; transform: none; transition: opacity .4s ease, transform .5s cubic-bezier(.2,.8,.2,1), right .55s cubic-bezier(.2,.8,.2,1); }
+#edWin { left: calc(var(--side) + 88px); width: min(452px, calc((100vw - 520px) / 2)); }
+#exWin { right: calc(var(--side-r) + 88px); }
+.hud:has(.card.open) #exWin { right: calc(var(--side-r) + 376px); }
+#exWin { width: min(500px, calc((100vw - 520px) / 2)); }
+.wh { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.wh b { font-weight: 600; font-size: 16px; }
+.wh .file { font: 400 12.5px var(--mono); color: var(--muted); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wh .round { margin-left: auto; width: 30px; height: 30px; flex: none; }
+pre.code { margin: 0; padding: 12px 0; border-radius: 16px; background: rgba(0,0,0,.26); border: 1px solid rgba(255,255,255,.07); font: 400 13px/1.7 var(--mono); overflow-x: auto; counter-reset: ln; }
+pre.code span.l { display: block; padding-right: 14px; }
+pre.code span.l::before { counter-increment: ln; content: counter(ln); display: inline-block; width: 34px; padding-right: 12px; text-align: right; color: #55504b; }
+.k { color: #ff9fd6; } .f { color: #9ec4ff; } .nm { color: #ffcf8a; } .s { color: #7cf5c8; }
+.out { margin-top: 10px; display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font: 400 12.5px var(--mono); color: var(--muted); }
+.out .ok { color: var(--mint); }
+.wa { display: flex; gap: 8px; margin-top: 12px; }
+.tabs { display: flex; gap: 2px; padding: 3px; border-radius: 13px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.1); margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button { height: 30px; padding: 0 11px; border: 0; border-radius: 10px; background: none; color: var(--muted); font-size: 12.5px; font-weight: 500; }
+.tabs button[aria-selected="true"] { background: var(--paper); color: var(--ink); }
+.exb p { margin: 10px 0 0; color: #ddd7d0; font-size: 14px; line-height: 1.55; }
+.exb svg { width: 100%; height: auto; display: block; }
+.exb pre.code { margin-top: 2px; }
+
+/* Подтверждение действия */
+.toast { position: absolute; top: 96px; left: 50%; transform: translate(-50%, -8px); display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 8px 0 18px; border-radius: 26px; white-space: nowrap; font-size: 13.5px; opacity: 0; visibility: hidden; transition: opacity .35s ease, transform .45s ease, visibility 0s .45s; }
+.toast.open { opacity: 1; visibility: visible; transform: translate(-50%, 0); transition: opacity .35s ease, transform .45s ease; }
+.toast svg { width: 16px; height: 16px; fill: none; stroke: #ffcf8a; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.toast .pill { height: 36px; }
+
+.tip { position: fixed; left: 0; top: 0; z-index: 5; padding: 7px 13px; border-radius: 12px; font-size: 13px; white-space: nowrap; pointer-events: none; opacity: 0; transition: opacity .15s ease;
+  background: rgba(244,241,236,.94); color: var(--ink); box-shadow: 0 8px 24px rgba(0,0,0,.35); }
+.tip.on { opacity: 1; }
+#fallback[hidden] { display: none; }
+#fallback { position: fixed; inset: 0; display: grid; place-items: center; color: var(--muted); padding: 0 16px; text-align: center; }
+
+@media (max-width: 1240px) { .clock { display: none; } }
+@media (max-width: 899px) {
+  body { overflow-y: auto; overflow-x: hidden; }
+  .hud { position: relative; inset: auto; min-height: 100vh; display: flex; flex-direction: column; gap: 14px; padding: calc(14px + env(safe-area-inset-top, 0px)) var(--side-r) calc(14px + env(safe-area-inset-bottom, 0px)) var(--side); }
+  .top { position: static; height: auto; }
+  .status .on span.t, .status .vr, .status .mdl { display: none; }
+  #stage { position: relative; inset: auto; height: 50vh; min-height: 300px; }
+  #say { position: static; width: auto; transform: none !important; margin-top: -64px; }
+  .rail { position: static; width: auto; flex-direction: row; overflow-x: auto; scrollbar-width: none; border-radius: 22px; }
+  .rail .sep { display: none; }
+  .item, .ringb { flex: none; }
+  .pop { position: static; width: auto; transform: none; }
+  .pop:not(.open) { display: none; }
+  .card { position: static; width: auto; }
+  .win { position: static; width: auto !important; transform: none; }
+  .win:not(.open) { display: none; }
+  .toast { position: static; transform: none; white-space: normal; height: auto; padding: 10px 8px 10px 16px; }
+  .toast:not(.open) { display: none; }
+  .bc { position: static; }
+  .bc:not(.tools) .dock { display: none; }
+  .dock { max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+  .ask kbd { display: none; }
+}
+@media (prefers-reduced-motion: reduce) { :root, .pop, .win, .toast, .slot > *, .tile { transition: none; } }
+/* В приложении длинный ответ и код прокручиваются внутри окон; цвет комментария в коде.
+   In the app long answers and code scroll inside their windows; comment colour in code. */
+html.app .exb { max-height: max(120px, min(46vh, 420px, calc(100vh - 480px))); overflow-y: auto; overscroll-behavior: contain; }
+html.app #edWin pre.code { max-height: min(38vh, 340px); overflow: auto; }
+html.app .exb code { font: 400 12.5px var(--mono); color: #ffcf8a; }
+html.app #edWin .file, html.app .voice, html.app .plist [data-path] { cursor: pointer; }
+pre.code .c { color: #6d6762; }
+</style>
+
+<canvas id="scene" aria-hidden="true"></canvas>
+<div id="fallback" hidden>Видеокарта в этом браузере выключена, поэтому ядро не показывается.</div>
+
+<div class="hud">
+  <header class="top">
+    <div class="logo gl" data-bezel="10" data-blur="12" aria-hidden="true"><svg width="34" height="34" viewBox="0 0 44 44"><defs><radialGradient id="lgH" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ece9e4" stop-opacity=".35"/><stop offset="1" stop-color="#ece9e4" stop-opacity="0"/></radialGradient></defs><circle cx="22" cy="22" r="21" fill="url(#lgH)"/><g id="logoDots" fill="#ece9e4"></g></svg></div>
+    <div><div class="wm">CREATOR'S WORKSHOP</div><div class="wm-sub">Мастерская Творца</div></div>
+    <div class="clock" id="clock"></div>
+    <div class="status gl" data-bezel="12" data-blur="14">
+      <span class="on"><span class="dot"></span><span class="t">Онлайн</span></span>
+      <span class="vr"></span>
+      <svg class="mdl" viewBox="0 0 24 24" data-tip="Claude · по подписке" data-tip-pos="bottom" tabindex="0" aria-label="Claude по подписке"><path d="M12 2.5v19M2.5 12h19M5.3 5.3l13.4 13.4M18.7 5.3L5.3 18.7" stroke="#ffb27a" stroke-width="2" stroke-linecap="round"/></svg>
+      <svg class="mdl" viewBox="0 0 24 24" data-tip="Gemini · бесплатно" data-tip-pos="bottom" tabindex="0" aria-label="Gemini бесплатно"><path d="M12 2.5c.9 5 4.5 8.6 9.5 9.5-5 .9-8.6 4.5-9.5 9.5-.9-5-4.5-8.6-9.5-9.5 5-.9 8.6-4.5 9.5-9.5z" fill="#a9ccff"/></svg>
+      <svg class="mdl" viewBox="0 0 24 24" data-tip="Qwen · на Mac" data-tip-pos="bottom" tabindex="0" aria-label="Qwen на Mac"><rect x="6" y="6" width="12" height="12" rx="3.2" fill="none" stroke="#cbbcff" stroke-width="1.8"/><path d="M9.5 3v3M14.5 3v3M9.5 18v3M14.5 18v3M3 9.5h3M3 14.5h3M18 9.5h3M18 14.5h3" stroke="#cbbcff" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <span class="vr"></span>
+      <svg viewBox="0 0 24 24" data-tip="Полный доступ к Mac · пароль у тебя" data-tip-pos="bottom" tabindex="0" aria-label="Полный доступ к Mac, пароль у тебя"><path d="M12 2.8l7.5 3.1v5.4c0 4.6-3.1 8.3-7.5 10-4.4-1.7-7.5-5.4-7.5-10V5.9z" fill="none" stroke="#f4f0ea" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" fill="none" stroke="#f4f0ea" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </div>
+  </header>
+
+  <div id="stage"></div>
+  <div id="say"><div id="state" aria-live="polite">СЛУШАЮ</div><div id="line">Говори. Я слушаю и вижу, где ты на пути: Python, урок 10.4.</div></div>
+
+  <div class="toast gl" id="toast" data-bezel="12" data-blur="16" data-fade role="group" aria-label="Подтверждение действия">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l9.5 17h-19z"/><path d="M12 10v4.5M12 17.2v.3"/></svg>
+    <span>Удалить 3 файла в ~/Творец/Проекты?</span>
+    <button class="pill light" type="button" data-ans="yes">Да</button><button class="pill" type="button" data-ans="no">Нет</button>
+  </div>
+
+  <nav class="rail gl" id="rail" data-bezel="12" data-blur="18" aria-label="Модули">
+    <button class="ringb" type="button" data-tip="Путь Творца · 13%" data-tip-pos="right" data-act="path" aria-pressed="false"><svg viewBox="0 0 46 46" aria-hidden="true"><defs><linearGradient id="pr" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#ffcf8a"/><stop offset="1" stop-color="#ff9fd6"/></linearGradient></defs><circle cx="23" cy="23" r="18" fill="none" stroke="rgba(255,255,255,.12)" stroke-width="3.5"/><circle cx="23" cy="23" r="18" fill="none" stroke="url(#pr)" stroke-width="3.5" stroke-linecap="round" stroke-dasharray="14.7 113.1" transform="rotate(-90 23 23)"/><text x="23" y="27" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="10.5" fill="#f4f0ea">13%</text></svg></button>
+    <button class="item" type="button" data-tip="Новый проект" data-act="new"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></button>
+    <button class="item" type="button" data-tip="Объяснения" data-act="ex" aria-pressed="false"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="3"/><path d="M9 21h6M12 17v4M10 8.5l4 2.5-4 2.5z"/></svg></button>
+    <button class="item" type="button" data-tip="Практика" data-act="ed" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5M13.5 4l-3 16"/></svg></button>
+    <button class="item" type="button" data-tip="Проекты" data-act="proj" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M3 7.5A2.5 2.5 0 0 1 5.5 5H10l2 2h6.5A2.5 2.5 0 0 1 21 9.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 17.5z"/></svg></button>
+    <button class="item" type="button" data-tip="Заметки · Obsidian" data-act="notes" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M12 2.5l6 5-2 12.5-4 2-5-6 1-8.5z"/></svg></button>
+    <div class="sep"></div>
+    <button class="item" type="button" data-tip="Напоминания" data-act="rem"><svg viewBox="0 0 24 24"><path d="M6 16v-5a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg></button>
+    <button class="item" type="button" data-tip="Агенты" data-act="agents"><svg viewBox="0 0 24 24"><circle cx="9" cy="9" r="3"/><path d="M3.5 19a5.5 5.5 0 0 1 11 0"/><circle cx="17" cy="10" r="2.4"/><path d="M15.5 14.6A4.5 4.5 0 0 1 21 19"/></svg></button>
+    <button class="item" type="button" data-tip="Настройки" data-act="set" aria-pressed="false"><svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg></button>
+  </nav>
+  <section class="pop gl" id="pop" data-bezel="14" data-blur="20" data-fade aria-label="Подробности"></section>
+
+  <aside class="card gl" id="card" data-bezel="16" data-blur="20" aria-label="Сейчас">
+    <div class="row1">
+      <div class="seg" role="tablist" aria-label="Что показать" id="seg">
+        <button type="button" role="tab" aria-selected="true" data-v="agents">Агенты</button>
+        <button type="button" role="tab" aria-selected="false" data-v="council">Совет</button>
+        <button type="button" role="tab" aria-selected="false" data-v="rem">Напоминания</button>
+      </div>
+    </div>
+    <div class="body"><div class="inner">
+    <div class="row2">
+      <h2 id="lesson">Урок 10.4</h2>
+      <button class="round" type="button" id="prevL" aria-label="Предыдущий урок"><svg viewBox="0 0 24 24"><path d="M14.5 6l-6 6 6 6"/></svg></button>
+      <button class="round" type="button" id="nextL" aria-label="Следующий урок"><svg viewBox="0 0 24 24"><path d="M9.5 6l6 6-6 6"/></svg></button>
+    </div>
+    <div class="sub" id="lessonSub">Вложенные циклы · шаг 2 из 3</div>
+    <div class="list" id="list" role="tabpanel"></div>
+    <div class="foot">
+      <label><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M13.5 6.5l4 4"/></svg><span class="sr">Заметка</span><input id="note" placeholder="Добавить заметку…"></label>
+      <button class="pill" type="button" id="addTask"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>Задача</button>
+    </div>
+    </div></div>
+  </aside>
+
+  <section class="win gl" id="edWin" data-bezel="16" data-blur="20" data-fade aria-label="Практика">
+    <div class="wh"><b>Практика</b><span class="file">10-вложенные-циклы.py</span><button class="round" type="button" data-close="edWin" aria-label="Закрыть практику"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+<pre class="code" aria-label="Код урока"><span class="l"><span class="k">for</span> i <span class="k">in</span> <span class="f">range</span>(<span class="nm">1</span>, <span class="nm">4</span>):</span><span class="l">    <span class="k">for</span> j <span class="k">in</span> <span class="f">range</span>(<span class="nm">1</span>, <span class="nm">4</span>):</span><span class="l">        <span class="f">print</span>(i * j, end=<span class="s">" "</span>)</span><span class="l">    <span class="f">print</span>()</span></pre>
+    <div class="out"><span id="outText">1 2 3 · 2 4 6 · 3 6 9</span><span class="ok" id="outOk">0,02 с · задание ✓</span></div>
+    <div class="wa"><button class="pill light" type="button" id="run">Запустить ⌘R</button><button class="pill" type="button" id="check">Проверь мой код</button></div>
+  </section>
+
+  <section class="win gl" id="exWin" data-bezel="16" data-blur="20" data-fade aria-label="Объяснение в окне">
+    <div class="wh"><b id="exTitle">Как работает внимание</b><button class="round" type="button" data-close="exWin" aria-label="Закрыть объяснение"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
+    <div class="tabs" role="tablist" aria-label="Вид объяснения" id="tabs"></div>
+    <div class="exb" role="tabpanel" id="exBody"></div>
+  </section>
+
+  <div class="bc" id="bc">
+    <div class="slot">
+      <div class="dock gl" id="dock" data-bezel="14" data-blur="18" data-fade aria-label="Инструменты и агенты">
+        <button class="tile" type="button" data-tip="Claude Code" data-tool="claude"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,207,138,.15)"/><path d="M9.5 12l4 4-4 4M16 21h6.5" fill="none" stroke="#ffcf8a" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="tile run" type="button" data-tip="OpenCode · проверяет файл" data-tool="open"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(124,245,200,.16)"/><path d="M13 11l-4.5 5 4.5 5M19 11l4.5 5-4.5 5" fill="none" stroke="#7cf5c8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="tile run" type="button" data-tip="Hermes · ищет статьи" data-tool="hermes"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(181,168,255,.16)"/><path d="M9 20c4-1 7-4 9-9M9 20c5 .5 9-1 13-5M13 20c4 1 7 0 10-2" fill="none" stroke="#b5a8ff" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="tile" type="button" data-tip="OpenClaw · действия на Mac" data-tool="claw"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,190,150,.15)"/><path d="M11 10c-1 5 0 9 3 12M16 9c-1 5 0 10 2 13M21 10c-1 4-.5 8 1.5 11" fill="none" stroke="#ffbe96" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="tile" type="button" data-tip="FreeBuff · бесплатные модели" data-tool="buff"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,215,120,.15)"/><path d="M17.5 8L11 17h5l-1.5 7L21 15h-5z" fill="none" stroke="#ffd778" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+        <button class="tile" type="button" data-tip="Obsidian · заметки" data-tool="obs"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,255,255,.07)"/><g transform="translate(5 5) scale(.9167)"><defs><linearGradient id="ob" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#d9ccff"/><stop offset="1" stop-color="#7a5cff"/></linearGradient></defs><path d="M12 2l6 5-2 13-4 2-5-6 1-9z" fill="url(#ob)" opacity=".85"/><path d="M12 2l-1 9 5 9" fill="none" stroke="#ffffff" stroke-width="1" opacity=".6"/></g></svg></button>
+        <button class="tile" type="button" data-tip="NotebookLM · блокнот модуля" data-tool="nlm"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,255,255,.07)"/><g transform="translate(5 5) scale(.9167)"><rect x="5" y="3" width="14" height="18" rx="3.5" fill="rgba(158,196,255,.25)" stroke="#9ec4ff" stroke-width="1.5"/><path d="M9 8h6M9 12h6M9 16h3" stroke="#e8f1ff" stroke-width="1.4" stroke-linecap="round"/></g></svg></button>
+        <button class="tile" type="button" data-tip="Терминал · ~/Творец" data-tool="term"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,255,255,.07)"/><g transform="translate(5 5) scale(.9167)"><rect x="3" y="4" width="18" height="16" rx="4" fill="rgba(124,245,200,.18)" stroke="#7cf5c8" stroke-width="1.5"/><path d="M7.5 10l2.5 2-2.5 2M12 15h4" fill="none" stroke="#e8fff6" stroke-width="1.5" stroke-linecap="round"/></g></svg></button>
+        <button class="tile" type="button" data-tip="Ollama · 3 модели на Mac" data-tool="oll"><svg viewBox="0 0 32 32" aria-hidden="true"><rect x="1" y="1" width="30" height="30" rx="10" fill="rgba(255,255,255,.07)"/><g transform="translate(5 5) scale(.9167)"><path d="M8 20v-8a4 4 0 0 1 8 0v8M9 8l-1-4M15 8l1-4" fill="none" stroke="#e8f1f8" stroke-width="1.5" stroke-linecap="round"/><circle cx="10.5" cy="13" r=".9" fill="#e8f1f8"/><circle cx="13.5" cy="13" r=".9" fill="#e8f1f8"/></g></svg></button>
+      </div>
+    </div>
+    <form class="ask gl" id="form" data-bezel="14" data-blur="18" autocomplete="off">
+      <svg class="voice" viewBox="0 0 52 52" role="img" aria-label="Голос: ассистент слушает"><g id="ring"></g><circle cx="26" cy="26" r="2.6" fill="var(--accent)"/></svg>
+      <label class="sr" for="ask">Вопрос или команда</label>
+      <input id="ask" placeholder="Чем помочь сегодня?" enterkeyhint="send">
+      <button class="tbtn" type="button" id="toolsBtn" aria-expanded="false" aria-label="Агенты и инструменты" data-tip="Агенты и инструменты"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="4" width="6.5" height="6.5" rx="2"/><rect x="4" y="13.5" width="6.5" height="6.5" rx="2"/><rect x="13.5" y="13.5" width="6.5" height="6.5" rx="2"/></svg></button>
+      <kbd>⌘K</kbd>
+      <button class="send" type="submit" aria-label="Отправить"><svg viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6"/></svg></button>
+    </form>
+  </div>
+</div>
+<div class="tip" id="tip" role="tooltip"></div>
+
+<script type="importmap">{"imports":{"three":"./vendor/three/build/three.module.js","three/addons/":"./vendor/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const $ = (id) => document.getElementById(id);
+const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const isNarrow = () => innerWidth < 900;
+/* Мост с приложением: в WKWebView ответы, данные и состояния приходят из Swift, демо выключено.
+   Bridge to the app: in the WKWebView answers, data and states come from Swift, the demo is off. */
+const bridge = window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.workshop;
+const APP = !!bridge;
+const post = (type, body) => { if (bridge) bridge.postMessage(Object.assign({ type }, body || {})); };
+let T = {};
+const t = (k, d) => T[k] || d || '';
+if (APP) document.documentElement.classList.add('app');
+
+/* ---------- Часы, логотип, подсказки ---------- */
+let fmtTime = new Intl.DateTimeFormat('ru-RU', { hour: '2-digit', minute: '2-digit' });
+let fmtDay = new Intl.DateTimeFormat('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' });
+const tick = () => { const d = new Date(); $('clock').textContent = `${fmtTime.format(d)} · ${fmtDay.format(d)}`; };
+tick(); setInterval(tick, 20000);
+const logoDots = [];
+for (let i = 0; i < 46; i++) { const y = 1 - (i / 45) * 2, r = Math.sqrt(1 - y * y), th = i * 2.39996; logoDots.push({ x: Math.cos(th) * r, y, z: Math.sin(th) * r }); }
+const logoPath = document.createElementNS('http://www.w3.org/2000/svg', 'path'); $('logoDots').appendChild(logoPath);
+const dot = (x, y, r) => `M${(x - r).toFixed(1)} ${y.toFixed(1)}a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(2 * r).toFixed(2)} 0a${r.toFixed(2)} ${r.toFixed(2)} 0 1 0 ${(-2 * r).toFixed(2)} 0`;
+const tip = $('tip');
+function showTip(el) {
+  if (isNarrow() || (el.classList.contains('item') && $('rail').classList.contains('wide'))) return;
+  tip.textContent = el.dataset.tip; tip.classList.add('on');
+  const r = el.getBoundingClientRect(), pos = el.dataset.tipPos || (el.classList.contains('item') ? 'right' : 'top');
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = r.left + r.width / 2 - w / 2, y = r.top - h - 12;
+  if (pos === 'right') { x = r.right + 26; y = r.top + r.height / 2 - h / 2; }
+  if (pos === 'bottom') { y = r.bottom + 12; }
+  x = Math.max(8, Math.min(innerWidth - w - 8, x));
+  tip.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px)`;
+}
+document.querySelectorAll('[data-tip]').forEach((el) => {
+  el.addEventListener('pointerenter', () => showTip(el)); el.addEventListener('focus', () => showTip(el));
+  el.addEventListener('pointerleave', () => tip.classList.remove('on')); el.addEventListener('blur', () => tip.classList.remove('on'));
+  if (el.tagName === 'BUTTON') el.setAttribute('aria-label', el.dataset.tip);
+});
+
+/* ---------- Карточка «Сейчас» ---------- */
+const AG = {"claude": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"30\" height=\"30\" rx=\"10\" fill=\"rgba(255,207,138,.15)\"/><path d=\"M9.5 12l4 4-4 4M16 21h6.5\" fill=\"none\" stroke=\"#ffcf8a\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>", "open": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"30\" height=\"30\" rx=\"10\" fill=\"rgba(124,245,200,.16)\"/><path d=\"M13 11l-4.5 5 4.5 5M19 11l4.5 5-4.5 5\" fill=\"none\" stroke=\"#7cf5c8\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>", "hermes": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"30\" height=\"30\" rx=\"10\" fill=\"rgba(181,168,255,.16)\"/><path d=\"M9 20c4-1 7-4 9-9M9 20c5 .5 9-1 13-5M13 20c4 1 7 0 10-2\" fill=\"none\" stroke=\"#b5a8ff\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>", "claw": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"30\" height=\"30\" rx=\"10\" fill=\"rgba(255,190,150,.15)\"/><path d=\"M11 10c-1 5 0 9 3 12M16 9c-1 5 0 10 2 13M21 10c-1 4-.5 8 1.5 11\" fill=\"none\" stroke=\"#ffbe96\" stroke-width=\"1.7\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>", "buff": "<svg viewBox=\"0 0 32 32\" aria-hidden=\"true\"><rect x=\"1\" y=\"1\" width=\"30\" height=\"30\" rx=\"10\" fill=\"rgba(255,215,120,.15)\"/><path d=\"M17.5 8L11 17h5l-1.5 7L21 15h-5z\" fill=\"none\" stroke=\"#ffd778\" stroke-width=\"1.6\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg>"};
+const ico = (k) => `<span class="ag" aria-hidden="true">${AG[k]}</span>`;
+let openPct = 64;
+const views = {
+  agents: () => `
+    <div class="row">${ico('open')}<div><b>OpenCode</b><span id="openTask">проверяет 10-вложенные-циклы.py</span></div><span class="st live" id="openPct">${openPct}%</span><div class="bar"><i id="openBar" style="width:${openPct}%"></i></div></div>
+    <div class="row">${ico('hermes')}<div><b>Hermes</b><span>ищет статьи о внимании</span></div><span class="st live">ищет</span></div>
+    <div class="row">${ico('claude')}<div><b>Claude Code</b><span>по подписке</span></div><span class="st">готов</span></div>
+    <div class="row">${ico('claw')}<div><b>OpenClaw</b><span>действия на Mac</span></div><span class="st">готов</span></div>
+    <div class="row">${ico('buff')}<div><b>FreeBuff</b><span>бесплатные модели</span></div><span class="st">готов</span></div>`,
+  council: () => `
+    <div class="vote"><span>Claude</span><div class="tr"><i style="width:82%;background:linear-gradient(90deg,#ffb27a,#ffe3c8)"></i></div><output>0,82</output></div>
+    <div class="vote"><span>Gemini</span><div class="tr"><i style="width:74%;background:linear-gradient(90deg,#a9ccff,#e0ecff)"></i></div><output>0,74</output></div>
+    <div class="vote"><span>Qwen</span><div class="tr"><i style="width:61%;background:linear-gradient(90deg,#cbbcff,#ece6ff)"></i></div><output>0,61</output></div>
+    <p class="hint">Каждый ответ сверяют три модели. Если они расходятся, ассистент говорит об этом и даёт источник.</p>`,
+  rem: () => `
+    <div class="rem"><time id="remBreak"></time><span>Перерыв 5 минут: глаза и спина</span></div>
+    <div class="rem"><time>21:30</time><span>Повторить карточки по циклам</span></div>
+    <div class="rem"><time>завтра</time><span>10:00 · урок 10.5, списки в циклах</span></div>
+    <div class="rem"><time>пт</time><span>Созвон по проекту «Мой GPT»</span></div>`,
+};
+let seg = 'agents';
+function showSeg(v) {
+  seg = v;
+  document.querySelectorAll('#seg button').forEach((b) => b.setAttribute('aria-selected', String(b.dataset.v === v)));
+  $('list').innerHTML = views[v]();
+  if (v === 'rem' && $('remBreak')) $('remBreak').textContent = fmtTime.format(new Date(Date.now() + 20 * 60000));
+}
+// Нажатие на раздел раскрывает карточку; повторное нажатие на тот же раздел — сворачивает
+document.querySelectorAll('#seg button').forEach((b) => b.addEventListener('click', () => {
+  const card = $('card');
+  if (card.classList.contains('open') && seg === b.dataset.v) { card.classList.remove('open'); return; }
+  showSeg(b.dataset.v); card.classList.add('open');
+}));
+showSeg('agents');
+function council(vals) {
+  if (seg !== 'council') return;
+  document.querySelectorAll('#list .vote').forEach((v, i) => { v.querySelector('i').style.width = `${vals[i] * 100}%`; v.querySelector('output').textContent = vals[i].toFixed(2).replace('.', ','); });
+}
+const lessons = [['Урок 10.3', 'Цикл while · пройден'], ['Урок 10.4', 'Вложенные циклы · шаг 2 из 3'], ['Урок 10.5', 'Списки в циклах · завтра']];
+let li = 1;
+const showLesson = () => { $('lesson').textContent = lessons[li][0]; $('lessonSub').textContent = lessons[li][1]; };
+$('prevL').addEventListener('click', () => { li = Math.max(0, li - 1); showLesson(); });
+$('nextL').addEventListener('click', () => { li = Math.min(lessons.length - 1, li + 1); showLesson(); });
+
+/* ---------- Окна ---------- */
+const exViews = {
+  'Слайды': `<svg viewBox="0 0 520 130" role="img" aria-label="Слово «сидит» смотрит на остальные слова: сильнее всего на «кошка», слабее на «ковре»">
+    <defs><linearGradient id="at" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#ffcf8a"/><stop offset="1" stop-color="#ff9fd6"/></linearGradient></defs>
+    <path d="M190 82 Q130 8 70 82" fill="none" stroke="url(#at)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M232 82 Q272 36 310 82" fill="none" stroke="url(#at)" stroke-width="2.2" stroke-linecap="round" opacity=".65"/>
+    <path d="M236 82 Q340 0 440 82" fill="none" stroke="url(#at)" stroke-width="1.2" stroke-linecap="round" opacity=".42"/>
+    <g font-family="Onest, sans-serif" font-size="14" text-anchor="middle" fill="#f4f0ea">
+      <rect x="28" y="86" width="84" height="32" rx="16" fill="rgba(255,207,138,.18)" stroke="rgba(255,207,138,.5)"/><text x="70" y="107">кошка</text>
+      <rect x="168" y="86" width="84" height="32" rx="16" fill="rgba(244,241,236,.92)"/><text x="210" y="107" fill="#18171b">сидит</text>
+      <rect x="282" y="86" width="56" height="32" rx="16" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)"/><text x="310" y="107">на</text>
+      <rect x="398" y="86" width="84" height="32" rx="16" fill="rgba(255,255,255,.06)" stroke="rgba(255,255,255,.2)"/><text x="440" y="107">ковре</text>
+    </g>
+    <g font-family="JetBrains Mono, monospace" font-size="11" fill="#a7a09a" text-anchor="middle"><text x="130" y="30">0,71</text><text x="272" y="44">0,19</text><text x="340" y="22">0,10</text></g>
+  </svg><p>Слово «сидит» спрашивает остальные, насколько они ему важны, и берёт смесь их смыслов. Чем толще дуга, тем больше вес.</p>`,
+  '3D': `<p>3D-модель: слова — точки в пространстве, лучи внимания светятся тем ярче, чем больше вес. Вращай, щёлкни слово, и увидишь его смесь смыслов.</p>`,
+  'Видео': `<p>Видео-разбор на 2:40 собирается из слайдов и голоса ассистента. Поставь на паузу, и можно задать вопрос прямо в этом месте.</p>`,
+  'Практика': `<pre class="code" aria-label="Заготовка задания"><span class="l"><span class="k">def</span> <span class="f">softmax</span>(x):</span><span class="l">    m = <span class="f">max</span>(x)  <span class="s"># без переполнения</span></span><span class="l">    ...</span></pre><p>Допиши softmax без переполнения в attention_blank.py, проверка покажет ✓.</p>`,
+  'Источники': `<p>Vaswani и др., 2017 · CS224N, 2026 · урок «Механизм внимания». Проверено 8 ноября 2026.</p>`,
+};
+let exSel = null;
+function buildTabs() {
+  const names = Object.keys(exViews);
+  if (!names.includes(exSel)) exSel = names[0];
+  $('tabs').replaceChildren();
+  names.forEach((name) => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.setAttribute('role', 'tab'); b.textContent = name; b.setAttribute('aria-selected', String(name === exSel));
+    b.addEventListener('click', () => { exSel = name; [...$('tabs').children].forEach((x) => x.setAttribute('aria-selected', String(x === b))); $('exBody').innerHTML = exViews[name]; });
+    $('tabs').appendChild(b);
+  });
+  $('exBody').innerHTML = exViews[exSel];
+}
+buildTabs();
+function setWin(id, open) {
+  $(id).classList.toggle('open', open);
+  const act = id === 'edWin' ? 'ed' : 'ex';
+  document.querySelector(`.item[data-act="${act}"]`).setAttribute('aria-pressed', String(open));
+}
+document.querySelectorAll('[data-close]').forEach((b) => b.addEventListener('click', () => setWin(b.dataset.close, false)));
+addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { setWin('edWin', false); setWin('exWin', false); if (popOpen) setPop(popOpen); setTools(false); }
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') { e.preventDefault(); $('ask').focus(); }
+});
+const pops = {
+  path: `<h3>Путь Творца</h3><div class="big">13%</div><div class="psub">Python · урок 10.4 · вложенные циклы</div>
+    <div class="stages">${[['Python', 62], ['Математика', 8], ['Машинное обучение', 0], ['Своя языковая модель', 0], ['AGI', 0], ['Сознание', 0]].map(([n, v]) => `<div class="stg"><span>${n}</span><output>${v}%</output><div class="tr"><i style="width:${v}%"></i></div></div>`).join('')}</div>
+    <div class="trio"><div><b>2/3</b><span>шага</span></div><div><b>4</b><span>дня подряд</span></div><div><b>20′</b><span>до перерыва</span></div></div>`,
+  proj: `<h3>Проекты</h3><div class="psub">3 проекта в ~/Творец</div><div class="plist"><div><b>Мой GPT</b><span>сегодня · обучение на своих текстах</span></div><div><b>Трекер привычек</b><span>вчера · Python и SQLite</span></div><div><b>Бот для заметок</b><span>3 дня назад · связка с Obsidian</span></div></div>`,
+  notes: `<h3>Заметки</h3><div class="psub">Obsidian · 128 заметок</div><div class="plist"><div><b>Вложенные циклы</b><span>сегодня · из урока 10.4</span></div><div><b>Внимание — конспект</b><span>вчера · 3 схемы</span></div><div><b>LoRA — вопросы</b><span>пн · 5 вопросов к ассистенту</span></div></div>`,
+  set: `<h3>Настройки</h3><div class="plist"><div><b>Голос</b><span>включён · слушаю всегда</span></div><div><b>Модели</b><span>Claude по подписке · Gemini и Qwen бесплатно</span></div><div><b>Доступ к Mac</b><span>полный · пароль администратора у тебя</span></div><div><b>Перерывы</b><span>каждые 50 минут</span></div></div>`,
+};
+let popOpen = null;
+function setPop(k) {
+  popOpen = popOpen === k ? null : k;
+  if (popOpen) { $('pop').innerHTML = pops[popOpen]; setWin('edWin', false); }
+  $('pop').classList.toggle('open', !!popOpen);
+  document.querySelectorAll('[data-act="path"],[data-act="proj"],[data-act="notes"],[data-act="set"]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.act === popOpen)));
+}
+
+/* ---------- 3D-сцена ---------- */
+const canvas = $('scene');
+let renderer = null;
+try { renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' }); document.documentElement.classList.add('webgl'); }
+catch (e) { $('fallback').hidden = false; }
+const pr = Math.min(devicePixelRatio, 1.5);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(38, innerWidth / innerHeight, 0.1, 200);
+const ORB_Y = 1.15;
+const NOISE = `
+float hash3(vec3 p){p=fract(p*0.3183099+.1);p*=17.0;return fract(p.x*p.y*p.z*(p.x+p.y+p.z));}
+float noise3(vec3 x){vec3 i=floor(x),f=fract(x);f=f*f*(3.-2.*f);
+return mix(mix(mix(hash3(i),hash3(i+vec3(1,0,0)),f.x),mix(hash3(i+vec3(0,1,0)),hash3(i+vec3(1,1,0)),f.x),f.y),
+mix(mix(hash3(i+vec3(0,0,1)),hash3(i+vec3(1,0,1)),f.x),mix(hash3(i+vec3(0,1,1)),hash3(i+vec3(1,1,1)),f.x),f.y),f.z);}
+float fbm3(vec3 p){float a=.5,s=0.;for(int i=0;i<4;i++){s+=a*noise3(p);p*=2.03;a*=.5;}return s;}`;
+const DOT = `varying float vAlpha; varying vec3 vColor;
+  void main(){ vec2 c=gl_PointCoord-0.5; float d=dot(c,c); if(d>0.25) discard; float a=exp(-d*16.0); gl_FragColor=vec4(vColor*a*vAlpha*1.5, 1.0); }`;
+const uniforms = {
+  uTime: { value: 0 }, uAmp: { value: 0.08 }, uSwirl: { value: 1 }, uSpill: { value: 0 },
+  uColA: { value: new THREE.Color('#8a8780') }, uColB: { value: new THREE.Color('#ebe8e2') },
+  uScale: { value: innerHeight * 0.5 * pr }, uSize: { value: 0.016 },
+};
+const N = 16000;
+const pos = new Float32Array(N * 3), seed = new Float32Array(N), size = new Float32Array(N), spill = new Float32Array(N);
+for (let i = 0; i < N; i++) {
+  const y = 1 - (i / (N - 1)) * 2, r = Math.sqrt(1 - y * y), th = 2.399963 * i;
+  pos[i * 3] = Math.cos(th) * r + (Math.random() - 0.5) * 0.04;
+  pos[i * 3 + 1] = y + (Math.random() - 0.5) * 0.04;
+  pos[i * 3 + 2] = Math.sin(th) * r + (Math.random() - 0.5) * 0.04;
+  seed[i] = Math.random(); size[i] = 0.55 + Math.pow(Math.random(), 3) * 2.2;
+  spill[i] = (y < 0.1 && Math.random() < 0.34) ? 1 : 0;
+}
+const geo = new THREE.BufferGeometry();
+geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+geo.setAttribute('aSeed', new THREE.BufferAttribute(seed, 1));
+geo.setAttribute('aSize', new THREE.BufferAttribute(size, 1));
+geo.setAttribute('aSpill', new THREE.BufferAttribute(spill, 1));
+const orb = new THREE.Points(geo, new THREE.ShaderMaterial({
+  uniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `uniform float uTime; uniform float uAmp; uniform float uSwirl; uniform float uSpill; uniform vec3 uColA; uniform vec3 uColB; uniform float uScale; uniform float uSize;
+  attribute float aSeed; attribute float aSize; attribute float aSpill; varying float vAlpha; varying vec3 vColor; ${NOISE}
+  void main(){
+    vec3 dir=normalize(position); float t=uTime*uSwirl;
+    float n=fbm3(dir*1.5+vec3(t*0.32,t*0.25,-t*0.29));
+    float n2=noise3(dir*4.2+vec3(-t*0.8,t*0.65,t*0.5));
+    float r=1.0+sin(uTime*1.25)*0.022+(n-0.5)*0.62*uAmp+(n2-0.5)*0.16*uAmp+(aSeed-0.5)*0.03;
+    float flyer=pow(fract(aSeed*7.31),6.0);
+    r+=flyer*uAmp*(0.9+0.5*sin(uTime*3.0+aSeed*20.0));
+    vec3 p=dir*r;
+    float cyc=fract(uTime*0.42+aSeed*5.7);
+    float fall=aSpill*uSpill*cyc*cyc*2.1;
+    p+=vec3((aSeed-0.5)*0.55*fall,-fall,(fract(aSeed*13.7)-0.5)*0.45*fall);
+    vec4 mv=modelViewMatrix*vec4(p,1.0);
+    float rim=1.0-abs(normalize(normalMatrix*dir).z);
+    float tw=0.62+0.38*sin(uTime*2.6+aSeed*48.0);
+    vAlpha=(0.2+0.8*pow(rim,1.6))*tw*(1.0-aSpill*uSpill*cyc*0.85)*(1.0+uAmp*0.6);
+    vColor=mix(uColA,uColB,smoothstep(0.32,0.78,n+aSeed*0.25));
+    gl_PointSize=max(uSize*aSize*uScale/-mv.z,1.0);
+    gl_Position=projectionMatrix*mv;
+  }`,
+  // Одна и та же мягкая серебристая точка во всех состояниях: меняется только движение
+  fragmentShader: DOT,
+}));
+orb.position.y = ORB_Y; orb.scale.setScalar(0.92); orb.renderOrder = 2;
+scene.add(orb);
+
+const glowMat = new THREE.ShaderMaterial({
+  transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  uniforms: { uCol: { value: new THREE.Color('#d8d5cf') }, uStrength: { value: 0.05 } },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `uniform vec3 uCol; uniform float uStrength; varying vec2 vUv; void main(){ float d=length(vUv-0.5)*2.0; float a=exp(-d*d*2.4)*(1.0-smoothstep(0.6,1.0,d))*uStrength; gl_FragColor=vec4(uCol*a, a); }`,
+});
+const glow = new THREE.Mesh(new THREE.PlaneGeometry(7, 7), glowMat);
+glow.position.set(0, ORB_Y, -0.6);
+scene.add(glow);
+
+/* Море из частиц */
+const waves = [[1.0, 0.3, 9.0, 0.14, 0.55, 0.5], [-0.5, 1.0, 5.5, 0.09, 0.6, 0.55], [0.7, 0.8, 3.2, 0.05, 0.7, 0.65], [-1.0, 0.25, 1.9, 0.03, 0.75, 0.75], [0.25, 1.0, 1.1, 0.016, 0.8, 0.85], [0.9, -0.5, 0.62, 0.008, 0.8, 1.0]];
+const waveCode = waves.map((w) => `{ vec2 d=normalize(vec2(${w[0].toFixed(3)},${w[1].toFixed(3)})); float k=6.2831853/${w[2].toFixed(3)}; float a=${w[3].toFixed(4)}; float q=${w[4].toFixed(3)}; float c=sqrt(9.8/k)*${w[5].toFixed(3)}; float f=k*(dot(d,p)-c*uTime);
+  h+=a*sin(f); g+=a*k*d*cos(f); shift+=q*a*d*cos(f); }`).join('\n');
+const GX = 380, GZ = 200, SN = GX * GZ;
+const seaPos = new Float32Array(SN * 3), seaSeed = new Float32Array(SN);
+for (let iz = 0, k = 0; iz < GZ; iz++) {
+  const fz = iz / (GZ - 1), z = 3.5 - Math.pow(fz, 1.6) * 40, half = 6 + fz * 36;
+  for (let ix = 0; ix < GX; ix++, k++) {
+    seaPos[k * 3] = ((ix + Math.random() * 0.8) / GX - 0.5) * 2 * half;
+    seaPos[k * 3 + 2] = z + (Math.random() - 0.5) * 0.12;
+    seaSeed[k] = Math.random();
+  }
+}
+const seaGeo = new THREE.BufferGeometry();
+seaGeo.setAttribute('position', new THREE.BufferAttribute(seaPos, 3));
+seaGeo.setAttribute('aSeed', new THREE.BufferAttribute(seaSeed, 1));
+const seaUniforms = { uTime: uniforms.uTime, uColA: uniforms.uColA, uColB: uniforms.uColB, uScale: uniforms.uScale, uOrb: { value: new THREE.Vector3(0, ORB_Y, 0) }, uEnergy: { value: 0 } };
+scene.add(new THREE.Points(seaGeo, new THREE.ShaderMaterial({
+  uniforms: seaUniforms, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+  vertexShader: `uniform float uTime; uniform vec3 uColA; uniform vec3 uColB; uniform float uScale; uniform vec3 uOrb; uniform float uEnergy;
+  attribute float aSeed; varying float vAlpha; varying vec3 vColor;
+  void main(){
+    vec2 p=position.xz; float h=0.; vec2 g=vec2(0.); vec2 shift=vec2(0.);
+    ${waveCode}
+    vec3 wp=vec3(p.x+shift.x,h,p.y+shift.y);
+    vec3 n=normalize(vec3(-g.x,1.,-g.y));
+    vec3 r=reflect(normalize(wp-cameraPosition),n);
+    float spec=pow(max(dot(r,normalize(uOrb-wp)),0.),26.);
+    float dist=length(wp-cameraPosition);
+    float fade=(1.-smoothstep(12.,46.,dist))*smoothstep(1.4,3.4,dist);
+    float crest=smoothstep(0.05,0.22,h);
+    float tw=0.55+0.45*sin(uTime*3.1+aSeed*40.);
+    float near=exp(-length(wp.xz-uOrb.xz)*0.22);
+    float lane=exp(-abs(wp.x-uOrb.x)/(0.35+abs(wp.z-cameraPosition.z)*0.05));
+    float spark=pow(clamp(0.5+0.5*sin(dot(g,vec2(41.,29.))+aSeed*6.2832+uTime*1.7),0.,1.),5.);
+    float path=lane*(0.08+spark*(0.85+uEnergy));
+    vAlpha=(0.085+crest*0.13+near*0.06+path+spec*(0.85+uEnergy)*tw)*fade;
+    vColor=mix(uColA,uColB,clamp(spec*1.6+lane*spark,0.,1.));
+    vec4 mv=viewMatrix*vec4(wp,1.);
+    gl_PointSize=max((0.9+spec*1.4)*0.016*uScale/-mv.z,1.);
+    gl_Position=projectionMatrix*mv;
+  }`,
+  fragmentShader: DOT,
+})));
+
+
+/* Стекло: проход после свечения. Для каждой панели — скруглённый прямоугольник со знаковым расстоянием,
+   у кромки фон преломляется как через линзу, внутри размыт, кромка — тонкая линия света */
+const MAXP = 12;
+const GlassShader = {
+  uniforms: {
+    tDiffuse: { value: null }, uView: { value: new THREE.Vector2(innerWidth, innerHeight) }, uCount: { value: 0 },
+    uRect: { value: Array.from({ length: MAXP }, () => new THREE.Vector4()) }, uMeta: { value: Array.from({ length: MAXP }, () => new THREE.Vector4()) },
+    uTint: { value: new THREE.Color('#ffcf8a') },
+  },
+  vertexShader: `varying vec2 vUv; void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }`,
+  fragmentShader: `#define MAXP ${MAXP}
+  uniform sampler2D tDiffuse; uniform vec2 uView; uniform int uCount; uniform vec4 uRect[MAXP]; uniform vec4 uMeta[MAXP]; uniform vec3 uTint;
+  varying vec2 vUv;
+  float sdR(vec2 p, vec2 b, float r){ vec2 q=abs(p)-b+r; return length(max(q,0.))+min(max(q.x,q.y),0.)-r; }
+  float h12(vec2 p){ return fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5453); }
+  vec2 toUv(vec2 px){ return vec2(px.x/uView.x, 1.-px.y/uView.y); }
+  void main(){
+    vec2 px=vec2(vUv.x*uView.x,(1.-vUv.y)*uView.y);
+    vec4 base=texture2D(tDiffuse,vUv);
+    vec3 col=base.rgb;
+    for(int i=0;i<MAXP;i++){
+      if(i>=uCount) break;
+      vec4 R=uRect[i]; vec4 M=uMeta[i];
+      vec2 b=R.zw*0.5; vec2 p=px-(R.xy+b); float r=M.x;
+      float d=sdR(p,b,r);
+      if(d>1.0) continue;
+      vec2 n=normalize(vec2(sdR(p+vec2(1.,0.),b,r)-sdR(p-vec2(1.,0.),b,r), sdR(p+vec2(0.,1.),b,r)-sdR(p-vec2(0.,1.),b,r))+1e-6);
+      float bez=max(min(M.y,min(b.x,b.y)*0.9),1.);
+      float t=clamp(-d/bez,0.,1.);
+      float lens=pow(1.-t,2.2);
+      vec2 spx=px+n*lens*bez*1.15;
+      float rad=M.z; float rot=h12(px)*6.2831;
+      vec3 acc=vec3(0.);
+      for(int k=0;k<16;k++){ float fk=float(k); float a=fk*2.39996+rot; float rr=sqrt((fk+.5)/16.)*rad; acc+=texture2D(tDiffuse,toUv(spx+vec2(cos(a),sin(a))*rr)).rgb; }
+      vec3 g=acc/16.;
+      vec2 ca=n*lens*3.5;
+      g.r=mix(g.r,texture2D(tDiffuse,toUv(spx+ca)).r,lens*.55);
+      g.b=mix(g.b,texture2D(tDiffuse,toUv(spx-ca)).b,lens*.55);
+      vec3 glass=g*0.84+uTint*0.012+vec3(0.016);
+      vec2 L=normalize(vec2(-0.55,-0.85));
+      float lit=max(dot(n,L),0.), back=max(dot(n,-L),0.);
+      float rim=smoothstep(1.2,0.,abs(d+0.75));
+      glass+=rim*(0.025+0.24*pow(lit,1.5)+0.06*pow(back,2.));
+      glass+=lens*(0.01+0.025*lit);
+      float mask=smoothstep(0.75,-0.75,d)*M.w;
+      col=mix(col,glass,mask);
+    }
+    gl_FragColor=vec4(col,base.a);
+  }`,
+};
+
+let composer = null, glassPass = null;
+if (renderer) {
+  renderer.setPixelRatio(pr); renderer.setSize(innerWidth, innerHeight);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.toneMappingExposure = 0.95;
+  renderer.outputColorSpace = THREE.SRGBColorSpace; renderer.setClearColor(0x050507, 1);
+  composer = new EffectComposer(renderer);
+  composer.addPass(new RenderPass(scene, camera));
+  composer.addPass(new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.6, 0.45, 0.4));
+  glassPass = new ShaderPass(GlassShader);
+  composer.addPass(glassPass);
+  composer.addPass(new OutputPass());
+}
+const glEls = [...document.querySelectorAll('.gl')];
+const glInfo = new Map();
+const measure = () => glEls.forEach((el) => glInfo.set(el, {
+  r: parseFloat(getComputedStyle(el).borderTopLeftRadius) || 20,
+  bez: parseFloat(el.dataset.bezel || 16), blur: parseFloat(el.dataset.blur || 16), fade: el.hasAttribute('data-fade'),
+}));
+measure();
+addEventListener('resize', () => {
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix();
+  if (renderer) { renderer.setSize(innerWidth, innerHeight); composer.setSize(innerWidth, innerHeight); glassPass.uniforms.uView.value.set(innerWidth, innerHeight); }
+  uniforms.uScale.value = innerHeight * 0.5 * pr;
+  measure();
+});
+
+/* ---------- Состояния: меняются сами, по событиям ---------- */
+const ONE = { a: '#8a8780', b: '#ebe8e2', css: '#ece9e4' };
+const STATES = {
+  listen: { ...ONE, amp: 0.08, swirl: 1.0, spill: 0, name: 'СЛУШАЮ' },
+  think: { ...ONE, amp: 0.2, swirl: 2.2, spill: 0, name: 'ДУМАЮ' },
+  agents: { ...ONE, amp: 0.16, swirl: 1.3, spill: 0, name: 'АГЕНТЫ РАБОТАЮТ' },
+  speak: { ...ONE, amp: 0.78, swirl: 1.7, spill: 1, name: 'ОТВЕЧАЮ' },
+};
+let mode = 'listen', pulse = 0, timers = [], typing = null, lastAct = performance.now();
+const lineEl = $('line');
+function setMode(m, text) {
+  mode = m; $('state').textContent = STATES[m].name;
+  document.documentElement.style.setProperty('--accent', STATES[m].css);
+  if (text !== undefined) say(text, m === 'speak');
+}
+function say(text, stream) {
+  clearInterval(typing);
+  if (!stream || reduce) { lineEl.textContent = text; return; }
+  const words = text.split(' '); let i = 0; lineEl.textContent = '';
+  typing = setInterval(() => { lineEl.textContent = words.slice(0, ++i).join(' '); pulse = 1; if (i >= words.length) clearInterval(typing); }, 140);
+}
+function run(steps) {
+  timers.forEach(clearTimeout); timers = []; let at = 0;
+  steps.forEach(([m, text, ms, fn]) => { timers.push(setTimeout(() => { setMode(m, text); if (fn) fn(); }, at)); at += ms; });
+  timers.push(setTimeout(() => setMode('listen', 'Слушаю. Можно говорить или писать.'), at));
+}
+function openCode(target) {
+  const step = setInterval(() => {
+    openPct = Math.min(target, openPct + 3);
+    if ($('openPct')) { $('openPct').textContent = `${openPct}%`; $('openBar').style.width = `${openPct}%`; }
+    if (openPct >= target) clearInterval(step);
+  }, 60);
+}
+const answers = {
+  'Объясни якобиан на моей сети': ['Якобиан', 'Якобиан — таблица того, как каждый выход сети меняется от каждого входа. Открыл его для твоего слоя в окне.'],
+  'Слайды по LoRA': ['LoRA за 5 слайдов', 'Собрал 5 слайдов: LoRA учит маленькие матрицы A и B вместо всей большой W. Первый слайд уже в окне.'],
+  '3D: как течёт градиент': ['Как течёт градиент', 'Строю 3D-граф твоей сети: градиент течёт от ошибки назад, ярче там, где он больше.'],
+};
+function ask(q) {
+  lastAct = performance.now();
+  if (APP) { post('ask', { text: q }); return; }
+  const a = answers[q];
+  if (seg !== 'council') showSeg('council');
+  council([0.3, 0.25, 0.2]);
+  run([
+    ['think', `Сверяю ответы Claude, Gemini и Qwen: «${q}».`, 2600, () => setTimeout(() => council([0.86, 0.71, 0.58]), 500)],
+    ['speak', a ? a[1] : `Понял: «${q}». Разбираю по шагам и собираю объяснение в окне.`, 6400, () => { $('exTitle').textContent = a ? a[0] : q; setWin('exWin', true); }],
+  ]);
+}
+$('form').addEventListener('submit', (e) => { e.preventDefault(); const q = $('ask').value.trim(); if (q) { ask(q); $('ask').value = ''; $('ask').blur(); } });
+$('ask').addEventListener('input', () => { pulse = Math.min(1, pulse + 0.35); lastAct = performance.now(); });
+function setTools(on) { $('bc').classList.toggle('tools', on); $('toolsBtn').setAttribute('aria-expanded', String(on)); }
+$('toolsBtn').addEventListener('click', () => setTools(!$('bc').classList.contains('tools')));
+
+$('run').addEventListener('click', () => {
+  if (APP) { post('practiceRun'); return; }
+  lastAct = performance.now(); $('outText').textContent = '…'; $('outOk').textContent = 'запуск';
+  setTimeout(() => { $('outText').textContent = '1 2 3 · 2 4 6 · 3 6 9'; $('outOk').textContent = '0,02 с · задание ✓'; }, 500);
+  run([['speak', 'Запустил. Таблица 3 на 3 верная: каждая строка — один проход внешнего цикла.', 5200]]);
+});
+$('check').addEventListener('click', () => {
+  if (APP) { post('practiceCheck'); return; }
+  lastAct = performance.now(); openPct = 64; showSeg('agents');
+  run([
+    ['agents', 'OpenCode проверяет 10-вложенные-циклы.py, Hermes ищет похожие ошибки.', 3200, () => openCode(100)],
+    ['speak', 'Код верный. Внутренний цикл проходит все j при каждом i, поэтому строка печатается целиком. Заметку сохранил в Obsidian.', 7000],
+  ]);
+});
+const railSay = {
+  new: 'Новый проект: скажи, что строим, и я соберу папку, план и первые файлы.',
+  proj: 'Проектов три: «Мой GPT», «Трекер привычек» и «Бот для заметок». Последним открывал «Мой GPT».',
+  notes: 'В Obsidian 128 заметок. Последняя — «вложенные циклы», сохранена сегодня.',
+  set: 'Настройки: голос, модели, доступ к Mac и напоминания. Пароль администратора хранится только у тебя.',
+};
+document.querySelectorAll('.item, .ringb').forEach((b) => b.addEventListener('click', () => {
+  lastAct = performance.now(); const act = b.dataset.act;
+  if (APP) {
+    post('rail', { act });
+    if (act === 'new') { $('ask').value = t('hud.newProject'); $('ask').focus(); clearInterval(typing); lineEl.textContent = t('hud.newProject.say', railSay.new); return; }
+  }
+  if (pops[act]) { setPop(act); return; }
+  if (act === 'ed' || act === 'ex') { const id = act === 'ed' ? 'edWin' : 'exWin'; const open = !$(id).classList.contains('open'); if (open && act === 'ed' && popOpen) setPop(popOpen); setWin(id, open); return; }
+  if (act === 'rem' || act === 'agents') { const v = act === 'rem' ? 'rem' : 'agents'; const card = $('card'); if (card.classList.contains('open') && seg === v) card.classList.remove('open'); else { showSeg(v); card.classList.add('open'); } return; }
+  run([['speak', railSay[act], 5200]]);
+}));
+const toolSay = {
+  claude: 'Claude Code готов. Могу поручить ему задачу в папке ~/Творец.', open: 'OpenCode проверяет 10-вложенные-циклы.py. Осталось немного.',
+  hermes: 'Hermes нашёл 2 свежие статьи о внимании и кладёт их в NotebookLM.', claw: 'OpenClaw готов делать действия на Mac. Каждое опасное действие сначала спрошу у тебя.',
+  buff: 'FreeBuff держит бесплатные модели: Gemini и Qwen. Сейчас обе на связи.', obs: 'Открываю хранилище Obsidian «Творец». Заметка по циклам уже там.',
+  nlm: 'Блокнот NotebookLM для модуля «Python» готов: 12 источников.', term: 'Терминал открыт в ~/Творец. Команды с sudo сначала покажу тебе.',
+  oll: 'В Ollama на Mac три модели: Qwen 7B, Llama 3.2 и Phi-4 mini.',
+};
+document.querySelectorAll('.dock .tile').forEach((b) => b.addEventListener('click', () => { lastAct = performance.now(); if (APP) { post('tool', { tool: b.dataset.tool }); return; } setTools(false); run([[b.dataset.tool === 'open' || b.dataset.tool === 'hermes' ? 'agents' : 'speak', toolSay[b.dataset.tool], 5000]]); }));
+$('toast').addEventListener('click', (e) => {
+  const b = e.target.closest('button'); if (!b) return;
+  $('toast').classList.remove('open'); lastAct = performance.now();
+  if (APP) { post('confirm', { id: appState.confirmId, yes: b.dataset.ans === 'yes' }); return; }
+  run([['speak', b.dataset.ans === 'yes' ? 'Удалил 3 файла. Они в Корзине, вернуть можно 30 дней.' : 'Хорошо, ничего не удаляю.', 4200]]);
+});
+$('addTask').addEventListener('click', () => {
+  const v = $('note').value.trim(); $('note').value = '';
+  if (APP) { post('task', { text: v }); return; }
+  run([['speak', v ? `Записал задачу: «${v}». Напомню вечером.` : 'Скажи, какую задачу записать, и я напомню вовремя.', 4200]]);
+});
+$('note').addEventListener('keydown', (e) => { if (e.key === 'Enter') $('addTask').click(); });
+
+// Демо и автопоказ подтверждения — только вне приложения. / Demo and the auto-shown confirmation run only outside the app.
+if (!APP) {
+  const demo = [
+    () => run([['think', 'Готовлю следующий шаг урока 10.4: вложенные циклы и таблица умножения.', 3200], ['speak', 'Следующий шаг: напиши таблицу 5 на 5. Подсказка — второй цикл внутри первого.', 6000]]),
+    () => run([['agents', 'OpenCode проверяет твой файл, Hermes ищет статьи о внимании.', 3600, () => { showSeg('agents'); openCode(88); }], ['speak', 'Hermes нашёл 2 свежие статьи о внимании. Добавил их в блокнот NotebookLM.', 6000]]),
+  ];
+  let demoIdx = 0;
+  setInterval(() => {
+    const busy = $('ask') === document.activeElement || $('edWin').classList.contains('open') || $('exWin').classList.contains('open');
+    if (performance.now() - lastAct > 16000 && mode === 'listen' && !busy) { demo[demoIdx++ % demo.length](); lastAct = performance.now(); }
+  }, 1000);
+  setTimeout(() => { if (performance.now() - lastAct > 3000 && mode === 'listen') demo[demoIdx++ % demo.length](); }, 3500);
+
+}
+
+/* ---------- Приложение: данные и состояния из Swift / The app: data and states from Swift ----------
+   Swift вызывает window.creatorApp.receive({type, …}): state, data, practice, answer, confirm.
+   Swift calls window.creatorApp.receive({type, …}): state, data, practice, answer, confirm. */
+const esc = (v) => String(v == null ? '' : v).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const appState = { answerId: null, confirmId: null, lessonsSet: false };
+const GRAD = ['#ffb27a,#ffe3c8', '#a9ccff,#e0ecff', '#cbbcff,#ece6ff'];
+function setTip(el, text) { if (!el || !text) return; el.dataset.tip = text; el.setAttribute('aria-label', text); }
+function applyStrings(s, locale) {
+  T = s || {};
+  if (locale) {
+    fmtTime = new Intl.DateTimeFormat(locale, { hour: '2-digit', minute: '2-digit' });
+    fmtDay = new Intl.DateTimeFormat(locale, { weekday: 'short', day: 'numeric', month: 'long' });
+    document.documentElement.lang = locale.slice(0, 2); tick();
+  }
+  const set = (sel, key, prop) => { const el = document.querySelector(sel); if (el && T[key]) el[prop || 'textContent'] = T[key]; };
+  set('.wm-sub', 'hud.sub'); set('#ask', 'hud.ask', 'placeholder'); set('label[for="ask"]', 'hud.askLabel');
+  const send = document.querySelector('.send'); if (send && T['hud.send']) send.setAttribute('aria-label', T['hud.send']);
+  const tips = ['hud.tip.claude', 'hud.tip.gemini', 'hud.tip.qwen', 'hud.tip.access'];
+  document.querySelectorAll('.status svg[data-tip]').forEach((el, i) => setTip(el, T[tips[i]]));
+  ['new', 'ex', 'ed', 'proj', 'notes', 'rem', 'agents', 'set'].forEach((a) => setTip(document.querySelector(`.item[data-act="${a}"]`), T['hud.rail.' + a]));
+  const segKeys = { agents: 'hud.rail.agents', council: 'hud.seg.council', rem: 'hud.rail.rem' };
+  document.querySelectorAll('#seg button').forEach((b) => { if (T[segKeys[b.dataset.v]]) b.textContent = T[segKeys[b.dataset.v]]; });
+  set('#note', 'hud.note', 'placeholder'); set('.foot .sr', 'hud.noteLabel');
+  const add = $('addTask'); if (add && T['hud.addTask'] && add.lastChild) add.lastChild.textContent = T['hud.addTask'];
+  set('#run', 'hud.run'); set('#check', 'hud.check'); set('#edWin .wh b', 'hud.rail.ed');
+  set('#toast [data-ans="yes"]', 'hud.yes'); set('#toast [data-ans="no"]', 'hud.no'); set('#fallback', 'hud.fallback');
+  if (T['hud.confirmLabel']) $('toast').setAttribute('aria-label', T['hud.confirmLabel']);
+  const voiceEl = document.querySelector('.voice'); if (voiceEl && T['hud.voice']) voiceEl.setAttribute('aria-label', T['hud.voice']);
+  const fileEl = document.querySelector('#edWin .file'); if (fileEl && T['hud.edit']) fileEl.title = T['hud.edit'];
+  ['listen', 'think', 'agents', 'speak'].forEach((m) => { if (T['hud.state.' + m]) STATES[m].name = T['hud.state.' + m]; });
+  $('state').textContent = STATES[mode].name;
+}
+function appData(d) {
+  applyStrings(d.strings, d.locale);
+  const on = document.querySelector('.status .on .t'); if (on) on.textContent = t(d.online ? 'hud.online' : 'hud.starting');
+  const p = d.path, rb = document.querySelector('.ringb');
+  setTip(rb, `${t('hud.rail.path')} · ${p.percent}%`);
+  rb.querySelector('text').textContent = `${p.percent}%`;
+  rb.querySelectorAll('circle')[1].setAttribute('stroke-dasharray', `${(p.percent / 100 * 113.1).toFixed(1)} 113.1`);
+  pops.path = `<h3>${esc(t('hud.rail.path'))}</h3><div class="big">${p.percent}%</div><div class="psub">${esc(p.sub)}</div>
+    <div class="stages">${p.stages.map((x) => `<div class="stg"><span>${esc(x.name)}</span><output>${x.percent}%</output><div class="tr"><i style="width:${x.percent}%"></i></div></div>`).join('')}</div>
+    <div class="trio">${p.trio.map((x) => `<div><b>${esc(x.value)}</b><span>${esc(x.label)}</span></div>`).join('')}</div>`;
+  const list = (l) => `<h3>${esc(l.title)}</h3>${l.sub ? `<div class="psub">${esc(l.sub)}</div>` : ''}<div class="plist">${l.items.length
+    ? l.items.map((i) => `<div${i.path ? ` data-path="${esc(i.path)}" role="button" tabindex="0"` : ''}><b>${esc(i.name)}</b><span>${esc(i.detail)}</span></div>`).join('')
+    : `<div><span>${esc(l.empty)}</span></div>`}</div>`;
+  pops.proj = list(d.projects); pops.notes = list(d.notes); pops.set = list(d.settings);
+  views.agents = () => d.agents.map((a) => `<div class="row">${ico(a.icon)}<div><b>${esc(a.name)}</b><span>${esc(a.detail)}</span></div><span class="st${a.live ? ' live' : ''}">${esc(a.status)}</span></div>`).join('');
+  views.council = () => d.council.members.map((m, i) => `<div class="vote"><span>${esc(m.name)}</span><div class="tr"><i style="width:${m.percent}%;background:linear-gradient(90deg,${GRAD[i % 3]})"></i></div><output>${esc(m.mark)}</output></div>`).join('')
+    + `<p class="hint">${esc(d.council.hint)}</p>`;
+  views.rem = () => (d.reminders.length ? d.reminders.map((r) => `<div class="rem"><time>${esc(r.time)}</time><span>${esc(r.text)}</span></div>`).join('') : `<p class="hint">${esc(d.remindersEmpty)}</p>`);
+  if (d.lessons.length) {
+    lessons.splice(0, lessons.length, ...d.lessons.map((l) => [l.title, l.sub]));
+    if (!appState.lessonsSet || li >= lessons.length) { li = d.lessonIndex; appState.lessonsSet = true; }
+    showLesson();
+  }
+  document.querySelectorAll('#hints button').forEach((b, i) => { if (d.hints[i]) b.textContent = d.hints[i]; });
+  document.querySelectorAll('.dock .tile').forEach((b) => { const x = d.tiles[b.dataset.tool]; if (x) { setTip(b, x.tip); b.classList.toggle('run', !!x.live); } });
+  showSeg(seg);
+  if (popOpen) $('pop').innerHTML = pops[popOpen];
+}
+function appStateMsg(m) {
+  if (STATES[m.mode] && m.mode !== mode) setMode(m.mode);
+  if (typeof m.line === 'string' && lineEl.textContent !== m.line) { clearInterval(typing); lineEl.textContent = m.line; if (m.mode === 'speak') pulse = 1; }
+}
+function appPractice(p) {
+  document.querySelector('#edWin .file').textContent = p.file;
+  document.querySelector('#edWin pre.code').innerHTML = p.code;
+  $('outText').textContent = p.out; $('outOk').textContent = p.ok; $('outOk').classList.toggle('ok', !!p.good);
+}
+function appAnswer(a) {
+  $('exTitle').textContent = a.title;
+  Object.keys(exViews).forEach((k) => delete exViews[k]);
+  exViews[t('hud.ex.answer', 'Ответ')] = a.html;
+  exViews[t('hud.ex.sources', 'Источники')] = `<p>${esc(a.sources)}</p>`;
+  const body = $('exBody'), top = body.scrollTop;
+  buildTabs(); body.scrollTop = top;
+  if (a.open && a.id !== appState.answerId) { appState.answerId = a.id; setWin('exWin', true); }
+}
+function appConfirm(c) {
+  appState.confirmId = c.id || null;
+  if (!c.id) { $('toast').classList.remove('open'); return; }
+  $('toast').querySelector('span').textContent = c.text; $('toast').classList.add('open');
+}
+window.creatorApp = {
+  receive(m) {
+    try {
+      if (m.type === 'state') appStateMsg(m);
+      else if (m.type === 'data') appData(m);
+      else if (m.type === 'practice') appPractice(m);
+      else if (m.type === 'answer') appAnswer(m);
+      else if (m.type === 'confirm') appConfirm(m);
+    } catch (e) { console.error('creatorApp', e); }
+  },
+};
+if (APP) {
+  lineEl.textContent = '';
+  document.querySelector('.voice').addEventListener('click', () => post('voice'));
+  document.querySelector('#edWin .file').addEventListener('click', () => post('practiceEdit'));
+  document.querySelector('#edWin pre.code').addEventListener('dblclick', () => post('practiceEdit'));
+  $('pop').addEventListener('click', (e) => { const r = e.target.closest('[data-path]'); if (r) post('reveal', { path: r.dataset.path }); });
+  addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'r' && $('edWin').classList.contains('open')) { e.preventDefault(); post('practiceRun'); }
+  });
+}
+
+
+/* ---------- Кольцо голоса ---------- */
+const ringPath = document.createElementNS('http://www.w3.org/2000/svg', 'path'); ringPath.setAttribute('fill', 'var(--accent)'); $('ring').appendChild(ringPath);
+
+/* ---------- Кадр ---------- */
+const cur = { a: new THREE.Color('#8a8780'), b: new THREE.Color('#ebe8e2'), amp: 0.08, swirl: 1, spill: 0 };
+const ta = new THREE.Color(), tb = new THREE.Color(), v3 = new THREE.Vector3();
+const sm = { x: 0, y: 0, r: 0, init: false };
+const mouse = { x: 0, y: 0 };
+addEventListener('pointermove', (e) => { mouse.x = e.clientX / innerWidth - 0.5; mouse.y = e.clientY / innerHeight - 0.5; });
+const stage = $('stage'), sayEl = $('say'), wins = [$('edWin'), $('exWin')], cardEl = $('card');
+const clock = new THREE.Clock();
+let frameNo = 0;
+function frame() {
+  const dt = Math.min(clock.getDelta(), 0.05) * (reduce ? 0.3 : 1);
+  const t = (uniforms.uTime.value += dt);
+  // Чтение раскладки до любых записей
+  const S = stage.getBoundingClientRect();
+  let bottom = S.bottom, right = S.right;
+  if (!isNarrow() && cardEl.classList.contains('open')) right = Math.min(right, cardEl.getBoundingClientRect().left - 16);
+  if (!isNarrow()) wins.forEach((w) => { if (w.classList.contains('open')) bottom = Math.min(bottom, w.getBoundingClientRect().top - 12); });
+  const glRects = glEls.map((el) => el.getBoundingClientRect());
+  const glAlpha = glEls.map((el) => (glInfo.get(el).fade ? parseFloat(getComputedStyle(el).opacity) : 1));
+
+  const s = STATES[mode], f = 1 - Math.pow(0.03, dt);
+  pulse *= Math.pow(0.08, dt);
+  cur.a.lerp(ta.set(s.a), f); cur.b.lerp(tb.set(s.b), f);
+  const voice = mode === 'speak' ? 0.55 + 0.45 * Math.abs(Math.sin(t * 5.3) * Math.sin(t * 1.9 + 0.7)) : 1;
+  cur.amp += (s.amp * voice + pulse * 0.18 - cur.amp) * Math.min(1, f * 2.5); cur.swirl += (s.swirl - cur.swirl) * f; cur.spill += (s.spill - cur.spill) * f;
+  uniforms.uColA.value.copy(cur.a); uniforms.uColB.value.copy(cur.b);
+  uniforms.uAmp.value = cur.amp; uniforms.uSwirl.value = cur.swirl; uniforms.uSpill.value = cur.spill;
+  glowMat.uniforms.uStrength.value = 0.05 + cur.amp * 0.04;
+  orb.rotation.y = t * 0.12; orb.rotation.x = Math.sin(t * 0.17) * 0.12;
+  orb.position.y = ORB_Y + Math.sin(t * 0.55) * 0.04;
+  seaUniforms.uOrb.value.copy(orb.position); seaUniforms.uEnergy.value = cur.amp * 2;
+
+
+  // Ядро встаёт в центр свободного места; при открытых окнах плавно поднимается и уменьшается
+  const regionH = Math.max(150, bottom - S.top);
+  const W = right - S.left;
+  const want = Math.min(regionH * 0.28, W * 0.23);
+  const tx = S.left + W / 2, ty = S.top + (regionH - 74) * 0.47;
+  const k = sm.init ? 1 - Math.pow(0.02, dt) : 1;
+  sm.x += (tx - sm.x) * k; sm.y += (ty - sm.y) * k; sm.r += (want - sm.r) * k; sm.init = true;
+  camera.position.set(Math.sin(t * 0.05) * 0.3 + mouse.x * 0.5, 1.2 - mouse.y * 0.15, 7.8);
+  camera.lookAt(0, 0.8, 0);
+  camera.clearViewOffset(); camera.updateMatrixWorld();
+  const focal = innerHeight / 2 / Math.tan(THREE.MathUtils.degToRad(camera.fov / 2));
+  const radPx = 0.92 * focal / camera.position.distanceTo(orb.position);
+  orb.scale.setScalar(THREE.MathUtils.clamp(0.92 * sm.r / radPx, 0.3, 1.1));
+  glow.scale.setScalar(orb.scale.x / 0.92); glow.position.y = orb.position.y;
+  v3.copy(orb.position).project(camera);
+  const ox = (v3.x + 1) / 2 * innerWidth, oy = (1 - v3.y) / 2 * innerHeight;
+  camera.setViewOffset(innerWidth, innerHeight, ox - sm.x, oy - sm.y, innerWidth, innerHeight);
+  if (!isNarrow()) sayEl.style.transform = `translate(${Math.round(sm.x - 320)}px, ${Math.round(sm.y + sm.r * 1.08 + 18)}px)`;
+
+  if (glassPass) {
+    const U = glassPass.uniforms; let n = 0;
+    for (let i = 0; i < glEls.length && n < MAXP; i++) {
+      const r = glRects[i], a = glAlpha[i], info = glInfo.get(glEls[i]);
+      if (r.width < 2 || a < 0.01 || r.bottom < -40 || r.top > innerHeight + 40) continue;
+      U.uRect.value[n].set(r.left, r.top, r.width, r.height);
+      U.uMeta.value[n].set(Math.min(info.r, r.height / 2, r.width / 2), info.bez, info.blur, a);
+      n++;
+    }
+    U.uCount.value = n; U.uTint.value.copy(cur.b);
+  }
+
+  if ((frameNo++ & 1) === 0) {
+    let rd = '';
+    for (let i = 0; i < 32; i++) {
+      const a = i / 32 * Math.PI * 2, e = 0.5 + 0.5 * Math.sin(t * (mode === 'speak' ? 9 : 3) + i * 1.7) * Math.sin(t * 2.3 + i * 0.6);
+      const rr = 13 + e * cur.amp * 12 + pulse * 3;
+      rd += dot(26 + Math.cos(a) * rr, 26 + Math.sin(a) * rr, 0.8 + e * 0.8);
+    }
+    ringPath.setAttribute('d', rd);
+    const ry = t * 0.6; let ld = '';
+    for (const d of logoDots) { const x = d.x * Math.cos(ry) - d.z * Math.sin(ry), z = d.x * Math.sin(ry) + d.z * Math.cos(ry); if (z < 0.35) ld += dot(22 + x * 13, 22 + d.y * 13, 0.55 + (1 - Math.abs(z)) * 0.6); }
+    logoPath.setAttribute('d', ld);
+  }
+  if (composer) composer.render();
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+if (APP) post('ready');
+</script>

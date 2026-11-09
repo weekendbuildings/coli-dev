@@ -4,6 +4,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSettingsShowsReleaseCatalogAndSafeUpdateStatus() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let settingsItem = app.staticTexts["sidebar.settings"]
@@ -33,6 +34,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testToolsScreenShowsSixToolCards() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let toolsItem = app.staticTexts["sidebar.tools"]
@@ -50,6 +52,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testReleaseCatalogOffersBetaArchiveForCurrentMacArchitecture() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         // A fixed catalog keeps the test off the rate-limited GitHub API. / Фиксированный каталог не зависит от лимитов GitHub API.
         app.launchEnvironment["COLIDEV_UI_TEST_RELEASES_JSON"] = """
         [{"id": 12, "name": "ColiDev 0.1.0 Beta 12 / Бета 12", "tag_name": "v0.1.0-beta.12", "body": "",
@@ -114,6 +117,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSettingsExplainsOrchestratorIsNotTheSelectedModel() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let settingsItem = app.staticTexts["sidebar.settings"]
@@ -171,6 +175,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSettingsShowsEffectiveAIRoutesBeforeSendingAnyRequest() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let settingsItem = app.staticTexts["sidebar.settings"]
@@ -220,6 +225,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testHomeDashboardShowsNextActionAndExportsScreenshot() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let homeTitle = app.staticTexts["home.title"]
@@ -249,6 +255,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testStudyGoalSelectionSurvivesAppRelaunch() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let goalPickerButton = app.buttons["study-goal-picker-button"]
@@ -293,6 +300,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testTodayShowsSequentialLearningJourneyAndCheckedSources() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let journeyTitle = app.staticTexts["journey.title"]
@@ -358,6 +366,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testJourneyPrimaryActionOpensFirstMathematicsLesson() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let primaryAction = app.buttons["journey.primary-action"]
@@ -383,6 +392,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testJourneyMiniProjectResultSurvivesAppRelaunch() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let expandButton = app.buttons["journey.expand"]
@@ -420,6 +430,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testPythonJourneyProjectMatchesTheFirstProgrammingCourse() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
         defer { app.terminate() }
 
@@ -446,6 +457,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testPreviewOpensLockedGradientDescentLessonWithItsLab() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_PREVIEW_LOCKED"] = "1"
         app.launch()
         defer { app.terminate() }
@@ -486,6 +498,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testVariablesLessonRunsPracticeMinutesProjectInLocalTrainer() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
         defer { app.terminate() }
 
@@ -556,6 +569,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testJourneyProjectCompletionUpdatesProgressAndSurvivesRelaunch() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         defer { if app.state != .notRunning { app.terminate() } }
         app.launch()
 
@@ -624,6 +638,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSynapticPlasticityLabStrengthensOnlyOnCoincidence() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/synaptic_plasticity_and_learning"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -660,6 +675,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testMichaelisMentenLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/enzyme_kinetics_michaelis_menten"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -676,6 +692,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testEulerMethodLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/euler_method_numerical_modeling"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -694,6 +711,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testAutocatalysisLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/prebiotic_chemistry_and_autocatalysis"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -711,6 +729,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testNeuralLayerLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/vectors_and_matrices"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -727,6 +746,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testHiddenLayerLabLearnsXORAfterOneNeuronStalls() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/neural_network_hidden_layer_xor"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -757,6 +777,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testErrorLandscapeLabPlacesTheBallByClickAndTrains() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/neural_network_hidden_layer_xor"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -832,6 +853,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testCrossEntropyBowlIsTrainedFromTheWallToTheBottom() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/information_and_cross_entropy"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -878,6 +900,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSoftmaxReliefGrowsAndAcceptsANewPoint() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/classification_and_softmax"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -920,6 +943,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testEmbeddingSpaceGathersWordsAndMovesTheHorse() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/embeddings_and_similarity"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -957,6 +981,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testAttentionBoardGetsStuckThenFindsTheStripe() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/attention_mechanism"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1003,6 +1028,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testGradientTowerFadesAndTheBypassHoldsTheSignal() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/transformer_block"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1039,6 +1065,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testMinibatchBowlTurnsAndOneExampleReachesTheTarget() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/minibatches_and_overfitting"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1080,6 +1107,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testBayesTownShowsTheTrueShareAmongTheRaised() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/probability_and_bayes"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1116,6 +1144,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testGaltonBoardDropsBallsAndTurns() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/random_variables_and_sampling"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1153,6 +1182,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testConsciousnessLabExplainsEachAnswer() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/consciousness_known_and_unknown"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1178,6 +1208,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testTinyModelWritesAndShowsItsAttention() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "programming/build_your_language_model"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
@@ -1218,6 +1249,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testAIPathOpensALateLessonForANewLearner() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
         app.launch()
@@ -1245,6 +1277,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testGradientDescent2DLabTakesTheQuizStep() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "mathematics/gradient_and_partial_derivatives"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1269,6 +1302,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testGenomeFidelityLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/dna_replication_fidelity_and_repair"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1286,6 +1320,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testHammingLabShowsTheLessonExample() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/sequence_comparison_hamming_distance"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1303,6 +1338,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testRadioactiveDatingLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/radioactive_decay_and_dating"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1320,6 +1356,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testFeedbackLoopLabShowsNegativeFeedbackSettling() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "biology/homeostasis_and_feedback"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1337,6 +1374,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testEnergyCouplingLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/thermodynamics_of_living_systems"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1353,6 +1391,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testReactionQuotientLabReachesEquilibrium() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "chemistry/reaction_rate_and_equilibrium"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1376,6 +1415,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testTimeDilationLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/special_relativity_time_dilation"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1389,6 +1429,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testHydrogenSpectrumLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/quantum_energy_levels_and_shells"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1402,6 +1443,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testElectromagneticWaveLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/maxwell_and_electromagnetic_waves"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1415,6 +1457,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testCircuitLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/circuits_and_ohms_law"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1428,6 +1471,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testRefractionLabStartsAtThePracticeRay() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/refraction_of_light"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1441,6 +1485,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSeesawLabShowsTheBalancingDistance() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/torque_and_rotational_equilibrium"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1454,6 +1499,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testLogisticGrowthLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/logistic_population_growth"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1467,6 +1513,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testMarkRecaptureLabStartsAtTheLessonQuiz() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/mark_recapture_population_estimate"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1480,6 +1527,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSurfaceVolumeLabStartsAtSizeOne() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "zoology/surface_volume_and_body_size"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1493,6 +1541,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testLeastSquaresLabFitsTheLineToPendulumData() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_LESSON"] = "physics/fitting_pendulum_data_least_squares"
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
         app.launch()
@@ -1524,6 +1573,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testFrictionLessonOffersSourceBackedVideoStudyCard() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"
         // testFrictionLessonLearningCycle… runs earlier and saves an answer; this test covers a first visit.
         app.launchEnvironment["COLIDEV_UI_TEST_NEW_LEARNER"] = "1"
@@ -1593,6 +1643,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testGeminiNotebookCanReceiveTheLessonAsCopiedMarkdown() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         defer { if app.state != .notRunning { app.terminate() } }
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"
         // The test walks through the video steps, which a saved answer from an earlier test would skip.
@@ -1650,6 +1701,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testFrictionLessonLearningCycleAndProgressSurviveAppRelaunch() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchEnvironment["COLIDEV_UI_TEST_FRICTION_LESSON"] = "1"
         app.launch()
         app.activate()
@@ -1854,6 +1906,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testMissingIntroMarkdownShowsUnavailableStateInsteadOfLegacyLesson() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         defer { if app.state != .notRunning { app.terminate() } }
         app.launchEnvironment["COLIDEV_UI_TEST_MISSING_INTRO_ROUTE"] = "1"
         app.launch()
@@ -1886,6 +1939,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testClickingCellOrganelleUpdatesSelectionAndDescription() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launchArguments = ["-colidev.uiTestCell3D", "YES"]
         app.launch()
         app.activate()
@@ -2016,6 +2070,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSelectingManagementRendersOverviewContent() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let managementItem = app.staticTexts["sidebar.management"]
@@ -2145,6 +2200,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testSourceRegistryPagesKeepManagementNavigationResponsive() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let managementItem = app.staticTexts["sidebar.management"]
@@ -2188,6 +2244,7 @@ final class ManagementUITests: XCTestCase {
     @MainActor
     func testRAGPaneExposesLocalEmbeddingModelControls() async throws {
         let app = XCUIApplication()
+        app.launchEnvironment["COLIDEV_START_SCREEN"] = "today"
         app.launch()
 
         let managementItem = app.staticTexts["sidebar.management"]
@@ -2228,5 +2285,17 @@ final class ManagementUITests: XCTestCase {
             )
             return
         }
+    }
+
+    /// The workshop HUD is the main screen: without COLIDEV_START_SCREEN the app opens on it.
+    /// HUD Мастерской — главный экран: без COLIDEV_START_SCREEN приложение открывается на нём.
+    @MainActor
+    func testWorkshopHUDIsTheStartScreen() async throws {
+        let app = XCUIApplication()
+        app.launchArguments += ["-ApplePersistenceIgnoreState", "YES"]
+        app.launch()
+        let hud = app.descendants(matching: .any)["workshop.hud"]
+        XCTAssertTrue(hud.waitForExistence(timeout: 20), "The workshop HUD must open first. / Первым должен открыться HUD Мастерской.")
+        XCTAssertTrue(app.webViews.firstMatch.waitForExistence(timeout: 20), "The HUD page must load. / Страница HUD должна загрузиться.")
     }
 }

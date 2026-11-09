@@ -38,3 +38,6 @@ xcuserdata/
 
 # Results of the "build and check it yourself" labs / Итоги проверок «Собери и проверь сам»
 01_Projects/creator_labs/.results.json*
+
+# Three.js inside the workshop HUD is a resource, not a build output. / Three.js в HUD Мастерской — ресурс, а не результат сборки.
+!macOS/ColiDev/App/WorkshopHUD/vendor/three/build/
