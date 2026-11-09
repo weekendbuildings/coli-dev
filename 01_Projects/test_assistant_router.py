@@ -297,6 +297,38 @@ def test_claude_provider_silence_times_out_and_kills_process(tmp_path):
     assert events[-2]["reason"] == "timeout" and process.killed
 
 
+def test_claude_without_sign_in_is_skipped_at_once_without_spawning(tmp_path):
+    spawned = []
+
+    async def spawn(command, env, cwd):
+        spawned.append(command)
+        raise AssertionError("claude -p must not start without a sign-in")
+
+    async def not_signed_in():
+        return "not_signed_in"
+
+    provider = ar.ClaudeCLIProvider(binary="/fake/claude", spawn=spawn, workdir=tmp_path, signin_check=not_signed_in)
+    events = collect(ar.route_stream([provider], "s", MESSAGES))
+    assert [e["reason"] for e in events if e["type"] == "fallback"] == ["not_signed_in"] and spawned == []
+
+
+def test_claude_sign_in_state_is_cached_per_binary(tmp_path, monkeypatch):
+    calls = []
+
+    async def status(self):
+        calls.append(1)
+        return {"configured": True, "reachable": False, "detail": "not_signed_in"}
+
+    monkeypatch.setattr(ar.ClaudeCLIProvider, "status", status)
+    monkeypatch.setattr(ar, "_claude_signin_cache", {})
+    provider = ar.ClaudeCLIProvider(binary="/fake/claude-cache", workdir=tmp_path)
+
+    async def twice():
+        return [await provider.signin_state("/fake/claude-cache"), await provider.signin_state("/fake/claude-cache")]
+
+    assert asyncio.run(twice()) == ["not_signed_in", "not_signed_in"] and len(calls) == 1
+
+
 def test_claude_missing_binary_is_not_configured():
     provider = ar.ClaudeCLIProvider(binary=None)
     assert not provider.configured()

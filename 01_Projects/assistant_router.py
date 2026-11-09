@@ -260,6 +260,14 @@ async def _default_spawn(command: list[str], env: dict[str, str], cwd: str) -> A
     )
 
 
+# `claude -p` without a sign-in waits until the timeout instead of failing (CLI 2026-11), so the
+# provider asks `claude auth status` first (0.1 s) and remembers the answer for a short while.
+# `claude -p` без входа ждёт до тайм-аута, а не падает, поэтому сначала спрашиваем `claude auth status`
+# (0,1 с) и ненадолго запоминаем ответ.
+CLAUDE_SIGNIN_TTL = {"signed_in": 300.0, "not_signed_in": 20.0, "paid_blocked": 60.0}
+_claude_signin_cache: dict[str, tuple[float, str]] = {}
+
+
 class ClaudeCLIProvider(AssistantProvider):
     id = "claude_cli"
     label = "Claude"
@@ -276,8 +284,10 @@ class ClaudeCLIProvider(AssistantProvider):
         idle_timeout: float = 60,
         total_timeout: float = 300,
         spawn: Spawn | None = None,
+        signin_check: Callable[[], Awaitable[str]] | None = None,
     ) -> None:
         self._binary = binary
+        self._signin_check = signin_check
         self.model = model
         self.workdir = workdir
         self.language = language
@@ -332,10 +342,27 @@ class ClaudeCLIProvider(AssistantProvider):
             return {"configured": True, "reachable": False, "detail": "paid_blocked"}
         return {"configured": True, "reachable": signed_in, "detail": "signed_in" if signed_in else "not_signed_in"}
 
+    async def signin_state(self, binary: str) -> str:
+        """`signed_in`, `not_signed_in`, `paid_blocked` or `status_unknown`, cached per binary."""
+        if self._signin_check is not None:
+            return await self._signin_check()
+        loop = asyncio.get_running_loop()
+        cached = _claude_signin_cache.get(binary)
+        if cached and loop.time() < cached[0]:
+            return cached[1]
+        detail = str((await self.status()).get("detail", "status_unknown"))
+        ttl = CLAUDE_SIGNIN_TTL.get(detail)
+        if ttl:
+            _claude_signin_cache[binary] = (loop.time() + ttl, detail)
+        return detail
+
     async def stream(self, system: str, messages: list[dict[str, str]]) -> AsyncIterator[str | ModelInfo]:
         binary = self.binary()
         if not binary:
             raise ProviderFailure("not_configured", "claude CLI not found")
+        state = await self.signin_state(binary)
+        if state in ("not_signed_in", "paid_blocked"):
+            raise ProviderFailure(state, "claude auth status")
         prompt = claude_transcript(messages, self.language)
         process = await self.spawn(self.command(binary, system), claude_environment(), self._workdir())
         parser = ClaudeStreamParser()
