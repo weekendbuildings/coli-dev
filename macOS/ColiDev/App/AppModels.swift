@@ -2763,6 +2763,7 @@ enum AppSection: Hashable {
     case aiPath
     case creatorProgress
     case practice
+    case workshop
     case subjects
     case subject(Subject)
     case lesson(Subject)

@@ -1,2 +1,4 @@
 "CFBundleName" = "Творец";
 "CFBundleDisplayName" = "Творец";
+"NSMicrophoneUsageDescription" = "Creator listens to your voice question in the Workshop only while you hold the microphone button or ⌃⌥V. Speech is recognized on this Mac.";
+"NSSpeechRecognitionUsageDescription" = "Creator turns your voice question into text on this Mac (on-device recognition) to ask the Workshop assistant.";

@@ -64,6 +64,7 @@ private extension Subject {
 struct ContentView: View {
     @EnvironmentObject private var store: LearningStore
     @EnvironmentObject private var backendSupervisor: LocalBackendSupervisor
+    @EnvironmentObject private var workshop: WorkshopModel
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var selection: AppSection? = .today
     @State private var practiceFocusRoute: StudyLessonRoute?
@@ -83,6 +84,7 @@ struct ContentView: View {
                         sidebarRow(.aiPath, L10n.text("nav.aiPath", store.language), symbol: "brain.head.profile", identifier: "sidebar.ai-path")
                         sidebarRow(.creatorProgress, L10n.text("nav.creatorProgress", store.language), symbol: "chart.bar.xaxis", identifier: "sidebar.creator-progress")
                         sidebarRow(.practice, L10n.text("nav.practice", store.language), symbol: "chevron.left.forwardslash.chevron.right", identifier: "sidebar.practice")
+                        sidebarRow(.workshop, L10n.text("nav.workshop", store.language), symbol: "sparkles.rectangle.stack", identifier: "sidebar.workshop")
                         sidebarRow(.subjects, L10n.text("nav.subjects", store.language), symbol: "square.grid.2x2")
                     }
                     SidebarSection(title: L10n.text("nav.subjects", store.language)) {
@@ -145,6 +147,9 @@ struct ContentView: View {
                 case .practice:
                     PracticeView()
                         .navigationTitle(L10n.text("nav.practice", store.language))
+                case .workshop:
+                    WorkshopView(model: workshop)
+                        .navigationTitle(L10n.text("nav.workshop", store.language))
                 case .subjects:
                     SubjectCatalogView(open: open, openCustom: openCustom)
                 case .subject(let subject):
@@ -233,6 +238,10 @@ struct ContentView: View {
                     .accessibilityLabel(Text(L10n.text("settings.language", store.language)))
                 }
             }
+        }
+        .onAppear {
+            // Hot keys ⌃⌥T and ⌃⌥V work from the first launch. / Горячие клавиши работают с первого запуска.
+            WorkshopHub.shared.connect(store: store, model: workshop)
         }
         .task {
             // Первый запуск backend может сорваться: без повтора «Сегодня» остаётся с нулями.
