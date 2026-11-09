@@ -168,6 +168,9 @@ struct VerifyWorkshopHUD {
         let name = ElevenLabsVoice.cacheName(text: "Слушаю.", voiceID: "")
         check(name.count == 68 && name.hasSuffix(".mp3") && name == ElevenLabsVoice.cacheName(text: "Слушаю.", voiceID: ElevenLabsVoice.defaultVoiceID)
               && name != ElevenLabsVoice.cacheName(text: "Слушаю!", voiceID: ""), "cache name by voice, model and text / имя кэша")
+        check(ElevenLabsVoice.language(of: "Это градиент.") == "ru" && ElevenLabsVoice.language(of: "We focus on module one.") == "en"
+              && ElevenLabsVoice.language(of: "123 …") == nil && ElevenLabsVoice.language(of: "Модель GPT учится.") == "ru", "voice language per sentence / язык голоса")
+        check(HUDWakeWord.count(in: "Tvorets, open") == 1, "en recognizer spelling of «Творец» / английское написание")
         check(ElevenLabsVoice.isCacheable("Слушаю.") && !ElevenLabsVoice.isCacheable(String(repeating: "a", count: 81)), "only short phrases cached / кэш только коротких")
     }
 

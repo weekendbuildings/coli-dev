@@ -437,7 +437,7 @@ struct HUDTask: Codable, Equatable {
 /// The wake word, heard on the Mac. / Слово вызова, распознаётся на Mac.
 enum HUDWakeWord {
     /// "Creator" as the Russian and English recognizers write it, and «Творец». / Как его пишут оба распознавателя.
-    static let words: Set<String> = ["creator", "креатор", "криэйтор", "криейтор", "крейтор", "креэйтор", "творец"]
+    static let words: Set<String> = ["creator", "креатор", "криэйтор", "криейтор", "крейтор", "креэйтор", "творец", "tvorets", "tvorec"]
     static let hints = ["Creator", "Креатор", "Творец"]
 
     /// Whole words only, any case, ё = е; «Путь Творца» does not count. / Только целые слова; «Творца» не считается.
@@ -562,6 +562,17 @@ enum ElevenLabsVoice {
             }
         }
         return chunks
+    }
+
+    /// "ru" or "en" by the letters of a sentence, so each sentence gets a voice of its own language.
+    /// «ru» или «en» по буквам предложения: каждое предложение читает голос своего языка.
+    static func language(of text: String) -> String? {
+        var cyrillic = 0, latin = 0
+        for scalar in text.unicodeScalars where CharacterSet.letters.contains(scalar) {
+            if (0x0400...0x04FF).contains(scalar.value) { cyrillic += 1 } else if scalar.isASCII { latin += 1 }
+        }
+        if cyrillic == 0 && latin == 0 { return nil }
+        return cyrillic >= latin ? "ru" : "en"
     }
 
     static func isCacheable(_ text: String) -> Bool { !text.isEmpty && text.count <= cacheLimit }

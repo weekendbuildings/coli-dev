@@ -62,6 +62,7 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
     private var playing: CheckedContinuation<Bool, Never>?
     private var job: Task<Void, Never>?
     private var cooldownUntil = Date.distantPast
+    private var macPending = 0
     var onSpeakingChanged: ((Bool) -> Void)?
 
     override init() {
@@ -170,10 +171,15 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
         if reason == .key || reason == .quota { cooldownUntil = Date().addingTimeInterval(ElevenLabsVoice.cooldown) }
     }
 
+    /// Sentence by sentence, each in a voice of its own language. / По предложениям, каждое голосом своего языка.
     private func speakWithMac(_ text: String, language: String) {
-        let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = Self.bestVoice(languagePrefix: language)
-        synthesizer.speak(utterance)
+        let sentences = ElevenLabsVoice.sentences(text)
+        macPending += sentences.count
+        for sentence in sentences {
+            let utterance = AVSpeechUtterance(string: sentence)
+            utterance.voice = Self.bestVoice(languagePrefix: ElevenLabsVoice.language(of: sentence) ?? language)
+            synthesizer.speak(utterance)
+        }
     }
 
     func stop() {
@@ -185,12 +191,19 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
         playing?.resume(returning: false)
         playing = nil
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
+        macPending = 0
         if busy { onSpeakingChanged?(false) }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) { onSpeakingChanged?(true) }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { onSpeakingChanged?(false) }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { onSpeakingChanged?(false) }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { macFinished() }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { macFinished() }
+
+    /// "Speaking" ends after the last sentence, not between sentences. / «Говорит» кончается после последнего предложения.
+    private func macFinished() {
+        macPending = max(0, macPending - 1)
+        if macPending == 0 { onSpeakingChanged?(false) }
+    }
 
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         self.player = nil

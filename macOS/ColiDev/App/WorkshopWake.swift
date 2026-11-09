@@ -26,8 +26,11 @@ final class WorkshopWakeListener: ObservableObject {
 
     private let engine = AVAudioEngine()
     private let feed = RequestFeed()
-    private var task: SFSpeechRecognitionTask?
-    private var counted = 0
+    /// Russian and English recognizers listen to the same microphone: «Творец» and "Creator" both work.
+    /// Русский и английский распознаватели слушают один микрофон: работают и «Творец», и "Creator".
+    private var tasks: [SFSpeechRecognitionTask] = []
+    private var counted: [String: Int] = [:]
+    private var task: SFSpeechRecognitionTask? { tasks.first }
     private var cycle = 0
     private var failures = 0
     private var lastWake = Date.distantPast
@@ -64,8 +67,11 @@ final class WorkshopWakeListener: ObservableObject {
         }
     }
 
+    static let locales = ["ru-RU", "en-US"]
+
     private func start() {
-        guard let recognizer = SFSpeechRecognizer(locale: WorkshopVoice.locale(language)), recognizer.supportsOnDeviceRecognition else {
+        let recognizers = Self.locales.compactMap { SFSpeechRecognizer(locale: Locale(identifier: $0)) }.filter(\.supportsOnDeviceRecognition)
+        guard !recognizers.isEmpty else {
             status = .unavailable
             return
         }
@@ -77,19 +83,24 @@ final class WorkshopWakeListener: ObservableObject {
             engine.prepare()
             do { try engine.start() } catch { status = .unavailable; return }
         }
-        let request = SFSpeechAudioBufferRecognitionRequest()
-        request.requiresOnDeviceRecognition = true
-        request.shouldReportPartialResults = true
-        request.contextualStrings = HUDWakeWord.hints
-        feed.set(request)
-        counted = 0
+        counted = [:]
         cycle += 1
         let current = cycle
-        task = recognizer.recognitionTask(with: request) { [weak self] result, error in
-            let text = result?.bestTranscription.formattedString ?? ""
-            let done = (result?.isFinal ?? false) || error != nil
-            Task { @MainActor in self?.heard(text, done: done, failed: error != nil, cycle: current) }
+        var requests: [SFSpeechAudioBufferRecognitionRequest] = []
+        for recognizer in recognizers {
+            let request = SFSpeechAudioBufferRecognitionRequest()
+            request.requiresOnDeviceRecognition = true
+            request.shouldReportPartialResults = true
+            request.contextualStrings = HUDWakeWord.hints
+            requests.append(request)
+            let locale = recognizer.locale.identifier
+            tasks.append(recognizer.recognitionTask(with: request) { [weak self] result, error in
+                let text = result?.bestTranscription.formattedString ?? ""
+                let done = (result?.isFinal ?? false) || error != nil
+                Task { @MainActor in self?.heard(text, locale: locale, done: done, failed: error != nil, cycle: current) }
+            })
         }
+        feed.set(requests)
         status = .listening
         // A fresh task every 50 s keeps the transcript short. / Новая задача каждые 50 с, чтобы текст не рос.
         DispatchQueue.main.asyncAfter(deadline: .now() + 50) { [weak self] in
@@ -98,11 +109,11 @@ final class WorkshopWakeListener: ObservableObject {
         }
     }
 
-    private func heard(_ text: String, done: Bool, failed: Bool, cycle current: Int) {
+    private func heard(_ text: String, locale: String, done: Bool, failed: Bool, cycle current: Int) {
         guard current == cycle else { return }
         let total = HUDWakeWord.count(in: text)
-        if total > counted {
-            counted = total
+        if total > counted[locale, default: 0] {
+            counted[locale] = total
             failures = 0
             if Date().timeIntervalSince(lastWake) > 3 {
                 lastWake = Date()
@@ -117,9 +128,10 @@ final class WorkshopWakeListener: ObservableObject {
     }
 
     private func restart(after delay: TimeInterval) {
-        feed.set(nil)
-        task?.cancel()
-        task = nil
+        cycle += 1
+        feed.set([])
+        tasks.forEach { $0.cancel() }
+        tasks = []
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             guard let self, !self.paused, Self.isEnabled, Self.permissionsGranted, self.task == nil else { return }
             self.start()
@@ -128,9 +140,9 @@ final class WorkshopWakeListener: ObservableObject {
 
     func stop() {
         cycle += 1
-        feed.set(nil)
-        task?.cancel()
-        task = nil
+        feed.set([])
+        tasks.forEach { $0.cancel() }
+        tasks = []
         if engine.isRunning { engine.stop() }
         engine.inputNode.removeTap(onBus: 0)
         if status == .listening { status = .off }
@@ -140,18 +152,18 @@ final class WorkshopWakeListener: ObservableObject {
 /// The audio tap runs off the main thread; it feeds whichever request is current. / Буфер звука идёт в текущий запрос.
 private final class RequestFeed: @unchecked Sendable {
     private let lock = NSLock()
-    private var request: SFSpeechAudioBufferRecognitionRequest?
+    private var requests: [SFSpeechAudioBufferRecognitionRequest] = []
 
-    func set(_ next: SFSpeechAudioBufferRecognitionRequest?) {
+    func set(_ next: [SFSpeechAudioBufferRecognitionRequest]) {
         lock.lock()
-        request?.endAudio()
-        request = next
+        requests.forEach { $0.endAudio() }
+        requests = next
         lock.unlock()
     }
 
     func append(_ buffer: AVAudioPCMBuffer) {
         lock.lock()
-        request?.append(buffer)
+        requests.forEach { $0.append(buffer) }
         lock.unlock()
     }
 }

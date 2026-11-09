@@ -250,6 +250,7 @@ enum L10n {
         "hud.agentRunning": ("%@ работает в %@.", "%@ is working in %@."),
         "hud.councilRunning": ("Совет: отвечают %@.", "Council: %@ are answering."),
         "hud.sources": ("Ответ: %@ · %@", "Answered by %@ · %@"),
+        "hud.voice.noKey": ("системный голос macOS · для живого голоса добавь ключ ElevenLabs: Настройки → «Мастерская: голос ответа»", "macOS voice · for a natural voice add an ElevenLabs key: Settings → Workshop: answer voice"),
         "hud.keys.missing": ("Облачные ключи не найдены или Связка ключей не открыта для backend — отвечает локальная модель Ollama. Ключи: боковая панель → «Управление» → «Ключи».", "No cloud keys found, or the Keychain was not opened to the backend — the local Ollama model answers. Keys: sidebar → Management → Keys."),
         "hud.sources.none": ("Проверенных источников по этому вопросу не нашлось: ответ без ссылок на уроки — перепроверь важное.", "No checked sources were found for this question: the answer cites no lessons, so double-check what matters."),
         "hud.source.course": ("урок курса", "course lesson"),

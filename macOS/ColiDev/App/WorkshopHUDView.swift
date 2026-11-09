@@ -147,6 +147,7 @@ final class WorkshopHUDController: ObservableObject {
     private var streakCache: (value: Int, at: Date) = (0, .distantPast)
     /// No free cloud has a key (or the Keychain was not opened to the backend). / Ни у одного облака нет ключа.
     private var cloudKeysMissing = false
+    private var hasVoiceKey = VoiceKeychain.exists
     /// The agent that takes the next spoken or typed task; nil means the assistant. / Агент для следующей задачи.
     private var agentMode: WorkshopAgent?
     private var terminalRun = 0
@@ -417,7 +418,7 @@ final class WorkshopHUDController: ObservableObject {
         reminders += tasks.prefix(6).map { HUDTimed(time: shortTime($0.date), text: $0.text) }
 
         let settings = HUDListInfo(title: text("hud.rail.set"), sub: "", items: [
-            HUDListItem(name: text("hud.set.voice"), detail: text(model.speakAnswers ? "hud.set.voice.on" : "hud.set.voice.off"), path: nil),
+            HUDListItem(name: text("hud.set.voice"), detail: text(hasVoiceKey ? (model.speakAnswers ? "hud.set.voice.on" : "hud.set.voice.off") : "hud.voice.noKey"), path: nil),
             HUDListItem(name: text("hud.set.models"), detail: text(cloudKeysMissing ? "hud.keys.missing" : "hud.set.models.detail"), path: nil),
             HUDListItem(name: text("hud.set.access"), detail: text("hud.set.access.detail"), path: nil),
             HUDListItem(name: text("hud.set.keys"), detail: format("hud.set.keys.detail",
@@ -601,7 +602,7 @@ final class WorkshopHUDController: ObservableObject {
             case "proj": refreshFolders()
             case "notes": memoryOpen = true
             case "agents": refreshInstalled()
-            case "set": refreshProviders()
+            case "set": refreshProviders(); hasVoiceKey = VoiceKeychain.exists
             case "ed": if practice.document == nil { practice.restore(language) }
             default: break
             }
