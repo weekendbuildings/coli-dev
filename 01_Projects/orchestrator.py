@@ -68,6 +68,14 @@ from assistant_router import (
     is_free_openrouter_model,
     route_stream as assistant_route_stream,
 )
+from workshop import (
+    build_workshop_messages,
+    build_workshop_system_prompt,
+    choose_council,
+    council_stream,
+    describe_next_step,
+    summarize_progress,
+)
 from provider_usage import (
     ProviderUsageStore,
     TokenUsage,
@@ -5898,6 +5906,115 @@ async def save_assistant_models(payload: AssistantModelsRequest, request: Reques
     except OSError:
         raise HTTPException(status_code=503, detail="Could not save assistant model settings") from None
     return await _assistant_models_payload(False)
+
+
+# ─── The Creator's workshop / Мастерская Творца ──────────
+
+
+class WorkshopNextStepModel(BaseModel):
+    lesson: str = Field(default="", max_length=300)
+    module: str = Field(default="", max_length=200)
+    step: str = Field(default="", max_length=40)
+    why: str = Field(default="", max_length=600)
+    finished: int | None = Field(default=None, ge=0, le=100_000)
+    total: int | None = Field(default=None, ge=0, le=100_000)
+
+
+class WorkshopAskRequest(BaseModel):
+    language: Literal["ru", "en"] = "ru"
+    question: str = Field(min_length=1, max_length=8_000)
+    history: list[AssistantTurnModel] = Field(default_factory=list, max_length=32)
+    next_step: WorkshopNextStepModel | None = None
+    labs: list[str] = Field(default_factory=list, max_length=40)
+    voice: bool = False
+
+
+class WorkshopCouncilRequest(BaseModel):
+    language: Literal["ru", "en"] = "ru"
+    question: str = Field(min_length=1, max_length=8_000)
+    members: int = Field(default=3, ge=2, le=3)
+    next_step: WorkshopNextStepModel | None = None
+
+
+async def _workshop_system(language: str, next_step: WorkshopNextStepModel | None, labs: list[str]) -> str:
+    """Persona plus `/learning/progress`; a failing progress store only drops that part.
+
+    Образ ассистента и `/learning/progress`; если прогресс не прочитался, просто без него.
+    """
+    try:
+        progress = await asyncio.to_thread(study_progress_store.get_progress)
+    except Exception:  # noqa: BLE001 — the chat must work without progress
+        progress = None
+    return build_workshop_system_prompt(
+        summarize_progress(progress, language),
+        describe_next_step(next_step.model_dump() if next_step else None, language),
+        language,
+        labs=labs,
+    )
+
+
+def _sse(events) -> StreamingResponse:
+    return StreamingResponse(
+        events,
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
+
+
+@app.post("/workshop/ask/stream")
+@limiter.limit(CHAT_RATE_LIMIT)
+async def workshop_ask_stream(request: Request, req: WorkshopAskRequest):
+    """The workshop chat: the router streams the first model that answers.
+
+    Чат Мастерской: маршрутизатор передаёт поток первой ответившей модели.
+    """
+    _require_local_settings_request(request)
+    settings = assistant_settings.get()
+    providers = _assistant_provider_factory(req.language)
+    ordered = [providers[provider_id] for provider_id in settings.order if provider_id in providers]
+    system = await _workshop_system(req.language, req.next_step, req.labs)
+    messages = build_workshop_messages([turn.model_dump() for turn in req.history], req.question,
+                                       voice=req.voice, language=req.language)
+
+    async def events():
+        yield ": connected\n\n"
+        async for event in assistant_route_stream(
+            ordered, system, messages, disabled=settings.disabled, network_ok=_assistant_network_ok
+        ):
+            if event["type"] == "error":
+                event = {**event, "error": _assistant_no_answer_message(req.language)}
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    return _sse(events())
+
+
+@app.post("/workshop/council/stream")
+@limiter.limit(CHAT_RATE_LIMIT)
+async def workshop_council_stream(request: Request, req: WorkshopCouncilRequest):
+    """Ask 2–3 models in parallel, then one merges the answers (agreement and disagreement).
+
+    Спрашиваем 2–3 модели параллельно, затем одна сводит ответы: где согласны и где спорят.
+    """
+    _require_local_settings_request(request)
+    settings = assistant_settings.get()
+    providers = _assistant_provider_factory(req.language)
+    ordered = [providers[provider_id] for provider_id in settings.order if provider_id in providers]
+    members, _skipped = await choose_council(
+        ordered, disabled=settings.disabled, network_ok=_assistant_network_ok, limit=req.members
+    )
+    system = await _workshop_system(req.language, req.next_step, [])
+
+    async def events():
+        yield ": connected\n\n"
+        async for event in council_stream(
+            members, ordered, system, req.question, language=req.language,
+            disabled=settings.disabled, network_ok=_assistant_network_ok,
+        ):
+            if event["type"] == "error" and event.get("phase") == "summary":
+                event = {**event, "error": _assistant_no_answer_message(req.language)}
+            yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
+
+    return _sse(events())
 
 
 # ─── Obsidian API endpoints ──────────────────────────
