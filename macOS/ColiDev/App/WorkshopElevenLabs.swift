@@ -48,21 +48,19 @@ enum VoiceKeychain {
     static func delete() { SecItemDelete(base as CFDictionary) }
 }
 
-/// The voice of the answers: ElevenLabs sentence by sentence when a key is stored (the next sentence is fetched while
-/// the current one plays), the best installed macOS voice otherwise. If the network or the quota goes mid-answer, the
-/// rest of the answer goes on in the macOS voice. Short phrases are cached on disk and cost no quota the second time.
-/// Голос ответов: ElevenLabs по предложениям, если есть ключ (следующее загружается, пока звучит текущее), иначе лучший
-/// установленный голос macOS. Если посреди ответа пропала сеть или кончился лимит, остаток звучит голосом macOS.
-/// Короткие фразы хранятся на диске и второй раз не тратят лимит.
+/// The voice of the answers, sentence by sentence: ElevenLabs while it works (the next sentence loads during the current
+/// one), otherwise Silero in the sentence's own language, and the best installed macOS voice only as the last resort.
+/// Голос ответов по предложениям: ElevenLabs, пока он работает, иначе Silero на языке предложения, и голос macOS —
+/// только в самом конце.
 final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlayerDelegate, @unchecked Sendable {
     static let lastFailureKey = "workshop.voice.elevenlabs.lastFailure"
 
     private let synthesizer = AVSpeechSynthesizer()
     private var player: AVAudioPlayer?
     private var playing: CheckedContinuation<Bool, Never>?
+    private var macWaiting: CheckedContinuation<Void, Never>?
     private var job: Task<Void, Never>?
     private var cooldownUntil = Date.distantPast
-    private var macPending = 0
     var onSpeakingChanged: ((Bool) -> Void)?
 
     override init() {
@@ -70,8 +68,8 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
         synthesizer.delegate = self
     }
 
-    /// The offline voice: the best installed quality (Premium, then Enhanced), a male voice when qualities tie. Nothing is
-    /// downloaded. / Голос без сети: лучшее установленное качество, при равенстве — мужской. Ничего не скачивается.
+    /// The macOS voice: the best installed quality (Premium, then Enhanced), a male voice when qualities tie.
+    /// Голос macOS: лучшее установленное качество, при равенстве — мужской.
     static func bestVoice(languagePrefix: String) -> AVSpeechSynthesisVoice? {
         func score(_ voice: AVSpeechSynthesisVoice) -> Int { voice.quality.rawValue * 10 + (voice.gender == .male ? 1 : 0) }
         let voices = AVSpeechSynthesisVoice.speechVoices().filter { $0.language.hasPrefix(languagePrefix) }
@@ -93,44 +91,44 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
         try? audio.write(to: cacheFolder.appendingPathComponent(ElevenLabsVoice.cacheName(text: text, voiceID: voiceID)), options: .atomic)
     }
 
-    func speak(_ text: String, language: String) {
+    /// `offline: true` skips ElevenLabs (the Silero preview in Settings). / Без ElevenLabs — для прослушивания Silero.
+    func speak(_ text: String, language: String, offline: Bool = false) {
         stop()
         let chunks = ElevenLabsVoice.sentences(text)
         guard !chunks.isEmpty else { return }
         let voiceID = UserDefaults.standard.string(forKey: ElevenLabsVoice.voiceDefaultsKey) ?? ""
-        let key = Date() >= cooldownUntil ? VoiceKeychain.read() : nil
-        // Cached phrases play even with no key or network. / Фразы из кэша звучат и без ключа и сети.
-        guard key != nil || chunks.allSatisfy({ Self.cached($0, voiceID: voiceID) != nil }) else {
-            speakWithMac(chunks.joined(separator: " "), language: language)
-            return
-        }
+        let key = !offline && Date() >= cooldownUntil ? VoiceKeychain.read() : nil
         onSpeakingChanged?(true)
         job = Task { @MainActor [weak self] in await self?.run(chunks, voiceID: voiceID, key: key, language: language) }
     }
 
     @MainActor private func run(_ chunks: [String], voiceID: String, key: String?, language: String) async {
-        var next: Task<Result<Data, ElevenLabsVoice.Failure>, Never>? = fetch(chunks[0], voiceID: voiceID, key: key)
+        var online = key != nil
+        var next: Task<Result<Data, ElevenLabsVoice.Failure>, Never>? = online ? fetch(chunks[0], voiceID: voiceID, key: key) : nil
         for index in chunks.indices {
-            guard let current = next, !Task.isCancelled else { return }
-            // Fetch the next sentence while this one plays. / Следующее предложение грузится, пока звучит текущее.
-            next = index + 1 < chunks.count ? fetch(chunks[index + 1], voiceID: voiceID, key: key) : nil
-            let reason: ElevenLabsVoice.Failure
-            switch await current.value {
-            case .success(let audio):
-                if await play(audio) { continue }
-                if Task.isCancelled { next?.cancel(); return }
-                reason = .audio
-            case .failure(let failure):
-                reason = failure
+            guard !Task.isCancelled else { next?.cancel(); return }
+            let sentence = chunks[index]
+            if online, let current = next {
+                next = index + 1 < chunks.count ? fetch(chunks[index + 1], voiceID: voiceID, key: key) : nil
+                switch await current.value {
+                case .success(let audio):
+                    if await play(audio) { continue }
+                    if Task.isCancelled { next?.cancel(); return }
+                    note(.audio)
+                case .failure(let failure):
+                    note(failure)
+                }
+                // From here on the rest of the answer is offline. / Дальше остаток ответа — без сети.
+                online = false
+                next?.cancel()
+                next = nil
             }
-            next?.cancel()
+            let language = ElevenLabsVoice.language(of: sentence) ?? language
+            if let audio = await SileroVoice.shared.audio(sentence, language: language), await play(audio) { continue }
             if Task.isCancelled { return }
-            note(reason)
-            job = nil
-            speakWithMac(chunks[index...].joined(separator: " "), language: language)
-            return
+            await speakWithMac(sentence, language: language)
         }
-        UserDefaults.standard.removeObject(forKey: Self.lastFailureKey)
+        if online { UserDefaults.standard.removeObject(forKey: Self.lastFailureKey) }
         job = nil
         onSpeakingChanged?(false)
     }
@@ -166,24 +164,22 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
         }
     }
 
+    @MainActor private func speakWithMac(_ sentence: String, language: String) async {
+        await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
+            macWaiting = continuation
+            let utterance = AVSpeechUtterance(string: sentence)
+            utterance.voice = Self.bestVoice(languagePrefix: language)
+            synthesizer.speak(utterance)
+        }
+    }
+
     private func note(_ reason: ElevenLabsVoice.Failure) {
         UserDefaults.standard.set(reason.rawValue, forKey: Self.lastFailureKey)
         if reason == .key || reason == .quota { cooldownUntil = Date().addingTimeInterval(ElevenLabsVoice.cooldown) }
     }
 
-    /// Sentence by sentence, each in a voice of its own language. / По предложениям, каждое голосом своего языка.
-    private func speakWithMac(_ text: String, language: String) {
-        let sentences = ElevenLabsVoice.sentences(text)
-        macPending += sentences.count
-        for sentence in sentences {
-            let utterance = AVSpeechUtterance(string: sentence)
-            utterance.voice = Self.bestVoice(languagePrefix: ElevenLabsVoice.language(of: sentence) ?? language)
-            synthesizer.speak(utterance)
-        }
-    }
-
     func stop() {
-        let busy = job != nil || player != nil
+        let busy = job != nil
         job?.cancel()
         job = nil
         player?.stop()
@@ -191,18 +187,17 @@ final class WorkshopSpeaker: NSObject, AVSpeechSynthesizerDelegate, AVAudioPlaye
         playing?.resume(returning: false)
         playing = nil
         if synthesizer.isSpeaking { synthesizer.stopSpeaking(at: .immediate) }
-        macPending = 0
+        macWaiting?.resume()
+        macWaiting = nil
         if busy { onSpeakingChanged?(false) }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) { onSpeakingChanged?(true) }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { macFinished() }
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { macFinished() }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) { macDone() }
+    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) { macDone() }
 
-    /// "Speaking" ends after the last sentence, not between sentences. / «Говорит» кончается после последнего предложения.
-    private func macFinished() {
-        macPending = max(0, macPending - 1)
-        if macPending == 0 { onSpeakingChanged?(false) }
+    private func macDone() {
+        macWaiting?.resume()
+        macWaiting = nil
     }
 
     func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
@@ -227,6 +222,8 @@ struct WorkshopVoiceSection: View {
     @State private var hasKey = VoiceKeychain.exists
     @State private var saveFailed = false
     @State private var custom = false
+    @AppStorage(SileroVoice.ruSpeakerKey) private var sileroRu = SileroVoice.ruSpeakers[0]
+    @AppStorage(SileroVoice.enSpeakerKey) private var sileroEn = SileroVoice.enSpeakers[0]
 
     private func text(_ key: String) -> String { L10n.text(key, store.language) }
     private static let customTag = "custom"
@@ -275,6 +272,16 @@ struct WorkshopVoiceSection: View {
             }
             if choice.wrappedValue == Self.customTag {
                 TextField(text("settings.voice.voiceID"), text: $voiceID, prompt: Text(ElevenLabsVoice.defaultVoiceID))
+            }
+            // The offline voice (Silero). / Голос без сети (Silero).
+            if SileroVoice.installed {
+                HStack {
+                    Picker(text("settings.voice.sileroRu"), selection: $sileroRu) { ForEach(SileroVoice.ruSpeakers, id: \.self) { Text($0).tag($0) } }
+                    Picker(text("settings.voice.sileroEn"), selection: $sileroEn) { ForEach(SileroVoice.enSpeakers, id: \.self) { Text($0).tag($0) } }
+                    Button(text("settings.voice.previewOffline")) { workshop.voice.preview(language: store.language, offline: true) }
+                }
+            } else {
+                Text(text("settings.voice.sileroMissing")).font(.caption).foregroundStyle(.secondary).textSelection(.enabled)
             }
             if hasKey, !lastFailure.isEmpty {
                 Text(text("settings.voice.failed.\(lastFailure)")).font(.caption).foregroundStyle(.orange)
