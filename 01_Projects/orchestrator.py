@@ -6101,6 +6101,80 @@ async def workshop_ask_stream(request: Request, req: WorkshopAskRequest):
     return _sse(events())
 
 
+class PracticeHintsRequest(BaseModel):
+    language: Literal["ru", "en"] = "ru"
+    code: str = Field(min_length=1, max_length=20_000)
+    output: str = Field(default="", max_length=4_000)
+    task: str = Field(default="", max_length=2_000)
+
+
+def parse_practice_hints(text: str) -> dict[str, Any]:
+    """The first JSON object in the model's reply: up to three short hints and an optional fixed file.
+    Первый JSON в ответе модели: до трёх коротких подсказок и, по желанию, исправленный файл."""
+    start, end = text.find("{"), text.rfind("}")
+    try:
+        data = json.loads(text[start:end + 1]) if start >= 0 and end > start else {}
+    except json.JSONDecodeError:
+        data = {}
+    hints = [str(h).strip()[:240] for h in (data.get("hints") or []) if str(h).strip()][:3] if isinstance(data, dict) else []
+    fixed = data.get("fixed") if isinstance(data, dict) else None
+    return {"hints": hints, "fixed": fixed.strip("\n") + "\n" if isinstance(fixed, str) and fixed.strip() else ""}
+
+
+@app.post("/practice/hints")
+@limiter.limit(CHAT_RATE_LIMIT)
+async def practice_hints(request: Request, req: PracticeHintsRequest):
+    """Short hints for the Practice editor from the local model only (no quota). / Подсказки к «Практике» — только локально."""
+    _require_local_settings_request(request)
+    provider = _assistant_provider_factory(req.language).get("ollama_local")
+    if provider is None:
+        return {"hints": [], "fixed": ""}
+    if req.language == "ru":
+        system = ("Ты наставник по Python. Посмотри код ученика и ответь ТОЛЬКО JSON: "
+                  '{"hints": ["до трёх коротких подсказок по-русски, по делу, с номером строки, если ошибка"], '
+                  '"fixed": "весь исправленный файл, только если есть ошибка, иначе пустая строка"}. '
+                  "Если в коде есть ошибка, поле fixed ОБЯЗАТЕЛЬНО: весь файл целиком с исправлением. "
+                  "Не хвали и не повторяй условие. Если всё верно — одна подсказка, что можно улучшить, и fixed пустой.")
+    else:
+        system = ("You are a Python mentor. Look at the learner's code and reply with JSON ONLY: "
+                  '{"hints": ["up to three short hints with line numbers for errors"], '
+                  '"fixed": "the whole fixed file only if there is a bug, otherwise an empty string"}.')
+    content = f"Задание: {req.task}\n\n```python\n{req.code}\n```\n\nВывод:\n{req.output[-2000:]}"
+    parts: list[str] = []
+    async for event in assistant_route_stream([provider], system, [{"role": "user", "content": content}]):
+        if event["type"] == "token":
+            parts.append(event["content"])
+    return parse_practice_hints("".join(parts))
+
+
+def parse_fixed_code(text: str) -> str:
+    """The last ```python block, or the whole reply if there is none. / Последний блок кода или весь ответ."""
+    blocks = re.findall(r"```(?:python|py)?\s*\n(.*?)```", text, re.S)
+    code = (blocks[-1] if blocks else text).strip("\n")
+    return code + "\n" if code.strip() else ""
+
+
+@app.post("/practice/fix")
+@limiter.limit(CHAT_RATE_LIMIT)
+async def practice_fix(request: Request, req: PracticeHintsRequest):
+    """The whole fixed file from the local model; the app shows it only after the owner's "yes".
+    Весь исправленный файл от локальной модели; приложение применяет его только после «да» владельца."""
+    _require_local_settings_request(request)
+    provider = _assistant_provider_factory(req.language).get("ollama_local")
+    if provider is None:
+        return {"fixed": ""}
+    system = ("Исправь ошибки в коде ученика и верни ТОЛЬКО исправленный файл целиком в одном блоке ```python. "
+              "Ничего не объясняй, не меняй то, что работает." if req.language == "ru" else
+              "Fix the bugs in the learner's code and return ONLY the whole fixed file in one ```python block. "
+              "No explanation; do not change what works.")
+    content = f"Задание: {req.task}\n\n```python\n{req.code}\n```\n\nВывод:\n{req.output[-2000:]}"
+    parts: list[str] = []
+    async for event in assistant_route_stream([provider], system, [{"role": "user", "content": content}]):
+        if event["type"] == "token":
+            parts.append(event["content"])
+    return {"fixed": parse_fixed_code("".join(parts))}
+
+
 @app.post("/workshop/council/stream")
 @limiter.limit(CHAT_RATE_LIMIT)
 async def workshop_council_stream(request: Request, req: WorkshopCouncilRequest):

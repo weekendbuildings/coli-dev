@@ -243,3 +243,22 @@ def test_workshop_ask_uses_rag_sources_and_shows_only_safe_fields(api, monkeypat
     sent = fakes["gemini"].messages[0][-1]["content"]
     assert "[K#]" in sent and "Градиент показывает направление роста." in sent and "Что такое градиент?" in sent
     assert "Ответь по-русски" in sent
+
+
+def test_practice_hints_are_parsed_and_capped():
+    parsed = orchestrator.parse_practice_hints('Вот: {"hints": ["Строка 2: нужен отступ", "", "Хорошо", "Ещё", "Лишнее"], "fixed": "print(1)"} конец')
+    assert parsed == {"hints": ["Строка 2: нужен отступ", "Хорошо", "Ещё"], "fixed": "print(1)\n"}
+    assert orchestrator.parse_practice_hints("не JSON") == {"hints": [], "fixed": ""}
+
+
+def test_practice_hints_use_only_the_local_model(api):
+    client, fakes = api
+    fakes["ollama_local"].chunks = ['{"hints": ["Строка 1: опечатка"], "fixed": ""}']
+    response = client.post("/practice/hints", json={"language": "ru", "code": "pritn(1)", "output": "NameError"})
+    assert response.status_code == 200 and response.json()["hints"] == ["Строка 1: опечатка"]
+    assert fakes["gemini"].calls == 0 and fakes["ollama_local"].calls == 1
+
+
+def test_practice_fix_returns_only_the_code():
+    assert orchestrator.parse_fixed_code("Вот:\n```python\nfor i in range(3):\n    print(i)\n```") == "for i in range(3):\n    print(i)\n"
+    assert orchestrator.parse_fixed_code("") == ""

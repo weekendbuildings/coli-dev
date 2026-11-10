@@ -158,6 +158,12 @@ final class WorkshopHUDController: ObservableObject {
     private var notebookTitle = "NotebookLM"
     private var paneIsVideo = false
     private var practiceOpenID = 0
+    // Live practice feedback from the local model. / Живые подсказки к «Практике» от локальной модели.
+    private var practiceHints: [String] = []
+    private var practiceFixed = ""
+    private var pendingFix = false
+    private var lastHintCode = ""
+    static let practiceFixID = "practice-fix"
     private var terminalRun = 0
     /// Agents in the order the orchestrator tries them for "агент: …". / Порядок агентов для «агент: …».
     static let agentOrder: [WorkshopAgent] = [.claude, .opencode, .gemini, .hermes, .openclaw]
@@ -192,6 +198,9 @@ final class WorkshopHUDController: ObservableObject {
             memory.objectWillChange.map { _ in }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes).sink { [weak self] in self?.schedulePush() }.store(in: &subscriptions)
+        // A pause in typing asks for hints (local model, so no quota). / Пауза в наборе — запрос подсказок.
+        practice.$text.debounce(for: .seconds(6), scheduler: RunLoop.main).sink { [weak self] _ in self?.requestHints() }
+            .store(in: &subscriptions)
         push()
     }
 
@@ -388,6 +397,9 @@ final class WorkshopHUDController: ObservableObject {
     }
 
     private func confirmMessage(_ model: WorkshopModel) -> HUDConfirmMessage {
+        if pendingFix, let file = practice.document?.url.lastPathComponent {
+            return HUDConfirmMessage(id: Self.practiceFixID, text: HUDText.short(format("hud.practice.fixAsk", file), limit: 72))
+        }
         if !model.agentDenials.isEmpty, !model.actionItems.contains(where: { $0.state == .proposed && $0.risk.needsConfirmation }) {
             return HUDConfirmMessage(id: Self.agentToolsID,
                                      text: HUDText.short(format("hud.agent.approve", model.agent.title, model.agentDenials.joined(separator: ", ")), limit: 72))
@@ -598,13 +610,15 @@ final class WorkshopHUDController: ObservableObject {
                 out = practice.errorSummary.map { HUDText.short($0, limit: 120) } ?? HUDText.outputLine(practice.output)
             }
         }
-        return HUDPracticeMessage(file: document.url.lastPathComponent, code: code, out: out, ok: ok, good: good, openID: practiceOpenID)
+        return HUDPracticeMessage(file: document.url.lastPathComponent, code: code, out: out, ok: ok, good: good, openID: practiceOpenID,
+                                  hints: practiceHints, canFix: !practiceFixed.isEmpty || (!practiceHints.isEmpty && practice.result?.succeeded == false))
     }
 
     private func runPractice() {
         guard practice.document != nil else { practice.restore(language); return }
         Task {
             await practice.run()
+            requestHints(force: true)
             guard let result = practice.result else { return }
             let name = practice.document?.url.lastPathComponent ?? ""
             if result.succeeded {
@@ -635,6 +649,57 @@ final class WorkshopHUDController: ObservableObject {
                                                output: practice.output, outputTemplate: text("code.review.output"))
         model.notice = nil
         model.ask(prompt + "\n\n```python\n" + PracticeReviewPrompt.code(practice.text) + "\n```", store: store)
+    }
+
+    /// Asks the local model for up to three hints and an optional fix. / Просит у локальной модели подсказки и исправление.
+    private func requestHints(force: Bool = false) {
+        guard let document = practice.document else { return }
+        let code = practice.text
+        guard code.split(separator: "\n").count >= 2, force || code != lastHintCode else { return }
+        lastHintCode = code
+        struct Body: Encodable { let language: String; let code: String; let output: String; let task: String }
+        struct Reply: Decodable { let hints: [String]; let fixed: String }
+        let body = Body(language: language.rawValue, code: String(code.prefix(20_000)), output: String(practice.output.suffix(4_000)),
+                        task: String(document.task.prefix(2_000)))
+        Task {
+            guard let url = URL(string: LearningStore.orchestratorBaseURL + "/practice/hints"), let data = try? JSONEncoder().encode(body) else { return }
+            var request = URLRequest(url: url, timeoutInterval: 120)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = data
+            guard let (answer, _) = try? await URLSession.shared.data(for: request),
+                  let reply = try? JSONDecoder().decode(Reply.self, from: answer), practice.text == code else { return }
+            practiceHints = reply.hints
+            practiceFixed = reply.fixed
+            schedulePush()
+        }
+    }
+
+    /// The fixed file from the local model, then the «Да» strip. / Исправленный файл от локальной модели, потом полоса «Да».
+    private func requestFix() {
+        guard let document = practice.document else { return }
+        let code = practice.text
+        struct Body: Encodable { let language: String; let code: String; let output: String; let task: String }
+        struct Reply: Decodable { let fixed: String }
+        let body = Body(language: language.rawValue, code: String(code.prefix(20_000)), output: String(practice.output.suffix(4_000)),
+                        task: String(document.task.prefix(2_000)))
+        say(text("hud.practice.fixing"), seconds: 30)
+        Task {
+            guard let url = URL(string: LearningStore.orchestratorBaseURL + "/practice/fix"), let data = try? JSONEncoder().encode(body) else { return }
+            var request = URLRequest(url: url, timeoutInterval: 180)
+            request.httpMethod = "POST"
+            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.httpBody = data
+            localLineUntil = .distantPast
+            guard let (answer, _) = try? await URLSession.shared.data(for: request),
+                  let reply = try? JSONDecoder().decode(Reply.self, from: answer), !reply.fixed.isEmpty, practice.text == code else {
+                schedulePush()
+                return
+            }
+            practiceFixed = reply.fixed
+            pendingFix = true
+            schedulePush()
+        }
     }
 
     func reloadPractice() {
@@ -671,6 +736,16 @@ final class WorkshopHUDController: ObservableObject {
             schedulePush()
         case .tool(let tool):
             useTool(tool)
+        case .confirm(let id, let yes) where id == Self.practiceFixID:
+            pendingFix = false
+            if yes, !practiceFixed.isEmpty {
+                // The owner said "yes": the file gets the fixed code. / Владелец сказал «да»: файл получает исправленный код.
+                practice.text = practiceFixed
+                practice.save()
+                practiceFixed = ""
+                practiceHints = []
+            }
+            schedulePush()
         case .confirm(let id, let yes) where id == Self.agentToolsID:
             if yes { terminalRun += 1; model.approveAgentTools(language: language) } else { model.declineAgentTools(); say(text("hud.confirm.no")) }
         case .confirm(let id, let yes):
@@ -731,7 +806,8 @@ final class WorkshopHUDController: ObservableObject {
             practiceOpenID += 1
             schedulePush()
         case .practiceFix:
-            break
+            if !practiceFixed.isEmpty { pendingFix = true; schedulePush(); return }
+            requestFix()
         case .reveal(let path):
             let url = URL(fileURLWithPath: path)
             guard WorkshopAgents.isInside(url, root: WorkshopModel.root), FileManager.default.fileExists(atPath: url.path) else { return }

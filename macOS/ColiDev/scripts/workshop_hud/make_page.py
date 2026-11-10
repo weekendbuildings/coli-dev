@@ -74,6 +74,8 @@ html.app .appwin { display: flex; flex-direction: column; top: 96px; bottom: cal
 .memi:hover, .memi.on { background: rgba(255,255,255,.08); }
 html.app #memBody { max-height: none; overflow-y: auto; min-height: 0; padding-right: 6px; }
 .slides .slide { min-height: 120px; }
+#hintBox { margin-top: 8px; display: grid; gap: 4px; justify-items: start; }
+#hintBox .hint { margin: 0; color: #e8c9a0; }
 .snav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; color: var(--muted); font: 400 12.5px var(--mono); }
 .three3d { width: 100%; height: 260px; border-radius: 16px; overflow: hidden; background: rgba(0,0,0,.25); }
 #nbBody { flex: 1; min-height: 0; border-radius: 16px; background: rgba(0,0,0,.28); }

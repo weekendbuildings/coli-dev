@@ -63,6 +63,9 @@ function appStateMsg(m) {
   if (typeof m.line === 'string' && lineEl.textContent !== m.line) { clearInterval(typing); lineEl.textContent = m.line; if (m.mode === 'speak') pulse = 1; }
 }
 function appPractice(p) {
+  const hb = $('hintBox');
+  if (hb) hb.innerHTML = (p.hints || []).map((h) => `<p class="hint">• ${esc(h)}</p>`).join('')
+    + (p.canFix ? `<button class="pill" type="button" id="fixBtn">${esc(t('hud.practice.fix', 'Исправь'))}</button>` : '');
   if (p.openID && p.openID !== appState.practiceId) { appState.practiceId = p.openID; setWin('exWin', false); setWin('edWin', true); }
   document.querySelector('#edWin .file').textContent = p.file;
   document.querySelector('#edWin pre.code').innerHTML = p.code;
@@ -213,6 +216,9 @@ if (APP) {
   $('memChoose').addEventListener('click', () => post('memoryChoose'));
   new MutationObserver(nbFollow).observe($('nbWin'), { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', nbReport);
+  const hintBox = document.createElement('div'); hintBox.id = 'hintBox';
+  $('edWin').querySelector('.out').after(hintBox);
+  hintBox.addEventListener('click', (e) => { if (e.target.closest('#fixBtn')) post('practiceFix'); });
   $('exBody').addEventListener('click', (e) => {
     const s = e.target.closest('[data-s]'); if (s) { slideStep(+s.dataset.s); return; }
     const v = e.target.closest('[data-video]'); if (v) { setWin('exWin', false); post('video', { id: v.dataset.video }); return; }

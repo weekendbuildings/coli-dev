@@ -495,7 +495,7 @@ enum HUDStrings {
         "hud.state.agents", "hud.state.speak", "hud.fallback", "hud.ex.title", "hud.ex.answer", "hud.ex.sources", "hud.ex.empty",
         "hud.newProject", "hud.newProject.say", "hud.voice", "hud.edit", "hud.ex.terminal",
         "hud.ex.slides", "hud.ex.video", "hud.ex.practice", "hud.ex.practiceText", "hud.ex.practiceOpen", "hud.ex.openLesson",
-        "hud.ex.three.surface", "hud.ex.three.vectors", "hud.ex.three.function",
+        "hud.ex.three.surface", "hud.ex.three.vectors", "hud.ex.three.function", "hud.practice.fix",
     ]
 }
 
