@@ -62,6 +62,9 @@ enum HUDInbound: Equatable {
     case memoryChoose
     case notebookRect(x: Double, y: Double, width: Double, height: Double, open: Bool)
     case openLesson
+    case settingsAction(String)
+    case wakeFix
+    case codeEdit(String)
     case video(String)
     case practiceTopic
     case practiceFix
@@ -100,6 +103,11 @@ enum HUDInbound: Equatable {
         case "memoryObsidian": return .memoryObsidian
         case "memoryChoose": return .memoryChoose
         case "openLesson": return .openLesson
+        case "settingsAction": return text("action").flatMap { ["keys", "wake", "settings"].contains($0) ? .settingsAction($0) : nil }
+        case "wakeFix": return .wakeFix
+        case "codeEdit":
+            guard let code = message["code"] as? String, code.count <= 20_000 else { return nil }
+            return .codeEdit(code)
         case "video": return text("id").map(HUDInbound.video)
         case "practiceTopic": return .practiceTopic
         case "practiceFix": return .practiceFix
@@ -406,7 +414,8 @@ struct HUDAgentRow: Encodable, Equatable { var icon: String; var name: String; v
 struct HUDVote: Encodable, Equatable { var name: String; var percent: Int; var mark: String }
 struct HUDCouncilInfo: Encodable, Equatable { var members: [HUDVote]; var hint: String }
 struct HUDTimed: Encodable, Equatable { var time: String; var text: String }
-struct HUDListItem: Encodable, Equatable { var name: String; var detail: String; var path: String? }
+struct HUDListItem: Encodable, Equatable { var name: String; var detail: String; var path: String?; var action: String? = nil }
+struct HUDWakeInfo: Encodable, Equatable { var text: String; var ok: Bool }
 struct HUDListInfo: Encodable, Equatable { var title: String; var sub: String; var items: [HUDListItem]; var empty: String }
 struct HUDTile: Encodable, Equatable { var tip: String; var live: Bool }
 
@@ -427,6 +436,7 @@ struct HUDDataMessage: Encodable, Equatable {
     var settings: HUDListInfo
     var hints: [String]
     var tiles: [String: HUDTile]
+    var wake = HUDWakeInfo(text: "", ok: true)
 }
 
 struct HUDPracticeMessage: Encodable, Equatable {

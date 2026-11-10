@@ -32,7 +32,9 @@ function applyStrings(s, locale) {
 }
 function appData(d) {
   applyStrings(d.strings, d.locale);
-  const on = document.querySelector('.status .on .t'); if (on) on.textContent = t(d.online ? 'hud.online' : 'hud.starting');
+  const on = document.querySelector('.status .on .t');
+  if (on) on.textContent = (d.online ? t('hud.online') : t('hud.starting')) + (d.wake && d.wake.text ? ' · ' + d.wake.text : '');
+  document.querySelector('.status').classList.toggle('warn', !!(d.wake && !d.wake.ok));
   const p = d.path, rb = document.querySelector('.ringb');
   setTip(rb, `${t('hud.rail.path')} · ${p.percent}%`);
   rb.querySelector('text').textContent = `${p.percent}%`;
@@ -41,7 +43,7 @@ function appData(d) {
     <div class="stages">${p.stages.map((x) => `<div class="stg"><span>${esc(x.name)}</span><output>${x.percent}%</output><div class="tr"><i style="width:${x.percent}%"></i></div></div>`).join('')}</div>
     <div class="trio">${p.trio.map((x) => `<div><b>${esc(x.value)}</b><span>${esc(x.label)}</span></div>`).join('')}</div>`;
   const list = (l) => `<h3>${esc(l.title)}</h3>${l.sub ? `<div class="psub">${esc(l.sub)}</div>` : ''}<div class="plist">${l.items.length
-    ? l.items.map((i) => `<div${i.path ? ` data-path="${esc(i.path)}" role="button" tabindex="0"` : ''}><b>${esc(i.name)}</b><span>${esc(i.detail)}</span></div>`).join('')
+    ? l.items.map((i) => `<div${i.path ? ` data-path="${esc(i.path)}" role="button" tabindex="0"` : ''}${i.action ? ` data-action="${esc(i.action)}" role="button" tabindex="0"` : ''}><b>${esc(i.name)}</b><span>${esc(i.detail)}</span></div>`).join('')
     : `<div><span>${esc(l.empty)}</span></div>`}</div>`;
   pops.proj = list(d.projects); pops.notes = list(d.notes); pops.set = list(d.settings);
   views.agents = () => d.agents.map((a) => `<div class="row">${ico(AG[a.icon] ? a.icon : 'open')}<div><b>${esc(a.name)}</b><span>${esc(a.detail)}</span></div><span class="st${a.live ? ' live' : ''}">${esc(a.status)}</span></div>`).join('');
@@ -68,7 +70,9 @@ function appPractice(p) {
     + (p.canFix ? `<button class="pill" type="button" id="fixBtn">${esc(t('hud.practice.fix', 'Исправь'))}</button>` : '');
   if (p.openID && p.openID !== appState.practiceId) { appState.practiceId = p.openID; setWin('exWin', false); setWin('edWin', true); }
   document.querySelector('#edWin .file').textContent = p.file;
-  document.querySelector('#edWin pre.code').innerHTML = p.code;
+  // Код редактируется прямо в панели; пока в нём курсор, подсветка не перерисовывается. / Editable in place.
+  const pre = document.querySelector('#edWin pre.code');
+  if (document.activeElement !== pre) pre.innerHTML = p.code;
   $('outText').textContent = p.out; $('outOk').textContent = p.ok; $('outOk').classList.toggle('ok', !!p.good);
 }
 function appAnswer(a) {
@@ -216,6 +220,29 @@ if (APP) {
   $('memChoose').addEventListener('click', () => post('memoryChoose'));
   new MutationObserver(nbFollow).observe($('nbWin'), { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', nbReport);
+  // Одно окно или панель за раз: открытие закрывает остальные и карточку. / One panel at a time.
+  const exclusive = ['edWin', 'exWin', 'memWin', 'nbWin', 'pop', 'card'];
+  exclusive.forEach((id) => {
+    let was = $(id).classList.contains('open');
+    new MutationObserver(() => {
+      const now = $(id).classList.contains('open');
+      if (now && !was) exclusive.filter((o) => o !== id).forEach((o) => {
+        if (!$(o).classList.contains('open')) return;
+        if (o === 'pop') setPop(popOpen); else $(o).classList.remove('open');
+      });
+      was = now;
+    }).observe($(id), { attributes: true, attributeFilter: ['class'] });
+  });
+  $('pop').addEventListener('click', (e) => { const r = e.target.closest('[data-action]'); if (r) post('settingsAction', { action: r.dataset.action }); });
+  document.querySelector('.status').addEventListener('click', () => post('wakeFix'));
+  const code = document.querySelector('#edWin pre.code');
+  code.contentEditable = 'plaintext-only'; code.spellcheck = false;
+  let codeTimer;
+  code.addEventListener('input', () => { clearTimeout(codeTimer); codeTimer = setTimeout(() => post('codeEdit', { code: code.innerText.replace(/\u00a0/g, ' ') }), 400); });
+  code.addEventListener('keydown', (e) => {
+    if (e.key === 'Tab') { e.preventDefault(); document.execCommand('insertText', false, '    '); }
+    e.stopPropagation();
+  });
   const hintBox = document.createElement('div'); hintBox.id = 'hintBox';
   $('edWin').querySelector('.out').after(hintBox);
   hintBox.addEventListener('click', (e) => { if (e.target.closest('#fixBtn')) post('practiceFix'); });

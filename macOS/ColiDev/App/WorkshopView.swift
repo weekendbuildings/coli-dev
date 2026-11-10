@@ -387,7 +387,8 @@ final class WorkshopModel: ObservableObject {
             // Safe actions run at once; risky ones wait for "yes". / Безопасное — сразу, рискованное ждёт «да».
             if !item.risk.needsConfirmation { run(item.id, confirmed: false, language: language) }
         }
-        if speak && speakAnswers { voice.speak(message.text, language: language) }
+        // Answers are spoken whenever voice answers are on (default), typed or not. / Ответы звучат всегда, если голос включён.
+        if speakAnswers { voice.speak(message.text, language: language) }
     }
 
     func stopAnswer() { askTask?.cancel() }

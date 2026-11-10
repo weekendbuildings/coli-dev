@@ -1,4 +1,6 @@
 import AppKit
+import AVFoundation
+import Speech
 import Carbon.HIToolbox
 import Combine
 import SwiftUI
@@ -54,6 +56,12 @@ final class WorkshopHub {
             .sink { [weak self] _ in Task { await self?.refreshWake() } }
             .store(in: &subscriptions)
         store.$language.removeDuplicates().sink { [weak self] _ in Task { await self?.refreshWake() } }.store(in: &subscriptions)
+        // The word is on by default: macOS asks for the microphone and speech once, at the first start.
+        // Слово включено по умолчанию: macOS спрашивает микрофон и речь один раз, при первом запуске.
+        if WorkshopWakeListener.isEnabled, ProcessInfo.processInfo.environment["COLIDEV_NO_PERMISSION_PROMPTS"] != "1",
+           AVCaptureDevice.authorizationStatus(for: .audio) == .notDetermined || SFSpeechRecognizer.authorizationStatus() == .notDetermined {
+            Task { await refreshWake(askPermissions: true) }
+        }
     }
 
     func refreshWake(askPermissions: Bool = false) async {

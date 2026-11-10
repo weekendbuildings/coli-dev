@@ -14,6 +14,8 @@ extension Notification.Name {
     static let workshopSummon = Notification.Name("colidev.workshop.summon")
     /// Open a lesson (resource) in the main window. / Открыть урок в главном окне.
     static let workshopOpenLesson = Notification.Name("colidev.workshop.openLesson")
+    /// Open a section of the app ("keys", "settings"). / Открыть раздел приложения.
+    static let workshopOpenSection = Notification.Name("colidev.workshop.openSection")
 }
 
 @MainActor

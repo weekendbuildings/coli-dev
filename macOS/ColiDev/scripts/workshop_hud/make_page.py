@@ -74,6 +74,11 @@ html.app .appwin { display: flex; flex-direction: column; top: 96px; bottom: cal
 .memi:hover, .memi.on { background: rgba(255,255,255,.08); }
 html.app #memBody { max-height: none; overflow-y: auto; min-height: 0; padding-right: 6px; }
 .slides .slide { min-height: 120px; }
+html.app #edWin pre.code { outline: none; cursor: text; white-space: pre; }
+html.app .plist [data-action] { cursor: pointer; border-radius: 10px; }
+html.app .plist [data-action]:hover { background: rgba(255,255,255,.06); }
+html.app .status { cursor: pointer; }
+html.app .status.warn .dot { background: #ffb27a; box-shadow: 0 0 8px #ffb27a; }
 #hintBox { margin-top: 8px; display: grid; gap: 4px; justify-items: start; }
 #hintBox .hint { margin: 0; color: #e8c9a0; }
 .snav { display: flex; align-items: center; justify-content: center; gap: 14px; margin-top: 12px; color: var(--muted); font: 400 12.5px var(--mono); }

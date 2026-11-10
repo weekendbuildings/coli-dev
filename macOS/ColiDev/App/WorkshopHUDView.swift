@@ -1,4 +1,5 @@
 import AppKit
+import AVFoundation
 import Combine
 import SwiftUI
 import WebKit
@@ -196,6 +197,7 @@ final class WorkshopHUDController: ObservableObject {
             practice.objectWillChange.map { _ in }.eraseToAnyPublisher(),
             backend.objectWillChange.map { _ in }.eraseToAnyPublisher(),
             memory.objectWillChange.map { _ in }.eraseToAnyPublisher(),
+            WorkshopHub.shared.wake.objectWillChange.map { _ in }.eraseToAnyPublisher(),
         ]
         Publishers.MergeMany(changes).sink { [weak self] in self?.schedulePush() }.store(in: &subscriptions)
         // A pause in typing asks for hints (local model, so no quota). / Пауза в наборе — запрос подсказок.
@@ -491,12 +493,14 @@ final class WorkshopHUDController: ObservableObject {
         }
         reminders += tasks.prefix(6).map { HUDTimed(time: shortTime($0.date), text: $0.text) }
 
+        let engine = hasVoiceKey ? "ElevenLabs" : (SileroVoice.installed ? "Silero · " + SileroVoice.speaker("ru") : "macOS")
         let settings = HUDListInfo(title: text("hud.rail.set"), sub: "", items: [
-            HUDListItem(name: text("hud.set.voice"), detail: text(hasVoiceKey ? (model.speakAnswers ? "hud.set.voice.on" : "hud.set.voice.off") : "hud.voice.noKey"), path: nil),
-            HUDListItem(name: text("hud.set.models"), detail: text(cloudKeysMissing ? "hud.keys.missing" : "hud.set.models.detail"), path: nil),
+            HUDListItem(name: text("hud.set.voice"), detail: (model.speakAnswers ? text("hud.set.voiceEngine") : text("hud.set.voiceOff")) + engine, path: nil, action: "settings"),
+            HUDListItem(name: text("hud.set.wake"), detail: text(WorkshopWakeListener.isEnabled ? "hud.set.wake.on" : "hud.set.wake.off"), path: nil, action: "wake"),
+            HUDListItem(name: text("hud.set.keysTitle"), detail: text(cloudKeysMissing ? "hud.keys.missing" : "hud.set.models.detail"), path: nil, action: "keys"),
             HUDListItem(name: text("hud.set.access"), detail: text("hud.set.access.detail"), path: nil),
             HUDListItem(name: text("hud.set.keys"), detail: format("hud.set.keys.detail",
-                        HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey)).title, HUDShortcut.voice.title), path: nil),
+                        HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey)).title, HUDShortcut.voice.title), path: nil, action: "settings"),
         ], empty: "")
         let nextName = next.map(lessonName) ?? text("hud.rail.path")
         return HUDDataMessage(
@@ -511,10 +515,21 @@ final class WorkshopHUDController: ObservableObject {
                                items: notes.items, empty: text("hud.notes.empty")),
             settings: settings,
             hints: [format("hud.hint.explain", nextName), text("hud.hint.next"), format("hud.hint.practice", nextName)],
-            tiles: tiles)
+            tiles: tiles, wake: wakeInfo())
     }
 
     /// Days in a row; read at most every 30 s (it reads the lab results file). / Дни подряд; не чаще раза в 30 с.
+    /// The wake word's state for the status pill. / Состояние слова вызова для плашки статуса.
+    private func wakeInfo() -> HUDWakeInfo {
+        guard WorkshopWakeListener.isEnabled else { return HUDWakeInfo(text: text("hud.wake.off"), ok: false) }
+        switch WorkshopHub.shared.wake.status {
+        case .listening: return HUDWakeInfo(text: text("hud.wake.listening"), ok: true)
+        case .needsPermission: return HUDWakeInfo(text: text("hud.wake.noAccess"), ok: false)
+        case .unavailable: return HUDWakeInfo(text: text("hud.wake.unavailable"), ok: false)
+        case .off: return HUDWakeInfo(text: text("hud.wake.paused"), ok: true)
+        }
+    }
+
     private func streak(_ store: LearningStore) -> Int {
         if Date().timeIntervalSince(streakCache.at) < 30 { return streakCache.value }
         let calendar = CreatorActivity.mondayCalendar()
@@ -784,6 +799,28 @@ final class WorkshopHUDController: ObservableObject {
             if onDismiss != nil { WorkshopOverlay.shared.show() }
         case .notebookRect(let x, let y, let width, let height, let open):
             placeNotebook(x: x, y: y, width: width, height: height, open: open)
+        case .settingsAction(let action):
+            if action == "wake" {
+                UserDefaults.standard.set(!WorkshopWakeListener.isEnabled, forKey: WorkshopWakeListener.enabledKey)
+                Task { await WorkshopHub.shared.refreshWake(askPermissions: true); schedulePush() }
+                return
+            }
+            // Keys and voice settings open in the app window. / Ключи и голос — в окне приложения.
+            WorkshopOverlay.shared.hide()
+            WorkshopHub.shared.openPath()
+            NotificationCenter.default.post(name: .workshopOpenSection, object: action)
+        case .wakeFix:
+            Task {
+                await WorkshopHub.shared.refreshWake(askPermissions: true)
+                if WorkshopHub.shared.wake.status == .needsPermission {
+                    let pane = AVCaptureDevice.authorizationStatus(for: .audio) == .authorized ? "Privacy_SpeechRecognition" : "Privacy_Microphone"
+                    if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(pane)") { NSWorkspace.shared.open(url) }
+                }
+                schedulePush()
+            }
+        case .codeEdit(let code):
+            // Typing in the Practice panel goes straight to the file (autosaved). / Набор в панели «Практика» идёт в файл.
+            if practice.document != nil, practice.text != code { practice.text = code }
         case .openLesson:
             guard let lesson = matchedLesson(lastQuestion(model) ?? "") else { return }
             // The lesson with its 3D lab opens in the main window. / Урок с 3D-тренажёром — в главном окне.

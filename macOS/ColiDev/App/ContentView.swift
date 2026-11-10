@@ -267,6 +267,10 @@ struct ContentView: View {
                 openPathLesson(lesson)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: .workshopOpenSection)) { note in
+            columns = .all
+            selection = (note.object as? String) == "keys" ? .serviceKeys : .settings
+        }
         .onReceive(NotificationCenter.default.publisher(for: .workshopSummon)) { _ in
             selection = .workshop
             columns = .detailOnly
