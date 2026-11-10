@@ -145,7 +145,7 @@ final class WorkshopHub {
         }
     }
 
-    private func openPath() {
+    func openPath() {
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
         if let window = Self.mainWindow {

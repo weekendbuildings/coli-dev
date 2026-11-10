@@ -63,6 +63,7 @@ function appStateMsg(m) {
   if (typeof m.line === 'string' && lineEl.textContent !== m.line) { clearInterval(typing); lineEl.textContent = m.line; if (m.mode === 'speak') pulse = 1; }
 }
 function appPractice(p) {
+  if (p.openID && p.openID !== appState.practiceId) { appState.practiceId = p.openID; setWin('exWin', false); setWin('edWin', true); }
   document.querySelector('#edWin .file').textContent = p.file;
   document.querySelector('#edWin pre.code').innerHTML = p.code;
   $('outText').textContent = p.out; $('outOk').textContent = p.ok; $('outOk').classList.toggle('ok', !!p.good);
@@ -71,6 +72,18 @@ function appAnswer(a) {
   $('exTitle').textContent = a.title;
   Object.keys(exViews).forEach((k) => delete exViews[k]);
   exViews[t('hud.ex.answer', 'Ответ')] = a.html;
+  // Слайды, 3D, Видео, Практика — из ответа и темы, без отдельной генерации. / Views from the answer and the topic.
+  const slides = slidesFrom(a.html);
+  if (slides.length > 1) exViews[t('hud.ex.slides', 'Слайды')] = slidesHTML(slides);
+  const ex = a.explain || {};
+  if (ex.template || ex.lesson) {
+    exViews['3D'] = (ex.template ? `<div class="three3d" data-t="${esc(ex.template)}"></div><p class="hint">${esc(t('hud.ex.three.' + ex.template))}</p>` : '')
+      + (ex.lesson ? `<button class="pill light" type="button" data-act2="openLesson">${esc(t('hud.ex.openLesson'))} «${esc(ex.lesson)}»</button>` : '');
+  }
+  if ((ex.videos || []).length) {
+    exViews[t('hud.ex.video', 'Видео')] = ex.videos.map((v) => `<button type="button" class="memi" data-video="${esc(v.id)}"><b>${esc(v.title)}</b><span>${esc(v.channel)}</span></button>`).join('');
+  }
+  exViews[t('hud.ex.practice', 'Практика')] = `<p>${esc(t('hud.ex.practiceText'))}${ex.lesson ? ' «' + esc(ex.lesson) + '»' : ''}.</p><button class="pill light" type="button" data-act2="practiceTopic">${esc(t('hud.ex.practiceOpen'))}</button>`;
   exViews[t('hud.ex.sources', 'Источники')] = a.sources.split('\n').map((l) => `<p>${esc(l)}</p>`).join('');
   if (appState.terminal) exViews[t('hud.ex.terminal', 'Терминал')] = appState.terminal;
   const body = $('exBody'), top = body.scrollTop;
@@ -107,7 +120,69 @@ function nbReport() {
 }
 function nbFollow() { const end = performance.now() + 700; const step = () => { nbReport(); if (performance.now() < end) requestAnimationFrame(step); }; requestAnimationFrame(step); }
 function appNotebook(m) {
+  document.querySelector('#nbWin .wh b').textContent = m.title || 'NotebookLM';
   if (m.openID && m.openID !== appState.notebookId) { appState.notebookId = m.openID; $('memWin').classList.remove('open'); $('nbWin').classList.add('open'); }
+}
+/* Слайды: каждый абзац или блок ответа — шаг; ‹ › и стрелки. / Each block of the answer is a step. */
+function slidesFrom(html) {
+  const box = document.createElement('div'); box.innerHTML = html;
+  const out = []; let pending = '';
+  [...box.children].forEach((el) => {
+    const isHead = el.tagName === 'P' && el.children.length === 1 && el.firstElementChild.tagName === 'B' && el.textContent.length < 80;
+    if (isHead) { pending += el.outerHTML; return; }
+    out.push(pending + el.outerHTML); pending = '';
+  });
+  if (pending) out.push(pending);
+  return out;
+}
+function slidesHTML(slides) {
+  return `<div class="slides" data-i="0">${slides.map((s, i) => `<div class="slide"${i ? ' hidden' : ''}>${s}</div>`).join('')}`
+    + `<div class="snav"><button class="round" type="button" data-s="-1" aria-label="‹">‹</button><span>1 / ${slides.length}</span><button class="round" type="button" data-s="1" aria-label="›">›</button></div></div>`;
+}
+function slideStep(d) {
+  const box = $('exBody').querySelector('.slides'); if (!box) return false;
+  const all = box.querySelectorAll('.slide'); const i = Math.max(0, Math.min(all.length - 1, (+box.dataset.i) + d));
+  box.dataset.i = i; all.forEach((s, k) => { s.hidden = k !== i; }); box.querySelector('.snav span').textContent = `${i + 1} / ${all.length}`;
+  return true;
+}
+/* 3D: небольшие сцены three.js по теме. / Small three.js scenes by topic. */
+function mount3D(host) {
+  if (host.dataset.mounted) return; host.dataset.mounted = '1';
+  const w = host.clientWidth || 440, h = 260;
+  const r = new THREE.WebGLRenderer({ antialias: true, alpha: true }); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.setSize(w, h); host.appendChild(r.domElement);
+  const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(45, w / h, 0.1, 100); cam.position.set(6, 5, 7); cam.lookAt(0, 0, 0);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8)); const sun = new THREE.DirectionalLight(0xffffff, 0.9); sun.position.set(4, 8, 5); scene.add(sun);
+  const kind = host.dataset.t; let ball = null, path = null;
+  if (kind === 'surface') {
+    const g = new THREE.PlaneGeometry(8, 8, 40, 40); g.rotateX(-Math.PI / 2);
+    const p = g.attributes.position; for (let i = 0; i < p.count; i++) { const x = p.getX(i), z = p.getZ(i); p.setY(i, 0.12 * (x * x + 1.6 * z * z) - 1.5); }
+    g.computeVertexNormals();
+    scene.add(new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0x8a8fa8, roughness: 0.6, transparent: true, opacity: 0.75, side: THREE.DoubleSide })));
+    scene.add(new THREE.LineSegments(new THREE.WireframeGeometry(g), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.12 })));
+    ball = new THREE.Mesh(new THREE.SphereGeometry(0.16, 20, 20), new THREE.MeshStandardMaterial({ color: 0xffcf8a, emissive: 0x553300 })); scene.add(ball);
+    path = { x: 3.4, z: -2.8 };
+  } else if (kind === 'vectors') {
+    const a = new THREE.Vector3(2.5, 1, 0.5), b = new THREE.Vector3(-0.5, 1.5, 2), o = new THREE.Vector3();
+    [[a, 0xffcf8a], [b, 0x9ec4ff], [a.clone().add(b), 0x7cf5c8]].forEach(([v, c]) => scene.add(new THREE.ArrowHelper(v.clone().normalize(), o, v.length(), c, 0.3, 0.18)));
+    scene.add(new THREE.GridHelper(8, 8, 0x444444, 0x2a2a2a));
+  } else {
+    const pts = []; for (let x = -4; x <= 4; x += 0.05) pts.push(new THREE.Vector3(x, 3 / (1 + Math.exp(-2 * x)) - 1.5, 0));
+    scene.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xffcf8a })));
+    scene.add(new THREE.GridHelper(8, 8, 0x444444, 0x2a2a2a)); cam.position.set(0, 1, 8);
+  }
+  let t0 = performance.now();
+  const loop = () => {
+    if (!host.isConnected) { r.dispose(); return; }
+    const t = (performance.now() - t0) / 1000;
+    if (kind !== 'function') scene.rotation.y = t * 0.25;
+    if (ball && path) {
+      path.x -= 0.24 * path.x * 0.04; path.z -= 0.38 * path.z * 0.04;
+      if (Math.abs(path.x) + Math.abs(path.z) < 0.05) { path.x = 3.4; path.z = -2.8; }
+      ball.position.set(path.x, 0.12 * (path.x * path.x + 1.6 * path.z * path.z) - 1.5 + 0.16, path.z);
+    }
+    r.render(scene, cam); requestAnimationFrame(loop);
+  };
+  loop();
 }
 function appConfirm(c) {
   appState.confirmId = c.id || null;
@@ -138,6 +213,17 @@ if (APP) {
   $('memChoose').addEventListener('click', () => post('memoryChoose'));
   new MutationObserver(nbFollow).observe($('nbWin'), { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', nbReport);
+  $('exBody').addEventListener('click', (e) => {
+    const s = e.target.closest('[data-s]'); if (s) { slideStep(+s.dataset.s); return; }
+    const v = e.target.closest('[data-video]'); if (v) { setWin('exWin', false); post('video', { id: v.dataset.video }); return; }
+    const a = e.target.closest('[data-act2]'); if (a) post(a.dataset.act2);
+  });
+  new MutationObserver(() => { const host = $('exBody').querySelector('.three3d'); if (host) mount3D(host); }).observe($('exBody'), { childList: true });
+  addEventListener('keydown', (e) => {
+    if (!$('exWin').classList.contains('open') || document.activeElement === $('ask')) return;
+    if (e.key === 'ArrowRight' && slideStep(1)) e.preventDefault();
+    if (e.key === 'ArrowLeft' && slideStep(-1)) e.preventDefault();
+  });
   // Как поповер macOS: щелчок мимо закрывает открытое окно, панель, карточку и док. / Click outside closes, like a popover.
   addEventListener('pointerdown', (e) => {
     const inside = (sel) => e.target.closest(sel);

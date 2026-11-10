@@ -61,6 +61,10 @@ enum HUDInbound: Equatable {
     case memoryObsidian
     case memoryChoose
     case notebookRect(x: Double, y: Double, width: Double, height: Double, open: Bool)
+    case openLesson
+    case video(String)
+    case practiceTopic
+    case practiceFix
 
     static let maxText = 4000
     static let rails: Set<String> = ["path", "new", "ex", "ed", "proj", "notes", "rem", "agents", "set"]
@@ -95,6 +99,10 @@ enum HUDInbound: Equatable {
         case "memorySearch": return .memorySearch(text("text") ?? "")
         case "memoryObsidian": return .memoryObsidian
         case "memoryChoose": return .memoryChoose
+        case "openLesson": return .openLesson
+        case "video": return text("id").map(HUDInbound.video)
+        case "practiceTopic": return .practiceTopic
+        case "practiceFix": return .practiceFix
         case "nbRect":
             guard let x = message["x"] as? Double, let y = message["y"] as? Double, let width = message["w"] as? Double,
                   let height = message["h"] as? Double, let open = message["open"] as? Bool,
@@ -428,6 +436,9 @@ struct HUDPracticeMessage: Encodable, Equatable {
     var out: String
     var ok: String
     var good: Bool
+    var openID = 0
+    var hints: [String] = []
+    var canFix = false
 }
 
 struct HUDAnswerMessage: Encodable, Equatable {
@@ -437,6 +448,7 @@ struct HUDAnswerMessage: Encodable, Equatable {
     var html: String
     var sources: String
     var open: Bool
+    var explain = HUDExplainInfo(template: "", lesson: "", videos: [])
 }
 
 struct HUDTerminalMessage: Encodable, Equatable {
@@ -463,6 +475,7 @@ struct HUDMemoryMessage: Encodable, Equatable {
 struct HUDNotebookMessage: Encodable, Equatable {
     var type = "notebook"
     var openID: Int
+    var title = "NotebookLM"
 }
 
 /// No `id` hides the bar. / Без `id` полоса скрыта.
@@ -481,6 +494,8 @@ enum HUDStrings {
         "hud.ask", "hud.askLabel", "hud.send", "hud.yes", "hud.no", "hud.confirmLabel", "hud.state.listen", "hud.state.think",
         "hud.state.agents", "hud.state.speak", "hud.fallback", "hud.ex.title", "hud.ex.answer", "hud.ex.sources", "hud.ex.empty",
         "hud.newProject", "hud.newProject.say", "hud.voice", "hud.edit", "hud.ex.terminal",
+        "hud.ex.slides", "hud.ex.video", "hud.ex.practice", "hud.ex.practiceText", "hud.ex.practiceOpen", "hud.ex.openLesson",
+        "hud.ex.three.surface", "hud.ex.three.vectors", "hud.ex.three.function",
     ]
 }
 
@@ -748,4 +763,74 @@ enum MemoryVault {
     static func isNote(relativePath: String) -> Bool {
         relativePath.lowercased().hasSuffix(".md") && !relativePath.split(separator: "/").contains { $0.hasPrefix(".") }
     }
+}
+
+// MARK: - Explanation views / виды объяснения
+
+/// Topic → a 3D template and trusted video lessons (no API key; played via youtube-nocookie inside the HUD).
+/// Тема → 3D-шаблон и проверенные видеоуроки (без ключа; играют через youtube-nocookie внутри HUD).
+enum HUDTopic {
+    struct Video: Encodable, Equatable { let id: String; let title: String; let channel: String }
+
+    private static let templates: [(template: String, stems: [String])] = [
+        ("surface", ["градиент", "спуск", "ошибк", "потер", "loss", "gradient", "оптимиз", "optimiz", "поверхн", "surface", "минимум"]),
+        ("vectors", ["вектор", "матриц", "эмбедд", "embedding", "vector", "matrix", "линейн", "linear", "внимани", "attention"]),
+        ("function", ["функци", "function", "график", "производн", "derivative", "сигмоид", "sigmoid", "активац", "activation"]),
+    ]
+
+    /// Video IDs checked by hand: 3Blue1Brown and Andrej Karpathy. / Видео проверены вручную.
+    private static let videos: [(stems: [String], video: Video)] = [
+        (["нейросет", "нейрон", "neural", "network"], Video(id: "aircAruvnKk", title: "But what is a neural network?", channel: "3Blue1Brown")),
+        (["градиент", "спуск", "gradient", "обучени", "learn"], Video(id: "IHZwWFHWa-w", title: "Gradient descent, how neural networks learn", channel: "3Blue1Brown")),
+        (["обратн", "backprop", "распростр"], Video(id: "Ilg3gGewQ5U", title: "What is backpropagation really doing?", channel: "3Blue1Brown")),
+        (["трансформ", "transformer", "gpt", "языков", "language model"], Video(id: "wjZofJX0v4M", title: "Transformers, the tech behind LLMs", channel: "3Blue1Brown")),
+        (["внимани", "attention"], Video(id: "eMlx5fFNoYc", title: "Attention in transformers, step by step", channel: "3Blue1Brown")),
+        (["вектор", "vector", "линейн", "linear"], Video(id: "fNk_zzaMoSs", title: "Vectors | Essence of linear algebra", channel: "3Blue1Brown")),
+        (["матриц", "matrix", "преобраз", "transformation"], Video(id: "kYB8IZa5AuE", title: "Linear transformations and matrices", channel: "3Blue1Brown")),
+        (["производн", "derivative", "анализ", "calculus"], Video(id: "WUvTyaaNkzM", title: "The essence of calculus", channel: "3Blue1Brown")),
+        (["micrograd", "autograd", "обратн", "backprop"], Video(id: "VMj-3S1tku0", title: "The spelled-out intro to neural networks and backpropagation", channel: "Andrej Karpathy")),
+        (["gpt", "трансформ", "transformer", "с нуля", "from scratch"], Video(id: "kCc8FmEb1nY", title: "Let's build GPT: from scratch, in code", channel: "Andrej Karpathy")),
+        (["токен", "token", "bpe"], Video(id: "zduSFxRajkE", title: "Let's build the GPT Tokenizer", channel: "Andrej Karpathy")),
+        (["llm", "языков", "language model", "чат", "chat"], Video(id: "zjkBMFhNj_g", title: "Intro to Large Language Models", channel: "Andrej Karpathy")),
+    ]
+
+    private static func lowered(_ text: String) -> String { text.lowercased().replacingOccurrences(of: "ё", with: "е") }
+
+    static func template(for question: String) -> String {
+        let text = lowered(question)
+        return templates.first { $0.stems.contains { text.contains($0) } }?.template ?? ""
+    }
+
+    static func videos(for question: String, limit: Int = 4) -> [Video] {
+        let text = lowered(question)
+        var found: [Video] = []
+        for entry in videos where entry.stems.contains(where: { text.contains($0) }) && !found.contains(entry.video) {
+            found.append(entry.video)
+        }
+        return Array(found.prefix(limit))
+    }
+
+    static func video(_ id: String) -> Video? { videos.first { $0.video.id == id }?.video }
+
+    /// The embed address; only these IDs, nothing from the model. / Адрес встраивания; только эти ID, ничего от модели.
+    static func embedURL(_ id: String) -> URL? {
+        guard videos.contains(where: { $0.video.id == id }) else { return nil }
+        return URL(string: "https://www.youtube-nocookie.com/embed/\(id)?autoplay=1&rel=0")
+    }
+
+    /// The best lesson by shared word stems (5 letters), at least one match. / Лучший урок по общим основам слов.
+    static func bestMatch(question: String, names: [(id: String, name: String)]) -> String? {
+        func stems(_ text: String) -> Set<String> {
+            Set(lowered(text).split(whereSeparator: { !$0.isLetter }).filter { $0.count >= 4 }.map { String($0.prefix(5)) })
+        }
+        let asked = stems(question)
+        let scored = names.map { ($0.id, stems($0.name).intersection(asked).count) }.filter { $0.1 > 0 }
+        return scored.max { $0.1 < $1.1 }?.0
+    }
+}
+
+struct HUDExplainInfo: Encodable, Equatable {
+    var template: String
+    var lesson: String
+    var videos: [HUDTopic.Video]
 }

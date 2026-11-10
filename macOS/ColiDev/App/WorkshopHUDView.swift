@@ -155,6 +155,9 @@ final class WorkshopHUDController: ObservableObject {
     let memory = MemoryModel()
     private var memoryOpenID = 0
     private var notebookOpenID = 0
+    private var notebookTitle = "NotebookLM"
+    private var paneIsVideo = false
+    private var practiceOpenID = 0
     private var terminalRun = 0
     /// Agents in the order the orchestrator tries them for "агент: …". / Порядок агентов для «агент: …».
     static let agentOrder: [WorkshopAgent] = [.claude, .opencode, .gemini, .hermes, .openclaw]
@@ -216,7 +219,7 @@ final class WorkshopHUDController: ObservableObject {
         bridge.send("confirm", confirmMessage(model))
         bridge.send("terminal", terminalMessage(model))
         bridge.send("memory", memoryMessage())
-        bridge.send("notebook", HUDNotebookMessage(openID: notebookOpenID))
+        bridge.send("notebook", HUDNotebookMessage(openID: notebookOpenID, title: notebookTitle))
         if let answer = answerMessage(model) { bridge.send("answer", answer) }
         bridge.send("state", stateMessage(store: store, model: model))
     }
@@ -284,8 +287,10 @@ final class WorkshopHUDController: ObservableObject {
         if model.isAnswering {
             let partial = HUDText.withoutActions(model.current.text)
             guard !partial.isEmpty else { return nil }
-            return HUDAnswerMessage(id: "live-\(model.messages.count)", title: title, html: HUDHTML.answer(partial),
-                                    sources: text("hud.sources.pending"), open: HUDText.needsWindow(partial))
+            var live = HUDAnswerMessage(id: "live-\(model.messages.count)", title: title, html: HUDHTML.answer(partial),
+                                        sources: text("hud.sources.pending"), open: HUDText.needsWindow(partial))
+            live.explain = explainInfo(lastQuestion(model) ?? "")
+            return live
         }
         guard let last = model.messages.last(where: { $0.role == "assistant" }) else {
             return HUDAnswerMessage(id: "empty", title: text("hud.ex.title"), html: "<p>" + HUDHTML.escape(text("hud.ex.empty")) + "</p>",
@@ -303,8 +308,10 @@ final class WorkshopHUDController: ObservableObject {
         // The same id as the live answer, so a window the owner closed does not open again.
         // Тот же id, что у живого ответа: закрытое окно не открывается снова.
         let index = model.messages.firstIndex(where: { $0.id == last.id }) ?? model.messages.count
-        return HUDAnswerMessage(id: "live-\(index)", title: HUDText.short(question, limit: 80), html: HUDHTML.answer(last.text),
+        var message = HUDAnswerMessage(id: "live-\(index)", title: HUDText.short(question, limit: 80), html: HUDHTML.answer(last.text),
                                 sources: sources, open: last.id == answerID && HUDText.needsWindow(last.text))
+        message.explain = explainInfo(question)
+        return message
     }
 
     private static func lastLine(_ output: String) -> String? {
@@ -355,6 +362,18 @@ final class WorkshopHUDController: ObservableObject {
         case .openclaw: return "openclaw onboard"
         case .freebuff: return "freebuff"
         }
+    }
+
+    /// The lesson of the path that best matches the question. / Урок пути, лучше всего подходящий к вопросу.
+    private func matchedLesson(_ question: String) -> AIPathLesson? {
+        let names = AIPathCatalog.available.map { (id: $0.resource, name: lessonName($0)) }
+        guard let id = HUDTopic.bestMatch(question: question, names: names) else { return nil }
+        return AIPathCatalog.available.first { $0.resource == id }
+    }
+
+    private func explainInfo(_ question: String) -> HUDExplainInfo {
+        HUDExplainInfo(template: HUDTopic.template(for: question), lesson: matchedLesson(question).map(lessonName) ?? "",
+                       videos: HUDTopic.videos(for: question))
     }
 
     /// «Память» for the glass panel: the list, the open note as HTML and the vault. / «Память» для стеклянной панели.
@@ -579,7 +598,7 @@ final class WorkshopHUDController: ObservableObject {
                 out = practice.errorSummary.map { HUDText.short($0, limit: 120) } ?? HUDText.outputLine(practice.output)
             }
         }
-        return HUDPracticeMessage(file: document.url.lastPathComponent, code: code, out: out, ok: ok, good: good)
+        return HUDPracticeMessage(file: document.url.lastPathComponent, code: code, out: out, ok: ok, good: good, openID: practiceOpenID)
     }
 
     private func runPractice() {
@@ -690,6 +709,29 @@ final class WorkshopHUDController: ObservableObject {
             if onDismiss != nil { WorkshopOverlay.shared.show() }
         case .notebookRect(let x, let y, let width, let height, let open):
             placeNotebook(x: x, y: y, width: width, height: height, open: open)
+        case .openLesson:
+            guard let lesson = matchedLesson(lastQuestion(model) ?? "") else { return }
+            // The lesson with its 3D lab opens in the main window. / Урок с 3D-тренажёром — в главном окне.
+            WorkshopOverlay.shared.hide()
+            WorkshopHub.shared.openPath()
+            NotificationCenter.default.post(name: .workshopOpenLesson, object: lesson.resource)
+        case .video(let id):
+            guard let url = HUDTopic.embedURL(id) else { return }
+            notebookTitle = HUDTopic.video(id)?.title ?? text("hud.ex.video")
+            paneIsVideo = true
+            _ = NotebookWindow.shared.mediaView(url)
+            notebookOpenID += 1
+            schedulePush()
+        case .practiceTopic:
+            if let lesson = matchedLesson(lastQuestion(model) ?? "") {
+                practice.open(.lesson(subject: lesson.subject, resource: lesson.resource, title: lessonName(lesson), goal: "", language))
+            } else if practice.document == nil {
+                practice.restore(language)
+            }
+            practiceOpenID += 1
+            schedulePush()
+        case .practiceFix:
+            break
         case .reveal(let path):
             let url = URL(fileURLWithPath: path)
             guard WorkshopAgents.isInside(url, root: WorkshopModel.root), FileManager.default.fileExists(atPath: url.path) else { return }
@@ -711,7 +753,7 @@ final class WorkshopHUDController: ObservableObject {
             // A check reads what the page shows (window open, title, text) into a file. / Проверка читает, что видно на странице.
             DispatchQueue.main.asyncAfter(deadline: .now() + 18) { [weak self] in
                 self?.bridge.webView.evaluateJavaScript(
-                    "JSON.stringify({exOpen: document.getElementById('exWin').classList.contains('open'), title: document.getElementById('exTitle').textContent, state: document.getElementById('state').textContent, line: document.getElementById('line').textContent, body: document.getElementById('exBody').innerText.slice(0, 1500)})"
+                    "JSON.stringify({exOpen: document.getElementById('exWin').classList.contains('open'), title: document.getElementById('exTitle').textContent, state: document.getElementById('state').textContent, line: document.getElementById('line').textContent, body: document.getElementById('exBody').innerText.slice(0, 600), tabs: document.getElementById('tabs').innerText})"
                 ) { result, _ in try? ((result as? String) ?? "").write(toFile: dump, atomically: true, encoding: .utf8) }
             }
         }
@@ -754,7 +796,10 @@ final class WorkshopHUDController: ObservableObject {
 
     /// The NotebookLM web view follows the glass panel the page draws. / Веб-вид NotebookLM следует за стеклянной панелью.
     private func placeNotebook(x: Double, y: Double, width: Double, height: Double, open: Bool) {
-        let pane = NotebookWindow.shared.paneView()
+        let pane = paneIsVideo ? NotebookWindow.shared.mediaView(nil) : NotebookWindow.shared.paneView()
+        let other = paneIsVideo ? NotebookWindow.shared.paneView() : NotebookWindow.shared.mediaView(nil)
+        if other.superview === bridge.webView { other.removeFromSuperview() }
+        if !open, paneIsVideo { NotebookWindow.shared.stopMedia() }
         let host = bridge.webView
         guard open, width > 40, height > 40 else {
             if pane.superview === host { pane.removeFromSuperview() }
@@ -785,6 +830,9 @@ final class WorkshopHUDController: ObservableObject {
         case "obs":
             openMemory()
         case "nlm":
+            paneIsVideo = false
+            notebookTitle = "NotebookLM"
+            NotebookWindow.shared.stopMedia()
             notebookOpenID += 1
             schedulePush()
             say(text("hud.nlm.open"))

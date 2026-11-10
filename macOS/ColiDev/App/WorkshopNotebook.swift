@@ -29,6 +29,21 @@ final class NotebookWindow: NSObject, WKUIDelegate, WKNavigationDelegate {
         return webView
     }
 
+    /// A second web view for videos in the same glass panel (NotebookLM keeps its page). / Второй веб-вид для видео.
+    private var media: WKWebView?
+    func mediaView(_ url: URL?) -> WKWebView {
+        let view = media ?? makeWebView()
+        media = view
+        guard let url else { return view }
+        var request = URLRequest(url: url)
+        // YouTube embeds want a referring page. / Встраивание YouTube требует страницу-источник.
+        request.setValue("https://github.com/weekendbuildings/coli-dev", forHTTPHeaderField: "Referer")
+        view.load(request)
+        return view
+    }
+
+    func stopMedia() { media?.loadHTMLString("", baseURL: nil) }
+
     func show(title: String) {
         if window == nil { makeWindow(title: title) }
         NSApp.activate(ignoringOtherApps: true)

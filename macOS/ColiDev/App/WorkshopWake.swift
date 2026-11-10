@@ -12,6 +12,8 @@ import SwiftUI
 extension Notification.Name {
     /// The main window shows the workshop HUD. / Главное окно показывает HUD Мастерской.
     static let workshopSummon = Notification.Name("colidev.workshop.summon")
+    /// Open a lesson (resource) in the main window. / Открыть урок в главном окне.
+    static let workshopOpenLesson = Notification.Name("colidev.workshop.openLesson")
 }
 
 @MainActor

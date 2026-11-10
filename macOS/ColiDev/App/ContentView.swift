@@ -261,6 +261,12 @@ struct ContentView: View {
             if Self.startSection == .workshop { DispatchQueue.main.async { columns = .detailOnly } }
         }
         // The wake word or the hot key brings the HUD up. / Слово вызова или горячая клавиша показывают HUD.
+        // «Открыть урок» from the workshop. / «Открыть урок» из Мастерской.
+        .onReceive(NotificationCenter.default.publisher(for: .workshopOpenLesson)) { note in
+            if let resource = note.object as? String, let lesson = AIPathCatalog.lessons.first(where: { $0.resource == resource }) {
+                openPathLesson(lesson)
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .workshopSummon)) { _ in
             selection = .workshop
             columns = .detailOnly
