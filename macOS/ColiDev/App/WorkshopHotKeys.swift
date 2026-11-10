@@ -38,11 +38,15 @@ final class WorkshopHub {
         installHandler()
         _ = register(.summon, HUDShortcut.find(UserDefaults.standard.string(forKey: HUDShortcut.defaultsKey)))
         _ = register(.voice, HUDShortcut.voice)
-        wake.onWake = { [weak self] in
-            self?.summon()
-            self?.listenAfterWake()
-        }
-        wake.onClose = { if WorkshopOverlay.shared.isVisible { WorkshopOverlay.shared.hide() } }
+        // «Творец» / "Creator" addresses the assistant: the question is heard and answered by voice; the overlay stays
+        // as it is (closed → only a small glass badge). / «Творец» — обращение к ассистенту; оверлей не открывается сам.
+        wake.onWake = { [weak self] in self?.listenAfterWake() }
+        wake.onCommand = { [weak self] command in self?.run(command) }
+        Publishers.CombineLatest3(model.voice.$isListening, model.voice.$isSpeaking, model.$isAnswering)
+            .sink { [weak self] listening, speaking, answering in
+                DispatchQueue.main.async { self?.updateBadge(listening: listening, speaking: speaking, answering: answering) }
+            }
+            .store(in: &subscriptions)
         // Listening pauses while the owner talks or the assistant speaks. / Пауза, пока владелец говорит или ассистент отвечает.
         Publishers.CombineLatest(model.voice.$isListening, model.voice.$isSpeaking)
             .map { $0 || $1 }
@@ -129,6 +133,47 @@ final class WorkshopHub {
         WorkshopOverlay.shared.show()
     }
 
+    /// Runs a voice command; nothing is sent to the model. / Выполняет голосовую команду; модели ничего не уходит.
+    func run(_ command: HUDVoiceCommand) {
+        switch command {
+        case .openWorkshop: WorkshopOverlay.shared.show()
+        case .closeWorkshop: WorkshopOverlay.shared.hide()
+        case .openPath:
+            // Saying it again while the app is in front closes it. / Повтор, когда приложение впереди, закрывает его.
+            if NSApp.isActive, let window = Self.mainWindow, window.isVisible, window.isKeyWindow { closePath() } else { openPath() }
+        case .closePath: closePath()
+        }
+    }
+
+    private func openPath() {
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+        if let window = Self.mainWindow {
+            window.collectionBehavior.insert(.moveToActiveSpace)
+            if window.isMiniaturized { window.deminiaturize(nil) }
+            window.makeKeyAndOrderFront(nil)
+        } else {
+            NSWorkspace.shared.open(Bundle.main.bundleURL)
+        }
+    }
+
+    /// The app window goes away; the listener and the overlay keep working. / Окно уходит, слушание и оверлей остаются.
+    private func closePath() {
+        Self.mainWindow?.orderOut(nil)
+        if !WorkshopOverlay.shared.isVisible { NSApp.setActivationPolicy(.accessory) }
+    }
+
+    /// With the overlay closed a voice turn shows only a small glass badge. / При закрытом оверлее — только маленький значок.
+    private func updateBadge(listening: Bool, speaking: Bool, answering: Bool) {
+        guard !WorkshopOverlay.shared.isVisible, turn != nil || listening || speaking || answering else {
+            WorkshopVoiceBadge.shared.hide()
+            return
+        }
+        guard let store else { return }
+        let key = speaking ? "hud.state.speak" : (answering ? "hud.state.think" : "hud.state.listen")
+        WorkshopVoiceBadge.shared.show(L10n.text(key, store.language))
+    }
+
     /// After the wake word the question is heard until a pause, then sent. / После слова вызова вопрос слушается до паузы.
     private func listenAfterWake() {
         guard let store, let model, turn == nil, !model.voice.isListening else { return }
@@ -148,11 +193,11 @@ final class WorkshopHub {
                 current.lastChange = now
                 self.turn = current
             }
-            if HUDWakeWord.isClose(current.transcript) {
-                // "Close workshop" is a command, not a question. / «Закрыть мастерскую» — команда, а не вопрос.
+            if let command = HUDVoiceCommand.parse(current.transcript) {
+                // A command, not a question. / Команда, а не вопрос.
                 self.turn = nil
                 Task { _ = await model.voice.stop(); await self.refreshWake() }
-                WorkshopOverlay.shared.hide()
+                self.run(command)
                 return
             }
             switch HUDVoiceTurn.ending(transcript: current.transcript, started: current.started, lastChange: current.lastChange, now: now) {

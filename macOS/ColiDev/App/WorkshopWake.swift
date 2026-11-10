@@ -23,8 +23,8 @@ final class WorkshopWakeListener: ObservableObject {
 
     @Published private(set) var status: Status = .off
     var onWake: () -> Void = {}
-    /// "Close workshop" heard while the overlay is open. / Услышано «Закрыть мастерскую».
-    var onClose: () -> Void = {}
+    /// A voice command was heard (open/close the workshop or the path). / Услышана голосовая команда.
+    var onCommand: (HUDVoiceCommand) -> Void = { _ in }
     private var closeHeard: [String: Bool] = [:]
 
     private let engine = AVAudioEngine()
@@ -115,9 +115,9 @@ final class WorkshopWakeListener: ObservableObject {
 
     private func heard(_ text: String, locale: String, done: Bool, failed: Bool, cycle current: Int) {
         guard current == cycle else { return }
-        if HUDWakeWord.isClose(text), closeHeard[locale] != true {
+        if let command = HUDVoiceCommand.parse(text), closeHeard[locale] != true {
             closeHeard[locale] = true
-            onClose()
+            onCommand(command)
             restart(after: 0.3)
             return
         }

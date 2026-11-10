@@ -522,6 +522,24 @@ enum HUDWakeWord {
     }
 }
 
+/// Voice commands, never sent to the model as questions. / Голосовые команды; модели как вопросы не уходят.
+enum HUDVoiceCommand: Equatable {
+    case openWorkshop, closeWorkshop, openPath, closePath
+
+    static func parse(_ transcript: String) -> HUDVoiceCommand? {
+        let words = transcript.lowercased().replacingOccurrences(of: "ё", with: "е").replacingOccurrences(of: "’", with: "'")
+            .split(whereSeparator: { !$0.isLetter && $0 != "'" }).map(String.init)
+        let text = " " + words.joined(separator: " ") + " "
+        func has(_ phrases: [String]) -> Bool { phrases.contains { text.contains(" " + $0 + " ") } }
+        let path = ["путь творца", "creator's path", "creators path", "creator path"]
+        if has(["закрыть путь творца", "закрой путь творца", "close creator's path", "close creators path", "close creator path"]) { return .closePath }
+        if HUDWakeWord.isClose(transcript) { return .closeWorkshop }
+        if has(path) { return .openPath }
+        if has(["открыть мастерскую", "открой мастерскую", "мастерская", "open workshop", "open the workshop"]) { return .openWorkshop }
+        return nil
+    }
+}
+
 /// When a voice turn after the wake word ends. / Когда кончается голосовой вопрос после слова вызова.
 enum HUDVoiceTurn {
     enum Ending: Equatable { case ask, cancel }

@@ -219,3 +219,63 @@ struct WorkshopBackgroundSection: View {
         }
     }
 }
+
+
+/// A small glass badge at the top of the screen while the assistant listens, thinks or speaks with the overlay closed.
+/// Маленький стеклянный значок сверху, пока ассистент слушает, думает или говорит при закрытом оверлее.
+@MainActor
+final class WorkshopVoiceBadge {
+    static let shared = WorkshopVoiceBadge()
+    private var panel: NSPanel?
+    private let label = NSTextField(labelWithString: "")
+
+    func show(_ text: String) {
+        let panel = self.panel ?? make()
+        label.stringValue = text
+        if let screen = NSScreen.main {
+            let size = NSSize(width: 220, height: 44)
+            panel.setFrame(NSRect(x: screen.frame.midX - size.width / 2, y: screen.visibleFrame.maxY - size.height - 12,
+                                  width: size.width, height: size.height), display: true)
+        }
+        if !panel.isVisible {
+            panel.alphaValue = 0
+            panel.orderFrontRegardless()
+            NSAnimationContext.runAnimationGroup { $0.duration = 0.25; panel.animator().alphaValue = 1 }
+        }
+    }
+
+    func hide() {
+        guard let panel, panel.isVisible else { return }
+        NSAnimationContext.runAnimationGroup({ $0.duration = 0.25; panel.animator().alphaValue = 0 },
+                                             completionHandler: { Task { @MainActor in panel.orderOut(nil) } })
+    }
+
+    private func make() -> NSPanel {
+        let panel = NSPanel(contentRect: NSRect(x: 0, y: 0, width: 220, height: 44), styleMask: [.borderless, .nonactivatingPanel],
+                            backing: .buffered, defer: false)
+        panel.level = .statusBar
+        panel.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary, .stationary, .ignoresCycle]
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
+        panel.ignoresMouseEvents = true
+        let glass = NSVisualEffectView(frame: panel.contentRect(forFrameRect: panel.frame))
+        glass.material = .hudWindow
+        glass.blendingMode = .behindWindow
+        glass.state = .active
+        glass.wantsLayer = true
+        glass.layer?.cornerRadius = 22
+        glass.layer?.masksToBounds = true
+        glass.autoresizingMask = [.width, .height]
+        label.font = .systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .white
+        label.alignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+        glass.addSubview(label)
+        NSLayoutConstraint.activate([label.centerXAnchor.constraint(equalTo: glass.centerXAnchor),
+                                     label.centerYAnchor.constraint(equalTo: glass.centerYAnchor)])
+        panel.contentView = glass
+        self.panel = panel
+        return panel
+    }
+}

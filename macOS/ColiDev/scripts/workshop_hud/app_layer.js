@@ -138,6 +138,15 @@ if (APP) {
   $('memChoose').addEventListener('click', () => post('memoryChoose'));
   new MutationObserver(nbFollow).observe($('nbWin'), { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', nbReport);
+  // Как поповер macOS: щелчок мимо закрывает открытое окно, панель, карточку и док. / Click outside closes, like a popover.
+  addEventListener('pointerdown', (e) => {
+    const inside = (sel) => e.target.closest(sel);
+    if (inside('#rail') || inside('#tip')) return;
+    ['edWin', 'exWin', 'memWin', 'nbWin'].forEach((id) => { if ($(id).classList.contains('open') && !inside('#' + id)) setWin(id, false); });
+    if (popOpen && !inside('#pop')) setPop(popOpen);
+    if ($('card').classList.contains('open') && !inside('#card')) $('card').classList.remove('open');
+    if ($('bc').classList.contains('tools') && !inside('#bc')) setTools(false);
+  }, true);
   document.querySelector('#edWin .file').addEventListener('click', () => post('practiceEdit'));
   document.querySelector('#edWin pre.code').addEventListener('dblclick', () => post('practiceEdit'));
   $('pop').addEventListener('click', (e) => { const r = e.target.closest('[data-path]'); if (r) post('reveal', { path: r.dataset.path }); });

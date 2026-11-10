@@ -174,6 +174,13 @@ struct VerifyWorkshopHUD {
               && ElevenLabsVoice.language(of: "123 …") == nil && ElevenLabsVoice.language(of: "Модель GPT учится.") == "ru", "voice language per sentence / язык голоса")
         check(HUDWakeWord.isClose("Закрыть мастерскую.") && HUDWakeWord.isClose("ok, close the workshop") && !HUDWakeWord.isClose("закрыть файл")
               && !HUDWakeWord.isClose("мастерскую закрыть"), "close phrase / фраза закрытия")
+        check(HUDVoiceCommand.parse("Открыть мастерскую") == .openWorkshop && HUDVoiceCommand.parse("Мастерская!") == .openWorkshop
+              && HUDVoiceCommand.parse("open workshop") == .openWorkshop, "open workshop / открыть мастерскую")
+        check(HUDVoiceCommand.parse("Закрыть мастерскую") == .closeWorkshop && HUDVoiceCommand.parse("close the workshop") == .closeWorkshop, "close / закрыть")
+        check(HUDVoiceCommand.parse("Путь Творца") == .openPath && HUDVoiceCommand.parse("Creator’s Path") == .openPath
+              && HUDVoiceCommand.parse("открыть путь творца") == .openPath, "path / путь")
+        check(HUDVoiceCommand.parse("Закрыть путь Творца") == .closePath && HUDVoiceCommand.parse("close creator's path") == .closePath, "close path")
+        check(HUDVoiceCommand.parse("Творец, что такое градиент?") == nil && HUDVoiceCommand.parse("мастерскую закрыть") == nil, "questions are not commands")
         check(HUDWakeWord.count(in: "Tvorets, open") == 1, "en recognizer spelling of «Творец» / английское написание")
         check(ElevenLabsVoice.isCacheable("Слушаю.") && !ElevenLabsVoice.isCacheable(String(repeating: "a", count: 81)), "only short phrases cached / кэш только коротких")
     }

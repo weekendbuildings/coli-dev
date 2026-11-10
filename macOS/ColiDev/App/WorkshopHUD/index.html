@@ -239,7 +239,13 @@ html.app #line { transition: opacity .3s ease; }
 html.app .card { display: flex; flex-direction: row-reverse; align-items: flex-start; width: auto; }
 html.app .card .row1 { flex: none; }
 html.app .card .seg { flex-direction: column; width: auto; gap: 3px; }
-html.app .card .seg button { flex: none; writing-mode: vertical-rl; height: auto; min-height: 92px; width: 34px; padding: 12px 0; }
+/* Кнопки вкладок стоят столбиком: значок и обычная горизонтальная подпись. / A column of buttons with plain labels. */
+html.app .card .seg button { flex: none; display: flex; align-items: center; gap: 8px; height: 34px; padding: 0 12px 0 10px; text-align: left; white-space: nowrap; }
+html.app .card .seg button::before { content: ""; width: 15px; height: 15px; flex: none; background: currentColor; }
+html.app .card .seg button[data-v="agents"]::before { -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%3E%3Ccircle%20cx%3D%279%27%20cy%3D%279%27%20r%3D%273%27/%3E%3Cpath%20d%3D%27M3.5%2019a5.5%205.5%200%200%201%2011%200%27/%3E%3Ccircle%20cx%3D%2717%27%20cy%3D%2710%27%20r%3D%272.4%27/%3E%3Cpath%20d%3D%27M15.5%2014.6A4.5%204.5%200%200%201%2021%2019%27/%3E%3C/svg%3E") center / contain no-repeat; }
+html.app .card .seg button[data-v="council"]::before { -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M4%2020V10M10%2020V4M16%2020v-7M22%2020H2%27/%3E%3C/svg%3E") center / contain no-repeat; }
+html.app .card .seg button[data-v="rem"]::before { -webkit-mask: url("data:image/svg+xml,%3Csvg%20xmlns%3D%27http%3A//www.w3.org/2000/svg%27%20viewBox%3D%270%200%2024%2024%27%20fill%3D%27none%27%20stroke%3D%27black%27%20stroke-width%3D%272%27%20stroke-linecap%3D%27round%27%3E%3Cpath%20d%3D%27M6%2016v-5a6%206%200%200%201%2012%200v5l1.5%202h-15z%27/%3E%3Cpath%20d%3D%27M10%2020.5a2%202%200%200%200%204%200%27/%3E%3C/svg%3E") center / contain no-repeat; }
+
 html.app .card .body { grid-template-rows: 1fr; width: 0; max-height: 0; transition: width .55s cubic-bezier(.2,.8,.2,1), max-height .55s cubic-bezier(.2,.8,.2,1), opacity .3s ease; }
 html.app .card.open .body { width: 300px; max-height: calc(100vh - 300px); transition: width .55s cubic-bezier(.2,.8,.2,1), max-height .55s cubic-bezier(.2,.8,.2,1), opacity .45s ease .1s; }
 /* Память и NotebookLM — большие стеклянные панели внутри HUD (только в приложении).
@@ -990,6 +996,15 @@ if (APP) {
   $('memChoose').addEventListener('click', () => post('memoryChoose'));
   new MutationObserver(nbFollow).observe($('nbWin'), { attributes: true, attributeFilter: ['class'] });
   addEventListener('resize', nbReport);
+  // Как поповер macOS: щелчок мимо закрывает открытое окно, панель, карточку и док. / Click outside closes, like a popover.
+  addEventListener('pointerdown', (e) => {
+    const inside = (sel) => e.target.closest(sel);
+    if (inside('#rail') || inside('#tip')) return;
+    ['edWin', 'exWin', 'memWin', 'nbWin'].forEach((id) => { if ($(id).classList.contains('open') && !inside('#' + id)) setWin(id, false); });
+    if (popOpen && !inside('#pop')) setPop(popOpen);
+    if ($('card').classList.contains('open') && !inside('#card')) $('card').classList.remove('open');
+    if ($('bc').classList.contains('tools') && !inside('#bc')) setTools(false);
+  }, true);
   document.querySelector('#edWin .file').addEventListener('click', () => post('practiceEdit'));
   document.querySelector('#edWin pre.code').addEventListener('dblclick', () => post('practiceEdit'));
   $('pop').addEventListener('click', (e) => { const r = e.target.closest('[data-path]'); if (r) post('reveal', { path: r.dataset.path }); });

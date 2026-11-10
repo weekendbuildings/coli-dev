@@ -177,7 +177,7 @@ final class WorkshopHUDController: ObservableObject {
         refreshProviders()
         bridge.onMessage = { [weak self] in self?.handle($0) }
         model.voiceHandler = { [weak self] heard in
-            if HUDWakeWord.isClose(heard) { WorkshopOverlay.shared.hide(); return true }
+            if let command = HUDVoiceCommand.parse(heard) { WorkshopHub.shared.run(command); return true }
             return self?.routeToAgent(heard, byVoice: true) ?? false
         }
         let changes: [AnyPublisher<Void, Never>] = [
